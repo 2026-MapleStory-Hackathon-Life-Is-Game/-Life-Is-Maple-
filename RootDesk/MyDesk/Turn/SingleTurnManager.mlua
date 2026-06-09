@@ -1,0 +1,122 @@
+@Logic
+script SingleTurnManager extends Logic
+
+	@Sync
+	property string _currentState = "IDLE"
+
+	@Sync
+	property boolean _isActive = false
+
+	property any _turnButtonHandler = nil
+
+	method void OnEndPlay()
+		-- 클라이언트: 턴 버튼 이벤트를 해제합니다.
+		if self:IsClient() then
+			local btn = _EntityService:GetEntityByPath("/ui/DefaultGroup/UIButton")
+			if isvalid(btn) and self._turnButtonHandler ~= nil then
+				btn:DisconnectEvent(ButtonClickEvent, self._turnButtonHandler)
+				self._turnButtonHandler = nil
+			end
+		end
+	end
+
+	@ExecSpace("Server")
+	method void Start()
+		-- 싱글플레이 턴을 활성화하고 첫 턴을 시작합니다.
+		self._isActive = true
+		self._currentState = "IDLE"
+		log("[SingleTurnManager] 게임 시작")
+		self:AdvanceState()
+	end
+
+	@ExecSpace("Server")
+	method void Stop()
+		-- 싱글플레이 턴을 비활성화합니다.
+		self._isActive = false
+		self._currentState = "IDLE"
+		log("[SingleTurnManager] 게임 종료")
+	end
+
+	@ExecSpace("Server")
+	method string GetNextState()
+		-- 현재 상태에서 다음 상태 이름을 반환합니다.
+		if self._currentState == "IDLE" then return "TURN_START"
+		elseif self._currentState == "TURN_START" then return "DICE"
+		elseif self._currentState == "DICE" then return "MOVE"
+		elseif self._currentState == "MOVE" then return "TILE"
+		elseif self._currentState == "TILE" then return "TURN_END"
+		elseif self._currentState == "TURN_END" then return "TURN_START"
+		end
+		return "IDLE"
+	end
+
+	@ExecSpace("Server")
+	method void AdvanceState()
+		-- 다음 상태로 전환하고 해당 핸들러를 실행합니다.
+		if not self._isActive then return end
+		local nextState = self:GetNextState()
+		self._currentState = nextState
+		log("[SingleTurnManager] 상태 전환 → " .. nextState)
+		self:ExecuteCurrentState()
+	end
+
+	@ExecSpace("Server")
+	method void ExecuteCurrentState()
+		-- 현재 상태에 맞는 핸들러 메서드를 호출합니다.
+		local s = self._currentState
+		if s == "TURN_START" then self:OnTurnStart()
+		elseif s == "DICE" then self:OnDice()
+		elseif s == "MOVE" then self:OnMove()
+		elseif s == "TILE" then self:OnTile()
+		elseif s == "TURN_END" then self:OnTurnEnd()
+		end
+	end
+
+	@ExecSpace("Server")
+	method void OnTurnStart()
+		-- 턴 시작 단계. 준비가 끝나면 자동으로 DICE로 진입합니다.
+		log("[SingleTurnManager] 턴 시작")
+		self:AdvanceState()
+	end
+
+	@ExecSpace("Server")
+	method void OnDice()
+		-- 주사위 단계. 플레이어 버튼 입력 또는 DiceManager 완료 시 AdvanceState() 호출.
+		log("[SingleTurnManager] 주사위 단계 - 입력 대기 중")
+	end
+
+	@ExecSpace("Server")
+	method void OnMove()
+		-- 이동 단계. PlayerPiece 이동 완료 시 AdvanceState() 호출.
+		log("[SingleTurnManager] 이동 단계")
+	end
+
+	@ExecSpace("Server")
+	method void OnTile()
+		-- 타일 이벤트 단계. TileEntity 처리 완료 시 AdvanceState() 호출.
+		log("[SingleTurnManager] 타일 이벤트 단계")
+	end
+
+	@ExecSpace("Server")
+	method void OnTurnEnd()
+		-- 턴 종료 단계. 자동으로 다음 턴 시작으로 순환합니다.
+		log("[SingleTurnManager] 턴 종료 → 다음 턴 시작")
+		self:AdvanceState()
+	end
+
+	@ExecSpace("ClientOnly")
+	method void OnTurnButtonClicked(ButtonClickEvent event)
+		-- 이 매니저가 활성일 때만 서버에 턴 진행 요청을 보냅니다.
+		if not self._isActive then return end
+		self:RequestAdvanceTurn()
+	end
+
+	@ExecSpace("Server")
+	method void RequestAdvanceTurn()
+		-- 클라이언트의 턴 진행 요청을 받아 다음 상태로 전환합니다.
+		if not self._isActive then return end
+		log("[SingleTurnManager] 턴 진행 요청 수신")
+		self:AdvanceState()
+	end
+
+end

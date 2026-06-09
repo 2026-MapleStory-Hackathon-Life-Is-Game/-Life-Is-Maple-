@@ -1,0 +1,64 @@
+@Logic
+script GameModeManager extends Logic
+
+	@Sync
+	property string _activeMode = "NONE"
+
+	@Sync
+	property boolean _isGameActive = false
+
+	method void OnBeginPlay()
+		-- 게임 모드 매니저 초기화. 싱글/멀티 모드 선택 대기 상태.
+		log("[GameModeManager] OnBeginPlay: 모드 선택 대기 중")
+	end
+
+	method void OnEndPlay()
+		-- 게임 모드 매니저 종료.
+		log("[GameModeManager] OnEndPlay")
+	end
+
+	@ExecSpace("Server")
+	method void StartSinglePlayer()
+		-- 싱글플레이 모드를 시작합니다.
+		if self._isGameActive then
+			log_warning("[GameModeManager] 이미 게임이 진행 중입니다.")
+			return
+		end
+		log("[GameModeManager] 싱글플레이 모드 시작")
+		self._activeMode = "SINGLE"
+		self._isGameActive = true
+		_SingleTurnManager:Start()
+	end
+
+	@ExecSpace("Server")
+	method void StartMultiPlayer(integer playerCount)
+		-- 멀티플레이 모드를 시작합니다 (2~4인).
+		if self._isGameActive then
+			log_warning("[GameModeManager] 이미 게임이 진행 중입니다.")
+			return
+		end
+		if playerCount < 2 or playerCount > 4 then
+			log_error("[GameModeManager] 멀티플레이 인원은 2~4명이어야 합니다: " .. tostring(playerCount))
+			return
+		end
+		log("[GameModeManager] 멀티플레이 모드 시작 (" .. tostring(playerCount) .. "명)")
+		self._activeMode = "MULTI"
+		self._isGameActive = true
+		_MultiTurnManager:Start(playerCount)
+	end
+
+	@ExecSpace("Server")
+	method void EndGame()
+		-- 현재 게임 세션을 종료합니다.
+		if not self._isGameActive then return end
+		log("[GameModeManager] 게임 종료 (모드: " .. self._activeMode .. ")")
+		if self._activeMode == "SINGLE" then
+			_SingleTurnManager:Stop()
+		elseif self._activeMode == "MULTI" then
+			_MultiTurnManager:Stop()
+		end
+		self._activeMode = "NONE"
+		self._isGameActive = false
+	end
+
+end
