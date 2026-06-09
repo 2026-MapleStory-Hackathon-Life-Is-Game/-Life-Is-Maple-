@@ -1,0 +1,46 @@
+@Component
+script PlayerInfoPanel extends Component
+
+	property TextGUIRendererComponent UserName = "226e650b-a9ab-4336-9864-c876e18b077b"
+
+	property TextGUIRendererComponent NewValue2 = "05b6f041-e1ba-4f09-a677-e21e0429fe46"
+
+	method void OnBeginPlay()
+		if self:IsClient() then
+		
+			-- 플레이어 정보 창의 Text값을 플레이어의 닉네임으로 설정합니다.
+			local player = _UserService.LocalPlayer
+			
+			self.UserName.Text = player.PlayerComponent.Nickname
+		
+		end
+		
+		
+	end
+
+	@ExecSpace("ClientOnly")
+	method void SetPlayerPortrait()
+		-- 플레이어의 머리 제외 모든 파츠를 비활성화
+		
+		local playerPortrait = _EntityService:GetEntityByPath("/ui/DefaultGroup/PlayerInfo_Panel/PlayerPortrait").AvatarGUIRendererComponent
+		
+		if playerPortrait ~= nil then
+			
+		    --playerPortrait:SetAvatarPartColor(MapleAvatarItemCategory.Body, 1, 1, 1, 0)
+		    --playerPortrait:SetAvatarPartColor(MapleAvatarItemCategory.Cape, 1, 1, 1, 0)
+		    --playerPortrait:SetAvatarPartColor(MapleAvatarItemCategory.Coat, 1, 1, 1, 0)
+		    --playerPortrait:SetAvatarPartColor(MapleAvatarItemCategory.Glove, 1, 1, 1, 0)
+		    --playerPortrait:SetAvatarPartColor(MapleAvatarItemCategory.Longcoat, 1, 1, 1, 0)
+		    --playerPortrait:SetAvatarPartColor(MapleAvatarItemCategory.OneHandedWeapon, 1, 1, 1, 0)
+		    --playerPortrait:SetAvatarPartColor(MapleAvatarItemCategory.Pants, 1, 1, 1, 0)
+		    --playerPortrait:SetAvatarPartColor(MapleAvatarItemCategory.Shield, 1, 1, 1, 0)
+		    --playerPortrait:SetAvatarPartColor(MapleAvatarItemCategory.Shoes, 1, 1, 1, 0)
+		    --playerPortrait:SetAvatarPartColor(MapleAvatarItemCategory.SubWeapon, 1, 1, 1, 0)
+		    --playerPortrait:SetAvatarPartColor(MapleAvatarItemCategory.TwoHandedWeapon, 1, 1, 1, 0)
+			
+		end
+		
+		
+	end
+
+end

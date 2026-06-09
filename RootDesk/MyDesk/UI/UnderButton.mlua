@@ -1,0 +1,59 @@
+@Component
+script UnderButton extends Component
+
+	property any openHandler = nil
+
+	property any rollHandler = nil
+
+	property any closeHandler = nil
+
+	property ButtonComponent OpenDicePanelButton = "64eadf42-ab0c-4d9c-99f4-9da65935f7d1"
+
+	property ButtonComponent RollDiceButton = "859b1f3d-8c48-4216-b425-18e45ef436bd"
+
+	property ButtonComponent CloseDicePanelButton = "fbabd9a0-bb4d-47be-bcf0-d8625ee61e1c"
+
+	property Entity WholePanel = "f6591a77-568d-41c8-b6f0-b4721629787f"
+
+	property Entity DicePanel = "3cf2b530-e75e-4041-8925-4e4e2c4f96f1"
+
+	method void OnBeginPlay()
+		if self:IsServer() then
+		
+		else
+			-- 클라이언트: 버튼 이벤트 구독, 반환된 핸들을 저장
+			self.openHandler = self.OpenDicePanelButton.Entity:ConnectEvent(ButtonClickEvent,self.OnDicePanelClickOpen)
+			self.rollHandler = self.RollDiceButton.Entity:ConnectEvent(ButtonClickEvent,self.OnClickRoll)
+			self.closeHandler = self.CloseDicePanelButton.Entity:ConnectEvent(ButtonClickEvent,self.OnDicePanelClickClose)
+			
+			self.DicePanel.Visible = false	
+		end
+		
+	end
+
+	method void OnEndPlay()
+		if not self:IsServer() then
+					if self.openHandler ~= nil then self.openHandler:Disconnect() end
+					if self.rollHandler ~= nil then self.rollHandler:Disconnect() end
+					if self.closeHandler ~= nil then self.closeHandler:Disconnect() end
+				end
+	end
+
+	method void OnDicePanelClickOpen(any event)
+		self.DicePanel.Visible = true
+		self.WholePanel.Visible = false
+	end
+
+	method void OnClickRoll(any event)
+		-- 주사위 로직 발동
+		
+		self.DicePanel.Visible = false
+		self.WholePanel.Visible = true
+	end
+
+	method void OnDicePanelClickClose(any event)
+		self.DicePanel.Visible = false
+		self.WholePanel.Visible = true
+	end
+
+end
