@@ -1,0 +1,59 @@
+@Component
+script PlayerPiece extends Component
+
+	@Sync
+	property boolean isMoving = false
+
+	@Sync
+	property number moveSpeed = 3.0
+
+	@Sync
+	property Vector3 targetPosition = Vector3(0,0,0)
+
+	method void MoveToPosition(Vector3 tilePosition)
+		self.isMoving = true
+		self.targetPosition = tilePosition
+		
+		-- 1. 상태 변경 : 이동 시작
+		-- AvatarStateAnimationComponent가 이를 감지하고 "MOVE"에 연결된 액션(walk1 등)을 자동 재생합니다.
+		self.Entity.StateComponent:ChangeState("MOVE")
+		
+		-- 2. 방향 전환: 목적지가 현재 위치보다 왼쪽에 있으면 아바타를 좌우 반전시킵니다.
+		local currentPos = self.Entity.TransformComponent.WorldPosition
+		if tilePosition.x < currentPos.x then
+		--	self.Entity.AvatarRendererComponent.FlipX = true  -- 왼쪽 바라보기
+		elseif tilePosition.x > currentPos.x then
+		--	self.Entity.AvatarRendererComponent.FlipX = false -- 오른쪽 바라보기
+		end
+	end
+
+	@ExecSpace("ServerOnly")
+	method void OnUpdate(number delta)
+		if self.isMoving == false then return end
+		
+		local currentPos = self.Entity.TransformComponent.WorldPosition
+		local distance = Vector3.Distance(currentPos, self.targetPosition)
+		
+		-- 3. 목적지 도착 판정 (거리가 매우 가까워지면 도착으로 간주)
+		if distance <= 0.05 then
+			-- 정확한 목적지 좌표로 보정
+			self.Entity.TransformComponent.WorldPosition = self.targetPosition
+			self.isMoving = false
+		
+			-- 4. 상태 변경: 이동 종료
+			-- 다시 가만히 서 있는 모션(stand1 등)으로 자동 복귀합니다.
+			self.Entity.StateComponent:ChangeState("IDLE")
+		
+			log("말 이동 완료!")
+		
+			-- (선택) 여기에 _TurnManager:AdvanceTurn() 등을 호출하여
+			-- 이동이 완전히 끝난 직후 다음 턴으로 넘어가게 할 수 있습니다.
+			return
+		end
+		
+		-- 5. 키네마틱 이동 처리 (현재 위치에서 목적지를 향해 등속도로 이동)
+		local direction = (self.targetPosition - currentPos):Normalize()
+		self.Entity.TransformComponent.WorldPosition = currentPos + direction * self.moveSpeed * delta
+	end
+
+end
