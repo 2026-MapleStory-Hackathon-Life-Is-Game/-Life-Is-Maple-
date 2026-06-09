@@ -1,0 +1,52 @@
+@Logic
+script JobDataSetManager extends Logic
+
+	method number GetJobIndex(string job)
+		-- 각 직업에 맞는 데이터셋의 인덱스 찾기
+		
+		local index = 0
+		
+		if job == "Warrior" then
+			index = 1
+		elseif job == "Archer" then
+			index = 2
+		elseif job == "Mage" then
+			index = 3
+		elseif job == "Thief" then
+			index = 4
+		elseif job == "Pirate" then
+			index = 5
+		end
+		
+		return index
+	end
+
+	method string GetMainStatType(string job)
+		
+		-- 각 직업에 맞는 데이터셋의 인덱스 찾기
+		local index = self:GetJobIndex(job)
+		
+		-- 호출 시 Warrior일 경우, MainStat (STR/DEX/INT/LUK) 중 STR이 반환됨
+		local mainStatType = _DataService:GetCell("DataSet_MainStat", index, "MainStat")
+		
+		return mainStatType
+	end
+
+	method string GetMainAttackType(string job)
+		
+		-- 각 직업에 맞는 데이터셋의 인덱스 찾기
+		local index = self:GetJobIndex(job)
+		
+		local mainAttackType = _DataService:GetCell("DataSet_MainAttack", index, "MainAttack")
+			-- 호출 시 Warrior일 경우, MainAttack (공/마 중 '공')이 반환됨
+			
+			if mainAttackType == "Attack" then 
+				return "공격력"
+			elseif mainAttackType == "MagicAttack" then
+				return "마력"
+			else
+				return "N/A"
+			end
+	end
+
+end
