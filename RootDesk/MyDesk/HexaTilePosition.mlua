@@ -1,0 +1,28 @@
+@Component
+script HexaTilePosition extends Component
+
+	property table tilePositons = {}
+
+	method void OnBeginPlay()
+		if self:IsClient() then
+			
+			-- 자식 엔티티 목록
+					local children = self.Entity.Children
+		
+					-- 테이블 초기화
+					self.tilePositons = {}
+		
+					for i = 1, #children do
+						local child = children[i]
+						-- 각 자식의 위치를 Vector3로 가져옴
+						local pos = child.TransformComponent.WorldPosition
+						self.tilePositons[i] = pos
+					end
+		
+					log("저장된 타일 수: " .. tostring(#self.tilePositons))
+		end
+		
+		
+	end
+
+end
