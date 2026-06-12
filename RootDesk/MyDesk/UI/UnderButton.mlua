@@ -33,19 +33,30 @@ script UnderButton extends Component
 
 	method void OnEndPlay()
 		if not self:IsServer() then
-					if self.openHandler ~= nil then self.openHandler:Disconnect() end
-					if self.rollHandler ~= nil then self.rollHandler:Disconnect() end
-					if self.closeHandler ~= nil then self.closeHandler:Disconnect() end
+					if self.openHandler ~= nil then
+						self.OpenDicePanelButton.Entity:DisconnectEvent(ButtonClickEvent, self.openHandler)
+					end
+					if self.rollHandler ~= nil then
+						self.RollDiceButton.Entity:DisconnectEvent(ButtonClickEvent, self.rollHandler)
+					end
+					if self.closeHandler ~= nil then
+						self.CloseDicePanelButton.Entity:DisconnectEvent(ButtonClickEvent, self.closeHandler)
+					end
 				end
 	end
 
 	method void OnDicePanelClickOpen(any event)
-		self.DicePanel.Visible = true
-		self.WholePanel.Visible = false
+		if self:CanOpenDicePanel() == false then
+					return   -- 주사위 차례가 아니면 패널 안 열림
+				end
+				self.DicePanel.Visible = true
+				self.WholePanel.Visible = false
 	end
 
 	method void OnClickRoll(any event)
 		-- 주사위 로직 발동
+		_SingleTurnManager:RequestRollDice()
+		_MultiTurnManager:RequestRollDice()
 		
 		self.DicePanel.Visible = false
 		self.WholePanel.Visible = true
@@ -54,6 +65,26 @@ script UnderButton extends Component
 	method void OnDicePanelClickClose(any event)
 		self.DicePanel.Visible = false
 		self.WholePanel.Visible = true
+	end
+
+	method boolean CanOpenDicePanel()
+		local mode = _GameModeManager._activeMode
+		
+				if mode == "SINGLE" then
+					-- 싱글: DICE 단계이기만 하면 OK
+					return _SingleTurnManager._currentState == "DICE"
+		
+				elseif mode == "MULTI" then
+					-- 멀티: DICE 단계 + 내가 현재 턴 플레이어여야 함
+					if _MultiTurnManager._currentState ~= "DICE" then
+						return false
+					end
+					local myUserId = _UserService.LocalPlayer.PlayerComponent.UserId
+					return myUserId == _MultiTurnManager._currentPlayerUserId
+				end
+		
+				-- 그 외(NONE 등): 못 엶
+				return false
 	end
 
 end

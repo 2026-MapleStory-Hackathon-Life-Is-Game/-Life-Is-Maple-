@@ -17,7 +17,9 @@
       "Name": "DefaultPlayer",
       "BaseModelId": "player",
       "Id": "defaultplayer",
-      "Components": [],
+      "Components": [
+        "script.PlayerMovement"
+      ],
       "Properties": [],
       "Values": [
         {
@@ -724,6 +726,33 @@
             "x": 2.0,
             "y": 0.5
           }
+        },
+        {
+          "TargetType": "script.PlayerMovement",
+          "Name": "moveVelocity",
+          "ValueType": {
+            "$type": "MODNativeType",
+            "type": "System.Double, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089"
+          },
+          "Value": 3.0
+        },
+        {
+          "TargetType": "MOD.Core.PlayerControllerComponent",
+          "Name": "LookDirectionX",
+          "ValueType": {
+            "$type": "MODNativeType",
+            "type": "System.Single, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089"
+          },
+          "Value": 2.0
+        },
+        {
+          "TargetType": "MOD.Core.PlayerControllerComponent",
+          "Name": "AlwaysMovingState",
+          "ValueType": {
+            "$type": "MODNativeType",
+            "type": "System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089"
+          },
+          "Value": false
         }
       ],
       "EventLinks": [],

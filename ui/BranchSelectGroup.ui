@@ -1,7 +1,7 @@
 {
   "Id": "",
   "GameId": "",
-  "EntryKey": "ui://ab05a377-e529-4950-819f-c90c27e68a20",
+  "EntryKey": "ui://4a33a09e-11ff-4f63-9435-4cdc4db02724",
   "ContentType": "x-mod/ui",
   "Content": "",
   "Usage": 0,
@@ -14,22 +14,22 @@
     "Use": "Binary",
     "Entities": [
       {
-        "id": "ab05a377-e529-4950-819f-c90c27e68a20",
-        "path": "/ui/JobSelectGroup",
+        "id": "4a33a09e-11ff-4f63-9435-4cdc4db02724",
+        "path": "/ui/BranchSelectGroup",
         "componentNames": "MOD.Core.UITransformComponent,MOD.Core.UIGroupComponent,MOD.Core.CanvasGroupComponent",
         "jsonString": {
-          "name": "JobSelectGroup",
-          "path": "/ui/JobSelectGroup",
+          "name": "BranchSelectGroup",
+          "path": "/ui/BranchSelectGroup",
           "nameEditable": true,
           "enable": true,
           "visible": true,
           "localize": true,
-          "displayOrder": 3,
+          "displayOrder": 4,
           "pathConstraints": "//",
-          "revision": 0,
+          "revision": 1,
           "origin": {
             "type": "Model",
-            "entry_id": "UIGroup",
+            "entry_id": "uigroup",
             "sub_entity_id": null,
             "root_entity_id": null,
             "replaced_model_id": null
@@ -38,7 +38,6 @@
           "@components": [
             {
               "@type": "MOD.Core.UITransformComponent",
-              "ActivePlatform": 255,
               "AlignmentOption": 15,
               "AnchorsMax": {
                 "x": 1.0,
@@ -66,11 +65,6 @@
                 "y": 1080.0
               },
               "UIMode": 1,
-              "UIScale": {
-                "x": 1.0,
-                "y": 1.0,
-                "z": 1.0
-              },
               "UIVersion": 2,
               "anchoredPosition": {
                 "x": 0.0,
@@ -87,25 +81,17 @@
                 "z": 0.0,
                 "w": 1.0
               },
-              "Scale": {
-                "x": 1.0,
-                "y": 1.0,
-                "z": 1.0
-              },
               "Enable": true
             },
             {
               "@type": "MOD.Core.UIGroupComponent",
               "DefaultShow": true,
-              "GroupOrder": 3,
-              "GroupType": 1,
+              "GroupOrder": 4,
+              "GroupType": 2,
               "Enable": true
             },
             {
               "@type": "MOD.Core.CanvasGroupComponent",
-              "BlocksRaycasts": true,
-              "GroupAlpha": 1.0,
-              "Interactable": true,
               "Enable": true
             }
           ],
@@ -113,12 +99,12 @@
         }
       },
       {
-        "id": "e443565f-8fd0-4c78-9173-ceba78635bd5",
-        "path": "/ui/JobSelectGroup/Panel",
+        "id": "13367a9a-0361-4ca5-8c7e-f472404b1edf",
+        "path": "/ui/BranchSelectGroup/Panel",
         "componentNames": "MOD.Core.UITransformComponent,MOD.Core.SpriteGUIRendererComponent",
         "jsonString": {
           "name": "Panel",
-          "path": "/ui/JobSelectGroup/Panel",
+          "path": "/ui/BranchSelectGroup/Panel",
           "nameEditable": true,
           "enable": true,
           "visible": true,
@@ -149,20 +135,20 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 256.2971,
-                "y": 161.234
+                "x": 800.0,
+                "y": 400.0
               },
               "OffsetMin": {
-                "x": -263.7029,
-                "y": -158.766
+                "x": -800.0,
+                "y": -400.0
               },
               "Pivot": {
                 "x": 0.5,
                 "y": 0.5
               },
               "RectSize": {
-                "x": 520.0,
-                "y": 320.0
+                "x": 1600.0,
+                "y": 800.0
               },
               "UIMode": 1,
               "UIScale": {
@@ -172,12 +158,12 @@
               },
               "UIVersion": 2,
               "anchoredPosition": {
-                "x": -3.7029,
-                "y": 1.234
+                "x": 0.0,
+                "y": 0.0
               },
               "Position": {
-                "x": -3.7029,
-                "y": 1.234,
+                "x": 0.0,
+                "y": 0.0,
                 "z": 0.0
               },
               "QuaternionRotation": {
@@ -199,6 +185,7 @@
                 "DataId": "4fea64a3307cda641809ad8be0d4890b"
               },
               "OverrideSorting": false,
+              "SortingLayer": "MapLayer0",
               "Color": {
                 "r": 0.08,
                 "g": 0.08,
@@ -212,12 +199,12 @@
         }
       },
       {
-        "id": "3599be9c-6bb1-4f73-b16d-9b5253cd3309",
-        "path": "/ui/JobSelectGroup/Panel/Title",
+        "id": "71b7d146-018c-4089-bfb3-54b381c294d4",
+        "path": "/ui/BranchSelectGroup/Panel/Title",
         "componentNames": "MOD.Core.UITransformComponent,MOD.Core.SpriteGUIRendererComponent,MOD.Core.TextComponent",
         "jsonString": {
           "name": "Title",
-          "path": "/ui/JobSelectGroup/Panel/Title",
+          "path": "/ui/BranchSelectGroup/Panel/Title",
           "nameEditable": true,
           "enable": true,
           "visible": true,
@@ -237,23 +224,23 @@
             {
               "@type": "MOD.Core.UITransformComponent",
               "ActivePlatform": 255,
-              "AlignmentOption": 3,
+              "AlignmentOption": 0,
               "AnchorsMax": {
                 "x": 0.5,
-                "y": 1.0
+                "y": 0.5
               },
               "AnchorsMin": {
                 "x": 0.5,
-                "y": 1.0
+                "y": 0.5
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 220.0,
-                "y": -44.0
+                "x": 229.0874,
+                "y": 341.3241
               },
               "OffsetMin": {
-                "x": -220.0,
-                "y": -100.0
+                "x": -210.9126,
+                "y": 285.3241
               },
               "Pivot": {
                 "x": 0.5,
@@ -271,12 +258,12 @@
               },
               "UIVersion": 2,
               "anchoredPosition": {
-                "x": 0.0,
-                "y": -44.0
+                "x": 9.0874,
+                "y": 341.3241
               },
               "Position": {
-                "x": 0.0,
-                "y": 116.0,
+                "x": 9.0874,
+                "y": 341.3241,
                 "z": 0.0
               },
               "QuaternionRotation": {
@@ -313,13 +300,13 @@
               "OverrideSorting": false,
               "PlayRate": 1.0,
               "PreserveSprite": 0,
-              "SortingLayer": "UI",
+              "SortingLayer": "MapLayer0",
               "StartFrameIndex": 0,
               "Color": {
                 "r": 1.0,
-                "g": 1.0,
-                "b": 1.0,
-                "a": 0.0
+                "g": 0.703125,
+                "b": 0.0,
+                "a": 1.0
               },
               "DropShadow": false,
               "DropShadowAngle": 120.0,
@@ -369,10 +356,10 @@
                 "a": 0.72
               },
               "DropShadowDistance": 3.0,
-              "Font": 0,
+              "Font": 1,
               "FontColor": {
-                "r": 1.0,
-                "g": 0.843137264,
+                "r": 0.0,
+                "g": 0.0,
                 "b": 0.0,
                 "a": 1.0
               },
@@ -403,7 +390,7 @@
               },
               "SizeFit": false,
               "SortingLayer": "UI",
-              "Text": "직업을 선택하세요",
+              "Text": "어느 쪽으로 갈까?",
               "UseConstraintX": false,
               "UseConstraintY": false,
               "UseOutLine": false,
@@ -414,18 +401,105 @@
         }
       },
       {
-        "id": "1894c0b6-5e8b-40b4-a106-89b48d746379",
-        "path": "/ui/JobSelectGroup/Panel/BtnWarrior",
-        "componentNames": "MOD.Core.UITransformComponent,MOD.Core.SpriteGUIRendererComponent,MOD.Core.ButtonComponent,MOD.Core.TextComponent",
+        "id": "f28fbe30-6756-4318-94bb-ad3a3a13d8d5",
+        "path": "/ui/BranchSelectGroup/Panel/Button",
+        "componentNames": "MOD.Core.UITransformComponent,MOD.Core.ScrollLayoutGroupComponent",
         "jsonString": {
-          "name": "BtnWarrior",
-          "path": "/ui/JobSelectGroup/Panel/BtnWarrior",
+          "name": "Button",
+          "path": "/ui/BranchSelectGroup/Panel/Button",
           "nameEditable": true,
           "enable": true,
           "visible": true,
           "localize": true,
           "displayOrder": 1,
           "pathConstraints": "////",
+          "revision": 1,
+          "origin": {
+            "type": "Model",
+            "entry_id": "uiempty",
+            "sub_entity_id": null,
+            "root_entity_id": "f28fbe30-6756-4318-94bb-ad3a3a13d8d5",
+            "replaced_model_id": null
+          },
+          "modelId": "uiempty",
+          "@components": [
+            {
+              "@type": "MOD.Core.UITransformComponent",
+              "AlignmentOption": 0,
+              "AnchorsMax": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "AnchorsMin": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "MobileOnly": false,
+              "OffsetMax": {
+                "x": 700.0,
+                "y": 250.0
+              },
+              "OffsetMin": {
+                "x": -700.0,
+                "y": -350.0
+              },
+              "Pivot": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "RectSize": {
+                "x": 1400.0,
+                "y": 600.0
+              },
+              "UIMode": 1,
+              "UIVersion": 2,
+              "anchoredPosition": {
+                "x": 4.579536E-06,
+                "y": -50.0
+              },
+              "Position": {
+                "x": 4.579536E-06,
+                "y": -50.0,
+                "z": 0.0
+              },
+              "QuaternionRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 1.0
+              },
+              "Enable": true
+            },
+            {
+              "@type": "MOD.Core.ScrollLayoutGroupComponent",
+              "ChildAlignment": 4,
+              "HorizontalScrollBarDirection": 0,
+              "OverrideSorting": false,
+              "ReverseArrangement": false,
+              "ScrollBarVisible": 0,
+              "Spacing": 20.0,
+              "Type": 0,
+              "UseScroll": false,
+              "VerticalScrollBarDirection": 2,
+              "Enable": true
+            }
+          ],
+          "@version": 1
+        }
+      },
+      {
+        "id": "62e3d5e3-4d0f-461c-b9db-e22cbf3f3b95",
+        "path": "/ui/BranchSelectGroup/Panel/Button/Button_1",
+        "componentNames": "MOD.Core.UITransformComponent,MOD.Core.SpriteGUIRendererComponent,MOD.Core.ButtonComponent,MOD.Core.TextComponent",
+        "jsonString": {
+          "name": "Button_1",
+          "path": "/ui/BranchSelectGroup/Panel/Button/Button_1",
+          "nameEditable": true,
+          "enable": true,
+          "visible": true,
+          "localize": true,
+          "displayOrder": 0,
+          "pathConstraints": "/////",
           "revision": 0,
           "origin": {
             "type": "Model",
@@ -439,31 +513,31 @@
             {
               "@type": "MOD.Core.UITransformComponent",
               "ActivePlatform": 255,
-              "AlignmentOption": 0,
+              "AlignmentOption": 4,
               "AnchorsMax": {
-                "x": 0.5,
-                "y": 0.5
+                "x": 0.0,
+                "y": 1.0
               },
               "AnchorsMin": {
-                "x": 0.5,
-                "y": 0.5
+                "x": 0.0,
+                "y": 1.0
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": -90.0,
-                "y": 64.0
+                "x": 285.0,
+                "y": -25.0
               },
               "OffsetMin": {
-                "x": -230.0,
-                "y": -24.0
+                "x": 35.0,
+                "y": -575.0
               },
               "Pivot": {
                 "x": 0.5,
                 "y": 0.5
               },
               "RectSize": {
-                "x": 140.0,
-                "y": 88.0
+                "x": 250.0,
+                "y": 550.0
               },
               "UIMode": 1,
               "UIScale": {
@@ -473,25 +547,31 @@
               },
               "UIVersion": 2,
               "anchoredPosition": {
-                "x": -160.0,
-                "y": 20.0
+                "x": 160.0,
+                "y": -300.0
+              },
+              "Rotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
               },
               "Position": {
-                "x": -160.0,
-                "y": 20.0,
+                "x": 160.0,
+                "y": -300.0,
                 "z": 0.0
               },
               "QuaternionRotation": {
                 "x": 0.0,
                 "y": 0.0,
                 "z": 0.0,
-                "w": 1.0
+                "w": -1.0
               },
               "Scale": {
                 "x": 1.0,
                 "y": 1.0,
                 "z": 1.0
               },
+              "ZRotation": 0.0,
               "Enable": true
             },
             {
@@ -515,7 +595,7 @@
               "OverrideSorting": false,
               "PlayRate": 1.0,
               "PreserveSprite": 0,
-              "SortingLayer": "UI",
+              "SortingLayer": "MapLayer0",
               "StartFrameIndex": 0,
               "Color": {
                 "r": 0.75,
@@ -621,17 +701,17 @@
                 "a": 0.72
               },
               "DropShadowDistance": 3.0,
-              "Font": 0,
+              "Font": 1,
               "FontColor": {
                 "r": 1.0,
                 "g": 1.0,
                 "b": 1.0,
                 "a": 1.0
               },
-              "FontSize": 22,
+              "FontSize": 50,
               "IgnoreMapLayerCheck": false,
               "IsLocalizationKey": false,
-              "MaxSize": 40,
+              "MaxSize": 50,
               "MinSize": 10,
               "OrderInLayer": 0,
               "OutlineColor": {
@@ -655,7 +735,7 @@
               },
               "SizeFit": false,
               "SortingLayer": "UI",
-              "Text": "전사",
+              "Text": "선택지_1",
               "UseConstraintX": false,
               "UseConstraintY": false,
               "UseOutLine": false,
@@ -666,18 +746,18 @@
         }
       },
       {
-        "id": "b0597270-1f81-45be-b1db-241d0bbd36fd",
-        "path": "/ui/JobSelectGroup/Panel/BtnArcher",
+        "id": "4451329f-7cc4-4731-babb-184b16c137e7",
+        "path": "/ui/BranchSelectGroup/Panel/Button/Button_2",
         "componentNames": "MOD.Core.UITransformComponent,MOD.Core.SpriteGUIRendererComponent,MOD.Core.ButtonComponent,MOD.Core.TextComponent",
         "jsonString": {
-          "name": "BtnArcher",
-          "path": "/ui/JobSelectGroup/Panel/BtnArcher",
+          "name": "Button_2",
+          "path": "/ui/BranchSelectGroup/Panel/Button/Button_2",
           "nameEditable": true,
           "enable": true,
           "visible": true,
           "localize": true,
-          "displayOrder": 2,
-          "pathConstraints": "////",
+          "displayOrder": 1,
+          "pathConstraints": "/////",
           "revision": 0,
           "origin": {
             "type": "Model",
@@ -691,31 +771,31 @@
             {
               "@type": "MOD.Core.UITransformComponent",
               "ActivePlatform": 255,
-              "AlignmentOption": 0,
+              "AlignmentOption": 4,
               "AnchorsMax": {
-                "x": 0.5,
-                "y": 0.5
+                "x": 0.0,
+                "y": 1.0
               },
               "AnchorsMin": {
-                "x": 0.5,
-                "y": 0.5
+                "x": 0.0,
+                "y": 1.0
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 70.0,
-                "y": 64.0
+                "x": 555.0,
+                "y": -25.0
               },
               "OffsetMin": {
-                "x": -70.0,
-                "y": -24.0
+                "x": 305.0,
+                "y": -575.0
               },
               "Pivot": {
                 "x": 0.5,
                 "y": 0.5
               },
               "RectSize": {
-                "x": 140.0,
-                "y": 88.0
+                "x": 250.0,
+                "y": 550.0
               },
               "UIMode": 1,
               "UIScale": {
@@ -725,25 +805,31 @@
               },
               "UIVersion": 2,
               "anchoredPosition": {
+                "x": 430.0,
+                "y": -300.0
+              },
+              "Rotation": {
                 "x": 0.0,
-                "y": 20.0
+                "y": 0.0,
+                "z": 0.0
               },
               "Position": {
-                "x": 0.0,
-                "y": 20.0,
+                "x": 430.0,
+                "y": -300.0,
                 "z": 0.0
               },
               "QuaternionRotation": {
                 "x": 0.0,
                 "y": 0.0,
                 "z": 0.0,
-                "w": 1.0
+                "w": -1.0
               },
               "Scale": {
                 "x": 1.0,
                 "y": 1.0,
                 "z": 1.0
               },
+              "ZRotation": 0.0,
               "Enable": true
             },
             {
@@ -767,7 +853,7 @@
               "OverrideSorting": false,
               "PlayRate": 1.0,
               "PreserveSprite": 0,
-              "SortingLayer": "UI",
+              "SortingLayer": "MapLayer0",
               "StartFrameIndex": 0,
               "Color": {
                 "r": 0.22,
@@ -873,17 +959,17 @@
                 "a": 0.72
               },
               "DropShadowDistance": 3.0,
-              "Font": 0,
+              "Font": 1,
               "FontColor": {
                 "r": 1.0,
                 "g": 1.0,
                 "b": 1.0,
                 "a": 1.0
               },
-              "FontSize": 22,
+              "FontSize": 50,
               "IgnoreMapLayerCheck": false,
               "IsLocalizationKey": false,
-              "MaxSize": 40,
+              "MaxSize": 50,
               "MinSize": 10,
               "OrderInLayer": 0,
               "OutlineColor": {
@@ -907,7 +993,7 @@
               },
               "SizeFit": false,
               "SortingLayer": "UI",
-              "Text": "궁수",
+              "Text": "선택지_2",
               "UseConstraintX": false,
               "UseConstraintY": false,
               "UseOutLine": false,
@@ -918,18 +1004,18 @@
         }
       },
       {
-        "id": "8e751a35-dd1a-4836-9079-945f5a7e909d",
-        "path": "/ui/JobSelectGroup/Panel/BtnMage",
+        "id": "025339b8-ccdc-4df8-b998-693ba9e1371a",
+        "path": "/ui/BranchSelectGroup/Panel/Button/Button_3",
         "componentNames": "MOD.Core.UITransformComponent,MOD.Core.SpriteGUIRendererComponent,MOD.Core.ButtonComponent,MOD.Core.TextComponent",
         "jsonString": {
-          "name": "BtnMage",
-          "path": "/ui/JobSelectGroup/Panel/BtnMage",
+          "name": "Button_3",
+          "path": "/ui/BranchSelectGroup/Panel/Button/Button_3",
           "nameEditable": true,
           "enable": true,
           "visible": true,
           "localize": true,
-          "displayOrder": 3,
-          "pathConstraints": "////",
+          "displayOrder": 2,
+          "pathConstraints": "/////",
           "revision": 0,
           "origin": {
             "type": "Model",
@@ -943,31 +1029,31 @@
             {
               "@type": "MOD.Core.UITransformComponent",
               "ActivePlatform": 255,
-              "AlignmentOption": 0,
+              "AlignmentOption": 4,
               "AnchorsMax": {
-                "x": 0.5,
-                "y": 0.5
+                "x": 0.0,
+                "y": 1.0
               },
               "AnchorsMin": {
-                "x": 0.5,
-                "y": 0.5
+                "x": 0.0,
+                "y": 1.0
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 230.0,
-                "y": 64.0
+                "x": 825.0,
+                "y": -25.0
               },
               "OffsetMin": {
-                "x": 90.0,
-                "y": -24.0
+                "x": 575.0,
+                "y": -575.0
               },
               "Pivot": {
                 "x": 0.5,
                 "y": 0.5
               },
               "RectSize": {
-                "x": 140.0,
-                "y": 88.0
+                "x": 250.0,
+                "y": 550.0
               },
               "UIMode": 1,
               "UIScale": {
@@ -977,25 +1063,31 @@
               },
               "UIVersion": 2,
               "anchoredPosition": {
-                "x": 160.0,
-                "y": 20.0
+                "x": 700.0,
+                "y": -300.0
+              },
+              "Rotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
               },
               "Position": {
-                "x": 160.0,
-                "y": 20.0,
+                "x": 700.0,
+                "y": -300.0,
                 "z": 0.0
               },
               "QuaternionRotation": {
                 "x": 0.0,
                 "y": 0.0,
                 "z": 0.0,
-                "w": 1.0
+                "w": -1.0
               },
               "Scale": {
                 "x": 1.0,
                 "y": 1.0,
                 "z": 1.0
               },
+              "ZRotation": 0.0,
               "Enable": true
             },
             {
@@ -1019,7 +1111,7 @@
               "OverrideSorting": false,
               "PlayRate": 1.0,
               "PreserveSprite": 0,
-              "SortingLayer": "UI",
+              "SortingLayer": "MapLayer0",
               "StartFrameIndex": 0,
               "Color": {
                 "r": 0.22,
@@ -1125,17 +1217,17 @@
                 "a": 0.72
               },
               "DropShadowDistance": 3.0,
-              "Font": 0,
+              "Font": 1,
               "FontColor": {
                 "r": 1.0,
                 "g": 1.0,
                 "b": 1.0,
                 "a": 1.0
               },
-              "FontSize": 22,
+              "FontSize": 50,
               "IgnoreMapLayerCheck": false,
               "IsLocalizationKey": false,
-              "MaxSize": 40,
+              "MaxSize": 50,
               "MinSize": 10,
               "OrderInLayer": 0,
               "OutlineColor": {
@@ -1159,7 +1251,7 @@
               },
               "SizeFit": false,
               "SortingLayer": "UI",
-              "Text": "법사",
+              "Text": "선택지_3",
               "UseConstraintX": false,
               "UseConstraintY": false,
               "UseOutLine": false,
@@ -1170,18 +1262,18 @@
         }
       },
       {
-        "id": "8d6f95a2-905b-4daf-9a65-5c896d1e3364",
-        "path": "/ui/JobSelectGroup/Panel/BtnThief",
+        "id": "369b9a2a-e947-462e-88b5-d441abf77e20",
+        "path": "/ui/BranchSelectGroup/Panel/Button/Button_4",
         "componentNames": "MOD.Core.UITransformComponent,MOD.Core.SpriteGUIRendererComponent,MOD.Core.ButtonComponent,MOD.Core.TextComponent",
         "jsonString": {
-          "name": "BtnThief",
-          "path": "/ui/JobSelectGroup/Panel/BtnThief",
+          "name": "Button_4",
+          "path": "/ui/BranchSelectGroup/Panel/Button/Button_4",
           "nameEditable": true,
           "enable": true,
           "visible": true,
           "localize": true,
-          "displayOrder": 4,
-          "pathConstraints": "////",
+          "displayOrder": 3,
+          "pathConstraints": "/////",
           "revision": 0,
           "origin": {
             "type": "Model",
@@ -1195,31 +1287,31 @@
             {
               "@type": "MOD.Core.UITransformComponent",
               "ActivePlatform": 255,
-              "AlignmentOption": 0,
+              "AlignmentOption": 4,
               "AnchorsMax": {
-                "x": 0.5,
-                "y": 0.5
+                "x": 0.0,
+                "y": 1.0
               },
               "AnchorsMin": {
-                "x": 0.5,
-                "y": 0.5
+                "x": 0.0,
+                "y": 1.0
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": -10.0,
-                "y": -36.0
+                "x": 1095.0,
+                "y": -25.0
               },
               "OffsetMin": {
-                "x": -150.0,
-                "y": -124.0
+                "x": 845.0,
+                "y": -575.0
               },
               "Pivot": {
                 "x": 0.5,
                 "y": 0.5
               },
               "RectSize": {
-                "x": 140.0,
-                "y": 88.0
+                "x": 250.0,
+                "y": 550.0
               },
               "UIMode": 1,
               "UIScale": {
@@ -1229,25 +1321,31 @@
               },
               "UIVersion": 2,
               "anchoredPosition": {
-                "x": -80.0,
-                "y": -80.0
+                "x": 970.0,
+                "y": -300.0
+              },
+              "Rotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
               },
               "Position": {
-                "x": -80.0,
-                "y": -80.0,
+                "x": 970.0,
+                "y": -300.0,
                 "z": 0.0
               },
               "QuaternionRotation": {
                 "x": 0.0,
                 "y": 0.0,
                 "z": 0.0,
-                "w": 1.0
+                "w": -1.0
               },
               "Scale": {
                 "x": 1.0,
                 "y": 1.0,
                 "z": 1.0
               },
+              "ZRotation": 0.0,
               "Enable": true
             },
             {
@@ -1271,7 +1369,7 @@
               "OverrideSorting": false,
               "PlayRate": 1.0,
               "PreserveSprite": 0,
-              "SortingLayer": "UI",
+              "SortingLayer": "MapLayer0",
               "StartFrameIndex": 0,
               "Color": {
                 "r": 0.45,
@@ -1377,17 +1475,17 @@
                 "a": 0.72
               },
               "DropShadowDistance": 3.0,
-              "Font": 0,
+              "Font": 1,
               "FontColor": {
                 "r": 1.0,
                 "g": 1.0,
                 "b": 1.0,
                 "a": 1.0
               },
-              "FontSize": 22,
+              "FontSize": 50,
               "IgnoreMapLayerCheck": false,
               "IsLocalizationKey": false,
-              "MaxSize": 40,
+              "MaxSize": 50,
               "MinSize": 10,
               "OrderInLayer": 0,
               "OutlineColor": {
@@ -1411,7 +1509,7 @@
               },
               "SizeFit": false,
               "SortingLayer": "UI",
-              "Text": "도적",
+              "Text": "선택지_4",
               "UseConstraintX": false,
               "UseConstraintY": false,
               "UseOutLine": false,
@@ -1422,18 +1520,18 @@
         }
       },
       {
-        "id": "f6fe7b29-dde2-4a1e-a396-86c8b958ff32",
-        "path": "/ui/JobSelectGroup/Panel/BtnPirate",
+        "id": "bfb77a28-b8f8-426c-a83f-50cdca47fa4b",
+        "path": "/ui/BranchSelectGroup/Panel/Button/Button_5",
         "componentNames": "MOD.Core.UITransformComponent,MOD.Core.SpriteGUIRendererComponent,MOD.Core.ButtonComponent,MOD.Core.TextComponent",
         "jsonString": {
-          "name": "BtnPirate",
-          "path": "/ui/JobSelectGroup/Panel/BtnPirate",
+          "name": "Button_5",
+          "path": "/ui/BranchSelectGroup/Panel/Button/Button_5",
           "nameEditable": true,
           "enable": true,
           "visible": true,
           "localize": true,
-          "displayOrder": 5,
-          "pathConstraints": "////",
+          "displayOrder": 4,
+          "pathConstraints": "/////",
           "revision": 0,
           "origin": {
             "type": "Model",
@@ -1447,31 +1545,31 @@
             {
               "@type": "MOD.Core.UITransformComponent",
               "ActivePlatform": 255,
-              "AlignmentOption": 0,
+              "AlignmentOption": 4,
               "AnchorsMax": {
-                "x": 0.5,
-                "y": 0.5
+                "x": 0.0,
+                "y": 1.0
               },
               "AnchorsMin": {
-                "x": 0.5,
-                "y": 0.5
+                "x": 0.0,
+                "y": 1.0
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 150.0,
-                "y": -36.0
+                "x": 1365.0,
+                "y": -25.0
               },
               "OffsetMin": {
-                "x": 10.0,
-                "y": -124.0
+                "x": 1115.0,
+                "y": -575.0
               },
               "Pivot": {
                 "x": 0.5,
                 "y": 0.5
               },
               "RectSize": {
-                "x": 140.0,
-                "y": 88.0
+                "x": 250.0,
+                "y": 550.0
               },
               "UIMode": 1,
               "UIScale": {
@@ -1481,25 +1579,31 @@
               },
               "UIVersion": 2,
               "anchoredPosition": {
-                "x": 80.0,
-                "y": -80.0
+                "x": 1240.0,
+                "y": -300.0
+              },
+              "Rotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
               },
               "Position": {
-                "x": 80.0,
-                "y": -80.0,
+                "x": 1240.0,
+                "y": -300.0,
                 "z": 0.0
               },
               "QuaternionRotation": {
                 "x": 0.0,
                 "y": 0.0,
                 "z": 0.0,
-                "w": 1.0
+                "w": -1.0
               },
               "Scale": {
                 "x": 1.0,
                 "y": 1.0,
                 "z": 1.0
               },
+              "ZRotation": 0.0,
               "Enable": true
             },
             {
@@ -1523,7 +1627,7 @@
               "OverrideSorting": false,
               "PlayRate": 1.0,
               "PreserveSprite": 0,
-              "SortingLayer": "UI",
+              "SortingLayer": "MapLayer0",
               "StartFrameIndex": 0,
               "Color": {
                 "r": 0.8,
@@ -1629,17 +1733,17 @@
                 "a": 0.72
               },
               "DropShadowDistance": 3.0,
-              "Font": 0,
+              "Font": 1,
               "FontColor": {
                 "r": 1.0,
                 "g": 1.0,
                 "b": 1.0,
                 "a": 1.0
               },
-              "FontSize": 22,
+              "FontSize": 50,
               "IgnoreMapLayerCheck": false,
               "IsLocalizationKey": false,
-              "MaxSize": 40,
+              "MaxSize": 50,
               "MinSize": 10,
               "OrderInLayer": 0,
               "OutlineColor": {
@@ -1663,7 +1767,7 @@
               },
               "SizeFit": false,
               "SortingLayer": "UI",
-              "Text": "해적",
+              "Text": "선택지_5",
               "UseConstraintX": false,
               "UseConstraintY": false,
               "UseOutLine": false,

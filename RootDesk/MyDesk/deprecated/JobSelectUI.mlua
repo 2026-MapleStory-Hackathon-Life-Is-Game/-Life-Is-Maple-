@@ -59,6 +59,7 @@ script JobSelectUI extends Logic
 			self:SelectJob("pirate")
 		end)
 		log("JobSelectUI: shown")
+		
 	end
 
 	@ExecSpace("ClientOnly")
