@@ -1,64 +1,244 @@
-@Logic
-script CombatPowerManager extends Logic
+-- 플레이어별 전투력/스탯 (@Component, 플레이어 엔티티에 런타임 부착). 형제: ExtraTableManager.
+@Component
+script CombatPowerManager extends Component
+
+	-- 4대 스탯 값(base). 직업의 주스탯(MainStatType)이 이 중 하나를 가리킨다.
+	-- 현재 게임플레이(사냥/세금 등)는 '주스탯'에 해당하는 한 개만 증감한다(기획).
+	@Sync
+	property number STR = 0
+	@Sync
+	property number DEX = 0
+	@Sync
+	property number INT = 0
+	@Sync
+	property number LUK = 0
 
 	@Sync
-	property number MainStat = 0 -- 주스탯 (STR/DEX/INT/LUK 중 직업 별로 하나)
+	property number MainAttack = 0 -- 공/마 가산(flat) base
 
 	@Sync
-	property number MainAttack = 0 -- 기본 공/마
+	property number BaseStatPct = 0 -- 주스탯 % base (타일/영구효과 누산)
 
 	@Sync
-	property number ExtraDamage = 0 -- 기본 추가 대미지%
+	property number BaseAttackPct = 0 -- 공/마 % base (타일/영구효과 누산)
 
 	@Sync
-	property number BossDamage = 0 -- 기본 보스 공격 대미지%
+	property number ExtraDamage = 0 -- 추가 대미지% base (보스 대미지도 일반 대미지로 통합해 여기 누산)
 
 	@Sync
-	property number CriticalDamage = 1.35 -- 크리티컬 대미지 (일단 고정 상태로 설정)
+	property number CriticalDamage = 1.35 -- 크리티컬 대미지 배율 base
 
 	@Sync
 	property number CombatPower = 0 -- 최종 환산 전투력 표기
 
+	@Sync
+	property string MainStatType = "" -- 주스탯 타입 (STR/DEX/INT/LUK) — 직업에서 결정
+
+	@Sync
+	property string MainAttackType = "" -- 공/마 타입 (공격력/마력) — 직업에서 결정
+
+	-- 칸 효과 주스탯 변동량 (기획 미확정 — 임시값, 인스펙터/기획 확정 시 조정)
+	@Sync
+	property number HuntStatGain = 5      -- 사냥(소폭) 증가량
+
+	@Sync
+	property number HuntPlusStatGain = 15 -- 사냥+(중폭) 증가량
+
+	@Sync
+	property number TaxStatLoss = 5       -- 세금 감소량
+
+	@ExecSpace("ServerOnly")
+	method void SetJob(string job)
+		-- 직업에 맞는 주스탯/공마 '타입'을 기록한다. (수치 값은 건드리지 않음)
+		self.MainStatType   = _JobDataSetManager:GetMainStatType(job)
+		self.MainAttackType = _JobDataSetManager:GetMainAttackType(job)
+		log("CombatPowerManager: 직업=" .. job
+			.. " 주스탯타입=" .. self.MainStatType
+			.. " 공마타입=" .. self.MainAttackType)
+	end
+
+	-- 게임 재시작용: base 수치를 초기값으로 되돌린다. (버프/장비는 각 매니저에서 별도 초기화 필요)
+	@ExecSpace("ServerOnly")
+	method void ResetAll()
+		self.STR = 0
+		self.DEX = 0
+		self.INT = 0
+		self.LUK = 0
+		self.MainAttack = 0
+		self.BaseStatPct = 0
+		self.BaseAttackPct = 0
+		self.ExtraDamage = 0
+		self.CriticalDamage = 1.35
+		self.MainStatType = ""
+		self.MainAttackType = ""
+		self:CalculateCurrentCombatPower()
+		log("CombatPowerManager: 전투력 base 초기화")
+	end
+
+	-- ───────────────────────── 스탯 증감 API (타일/이벤트용) ─────────────────────────
+	-- kind: "flat"(가산) | "percent"(%). value는 음수면 감소.
+
+	@ExecSpace("ServerOnly")
+	method void AddMainStat(string kind, number value)
+		-- 주스탯: flat → 직업 주스탯 필드(STR/DEX/INT/LUK 중 하나, 0 미만 방지), percent → BaseStatPct.
+		if kind == "percent" then
+			self.BaseStatPct = self.BaseStatPct + value
+		else
+			local field = self:MainStatField()
+			self:AddToStat(field, value)
+		end
+		self:CalculateCurrentCombatPower()
+		log("CombatPowerManager: 주스탯(" .. self:MainStatField() .. ") " .. kind .. " " .. tostring(value)
+			.. " → 값=" .. tostring(self:GetStat(self:MainStatField()))
+			.. " StatPct=" .. tostring(self.BaseStatPct)
+			.. " 전투력=" .. tostring(self.CombatPower))
+	end
+
+	@ExecSpace("ServerOnly")
+	method void AddMainAttack(string kind, number value)
+		-- 공/마: flat → MainAttack(0 미만 방지), percent → BaseAttackPct.
+		if kind == "percent" then
+			self.BaseAttackPct = self.BaseAttackPct + value
+		else
+			self.MainAttack = self.MainAttack + value
+			if self.MainAttack < 0 then
+				self.MainAttack = 0
+			end
+		end
+		self:CalculateCurrentCombatPower()
+		log("CombatPowerManager: 공마 " .. kind .. " " .. tostring(value)
+			.. " → MainAttack=" .. tostring(self.MainAttack)
+			.. " AttackPct=" .. tostring(self.BaseAttackPct)
+			.. " 전투력=" .. tostring(self.CombatPower))
+	end
+
+	@ExecSpace("ServerOnly")
+	method void AddDamage(number value)
+		-- 대미지% 증감.
+		self.ExtraDamage = self.ExtraDamage + value
+		self:CalculateCurrentCombatPower()
+		log("CombatPowerManager: 대미지% " .. tostring(value) .. " → ExtraDamage=" .. tostring(self.ExtraDamage))
+	end
+
+	@ExecSpace("ServerOnly")
+	method void AddCritical(number value)
+		-- 크리티컬 대미지 증감. value는 %포인트(예: 10 → 배율 +0.10).
+		self.CriticalDamage = self.CriticalDamage + value / 100
+		self:CalculateCurrentCombatPower()
+		log("CombatPowerManager: 크리% " .. tostring(value) .. " → CriticalDamage=" .. tostring(self.CriticalDamage))
+	end
+
+	-- 주스탯 감소 편의 함수 (세금 등). AddMainStat("flat", -amount)과 동일.
+	@ExecSpace("ServerOnly")
+	method void ReduceMainStat(number amount)
+		self:AddMainStat("flat", -amount)
+	end
+
+	-- ───────────────────────── 칸별 프리셋 (사냥/사냥+/세금) ─────────────────────────
+
+	@ExecSpace("ServerOnly")
+	method void HuntStat()
+		-- 사냥 칸: 주스탯 소폭 증가.
+		self:AddMainStat("flat", self.HuntStatGain)
+	end
+
+	@ExecSpace("ServerOnly")
+	method void HuntPlusStat()
+		-- 사냥+ 칸: 주스탯 중폭 증가.
+		self:AddMainStat("flat", self.HuntPlusStatGain)
+	end
+
+	@ExecSpace("ServerOnly")
+	method void TaxStat()
+		-- 세금 칸: 주스탯 감소.
+		self:AddMainStat("flat", -self.TaxStatLoss)
+	end
+
+	-- ───────────────────────────── 전투력 계산 ─────────────────────────────
+
+	-- ── 4대 스탯 접근 헬퍼 ──
+	method string MainStatField()
+		-- 직업 주스탯 타입이 STR/DEX/INT/LUK 중 하나면 그것, 아니면(미설정/미지원) 기본 STR.
+		local t = self.MainStatType
+		if t == "STR" or t == "DEX" or t == "INT" or t == "LUK" then
+			return t
+		end
+		return "STR"
+	end
+
+	method number GetStat(string name)
+		-- 이름으로 스탯 값을 읽는다.
+		if name == "STR" then return self.STR
+		elseif name == "DEX" then return self.DEX
+		elseif name == "INT" then return self.INT
+		elseif name == "LUK" then return self.LUK end
+		return 0
+	end
+
+	method void AddToStat(string name, number value)
+		-- 이름으로 스탯에 value를 더한다(0 미만 방지).
+		local v = self:GetStat(name) + value
+		if v < 0 then v = 0 end
+		if name == "STR" then self.STR = v
+		elseif name == "DEX" then self.DEX = v
+		elseif name == "INT" then self.INT = v
+		elseif name == "LUK" then self.LUK = v end
+	end
+
 	method number CalculateCurrentMainStat(table extra)
-		-- 스탯 = (주스탯 + 가산) * (1 + 스탯%) * 4.5 / 100
-		
-		local stat = (self.MainStat + extra.statFlat) * (1 + extra.statPct / 100)
-		
-		return stat * 4.5 / 100
+		-- 메이플식: 유효스탯 = 주스탯_적용 + (부스탯 3개 합)_적용 / 4
+		--   주스탯_적용     = (주스탯값 + 주가산 + 올스탯가산) * (1 + (base% + 주스탯% + 올스탯%) / 100)
+		--   부스탯합_적용   = (부스탯합 + 3×올스탯가산) * (1 + 올스탯% / 100)   ← 부스탯엔 주스탯%는 미적용
+		-- ※ 올스탯(allStat)은 4스탯 모두에, 주스탯(stat)은 주스탯 1개에만 적용된다.
+		local allFlat = extra.allStatFlat or 0
+		local allPct  = extra.allStatPct or 0
+
+		local mainVal = self:GetStat(self:MainStatField())
+		local subVal  = (self.STR + self.DEX + self.INT + self.LUK) - mainVal  -- 부스탯 3개 합
+
+		local mainPct     = self.BaseStatPct + extra.statPct + allPct
+		local mainApplied = (mainVal + extra.statFlat + allFlat) * (1 + mainPct / 100)
+		local subApplied  = (subVal + 3 * allFlat) * (1 + allPct / 100)
+
+		local effective = mainApplied + subApplied / 4
+		return effective * 4.5 / 100
 	end
 
 	method number CalculateCurrentMainAttack(table extra)
-		-- 공/마 = 기본공마 * (1 + 공마%) + 가산공마
-		return self.MainAttack * (1 + extra.attackPct / 100) + extra.attackFlat
+		-- 공/마 = 기본공마 * (1 + (base% + 버프%)) + 가산공마
+		local pct = self.BaseAttackPct + extra.attackPct
+		return self.MainAttack * (1 + pct / 100) + extra.attackFlat
 	end
 
 	method number CalculateCurrentExtraDamage(table extra)
-		
-		-- 대미지 = 1 + (추가대미지% + 보스대미지%)
-		local totalDamage     = self.ExtraDamage + extra.damagePct
-		local totalBossDamage = self.BossDamage + extra.bossDamagePct
-		
-		return 1 + (totalDamage + totalBossDamage) / 100
+		-- 대미지 = 1 + 추가대미지% (보스 대미지는 일반 대미지로 통합됨)
+		local totalDamage = self.ExtraDamage + extra.damagePct
+		return 1 + totalDamage / 100
 	end
 
 	method number CalculateCurrentCriticalDamage(table extra)
-		-- 크리티컬 대미지 (현재 고정값 반환)
-		
-		return self.CriticalDamage
+		-- 크리티컬 대미지 = base 크리 + 크리 버프%
+		return self.CriticalDamage + (extra.critPct or 0) / 100
 	end
 
-	method number CalculateCurrentCombatPower(table extra)
+	method number CalculateCurrentCombatPower()
 		-- 최종 전투력 = 스탯 * 공/마 * 대미지 * 크리티컬 대미지
-		local extra = _ExtraTableManager:GetExtra()
-		
-		    local stat   = self:CalculateCurrentMainStat(extra)
-		    local attack = self:CalculateCurrentMainAttack(extra)
-		    local damage = self:CalculateCurrentExtraDamage(extra)
-		    local crit   = self:CalculateCurrentCriticalDamage()
-		
-		    self.CombatPower = stat * attack * damage * crit
-		    return self.CombatPower
-		
+		-- extra(버프+장비)는 같은 플레이어의 ExtraTableManager에서 가져온다.
+		local extra
+		local ext = self.Entity:GetComponent("script.ExtraTableManager")
+		if isvalid(ext) then
+			extra = ext:GetExtra()
+		else
+			extra = { statFlat = 0, statPct = 0, allStatFlat = 0, allStatPct = 0, attackFlat = 0, attackPct = 0, damagePct = 0, critPct = 0 }
+		end
+
+		local stat   = self:CalculateCurrentMainStat(extra)
+		local attack = self:CalculateCurrentMainAttack(extra)
+		local damage = self:CalculateCurrentExtraDamage(extra)
+		local crit   = self:CalculateCurrentCriticalDamage(extra)
+
+		self.CombatPower = stat * attack * damage * crit
+		return self.CombatPower
 	end
 
 end
