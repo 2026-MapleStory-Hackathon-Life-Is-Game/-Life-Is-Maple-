@@ -5,17 +5,62 @@ script PlayerInfoPanel extends Component
 
 	property TextGUIRendererComponent NewValue2 = "05b6f041-e1ba-4f09-a677-e21e0429fe46"
 
+	-- 전투력 표시 텍스트(UIText_1: "전투력: ..."). NewValue2는 .ui 오버라이드로 다른 텍스트를 가리켜
+	-- 별도 프로퍼티로 정확히 바인딩한다.
+	property TextGUIRendererComponent powerText = "05b6f041-e1ba-4f09-a677-e21e0429fe46"
+
+	property any combatComp = nil      -- 로컬 플레이어의 CombatPowerManager (지연 캐시)
+	property number lastShownPower = -1 -- 마지막으로 표시한 전투력(값이 바뀔 때만 텍스트 갱신)
+
 	method void OnBeginPlay()
 		if self:IsClient() then
-		
+
 			-- 플레이어 정보 창의 Text값을 플레이어의 닉네임으로 설정합니다.
 			local player = _UserService.LocalPlayer
-			
+
 			self.UserName.Text = player.PlayerComponent.Nickname
-		
+
+			self.combatComp = nil
+			self.lastShownPower = -1
+
 		end
-		
-		
+
+
+	end
+
+	method void OnUpdate(number delta)
+		-- 로컬 플레이어의 전투력(@Sync)을 폴링해 값이 바뀌면 패널 텍스트를 갱신한다.
+		if self:IsClient() == false then return end
+
+		-- CombatPowerManager는 입장 시 런타임 부착되므로 지연 캐시한다.
+		if isvalid(self.combatComp) == false then
+			local player = _UserService.LocalPlayer
+			if isvalid(player) then
+				self.combatComp = player:GetComponent("script.CombatPowerManager")
+			end
+			if isvalid(self.combatComp) == false then return end
+		end
+
+		---@type CombatPowerManager
+		local cp = self.combatComp
+		local power = cp.CombatPower
+		if power ~= self.lastShownPower then
+			self.lastShownPower = power
+			if isvalid(self.powerText) then
+				self.powerText.Text = "전투력: " .. self:FormatPower(power)
+			end
+		end
+	end
+
+	method string FormatPower(number value)
+		-- 전투력을 메이플식 "○○만 ○○○○" 표기로 변환한다(1만 미만은 그대로).
+		local n = math.floor(value)
+		if n >= 10000 then
+			local man = math.floor(n / 10000)
+			local rest = n % 10000
+			return tostring(man) .. "만 " .. string.format("%04d", rest)
+		end
+		return tostring(n)
 	end
 
 	@ExecSpace("ClientOnly")
@@ -25,19 +70,7 @@ script PlayerInfoPanel extends Component
 		local playerPortrait = _EntityService:GetEntityByPath("/ui/DefaultGroup/PlayerInfo_Panel/PlayerPortrait").AvatarGUIRendererComponent
 		
 		if playerPortrait ~= nil then
-			
-		    --playerPortrait:SetAvatarPartColor(MapleAvatarItemCategory.Body, 1, 1, 1, 0)
-		    --playerPortrait:SetAvatarPartColor(MapleAvatarItemCategory.Cape, 1, 1, 1, 0)
-		    --playerPortrait:SetAvatarPartColor(MapleAvatarItemCategory.Coat, 1, 1, 1, 0)
-		    --playerPortrait:SetAvatarPartColor(MapleAvatarItemCategory.Glove, 1, 1, 1, 0)
-		    --playerPortrait:SetAvatarPartColor(MapleAvatarItemCategory.Longcoat, 1, 1, 1, 0)
-		    --playerPortrait:SetAvatarPartColor(MapleAvatarItemCategory.OneHandedWeapon, 1, 1, 1, 0)
-		    --playerPortrait:SetAvatarPartColor(MapleAvatarItemCategory.Pants, 1, 1, 1, 0)
-		    --playerPortrait:SetAvatarPartColor(MapleAvatarItemCategory.Shield, 1, 1, 1, 0)
-		    --playerPortrait:SetAvatarPartColor(MapleAvatarItemCategory.Shoes, 1, 1, 1, 0)
-		    --playerPortrait:SetAvatarPartColor(MapleAvatarItemCategory.SubWeapon, 1, 1, 1, 0)
-		    --playerPortrait:SetAvatarPartColor(MapleAvatarItemCategory.TwoHandedWeapon, 1, 1, 1, 0)
-			
+				
 		end
 		
 		

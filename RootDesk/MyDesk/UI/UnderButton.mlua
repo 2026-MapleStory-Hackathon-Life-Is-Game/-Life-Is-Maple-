@@ -69,14 +69,17 @@ script UnderButton extends Component
 
 	method boolean CanOpenDicePanel()
 		local mode = _GameModeManager._activeMode
-		
+
 				if mode == "SINGLE" then
-					-- 싱글: DICE 단계이기만 하면 OK
-					return _SingleTurnManager._currentState == "DICE"
-		
+					-- 싱글: DICE 단계 + 굴리는 중이 아니어야 OK (연출 중 재오픈 차단)
+					return _SingleTurnManager._currentState == "DICE" and _SingleTurnManager._isRolling == false
+
 				elseif mode == "MULTI" then
-					-- 멀티: DICE 단계 + 내가 현재 턴 플레이어여야 함
+					-- 멀티: DICE 단계 + 굴리는 중 아님 + 내가 현재 턴 플레이어여야 함
 					if _MultiTurnManager._currentState ~= "DICE" then
+						return false
+					end
+					if _MultiTurnManager._isRolling then
 						return false
 					end
 					local myUserId = _UserService.LocalPlayer.PlayerComponent.UserId
