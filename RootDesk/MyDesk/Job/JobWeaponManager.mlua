@@ -1,0 +1,147 @@
+@Logic
+script JobWeaponManager extends Logic
+
+	@Sync
+	property string currentJob = "Beginner"
+
+	property any keyHandler = nil
+
+	property any userEnterHandler = nil
+
+	method void OnBeginPlay()
+		-- 클라이언트: 디버그 키를 연결한다. (패널은 시작 시 열지 않고, 키 6 또는 직업 타일에서 연다)
+		-- 서버: 플레이어가 입장하면 Beginner 무기를 자동 적용한다.
+		if self:IsClient() then
+			self.keyHandler = _InputService:ConnectEvent(KeyDownEvent, self.OnDebugKey)
+		else
+			self.userEnterHandler = _UserService:ConnectEvent(UserEnterEvent, self.OnUserEnter)
+		end
+	end
+
+	method void OnEndPlay()
+		-- 연결한 이벤트 핸들러를 해제한다.
+		if self:IsClient() then
+			if self.keyHandler ~= nil then
+				_InputService:DisconnectEvent(KeyDownEvent, self.keyHandler)
+				self.keyHandler = nil
+			end
+		else
+			if self.userEnterHandler ~= nil then
+				_UserService:DisconnectEvent(UserEnterEvent, self.userEnterHandler)
+				self.userEnterHandler = nil
+			end
+		end
+	end
+
+	@ExecSpace("ServerOnly")
+	method void OnUserEnter(UserEnterEvent event)
+		-- 입장한 플레이어의 아바타에 Beginner 무기를 적용한다 (게임 시작 시 기본 무기).
+		local playerEntity = _UserService:GetUserEntityByUserId(event.UserId)
+		if isvalid(playerEntity) == false then
+			log_error("JobWeaponManager.OnUserEnter: player not found for " .. tostring(event.UserId))
+			return
+		end
+		self:ChangeWeaponByJob("Beginner", playerEntity)
+	end
+
+	@ExecSpace("ClientOnly")
+	method void OnDebugKey(KeyDownEvent event)
+		-- 디버그: 0=패널 열기, 1~5=직업 무기 즉시 변경.
+		local k = event.key
+		if k == KeyboardKey.Alpha0 then
+			self:OnJobSelected("Beginner", 0)
+		elseif k == KeyboardKey.Alpha1 then
+			self:OnJobSelected("Warrior", 1)
+		elseif k == KeyboardKey.Alpha2 then
+			self:OnJobSelected("Archer", 1)
+		elseif k == KeyboardKey.Alpha3 then
+			self:OnJobSelected("Mage", 1)
+		elseif k == KeyboardKey.Alpha4 then
+			self:OnJobSelected("Thief", 1)
+		elseif k == KeyboardKey.Alpha5 then
+			self:OnJobSelected("Pirate", 1)
+		elseif k == KeyboardKey.Alpha6 then
+			self:ShowJobSelect()
+		end
+	end
+
+	@ExecSpace("Client")
+	method void ShowJobSelect()
+		-- 직업 선택 UI를 연다.
+		log("직업 선택창을 엽니다.")
+		_JobSelectUI:Show()
+	end
+
+	@ExecSpace("Client")
+	method void HideJobSelectUI()
+		-- 직업 선택 UI를 닫는다.
+		_JobSelectUI:Hide()
+	end
+
+	@ExecSpace("Server")
+	method void OnJobSelected(string jobName, integer advancement)
+		-- 직업 선택 UI(또는 디버그 키)에서 호출. 요청 클라이언트의 플레이어 아바타에 직업 무기를 적용한다.
+		local playerEntity = _UserService:GetUserEntityByUserId(senderUserId)
+		if isvalid(playerEntity) == false then
+			log_error("JobWeaponManager.OnJobSelected: player not found for " .. tostring(senderUserId))
+			return
+		end
+		self:ChangeWeaponByJob(jobName, playerEntity)
+		-- 직업에 맞는 주스탯/공마 타입을 해당 플레이어의 전투력 컴포넌트에 연결한다.
+		local cp = playerEntity:GetComponent("script.CombatPowerManager")
+		if isvalid(cp) then cp:SetJob(self.currentJob) end
+		self:HideJobSelectUI(senderUserId)
+	end
+
+	@ExecSpace("ServerOnly")
+	method void ChangeWeaponByJob(string jobName, Entity playerEntity)
+		-- JobWeapon 데이터셋에서 직업 행을 찾아 무기 슬롯만 적용한다.
+		-- Custom*Equip은 @Sync라 서버에서 실행해야 모든 클라에 전파된다.
+		local ds = _DataService:GetTable("JobWeapon")
+		if isvalid(ds) == false then
+			log_error("JobWeaponManager.ChangeWeaponByJob: dataset 'JobWeapon' not found")
+			return
+		end
+		
+		-- 직업 이름을 대소문자 구분 없이 매칭한다 (UI는 소문자, CSV는 첫 글자 대문자).
+		local targetIdx = -1
+		local lowerJob = string.lower(jobName)
+		for i = 1, ds:GetRowCount() do
+			if string.lower(ds:GetCell(i, "Job")) == lowerJob then
+				targetIdx = i
+				break
+			end
+		end
+		if targetIdx == -1 then
+			log_warning("JobWeaponManager.ChangeWeaponByJob: no row for job=" .. jobName)
+			return
+		end
+		
+		if isvalid(playerEntity) == false then
+			log_error("JobWeaponManager.ChangeWeaponByJob: playerEntity is not valid")
+			return
+		end
+		
+		local costume = playerEntity.CostumeManagerComponent
+		if isvalid(costume) == false then
+			log_error("JobWeaponManager.ChangeWeaponByJob: CostumeManagerComponent not found on playerEntity")
+			return
+		end
+		
+		local weapon1h = ds:GetCell(targetIdx, "OneHandedWeapon")
+		local weapon2h = ds:GetCell(targetIdx, "TwoHandedWeapon")
+		
+		-- 양손무기는 한손/보조무기 슬롯을 차지하므로 상호배제 처리한다.
+		if weapon2h ~= "" then
+			weapon1h = ""
+		end
+		
+		costume.CustomOneHandedWeaponEquip = weapon1h
+		costume.CustomTwoHandedWeaponEquip = weapon2h
+		costume.CustomSubWeaponEquip       = ""
+		
+		self.currentJob = ds:GetCell(targetIdx, "Job")
+		log("JobWeaponManager: 무기 변경 완료 — job=" .. self.currentJob)
+	end
+
+end

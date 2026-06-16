@@ -1,0 +1,64 @@
+@Component
+script HexaTile extends Component
+
+	-- 모든 칸의 base 컴포넌트. 각 타일은 이 컴포넌트를 Extend해서 OnArrive를 override 한다.
+	@Sync
+	property string tileType = ""   -- 칸 종류 식별(선택, 디버그/표시용)
+
+	@ExecSpace("ServerOnly")
+	method void OnBeginPlay()
+		-- 자신을 HexaTileManager에 이름으로 등록한다.
+		-- (서브클래스는 OnBeginPlay를 따로 정의하지 않으면 이 base 등록을 그대로 상속한다.)
+		_HexaTileManager:RegisterTile(self.Entity.Name, self)
+	end
+
+	-- 말이 이 타일에 도착했을 때 호출된다. 서브클래스가 override 한다.
+	@ExecSpace("ServerOnly")
+	method void OnArrive(Entity piece)
+		-- 기본 동작 없음 (서브클래스에서 구현). override 안 됐을 때만 찍힘.
+		log("[HexaTile] OnArrive (미구현 base) tile=" .. self.Entity.Name)
+	end
+
+	-- ── 말(플레이어)의 per-player 전투 컴포넌트 접근 헬퍼 (반환은 any — 사용처에서 메서드 호출) ──
+	method any CP(Entity piece)
+		return piece:GetComponent("script.CombatPowerManager")
+	end
+
+	method any Buff(Entity piece)
+		return piece:GetComponent("script.BuffManager")
+	end
+
+	method any Equip(Entity piece)
+		return piece:GetComponent("script.EquipmentManager")
+	end
+
+	-- 확률 테이블(컬럼: Outcome,Weight,...)에서 가중치 기반으로 결과 Outcome 문자열을 뽑는다.
+	-- 예: VillageProbability 의 GreatSuccess/Success/Fail. 합이 100이 아니어도 전체 합 기준으로 정규화된다.
+	method string RollOutcome(string tableName)
+		-- Weight 합으로 1~합 정수를 굴려 누적 가중치 구간에 해당하는 Outcome을 반환한다.
+		local ds = _DataService:GetTable(tableName)
+		if isvalid(ds) == false then
+			log_error("[HexaTile] 확률 테이블 없음: " .. tableName)
+			return ""
+		end
+		local rows = ds:GetRowCount()
+		local total = 0
+		for i = 1, rows do
+			total += (tonumber(ds:GetCell(i, "Weight")) or 0)
+		end
+		if total <= 0 then
+			log_warning("[HexaTile] 확률 테이블 가중치 합 0: " .. tableName)
+			return ""
+		end
+		local roll = _UtilLogic:RandomIntegerRange(1, total)
+		local acc = 0
+		for i = 1, rows do
+			acc += (tonumber(ds:GetCell(i, "Weight")) or 0)
+			if roll <= acc then
+				return ds:GetCell(i, "Outcome")
+			end
+		end
+		return ds:GetCell(rows, "Outcome")
+	end
+
+end

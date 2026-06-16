@@ -1,0 +1,12 @@
+@Component
+script HuntTile extends HexaTile
+
+	-- 사냥 칸: 주스탯 소폭 증가.
+	@ExecSpace("ServerOnly")
+	method void OnArrive(Entity piece)
+		local cp = self:CP(piece)
+		if isvalid(cp) then cp:HuntStat() end
+		log("[HuntTile] 사냥 칸 효과 적용 tile=" .. self.Entity.Name)
+	end
+
+end

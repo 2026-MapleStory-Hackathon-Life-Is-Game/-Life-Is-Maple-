@@ -1,0 +1,10 @@
+@Component
+script StartTile extends HexaTile
+
+	-- 시작 칸: 별도 효과 없음.
+	@ExecSpace("ServerOnly")
+	method void OnArrive(Entity piece)
+		log("[StartTile] 시작 칸 (효과 없음) tile=" .. self.Entity.Name)
+	end
+
+end

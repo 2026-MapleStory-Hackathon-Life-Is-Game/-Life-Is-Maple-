@@ -1,0 +1,51 @@
+--[[
+    PlayerStatInit
+    ----------------------------------------------------------------------------
+    플레이어 입장 시 전투 관련 컴포넌트(per-player)를 런타임 부착하는 Logic.
+    DefaultPlayer.model은 Global(읽기 전용)이라 모델 수정 대신 런타임 AddComponent로 붙인다.
+
+    부착 컴포넌트(같은 플레이어 엔티티에 형제로 존재):
+      BuffManager / EquipmentManager / ExtraTableManager / CombatPowerManager
+    이들은 전부 ServerOnly 로직(타일 효과·전투력 계산)에서 사용되므로 서버에서 부착한다.
+--]]
+@Logic
+script PlayerStatInit extends Logic
+
+	property any userEnterHandler = nil
+
+	method void OnBeginPlay()
+		if self:IsServer() then
+			self.userEnterHandler = _UserService:ConnectEvent(UserEnterEvent, self.OnUserEnter)
+		end
+	end
+
+	method void OnEndPlay()
+		if self.userEnterHandler ~= nil then
+			_UserService:DisconnectEvent(UserEnterEvent, self.userEnterHandler)
+			self.userEnterHandler = nil
+		end
+	end
+
+	@ExecSpace("ServerOnly")
+	method void OnUserEnter(UserEnterEvent event)
+		-- 입장한 플레이어 엔티티에 전투 컴포넌트 4종을 부착한다(중복 방지).
+		local p = _UserService:GetUserEntityByUserId(event.UserId)
+		if isvalid(p) == false then
+			log_error("[PlayerStatInit] 플레이어 엔티티 없음: " .. tostring(event.UserId))
+			return
+		end
+		self:AddIfMissing(p, "script.BuffManager")
+		self:AddIfMissing(p, "script.EquipmentManager")
+		self:AddIfMissing(p, "script.ExtraTableManager")
+		self:AddIfMissing(p, "script.CombatPowerManager")
+		log("[PlayerStatInit] 전투 컴포넌트 부착 완료: " .. event.UserId)
+	end
+
+	@ExecSpace("ServerOnly")
+	method void AddIfMissing(Entity e, string comp)
+		if e:GetComponent(comp) == nil then
+			e:AddComponent(comp)
+		end
+	end
+
+end

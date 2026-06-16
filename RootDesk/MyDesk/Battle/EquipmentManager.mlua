@@ -1,0 +1,122 @@
+-- 플레이어별 장비 (@Component, 플레이어 엔티티에 런타임 부착).
+@Component
+script EquipmentManager extends Component
+
+	-- 장비 보관 방식 2가지 (둘 다 GetModifiers에서 함께 합산된다):
+	--   1) Weapon/Armor → SlotEquips[category] 에 1개씩. 같은 슬롯에 착용하면 교체.
+	--   2) Accessory    → Accessories[equipName] 에 누적. 서로 다른 장신구는 여러 개 동시 보유.
+	--      (같은 이름을 다시 얻으면 갱신만 됨 — 동일 장신구 중복 스택은 막는다.)
+	-- 장비 1개 = { equipName=, statFlat=, attackFlat=, damagePct= }
+	property table SlotEquips = {}    -- SlotEquips[category] = item (Weapon/Armor 단일 슬롯)
+	property table Accessories = {}   -- Accessories[equipName] = item (장신구 다중 보유)
+
+	method void OnBeginPlay()
+		-- @Component라 인스턴스(플레이어)마다 테이블을 새로 만든다(공유 방지).
+		self.SlotEquips = {}
+		self.Accessories = {}
+	end
+
+	-- 게임 재시작용: 모든 장비/장신구 해제.
+	@ExecSpace("ServerOnly")
+	method void ResetAll()
+		self.SlotEquips = {}
+		self.Accessories = {}
+		log("EquipmentManager: 장비 전체 초기화")
+	end
+
+	method integer FindEquipRow(string equipName)
+		-- EquipData에서 equipName에 해당하는 행 인덱스를 반환한다. 없으면 -1.
+		local ds = _DataService:GetTable("EquipData")
+		if isvalid(ds) == false then
+			log_error("EquipmentManager: dataset 'EquipData' not found")
+			return -1
+		end
+		for i = 1, ds:GetRowCount() do
+			if ds:GetCell(i, "EquipName") == equipName then
+				return i
+			end
+		end
+		return -1
+	end
+
+	@ExecSpace("ServerOnly")
+	method void Equip(string equipName)
+		-- 장비 이름을 받아 CSV에서 수치를 읽고, Category에 따라 슬롯/장신구함에 넣는다.
+		local rowIdx = self:FindEquipRow(equipName)
+		if rowIdx == -1 then
+			log_warning("EquipmentManager.Equip: no equip named " .. equipName)
+			return
+		end
+
+		local ds = _DataService:GetTable("EquipData")
+		local category = ds:GetCell(rowIdx, "Category")
+		if category == "" then
+			log_warning("EquipmentManager.Equip: '" .. equipName .. "' has no Category")
+			return
+		end
+
+		-- CSV 빈 칸은 ""이므로 tonumber가 nil → 0으로 처리한다.
+		local item = {
+			equipName  = equipName,
+			statFlat   = tonumber(ds:GetCell(rowIdx, "Stat"))   or 0,
+			attackFlat = tonumber(ds:GetCell(rowIdx, "Attack")) or 0,
+			damagePct  = tonumber(ds:GetCell(rowIdx, "Damage")) or 0,
+		}
+
+		if category == "Accessory" then
+			-- 장신구: 이름별로 누적 (서로 다른 장신구는 모두 동시에 효과 적용).
+			self.Accessories[equipName] = item
+			log("EquipmentManager: [장신구] + " .. equipName .. " 보유 (총 " .. tostring(self:CountAccessories()) .. "종)")
+		else
+			-- 무기/보호구: 같은 슬롯이면 교체된다.
+			self.SlotEquips[category] = item
+			log("EquipmentManager: [" .. category .. "] → " .. equipName .. " 착용")
+		end
+	end
+
+	@ExecSpace("ServerOnly")
+	method void Unequip(string category)
+		-- 무기/보호구 슬롯을 해제한다.
+		self.SlotEquips[category] = nil
+		log("EquipmentManager: [" .. category .. "] 해제")
+	end
+
+	@ExecSpace("ServerOnly")
+	method void UnequipAccessory(string equipName)
+		-- 보유 장신구 1종을 해제한다.
+		self.Accessories[equipName] = nil
+		log("EquipmentManager: [장신구] " .. equipName .. " 해제")
+	end
+
+	method integer CountAccessories()
+		-- 현재 보유 중인 장신구 종류 수.
+		local n = 0
+		for _ in pairs(self.Accessories) do
+			n += 1
+		end
+		return n
+	end
+
+	method table GetModifiers()
+		-- 슬롯(무기/보호구) + 장신구 전체의 수치를 합산해 modifier 하나로 반환한다.
+		local total = {
+			statFlat = 0, statPct = 0,
+			attackFlat = 0, attackPct = 0,
+			damagePct = 0,
+		}
+
+		for _, e in pairs(self.SlotEquips) do
+			total.statFlat   = total.statFlat   + (e.statFlat or 0)
+			total.attackFlat = total.attackFlat + (e.attackFlat or 0)
+			total.damagePct  = total.damagePct  + (e.damagePct or 0)
+		end
+		for _, e in pairs(self.Accessories) do
+			total.statFlat   = total.statFlat   + (e.statFlat or 0)
+			total.attackFlat = total.attackFlat + (e.attackFlat or 0)
+			total.damagePct  = total.damagePct  + (e.damagePct or 0)
+		end
+
+		return total
+	end
+
+end

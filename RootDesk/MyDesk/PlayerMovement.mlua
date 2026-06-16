@@ -9,6 +9,35 @@ script PlayerMovement extends Component
 
 	method void OnBeginPlay()
 		        self.currentTile = "HexaTile_0"
+		        self:ApplyPhysicsForMap()
+	end
+
+	-- 맵 전환마다 호출: 인게임에선 물리/입력을 끄고(트윈 보드 이동이 먹히도록), 그 외 맵에선 켠다.
+	method void OnMapEnter(Entity enteredMap)
+		        self:ApplyPhysicsForMap()
+	end
+
+	-- 현재 맵 기준으로 Body/Movement/PlayerController 활성 여부를 결정한다.
+	-- InGame(보드 맵)에서는 트윈으로만 이동하므로 물리/입력 컴포넌트를 모두 끈다.
+	method void ApplyPhysicsForMap()
+		        local inGame = (self.Entity.CurrentMapName == "InGame")
+		        self:SetPhysicsEnabled(inGame == false)
+		        if inGame then
+		            -- 게임 맵 진입: 이때서야 게임 맵 타일이 로드되므로 보드 타일을 재수집한다.
+		            _HexaTileManager:EnsureTilesCollected()
+		        end
+		        log("[PlayerMovement] 맵=" .. tostring(self.Entity.CurrentMapName) .. " 물리/입력 enable=" .. tostring(inGame == false))
+	end
+
+	-- Rigidbody / Kinematicbody / Movement / PlayerController / StateComponent 일괄 토글.
+	-- InGame에서는 StateComponent도 끈다: 안 끄면 (속도 0이라) 상태머신이 매 틱 IDLE→stand를
+	-- 재전송해, 우리가 보내는 walk(BodyActionStateChangeEvent)를 덮어쓰기 때문이다.
+	method void SetPhysicsEnabled(boolean on)
+		        if isvalid(self.Entity.RigidbodyComponent) then self.Entity.RigidbodyComponent.Enable = on end
+		        if isvalid(self.Entity.KinematicbodyComponent) then self.Entity.KinematicbodyComponent.Enable = on end
+		        if isvalid(self.Entity.MovementComponent) then self.Entity.MovementComponent.Enable = on end
+		        if isvalid(self.Entity.PlayerControllerComponent) then self.Entity.PlayerControllerComponent.Enable = on end
+		        if isvalid(self.Entity.StateComponent) then self.Entity.StateComponent.Enable = on end
 	end
 
 	@ExecSpace("Server")
@@ -74,6 +103,7 @@ script PlayerMovement extends Component
 	method void MoveToTile(string tileName)
 		        local target = _HexaTileManager:GetTileEntity(tileName)
 		        if target == nil then
+		            log_warning("[PlayerMovement] 타일 엔티티 미발견(이동 중단): " .. tostring(tileName))
 		            return
 		        end
 		
@@ -98,9 +128,20 @@ script PlayerMovement extends Component
 		        end)
 	end
 
+	-- 상태(StateComponent.CurrentStateName)는 @Sync 서버 권한이므로 서버에서 바꿔야
+	-- 모든 클라의 아바타 애니메이션(MOVE→walk 등)에 반영된다. (Client에서 바꾸면 서버 IDLE이 덮어씀)
+	-- InGame에서는 StateComponent를 꺼두므로(SetPhysicsEnabled), 상태머신 대신
+	-- 아바타 바디 액션(walk/stand)을 BodyActionStateChangeEvent로 직접 구동한다.
+	-- 이벤트는 아바타 루트로 보내며, 애니메이션이므로 클라에서 재생한다.
 	@ExecSpace("Client")
 	method void ChangePlayerState(string state)
-		        self.Entity.StateComponent:ChangeState(state)
+		        local actionState = MapleAvatarBodyActionState.Stand
+		        if state == "MOVE" then actionState = MapleAvatarBodyActionState.Walk end
+
+		        local ev = BodyActionStateChangeEvent()
+		        ev.ActionState = actionState
+		        ev.needResetAction = true
+		        self.Entity:SendEvent(ev)
 	end
 
 	@ExecSpace("Client")

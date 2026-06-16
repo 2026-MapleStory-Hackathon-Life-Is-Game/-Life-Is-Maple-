@@ -10,6 +10,11 @@ script SingleTurnManager extends Logic
 	@Sync
 	property integer remainDiceTotal = 0
 
+	-- 주사위를 굴려 연출이 재생되는 동안 true. 연출 종료(OnDiceAnimationEnd)에서 해제.
+	-- DICE 상태가 연출 내내 유지되므로, 이 플래그가 없으면 연출 중 재굴림이 가능하다.
+	@Sync
+	property boolean _isRolling = false
+
 	property any _turnButtonHandler = nil
 
 	method void OnEndPlay()
@@ -35,6 +40,7 @@ script SingleTurnManager extends Logic
 	method void Stop()
 		        self._isActive = false
 		        self._currentState = "IDLE"
+		        self._isRolling = false
 		        log("[SingleTurnManager] 게임 종료")
 	end
 
@@ -93,22 +99,16 @@ script SingleTurnManager extends Logic
 	end
 
 	@ExecSpace("Server")
-	method void OnTile()
-		        log("[SingleTurnManager] 타일 이벤트 단계 (건너뜀)")
-		        self:AdvanceState()
-	end
-
-	@ExecSpace("Server")
-	method void OnTurnEnd()
-		        log("[SingleTurnManager] 턴 종료 → 다음 턴 시작")
-		        self:AdvanceState()
-	end
-
-	@ExecSpace("Server")
 	method void RequestRollDice()
 		if not self._isActive then return end
 		        if self._currentState ~= "DICE" then return end
-		
+		        -- 이미 굴리는 중이면(연출 재생 중) 무시 — 연출 중 재굴림 방지
+		        if self._isRolling then
+		            log("[SingleTurnManager] 이미 주사위를 굴리는 중입니다. 요청 무시")
+		            return
+		        end
+		        self._isRolling = true
+
 		        local total = _DiceManager:Roll()
 		        self.remainDiceTotal = total
 		        -- 개별 눈은 DiceManager의 @Sync 프로퍼티에서 읽음
@@ -125,6 +125,25 @@ script SingleTurnManager extends Logic
 	end
 
 	@ExecSpace("Server")
+	method void OnDiceAnimationEnd()
+		if self._currentState ~= "DICE" then return end
+		        self._isRolling = false   -- 연출 종료 → 굴림 잠금 해제
+		        self:AdvanceState()   -- DICE → MOVE (OnMove가 이동 시작)
+	end
+
+	@ExecSpace("Server")
+	method void OnTile()
+		        -- 도착한 타일의 OnArrive 호출 (싱글: 플레이어 한 명)
+		        for _, userEntity in pairs(_UserService.UserEntities) do
+		            if userEntity.PlayerMovement ~= nil then
+		                _HexaTileManager:TriggerArrive(userEntity.PlayerMovement.currentTile, userEntity)
+		            end
+		            break
+		        end
+		        self:AdvanceState()
+	end
+
+	@ExecSpace("Server")
 	method void OnMoveComplete()
 		        if not self._isActive then return end
 		        if self._currentState ~= "MOVE" then return end
@@ -133,9 +152,9 @@ script SingleTurnManager extends Logic
 	end
 
 	@ExecSpace("Server")
-	method void OnDiceAnimationEnd()
-		if self._currentState ~= "DICE" then return end
-		        self:AdvanceState()   -- DICE → MOVE (OnMove가 이동 시작)
+	method void OnTurnEnd()
+		        log("[SingleTurnManager] 턴 종료 → 다음 턴 시작")
+		        self:AdvanceState()
 	end
 
 end

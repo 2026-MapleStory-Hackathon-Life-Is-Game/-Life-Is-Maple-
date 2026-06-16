@@ -1,7 +1,7 @@
 {
   "Id": "",
   "GameId": "",
-  "EntryKey": "map://map01",
+  "EntryKey": "map://ingame",
   "ContentType": "x-mod/map",
   "Content": "",
   "Usage": 0,
@@ -15,12 +15,12 @@
     "Entities": [
       {
         "id": "37bbf682-b56f-4df8-9c1e-bf643790a5c5",
-        "path": "/maps/map01",
-        "componentNames": "MOD.Core.MapComponent,MOD.Core.FootholdComponent",
+        "path": "/maps/InGame",
+        "componentNames": "MOD.Core.MapComponent,MOD.Core.FootholdComponent,script.InGameMapManagement",
         "jsonString": {
-          "name": "map01",
-          "path": "/maps/map01",
-          "nameEditable": false,
+          "name": "InGame",
+          "path": "/maps/InGame",
+          "nameEditable": true,
           "enable": true,
           "visible": true,
           "localize": false,
@@ -39,6 +39,10 @@
               "@type": "MOD.Core.FootholdComponent",
               "FootholdsByLayer": {},
               "Enable": true
+            },
+            {
+              "@type": "script.InGameMapManagement",
+              "Enable": true
             }
           ],
           "@version": 1
@@ -46,11 +50,11 @@
       },
       {
         "id": "4b284a85-764c-4e97-9bef-171b401ea937",
-        "path": "/maps/map01/Background",
+        "path": "/maps/InGame/Background",
         "componentNames": "MOD.Core.BackgroundComponent",
         "jsonString": {
           "name": "Background",
-          "path": "/maps/map01/Background",
+          "path": "/maps/InGame/Background",
           "nameEditable": false,
           "enable": true,
           "visible": true,
@@ -78,11 +82,11 @@
       },
       {
         "id": "07267179-be1b-43cb-bcaf-75091c07d7bd",
-        "path": "/maps/map01/MapleMapLayer",
+        "path": "/maps/InGame/MapleMapLayer",
         "componentNames": "MOD.Core.MapLayerComponent",
         "jsonString": {
           "name": "MapleMapLayer",
-          "path": "/maps/map01/MapleMapLayer",
+          "path": "/maps/InGame/MapleMapLayer",
           "nameEditable": false,
           "enable": true,
           "visible": true,
@@ -114,11 +118,11 @@
       },
       {
         "id": "a4fde4f3-6d15-4438-ac67-1852059498e6",
-        "path": "/maps/map01/RectTileMap",
+        "path": "/maps/InGame/RectTileMap",
         "componentNames": "MOD.Core.TransformComponent,MOD.Core.RectTileMapComponent",
         "jsonString": {
           "name": "RectTileMap",
-          "path": "/maps/map01/RectTileMap",
+          "path": "/maps/InGame/RectTileMap",
           "nameEditable": false,
           "enable": true,
           "visible": true,
@@ -6348,11 +6352,11 @@
       },
       {
         "id": "9f2585a4-87be-4517-900c-100efa52bc1c",
-        "path": "/maps/map01/SpawnLocation",
+        "path": "/maps/InGame/SpawnLocation",
         "componentNames": "MOD.Core.TransformComponent,MOD.Core.SpriteRendererComponent,MOD.Core.SpawnLocationComponent",
         "jsonString": {
           "name": "SpawnLocation",
-          "path": "/maps/map01/SpawnLocation",
+          "path": "/maps/InGame/SpawnLocation",
           "nameEditable": true,
           "enable": true,
           "visible": true,
@@ -6409,11 +6413,11 @@
       },
       {
         "id": "46092cdb-7da8-4c15-b7a9-22147586dc6c",
-        "path": "/maps/map01/HexaTiles",
+        "path": "/maps/InGame/HexaTiles",
         "componentNames": "MOD.Core.TransformComponent",
         "jsonString": {
           "name": "HexaTiles",
-          "path": "/maps/map01/HexaTiles",
+          "path": "/maps/InGame/HexaTiles",
           "nameEditable": true,
           "enable": true,
           "visible": true,
@@ -6451,11 +6455,11 @@
       },
       {
         "id": "3b23659e-a77e-44c4-af74-c0b149109818",
-        "path": "/maps/map01/HexaTiles/HexaTile_0",
+        "path": "/maps/InGame/HexaTiles/HexaTile_0",
         "componentNames": "MOD.Core.TransformComponent,MOD.Core.SpriteRendererComponent,MOD.Core.TriggerComponent,MOD.Core.TagComponent",
         "jsonString": {
           "name": "HexaTile_0",
-          "path": "/maps/map01/HexaTiles/HexaTile_0",
+          "path": "/maps/InGame/HexaTiles/HexaTile_0",
           "nameEditable": true,
           "enable": true,
           "visible": true,
@@ -6530,11 +6534,11 @@
       },
       {
         "id": "a5556d86-e837-4ce5-b93a-1d9baeacd095",
-        "path": "/maps/map01/HexaTiles/HexaTile_1",
+        "path": "/maps/InGame/HexaTiles/HexaTile_1",
         "componentNames": "MOD.Core.TransformComponent,MOD.Core.SpriteRendererComponent,MOD.Core.TriggerComponent,MOD.Core.TagComponent",
         "jsonString": {
           "name": "HexaTile_1",
-          "path": "/maps/map01/HexaTiles/HexaTile_1",
+          "path": "/maps/InGame/HexaTiles/HexaTile_1",
           "nameEditable": true,
           "enable": true,
           "visible": true,
@@ -6610,11 +6614,11 @@
       },
       {
         "id": "814865b5-f41e-4a35-a76c-52872e2d8aca",
-        "path": "/maps/map01/HexaTiles/HexaTile_2",
+        "path": "/maps/InGame/HexaTiles/HexaTile_2",
         "componentNames": "MOD.Core.TransformComponent,MOD.Core.SpriteRendererComponent,MOD.Core.TriggerComponent,MOD.Core.TagComponent",
         "jsonString": {
           "name": "HexaTile_2",
-          "path": "/maps/map01/HexaTiles/HexaTile_2",
+          "path": "/maps/InGame/HexaTiles/HexaTile_2",
           "nameEditable": true,
           "enable": true,
           "visible": true,
@@ -6690,11 +6694,11 @@
       },
       {
         "id": "460f60ff-e570-4f6a-b2f3-e6648ee7a0cb",
-        "path": "/maps/map01/HexaTiles/HexaTile_3",
+        "path": "/maps/InGame/HexaTiles/HexaTile_3",
         "componentNames": "MOD.Core.TransformComponent,MOD.Core.SpriteRendererComponent,MOD.Core.TriggerComponent,MOD.Core.TagComponent",
         "jsonString": {
           "name": "HexaTile_3",
-          "path": "/maps/map01/HexaTiles/HexaTile_3",
+          "path": "/maps/InGame/HexaTiles/HexaTile_3",
           "nameEditable": true,
           "enable": true,
           "visible": true,
@@ -6770,11 +6774,11 @@
       },
       {
         "id": "9ee35b1d-cab1-46ba-b2e6-874120b7da30",
-        "path": "/maps/map01/HexaTiles/HexaTile_4",
+        "path": "/maps/InGame/HexaTiles/HexaTile_4",
         "componentNames": "MOD.Core.TransformComponent,MOD.Core.SpriteRendererComponent,MOD.Core.TriggerComponent,MOD.Core.TagComponent",
         "jsonString": {
           "name": "HexaTile_4",
-          "path": "/maps/map01/HexaTiles/HexaTile_4",
+          "path": "/maps/InGame/HexaTiles/HexaTile_4",
           "nameEditable": true,
           "enable": true,
           "visible": true,
@@ -6850,11 +6854,11 @@
       },
       {
         "id": "38226121-8ffa-4b8a-9bac-5d0fb065588d",
-        "path": "/maps/map01/HexaTiles/HexaTile_5",
+        "path": "/maps/InGame/HexaTiles/HexaTile_5",
         "componentNames": "MOD.Core.TransformComponent,MOD.Core.SpriteRendererComponent,MOD.Core.TriggerComponent,MOD.Core.TagComponent",
         "jsonString": {
           "name": "HexaTile_5",
-          "path": "/maps/map01/HexaTiles/HexaTile_5",
+          "path": "/maps/InGame/HexaTiles/HexaTile_5",
           "nameEditable": true,
           "enable": true,
           "visible": true,
@@ -6930,11 +6934,11 @@
       },
       {
         "id": "037cce8f-badb-47c8-a60d-ee82a52a5245",
-        "path": "/maps/map01/HexaTiles/HexaTile_6",
+        "path": "/maps/InGame/HexaTiles/HexaTile_6",
         "componentNames": "MOD.Core.TransformComponent,MOD.Core.SpriteRendererComponent,MOD.Core.TriggerComponent,MOD.Core.TagComponent",
         "jsonString": {
           "name": "HexaTile_6",
-          "path": "/maps/map01/HexaTiles/HexaTile_6",
+          "path": "/maps/InGame/HexaTiles/HexaTile_6",
           "nameEditable": true,
           "enable": true,
           "visible": true,
@@ -7010,11 +7014,11 @@
       },
       {
         "id": "bc6012b3-c0b7-4623-b9d2-c0cd7a29ee03",
-        "path": "/maps/map01/HexaTiles/HexaTile_7A",
+        "path": "/maps/InGame/HexaTiles/HexaTile_7A",
         "componentNames": "MOD.Core.TransformComponent,MOD.Core.SpriteRendererComponent,MOD.Core.TriggerComponent,MOD.Core.TagComponent",
         "jsonString": {
           "name": "HexaTile_7A",
-          "path": "/maps/map01/HexaTiles/HexaTile_7A",
+          "path": "/maps/InGame/HexaTiles/HexaTile_7A",
           "nameEditable": true,
           "enable": true,
           "visible": true,
@@ -7090,11 +7094,11 @@
       },
       {
         "id": "57269bcf-b852-41eb-a7be-85c0ee0fd476",
-        "path": "/maps/map01/HexaTiles/HexaTile_7B",
+        "path": "/maps/InGame/HexaTiles/HexaTile_7B",
         "componentNames": "MOD.Core.TransformComponent,MOD.Core.SpriteRendererComponent,MOD.Core.TriggerComponent,MOD.Core.TagComponent",
         "jsonString": {
           "name": "HexaTile_7B",
-          "path": "/maps/map01/HexaTiles/HexaTile_7B",
+          "path": "/maps/InGame/HexaTiles/HexaTile_7B",
           "nameEditable": true,
           "enable": true,
           "visible": true,
@@ -7170,11 +7174,11 @@
       },
       {
         "id": "d4f1e9d5-9378-421f-8748-044ef935d3e2",
-        "path": "/maps/map01/HexaTiles/HexaTile_8",
+        "path": "/maps/InGame/HexaTiles/HexaTile_8",
         "componentNames": "MOD.Core.TransformComponent,MOD.Core.SpriteRendererComponent,MOD.Core.TriggerComponent,MOD.Core.TagComponent",
         "jsonString": {
           "name": "HexaTile_8",
-          "path": "/maps/map01/HexaTiles/HexaTile_8",
+          "path": "/maps/InGame/HexaTiles/HexaTile_8",
           "nameEditable": true,
           "enable": true,
           "visible": true,
@@ -7250,11 +7254,11 @@
       },
       {
         "id": "8ef084aa-1a29-45c0-a063-8536362003d7",
-        "path": "/maps/map01/HexaTiles/HexaTile_9",
+        "path": "/maps/InGame/HexaTiles/HexaTile_9",
         "componentNames": "MOD.Core.TransformComponent,MOD.Core.SpriteRendererComponent,MOD.Core.TriggerComponent,MOD.Core.TagComponent",
         "jsonString": {
           "name": "HexaTile_9",
-          "path": "/maps/map01/HexaTiles/HexaTile_9",
+          "path": "/maps/InGame/HexaTiles/HexaTile_9",
           "nameEditable": true,
           "enable": true,
           "visible": true,
@@ -7330,11 +7334,11 @@
       },
       {
         "id": "e88220cf-dcbd-40f2-9c74-6569186f6fe9",
-        "path": "/maps/map01/HexaTiles/HexaTile_10",
+        "path": "/maps/InGame/HexaTiles/HexaTile_10",
         "componentNames": "MOD.Core.TransformComponent,MOD.Core.SpriteRendererComponent,MOD.Core.TriggerComponent,MOD.Core.TagComponent",
         "jsonString": {
           "name": "HexaTile_10",
-          "path": "/maps/map01/HexaTiles/HexaTile_10",
+          "path": "/maps/InGame/HexaTiles/HexaTile_10",
           "nameEditable": true,
           "enable": true,
           "visible": true,
@@ -7402,6 +7406,56 @@
               "Tags": [
                 "HexaTile"
               ],
+              "Enable": true
+            }
+          ],
+          "@version": 1
+        }
+      },
+      {
+        "id": "8c73388c-2b53-4c68-b47b-acf9feb115ce",
+        "path": "/maps/InGame/LobbyMapManagement",
+        "componentNames": "MOD.Core.TransformComponent,script.InGameMapManagement,script.CombatPowerManager",
+        "jsonString": {
+          "name": "LobbyMapManagement",
+          "path": "/maps/InGame/LobbyMapManagement",
+          "nameEditable": true,
+          "enable": true,
+          "visible": true,
+          "localize": false,
+          "displayOrder": 5,
+          "pathConstraints": "///",
+          "revision": 1,
+          "origin": {
+            "type": "Model",
+            "entry_id": "mapempty",
+            "sub_entity_id": null,
+            "root_entity_id": "0db9d6b8-1cfd-4b77-be44-92cd20ecf617",
+            "replaced_model_id": null
+          },
+          "modelId": "mapempty",
+          "@components": [
+            {
+              "@type": "MOD.Core.TransformComponent",
+              "Position": {
+                "x": -0.3033005,
+                "y": 0.303370148,
+                "z": 999.999
+              },
+              "QuaternionRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 1.0
+              },
+              "Enable": true
+            },
+            {
+              "@type": "script.InGameMapManagement",
+              "Enable": true
+            },
+            {
+              "@type": "script.CombatPowerManager",
               "Enable": true
             }
           ],
