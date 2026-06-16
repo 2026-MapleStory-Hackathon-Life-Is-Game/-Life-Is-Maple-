@@ -1,0 +1,186 @@
+@Logic
+script BuffPanelUI extends Logic
+
+	property Entity cardTemplate = "e091d5dd-1324-49e3-9f7b-1a7f49306d89"
+
+	property Entity tooltip = "fd4d1d5e-f4a9-404a-977a-ff09e048ba96"
+
+	property TextComponent tooltipText = "fb396ad9-7baf-445c-ad73-3461cdb93a42"
+
+	property number startX = -900
+
+	property number rowY = 360
+
+	property number stepX = 64
+
+	property any cards = nil
+
+	property any hoverHandlers = nil
+
+	method void OnBeginPlay()
+		-- 템플릿/툴팁을 숨기고 내부 상태를 초기화한다.
+		self.cards = {}
+		self.hoverHandlers = {}
+		if isvalid(self.cardTemplate) then self.cardTemplate.Enable = false end
+		if isvalid(self.tooltip) then self.tooltip.Enable = false end
+	end
+
+	method void OnEndPlay()
+		-- 카드/핸들러 정리.
+		self:ClearCards()
+	end
+
+	@ExecSpace("Client")
+	method void SetBuffs(table buffNames)
+		-- 서버가 보낸 활성 버프 이름 목록으로 카드 한 줄을 다시 만든다.
+		self:ClearCards()
+		if isvalid(self.cardTemplate) == false then
+			log_error("[BuffPanelUI] cardTemplate 없음")
+			return
+		end
+		local ds = _DataService:GetTable("BuffData")
+		if isvalid(ds) == false then
+			log_error("[BuffPanelUI] dataset 'BuffData' 없음")
+			return
+		end
+		for i = 1, #buffNames do
+			self:MakeCard(ds, buffNames[i], i)
+		end
+		log("[BuffPanelUI] 버프 카드 " .. tostring(#buffNames) .. "개 표시")
+	end
+
+	method integer FindRow(any ds, string buffName)
+		-- BuffData에서 buffName에 해당하는 행 인덱스를 찾는다. 없으면 -1.
+		for i = 1, ds:GetRowCount() do
+			if ds:GetCell(i, "BuffName") == buffName then
+				return i
+			end
+		end
+		return -1
+	end
+
+	method void MakeCard(any ds, string buffName, integer index)
+		-- 버프 1개에 대한 카드를 복제·배치하고 아이콘/호버 툴팁을 세팅한다.
+		local rowIdx = self:FindRow(ds, buffName)
+		if rowIdx == -1 then
+			log_warning("[BuffPanelUI] 버프 행 없음: " .. buffName)
+			return
+		end
+		
+		-- 1) 템플릿 복제 후 활성화 + 좌→우 배치
+		local card = self.cardTemplate:Clone("BuffCard_" .. buffName)
+		if isvalid(card) == false then return end
+		card.Enable = true
+		local tr = card.UITransformComponent
+		if isvalid(tr) then
+			tr.anchoredPosition = Vector2(self.startX + (index - 1) * self.stepX, self.rowY - 10)
+		end
+		
+		-- 2) 버프 아이콘을 카드(버튼) 자체의 배경 이미지로 적용한다(자식 없는 단일 버튼).
+		local iconRuid = ds:GetCell(rowIdx, "ImageRUID")
+		if iconRuid ~= nil and iconRuid ~= "" then
+			local sr = card.SpriteGUIRendererComponent
+			if isvalid(sr) then sr.ImageRUID = DataRef(iconRuid) end
+		end
+		
+		-- 3) 효과 설명 문자열을 미리 구성하고, 카드(버튼) 자체의 상태 변화(호버/누름)에 연결한다.
+		--    MSW에서 PC 마우스오버는 ButtonComponent의 ButtonStateChangeEvent(state=Hover)로 감지한다.
+		--    모바일은 길게 누르면 Pressed 상태가 되므로 Hover/Pressed면 툴팁을 띄우고, 그 외엔 숨긴다.
+		local effectText = self:BuildEffectText(ds, rowIdx)
+		local capturedCard = card
+		local capturedText = effectText
+		local h = card:ConnectEvent(ButtonStateChangeEvent, function(ev)
+			local st = ev.state
+			if st == ButtonState.Hover or st == ButtonState.Pressed then
+				self:ShowTooltip(capturedCard, capturedText)
+			else
+				self:HideTooltip()
+			end
+		end)
+		table.insert(self.hoverHandlers, { entity = card, cb = h })
+		
+		table.insert(self.cards, card)
+	end
+
+	method string BuildEffectText(any ds, integer rowIdx)
+		-- 버프 행에서 비어있지 않은 효과 수치를 사람이 읽을 텍스트로 조립한다.
+		local name = ds:GetCell(rowIdx, "Name")
+		local desc = self:StripQuotes(ds:GetCell(rowIdx, "Description"))
+		
+		local lines = {}
+		if name ~= nil and name ~= "" then table.insert(lines, name) end
+		if desc ~= nil and desc ~= "" then table.insert(lines, desc) end
+		
+		self:AppendEffect(lines, ds, rowIdx, "MainStat_Num", "주스탯 +", "")
+		self:AppendEffect(lines, ds, rowIdx, "MainStat_Percent", "주스탯 +", "%")
+		self:AppendEffect(lines, ds, rowIdx, "AllStat_Num", "올스탯 +", "")
+		self:AppendEffect(lines, ds, rowIdx, "AllStat_Percent", "올스탯 +", "%")
+		self:AppendEffect(lines, ds, rowIdx, "MainPower_Num", "공격력/마력 +", "")
+		self:AppendEffect(lines, ds, rowIdx, "MainPower_Percent", "공격력/마력 +", "%")
+		self:AppendEffect(lines, ds, rowIdx, "Damage_Percent", "데미지 +", "%")
+		self:AppendEffect(lines, ds, rowIdx, "CriticalDamage_Percent", "크리티컬 데미지 +", "%")
+		
+		return table.concat(lines, "\n")
+	end
+
+	method void AppendEffect(table lines, any ds, integer rowIdx, string column, string prefix, string suffix)
+		-- 해당 컬럼 값이 0이 아니면 "라벨 +값" 한 줄을 lines에 추가한다.
+		local v = tonumber(ds:GetCell(rowIdx, column))
+		if v ~= nil and v ~= 0 then
+			table.insert(lines, prefix .. tostring(v) .. suffix)
+		end
+	end
+
+	method string StripQuotes(string s)
+		-- GetCell이 제거하지 않는 양끝 큰따옴표를 방어적으로 제거한다.
+		if s == nil then return "" end
+		if #s >= 2 and string.sub(s, 1, 1) == "\"" and string.sub(s, #s, #s) == "\"" then
+			return string.sub(s, 2, #s - 1)
+		end
+		return s
+	end
+
+	method void ShowTooltip(Entity card, string text)
+		-- 카드 옆쪽에 효과 툴팁 패널을 띄운다.
+		if isvalid(self.tooltip) == false then return end
+		if isvalid(self.tooltipText) then self.tooltipText.Text = text end
+		if isvalid(card) then
+			local ctr = card.UITransformComponent
+			local tt = self.tooltip.UITransformComponent
+			if isvalid(ctr) and isvalid(tt) then
+				tt.anchoredPosition = Vector2(ctr.anchoredPosition.x + 220, ctr.anchoredPosition.y - 60)
+			end
+		end
+		self.tooltip.Enable = true
+	end
+
+	method void HideTooltip()
+		-- 툴팁 패널을 숨긴다.
+		if isvalid(self.tooltip) then self.tooltip.Enable = false end
+	end
+
+	method void ClearCards()
+		-- 기존 카드 클론과 호버 핸들러를 모두 제거한다.
+		if self.hoverHandlers ~= nil then
+			for i = 1, #self.hoverHandlers do
+				local h = self.hoverHandlers[i]
+				if isvalid(h.entity) then
+					h.entity:DisconnectEvent(ButtonStateChangeEvent, h.cb)
+				end
+			end
+		end
+		self.hoverHandlers = {}
+		
+		if self.cards ~= nil then
+			for i = 1, #self.cards do
+				if isvalid(self.cards[i]) then
+					self.cards[i]:Destroy()
+				end
+			end
+		end
+		self.cards = {}
+		
+		self:HideTooltip()
+	end
+
+end
