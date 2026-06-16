@@ -1,0 +1,21 @@
+@Component
+script UnionTile extends HexaTile
+
+	-- 유니온 칸(구 연애/Love 칸): 도착 시 성공하면 Union 슬롯을 한 단계 승급한다.
+	--   첫 데이트(Tier1) → 웨딩 팡파르(Tier2) → 유니온의 축복(Tier3).
+	-- 성공/실패 확률은 UnionProbability 테이블(CSV)에서 관리. 승급 단계는 BuffData의 (Union, Tier)로 결정.
+
+	@ExecSpace("ServerOnly")
+	method void OnArrive(Entity piece)
+		-- 확률 판정 후 성공 시에만 다음 Tier로 승급.
+		if self:RollOutcome("UnionProbability") ~= "Success" then
+			log("[UnionTile] 유니온 이벤트 실패")
+			return
+		end
+
+		local buff = self:Buff(piece)
+		if isvalid(buff) == false then return end
+		buff:UpgradeSlot("Union")
+	end
+
+end

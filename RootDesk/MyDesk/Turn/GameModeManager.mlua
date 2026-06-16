@@ -17,16 +17,14 @@ script GameModeManager extends Logic
 
     method void OnBeginPlay()
         log("[GameModeManager] OnBeginPlay: 모드 선택 대기 중")
-        -- TODO: 실제로는 모드 선택 UI에서 StartSinglePlayer/StartMultiPlayer를 호출해야 함.
-        --       현재는 테스트를 위해 싱글 모드를 바로 시작한다.
-        self:StartSinglePlayer()
+        -- 모드는 ModeSelectUI(클라)의 버튼에서 StartSinglePlayer / StartMultiPlayer 호출로 결정된다.
     end
 
     method void OnEndPlay()
         log("[GameModeManager] OnEndPlay")
     end
 
-    -- 싱글플레이 모드를 시작한다.
+    -- 싱글플레이 모드를 시작한다. (본인을 게임 맵으로 전환 후 시작)
     @ExecSpace("Server")
     method void StartSinglePlayer()
         if self._isGameActive then
@@ -36,27 +34,31 @@ script GameModeManager extends Logic
         log("[GameModeManager] 싱글플레이 모드 시작")
         self._activeMode = "SINGLE"
         self._isGameActive = true
+        -- 본인만 게임 맵으로 텔레포트 (MatchManager의 전환 로직 재사용)
+        local ids = {}
+        table.insert(ids, senderUserId)
+        _MatchManager:TeleportPlayersToGame(ids)
         _SingleTurnManager:Start()
     end
 
-    -- 멀티플레이 모드를 시작한다 (2~4인).
+    -- 멀티플레이 모드를 시작한다. (매칭된 userId 목록을 받음)
     @ExecSpace("Server")
-    method void StartMultiPlayer(integer playerCount)
+    method void StartMultiPlayer(table userIds)
         if self._isGameActive then
             log_warning("[GameModeManager] 이미 게임이 진행 중입니다.")
             return
         end
-        if playerCount < 2 or playerCount > 4 then
-            log_error("[GameModeManager] 멀티플레이 인원은 2~4명이어야 합니다: " .. tostring(playerCount))
+        if #userIds < 2 then
+            log_error("[GameModeManager] 멀티플레이 인원은 2명 이상이어야 합니다: " .. tostring(#userIds))
             return
         end
-        log("[GameModeManager] 멀티플레이 모드 시작 (" .. tostring(playerCount) .. "명)")
+        log("[GameModeManager] 멀티플레이 모드 시작 (" .. tostring(#userIds) .. "명)")
         self._activeMode = "MULTI"
         self._isGameActive = true
-        _MultiTurnManager:Start(playerCount)
+        _MultiTurnManager:Start(userIds)
     end
 
-    -- 현재 게임 세션을 종료한다.
+    -- 현재 게임 세션을 종료한다. (중도 종료 — 퇴장 등)
     @ExecSpace("Server")
     method void EndGame()
         if not self._isGameActive then return end
@@ -68,6 +70,107 @@ script GameModeManager extends Logic
         end
         self._activeMode = "NONE"
         self._isGameActive = false
+    end
+
+    -- [End 칸 도착] EndTile이 호출. 모드별 종료 라우팅.
+    @ExecSpace("Server")
+    method void OnPlayerReachedEnd(Entity piece)
+        if not self._isGameActive then return end
+        if self._activeMode == "SINGLE" then
+            self:FinishGame(piece)
+        elseif self._activeMode == "MULTI" then
+            -- 멀티: 해당 플레이어 완주 처리. 전원 완주 시 MultiTurnManager가 FinishMulti를 호출한다.
+            if isvalid(piece) and piece.PlayerComponent ~= nil then
+                _MultiTurnManager:MarkPlayerFinished(piece.PlayerComponent.UserId)
+            end
+        end
+    end
+
+    -- [싱글 종료] 본인 전투력 결과 → 로비 복귀 → 스탯 리셋.
+    @ExecSpace("Server")
+    method void FinishGame(Entity piece)
+        if not self._isGameActive then return end
+
+        local finalPower = 0
+        if isvalid(piece) then
+            local cp = piece:GetComponent("script.CombatPowerManager")
+            if isvalid(cp) then finalPower = cp.CombatPower end
+        end
+        log("[GameModeManager] 싱글 클리어 — 전투력=" .. tostring(finalPower))
+
+        _SingleTurnManager:Stop()
+        self:ShowResult("게임 종료!\n최종 전투력: " .. tostring(math.floor(finalPower)))
+
+        local ids = {}
+        if isvalid(piece) and piece.PlayerComponent ~= nil then
+            table.insert(ids, piece.PlayerComponent.UserId)
+        end
+        _MatchManager:TeleportPlayersToLobby(ids)
+        self:ResetPlayerStats(piece)
+
+        self._activeMode = "NONE"
+        self._isGameActive = false
+    end
+
+    -- [멀티 종료] MultiTurnManager가 전원 완주 시 호출. 전투력 최고가 승자.
+    @ExecSpace("Server")
+    method void FinishMulti(table userIds)
+        if not self._isGameActive then return end
+        _MultiTurnManager:Stop()
+
+        local winnerName = "?"
+        local winnerPower = -1
+        for _, uid in ipairs(userIds) do
+            local ue = _UserService:GetUserEntityByUserId(uid)
+            if isvalid(ue) then
+                local p = 0
+                local cp = ue:GetComponent("script.CombatPowerManager")
+                if isvalid(cp) then p = cp.CombatPower end
+                if p > winnerPower then
+                    winnerPower = p
+                    winnerName = self:GetPlayerName(ue)
+                end
+            end
+        end
+        log("[GameModeManager] 멀티 클리어 — 승자=" .. winnerName .. " 전투력=" .. tostring(winnerPower))
+
+        self:ShowResult("승자: " .. winnerName .. "\n전투력: " .. tostring(math.floor(winnerPower)))
+        _MatchManager:TeleportPlayersToLobby(userIds)
+        for _, uid in ipairs(userIds) do
+            local ue = _UserService:GetUserEntityByUserId(uid)
+            if isvalid(ue) then self:ResetPlayerStats(ue) end
+        end
+
+        self._activeMode = "NONE"
+        self._isGameActive = false
+    end
+
+    -- 플레이어의 전투 스탯(버프·장비·전투력)을 모두 초기화한다. (버프/장비 먼저 → 전투력 재계산이 0이 되도록)
+    @ExecSpace("ServerOnly")
+    method void ResetPlayerStats(Entity entity)
+        if isvalid(entity) == false then return end
+        local buff = entity:GetComponent("script.BuffManager")
+        if isvalid(buff) then buff:ResetAll() end
+        local equip = entity:GetComponent("script.EquipmentManager")
+        if isvalid(equip) then equip:ResetAll() end
+        local cp = entity:GetComponent("script.CombatPowerManager")
+        if isvalid(cp) then cp:ResetAll() end
+    end
+
+    -- 플레이어 표시 이름(닉네임 우선, 없으면 userId).
+    method string GetPlayerName(Entity entity)
+        if isvalid(entity) and entity.PlayerComponent ~= nil then
+            local nick = entity.PlayerComponent.Nickname
+            if nick ~= nil and nick ~= "" then return nick end
+            return entity.PlayerComponent.UserId
+        end
+        return "?"
+    end
+
+    -- [클라] 결과 화면 표시(메시지).
+    @ExecSpace("Client")
+    method void ShowResult(string message)
+        _ResultUI:Show(message)
     end
 
 end

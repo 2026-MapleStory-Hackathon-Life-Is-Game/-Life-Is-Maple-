@@ -1,0 +1,32 @@
+@Component
+script VillageTile extends HexaTile
+
+	-- 마을 칸: 전투 외 이벤트(룰렛). 대성공/성공/실패에 따라 주스탯 증감.
+	-- 확률은 VillageProbability 테이블(CSV)에서 관리. 증감 수치는 아래 프로퍼티(기획 확정 시 조정).
+	@Sync
+	property number greatGain = 15    -- 대성공 시 주스탯 증가
+	@Sync
+	property number successGain = 5   -- 성공 시 주스탯 증가
+	@Sync
+	property number failLoss = 3      -- 실패 시 주스탯 감소
+
+	@ExecSpace("ServerOnly")
+	method void OnArrive(Entity piece)
+		local cp = self:CP(piece)
+		if isvalid(cp) == false then return end
+
+		-- 룰렛 굴리기 (분포는 VillageProbability.csv: 대성공/성공/실패)
+		local outcome = self:RollOutcome("VillageProbability")
+		if outcome == "GreatSuccess" then
+			log("[VillageTile] 마을 이벤트 대성공! 주스탯 +" .. tostring(self.greatGain))
+			cp:AddMainStat("flat", self.greatGain)
+		elseif outcome == "Success" then
+			log("[VillageTile] 마을 이벤트 성공. 주스탯 +" .. tostring(self.successGain))
+			cp:AddMainStat("flat", self.successGain)
+		else
+			log("[VillageTile] 마을 이벤트 실패. 주스탯 -" .. tostring(self.failLoss))
+			cp:AddMainStat("flat", -self.failLoss)
+		end
+	end
+
+end

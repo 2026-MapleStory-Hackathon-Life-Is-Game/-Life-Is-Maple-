@@ -1,0 +1,27 @@
+@Component
+script GuildTile extends HexaTile
+
+	-- 길드 칸: 길드 임무 성공 시 길드 버프 획득 → 재성공 시 더 큰 축복으로 성장.
+	-- 성공/실패 확률은 GuildProbability 테이블(CSV)에서 관리.
+
+	@ExecSpace("ServerOnly")
+	method void OnArrive(Entity piece)
+		if self:RollOutcome("GuildProbability") ~= "Success" then
+			log("[GuildTile] 길드 임무 실패")
+			return
+		end
+
+		-- 성공: 길드 버프(Guild 슬롯)가 없으면 소형 축복, 이미 있으면 대형 축복으로 성장.
+		local buff = self:Buff(piece)
+		if isvalid(buff) == false then return end
+		local cur = buff:GetSlotBuffName("Guild")
+		if cur == "" then
+			log("[GuildTile] 길드 임무 성공 → 길드의 축복 획득")
+			buff:SetBuff("The_Guild's_Blessing")
+		else
+			log("[GuildTile] 길드 임무 성공 → 길드의 더 큰 축복으로 성장")
+			buff:SetBuff("The_Guild's_Greater_Blessing")
+		end
+	end
+
+end
