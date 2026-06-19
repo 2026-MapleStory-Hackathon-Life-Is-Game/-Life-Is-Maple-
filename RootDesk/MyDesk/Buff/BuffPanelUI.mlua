@@ -92,6 +92,7 @@ script BuffPanelUI extends Logic
 		local h = card:ConnectEvent(ButtonStateChangeEvent, function(ev)
 			local st = ev.state
 			if st == ButtonState.Hover or st == ButtonState.Pressed then
+				self:BringToFront(capturedCard)   -- 호버한 카드를 형제 맨 앞으로 → 옆 카드에 안 가림
 				self:ShowTooltip(capturedCard, capturedText)
 			else
 				self:HideTooltip()
@@ -138,6 +139,15 @@ script BuffPanelUI extends Logic
 			return string.sub(s, 2, #s - 1)
 		end
 		return s
+	end
+
+	method void BringToFront(Entity card)
+		-- 호버한 카드의 UITransform을 형제 중 맨 뒤 인덱스로 옮긴다(=최상단 렌더). 큰 값은 마지막으로 클램프된다.
+		if isvalid(card) == false then return end
+		local tr = card.UITransformComponent
+		if isvalid(tr) then
+			_UILogic:SetSiblingIndex(tr, 2)
+		end
 	end
 
 	method void ShowTooltip(Entity card, string text)

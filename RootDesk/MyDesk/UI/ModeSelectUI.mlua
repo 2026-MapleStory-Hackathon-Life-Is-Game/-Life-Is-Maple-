@@ -63,6 +63,7 @@ script ModeSelectUI extends Logic
 
 	@ExecSpace("ClientOnly")
 	method void OnClickGameStart()
+		_SFXManager:PlayClick()
 		self:SetPanelEnable(self.matchingPanel, false)
 		self:SetPanelEnable(self.modeSelectPanel, true)
 		log("[ModeSelectUI] 모드 선택 패널 열림")
@@ -70,12 +71,14 @@ script ModeSelectUI extends Logic
 
 	@ExecSpace("ClientOnly")
 	method void OnClickClose()
+		_SFXManager:PlayClick()
 		self:SetPanelEnable(self.modeSelectPanel, false)
 		log("[ModeSelectUI] 모드 선택 패널 닫힘")
 	end
 
 	@ExecSpace("ClientOnly")
 	method void OnClickSingle()
+		_SFXManager:PlayClick()
 		_GameModeManager:StartSinglePlayer()
 		self:SetPanelEnable(self.modeSelectPanel, false)
 		self:SetPanelEnable(self.matchingPanel, false)
@@ -83,6 +86,7 @@ script ModeSelectUI extends Logic
 
 	@ExecSpace("ClientOnly")
 	method void OnClickMulti()
+		_SFXManager:PlayClick()
 		_MatchManager:JoinMatch()
 		self:SetPanelEnable(self.modeSelectPanel, false)
 		self:SetPanelEnable(self.matchingPanel, true)
@@ -91,6 +95,7 @@ script ModeSelectUI extends Logic
 
 	@ExecSpace("ClientOnly")
 	method void OnClickCancel()
+		_SFXManager:PlayClick()
 		_MatchManager:CancelMatch()
 		self:SetPanelEnable(self.matchingPanel, false)
 		self:SetPanelEnable(self.modeSelectPanel, true)
