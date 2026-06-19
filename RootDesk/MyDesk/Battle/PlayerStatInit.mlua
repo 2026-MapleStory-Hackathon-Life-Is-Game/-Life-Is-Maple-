@@ -13,6 +13,12 @@ script PlayerStatInit extends Logic
 
 	property any userEnterHandler = nil
 
+	-- 입장 시 EquipmentManager에 장착할 기본 장비(EquipData의 EquipName). 빈 문자열이면 미장착.
+	@Sync
+	property string defaultWeapon = "Beginner_Club"
+	@Sync
+	property string defaultArmor = "Beginner_Cloth"
+
 	method void OnBeginPlay()
 		if self:IsServer() then
 			self.userEnterHandler = _UserService:ConnectEvent(UserEnterEvent, self.OnUserEnter)
@@ -39,12 +45,32 @@ script PlayerStatInit extends Logic
 		self:AddIfMissing(p, "script.ExtraTableManager")
 		self:AddIfMissing(p, "script.CombatPowerManager")
 		log("[PlayerStatInit] 전투 컴포넌트 부착 완료: " .. event.UserId)
+
+		-- 기본 무기/방어구를 장착(스탯 반영). 직업 무기 '외형'은 JobWeaponManager가 별도 처리.
+		self:EquipDefaults(p)
 	end
 
 	@ExecSpace("ServerOnly")
 	method void AddIfMissing(Entity e, string comp)
 		if e:GetComponent(comp) == nil then
 			e:AddComponent(comp)
+		end
+	end
+
+	@ExecSpace("ServerOnly")
+	method void EquipDefaults(Entity p)
+		-- 기본 무기/방어구를 EquipmentManager에 장착하고, 장비 스탯이 반영되도록 전투력을 재계산한다.
+		---@type EquipmentManager
+		local equip = p:GetComponent("script.EquipmentManager")
+		if isvalid(equip) then
+			if self.defaultWeapon ~= "" then equip:Equip(self.defaultWeapon) end
+			if self.defaultArmor ~= "" then equip:Equip(self.defaultArmor) end
+		end
+		---@type CombatPowerManager
+		local cp = p:GetComponent("script.CombatPowerManager")
+		if isvalid(cp) then
+			cp:CalculateCurrentCombatPower()
+			log("[PlayerStatInit] 기본 장비 장착 → 전투력=" .. tostring(cp.CombatPower))
 		end
 	end
 
