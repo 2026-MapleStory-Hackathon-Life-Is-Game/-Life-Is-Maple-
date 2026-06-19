@@ -1,0 +1,248 @@
+@Logic
+script TileManager extends Logic
+
+	@DisplayName("tileGraph")
+	@Description("타일들이 어떻게 연결돼있는지를 나타내는 리스트입니다.")
+	property table tileGraph = {}
+
+	@DisplayName("tileEntities")
+	@Description("실제 타일들의 엔티티입니다.")
+	property table tileEntities = {}
+
+	property table tileComponents = {}
+
+	property table variant = {}
+
+	property integer _collectRetries = 0
+
+	property integer _visualRetries = 0
+
+	method void OnBeginPlay()
+		        -- 1) 타일 연결 그래프 정의
+		        --    next   : 다음으로 갈 수 있는 타일 이름 목록 (2개 이상이면 분기)
+		        --    type   : 칸 종류 (Start/Hunt/Tax/Boss/Village/Guild/End ...)
+		        --    branch : 분기 갈래에만 존재. 선택 UI 버튼에 표시할 이름.
+		        self.tileGraph = {
+		            ["HexaTile_0"]  = { next = {"HexaTile_1"},                  type = "Start" },
+		            ["HexaTile_1"]  = { next = {"HexaTile_2"},                  type = "Hunt" },
+		            ["HexaTile_2"]  = { next = {"HexaTile_3"},                  type = "Hunt" },
+		            ["HexaTile_3"]  = { next = {"HexaTile_4"},                  type = "HuntPlus" },
+		            ["HexaTile_4"]  = { next = {"HexaTile_5"},                  type = "Tax" },
+		            ["HexaTile_5"]  = { next = {"HexaTile_6"},                  type = "Hunt" },
+		            ["HexaTile_6"]  = { next = {"HexaTile_7A", "HexaTile_7B"},  type = "Boss" },
+		            ["HexaTile_7A"] = { next = {"HexaTile_8"},                  type = "Village", branch = "왼쪽" },
+		            ["HexaTile_7B"] = { next = {"HexaTile_9"},                  type = "Guild",   branch = "오른쪽" },
+		            ["HexaTile_8"]  = { next = {},                              type = "End" },
+		            ["HexaTile_9"]  = { next = {"HexaTile_10"},                 type = "Union" },
+		            ["HexaTile_10"] = { next = {},                              type = "End" },
+		        }
+		
+		        -- 2~3) 타일 엔티티 수집 + (서버) 칸 컴포넌트 부착.
+		        --       맵 분리 구조에서는 시작 시점(로비)에 게임 맵이 안 떠 있어 0개가 잡힌다.
+		        --       그래서 InGame 진입 시 PlayerMovement가 EnsureTilesCollected()로 재수집한다.
+		        self:CollectTiles()
+	end
+
+	method void CollectTiles()
+		        self.tileEntities = {}
+		        local entities = _EntityService:GetEntitiesByTag("HexaTile")
+		        local count = 0
+		        for _, entity in pairs(entities) do
+		            self.tileEntities[entity.Name] = entity
+		            count += 1
+		        end
+		        log("[TileManager] 타일 수집: " .. tostring(count) .. "개")
+		
+		        if self:IsServer() then
+		            -- 1) 변형 타일 먼저 구성(종류 컴포넌트 부착 + variant 맵).
+		            self:BuildVariants()
+		            -- 2) 변형이 아닌 일반 타일만 기존 단일-부착 경로로 처리.
+		            for name, entity in pairs(self.tileEntities) do
+		                if self.variant[name] == nil then
+		                    local data = self.tileGraph[name]
+		                    if data ~= nil then
+		                        local compName = self:TypeToComponent(data.type)
+		                        if compName ~= "" and self.tileComponents[name] == nil then
+		                            entity:AddComponent(compName)
+		                            self.tileComponents[name] = entity:GetComponent("script." .. compName)
+		                        end
+		                    end
+		                end
+		            end
+		        end
+	end
+
+	method boolean IsVariantTile(string tileName)
+		        return self.variant[tileName] ~= nil
+	end
+
+	@ExecSpace("ServerOnly")
+	method void BuildVariants()
+		        local ds = _DataService:GetTable("TileVariant")
+		        if isvalid(ds) == false then return end
+		        for i = 1, ds:GetRowCount() do
+		            local tileName = ds:GetCell(i, "TileName")
+		            local camp     = ds:GetCell(i, "Camp")
+		            local typ      = ds:GetCell(i, "Type")
+		            local entity   = self.tileEntities[tileName]
+		            if isvalid(entity) and typ ~= "" and camp ~= "" then
+		                local compName = self:TypeToComponent(typ)
+		                if compName ~= "" then
+		                    local comp = entity:GetComponent("script." .. compName)
+		                    if comp == nil then
+		                        entity:AddComponent(compName)
+		                        comp = entity:GetComponent("script." .. compName)
+		                    end
+		                    if self.variant[tileName] == nil then self.variant[tileName] = {} end
+		                    self.variant[tileName][camp] = comp
+		                    log("[TileManager] 변형 부착 " .. tileName .. "[" .. camp .. "] -> " .. compName)
+		                end
+		            end
+		        end
+	end
+
+	method void EnsureTilesCollected()
+		        self._collectRetries = 0
+		        self:TryCollect()
+	end
+
+	method void TryCollect()
+		        -- CollectTiles 후 0개면 0.2초 간격으로 최대 15회 재시도(클라 비동기 맵 로드 대비).
+		        self:CollectTiles()
+		        if self:CountTiles() > 0 then return end
+		        self._collectRetries += 1
+		        if self._collectRetries <= 15 then
+		            _TimerService:SetTimerOnce(function() self:TryCollect() end, 0.2)
+		        else
+		            log_warning("[TileManager] 타일 수집 실패: 재시도 초과")
+		        end
+	end
+
+	method integer CountTiles()
+		        local c = 0
+		        for _, e in pairs(self.tileEntities) do c += 1 end
+		        return c
+	end
+
+	method string TypeToComponent(string tileType)
+		        if tileType == "Start" then return "StartTile"
+		        elseif tileType == "Hunt" then return "HuntTile"
+		        elseif tileType == "HuntPlus" then return "HuntPlusTile"
+		        elseif tileType == "Tax" then return "TaxTile"
+		        elseif tileType == "Boss" then return "BossTile"
+		        elseif tileType == "Village" then return "VillageTile"
+		        elseif tileType == "Guild" then return "GuildTile"
+		        elseif tileType == "Union" then return "UnionTile"
+		        elseif tileType == "End" then return "EndTile"
+		        end
+		        return ""
+	end
+
+	method table GetNextTiles(string tileName)
+		        local data = self.tileGraph[tileName]
+		        if data == nil then
+		            return {}
+		        end
+		        return data.next
+	end
+
+	method string GetTileType(string tileName)
+		        local data = self.tileGraph[tileName]
+		        if data == nil then
+		            return ""
+		        end
+		        return data.type
+	end
+
+	method Entity GetTileEntity(string tileName)
+		        return self.tileEntities[tileName]
+	end
+
+	method string GetTileBranch(string tileName)
+		        local data = self.tileGraph[tileName]
+		        if data == nil or data.branch == nil then
+		            return ""
+		        end
+		        return data.branch
+	end
+
+	@ExecSpace("ServerOnly")
+	method void RegisterTile(string tileName, BaseTile tile)
+		        self.tileComponents[tileName] = tile
+	end
+
+	method BaseTile GetTileComponent(string tileName)
+		        return self.tileComponents[tileName]
+	end
+
+	@ExecSpace("ServerOnly")
+	method void TriggerArrive(string tileName, Entity piece)
+		        -- 변형 타일: 도착한 말의 진영으로 적용할 종류 컴포넌트를 고른다.
+		        if self:IsVariantTile(tileName) then
+		            local campKey = ""
+		            ---@type BuffManager
+		            local buff = piece:GetComponent("script.BuffManager")
+		            if isvalid(buff) then campKey = buff.CampName end
+		            local comp = self.variant[tileName][campKey]
+		            if comp == nil then
+		                log("[TileManager] 변형 분기 없음 tile=" .. tileName .. " camp=" .. campKey .. " (폴백: 효과 없음)")
+		                return
+		            end
+		            log("[TileManager] 변형 분기 tile=" .. tileName .. " camp=" .. campKey)
+		            comp:OnArrive(piece)
+		            return
+		        end
+		
+		        -- 일반 타일: 기존 단일 등록 경로.
+		        local comp = self.tileComponents[tileName]
+		        if comp == nil then
+		            log("[TileManager] 타일 컴포넌트 미등록: " .. tileName)
+		            return
+		        end
+		        comp:OnArrive(piece)
+	end
+
+	@ExecSpace("ClientOnly")
+	method void RequestCampVisuals()
+		        self._visualRetries = 0
+		        self:TryApplyCampVisuals()
+	end
+
+	@ExecSpace("ClientOnly")
+	method void TryApplyCampVisuals()
+		        -- 준비됐으면 1회 적용하고 종료, 아니면 0.2초 간격 재시도(최대 25회).
+		        if self:ApplyCampVisualsLocal() then return end
+		        self._visualRetries += 1
+		        if self._visualRetries <= 25 then
+		            _TimerService:SetTimerOnce(function() self:TryApplyCampVisuals() end, 0.2)
+		        end
+	end
+
+	@ExecSpace("ClientOnly")
+	method boolean ApplyCampVisualsLocal()
+		        if self:CountTiles() == 0 then return false end
+		        local me = _UserService.LocalPlayer
+		        if isvalid(me) == false then return false end
+		        ---@type BuffManager
+		        local buff = me:GetComponent("script.BuffManager")
+		        if isvalid(buff) == false then return false end
+		        local myCamp = buff.CampName
+		        if myCamp == "" then return false end
+		
+		        local ds = _DataService:GetTable("TileVariant")
+		        if isvalid(ds) == false then return true end   -- 적용할 데이터 없음 = 준비는 됨
+		        for i = 1, ds:GetRowCount() do
+		            if ds:GetCell(i, "Camp") == myCamp then
+		                local tileName = ds:GetCell(i, "TileName")
+		                local ruid     = ds:GetCell(i, "SpriteRUID")
+		                local entity   = self.tileEntities[tileName]
+		                if isvalid(entity) and ruid ~= "" and isvalid(entity.SpriteRendererComponent) then
+		                    entity.SpriteRendererComponent.SpriteRUID = ruid
+		                    log("[TileManager] (클라) 진영 시각 " .. tileName .. " <- " .. ruid)
+		                end
+		            end
+		        end
+		        return true
+	end
+
+end

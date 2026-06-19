@@ -210,7 +210,7 @@ script MatchManager extends Logic
 
     -- 게임 맵 시작 타일(HexaTile_0)의 월드 좌표. 없으면 폴백.
     method Vector3 GetGameSpawnPosition()
-        local startTile = _HexaTileManager:GetTileEntity("HexaTile_0")
+        local startTile = _TileManager:GetTileEntity("HexaTile_0")
         if isvalid(startTile) then
             return startTile.TransformComponent.WorldPosition
         end

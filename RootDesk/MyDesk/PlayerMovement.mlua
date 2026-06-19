@@ -24,7 +24,9 @@ script PlayerMovement extends Component
 		        self:SetPhysicsEnabled(inGame == false)
 		        if inGame then
 		            -- 게임 맵 진입: 이때서야 게임 맵 타일이 로드되므로 보드 타일을 재수집한다.
-		            _HexaTileManager:EnsureTilesCollected()
+		            _TileManager:EnsureTilesCollected()
+			            -- 클라: 내 진영에 맞춰 변형 타일 겉모습을 로컬 교체(서버에선 ClientOnly라 no-op).
+			            _TileManager:RequestCampVisuals()
 		        end
 		        log("[PlayerMovement] 맵=" .. tostring(self.Entity.CurrentMapName) .. " 물리/입력 enable=" .. tostring(inGame == false))
 	end
@@ -62,7 +64,7 @@ script PlayerMovement extends Component
 		            return
 		        end
 		
-		        local nextList = _HexaTileManager:GetNextTiles(self.currentTile)
+		        local nextList = _TileManager:GetNextTiles(self.currentTile)
 		
 		        -- End 타일: 더 갈 곳이 없으면 멈춘다.
 		        if #nextList == 0 then
@@ -75,7 +77,7 @@ script PlayerMovement extends Component
 		        if #nextList >= 2 then
 		            local branchTexts = {}
 		            for i = 1, #nextList do
-		                branchTexts[i] = _HexaTileManager:GetTileBranch(nextList[i])
+		                branchTexts[i] = _TileManager:GetTileBranch(nextList[i])
 		            end
 		            self:ShowBranchUI(nextList, branchTexts)
 		            return   -- 선택이 올 때까지 멈춤 (OnBranchSelected에서 재개)
@@ -101,7 +103,7 @@ script PlayerMovement extends Component
 
 	@ExecSpace("Client")
 	method void MoveToTile(string tileName)
-		        local target = _HexaTileManager:GetTileEntity(tileName)
+		        local target = _TileManager:GetTileEntity(tileName)
 		        if target == nil then
 		            log_warning("[PlayerMovement] 타일 엔티티 미발견(이동 중단): " .. tostring(tileName))
 		            return

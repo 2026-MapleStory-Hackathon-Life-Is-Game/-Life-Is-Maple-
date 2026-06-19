@@ -1,7 +1,6 @@
 @Component
-script EndTile extends HexaTile
+script EndTile extends BaseTile
 
-	-- 종료 칸: 이 칸에 도달하면 게임을 종료한다(결과 표시 → 로비 복귀).
 	@ExecSpace("ServerOnly")
 	method void OnArrive(Entity piece)
 		log("[EndTile] 종료 칸 도착 → 게임 종료 tile=" .. self.Entity.Name)

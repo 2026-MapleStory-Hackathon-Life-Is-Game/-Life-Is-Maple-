@@ -1,5 +1,5 @@
 @Component
-script BossTile extends HexaTile
+script BossTile extends BaseTile
 
 	-- 보스 칸: 전투력 기반 대성공/성공/실패 판정 → 대성공 시 보스 장신구 드롭.
 	-- ⚠️ 판정 확률/기준 전투력은 기획 미확정 → 아래는 전부 임시값(인스펙터/기획 확정 시 조정).
@@ -7,6 +7,11 @@ script BossTile extends HexaTile
 	@DisplayName("보스 이름(BossData 키)")
 	@Sync
 	property string bossName = "Zakum"   -- BossData.csv의 BossName (Zakum/Horntail/Pink_Bean/Lucid)
+
+	-- 일반 '성공'(대성공 미달, 절반 이상) 시 주스탯 증가량. 보스별로 인스펙터에서 조정.
+	@DisplayName("성공 시 주스탯 증가량")
+	@Sync
+	property integer successMainStat = 5
 
 	method integer FindBossRow(string name)
 		-- BossData에서 BossName에 해당하는 행 인덱스를 반환한다. 없으면 -1.
@@ -82,8 +87,11 @@ script BossTile extends HexaTile
 				if isvalid(equip) then equip:Equip(drop) end   -- 장신구 스탯이 전투력에 반영됨
 			end
 		elseif power >= requiredPower / 2 then
+			-- 성공: 주스탯(직업 주스탯)을 소폭 올린다. 내부에서 전투력도 재계산된다.
+			-- ⚠️ base 직접 수정(영구): cp:AddMainStat = base. 동적 버프(self:Add~) 아님.
+			cp:AddMainStat("flat", self.successMainStat)
 			log("[BossTile] " .. displayName .. " 성공 (전투력 " .. tostring(power)
-				.. ") — 보상 미정(기획 대기)")
+				.. ") → 주스탯 +" .. tostring(self.successMainStat))
 		else
 			log("[BossTile] " .. displayName .. " 실패 (전투력 " .. tostring(power)
 				.. " < " .. tostring(requiredPower / 2) .. ")")

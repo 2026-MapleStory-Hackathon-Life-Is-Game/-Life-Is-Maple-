@@ -136,7 +136,7 @@ script SingleTurnManager extends Logic
 		        -- 도착한 타일의 OnArrive 호출 (싱글: 플레이어 한 명)
 		        for _, userEntity in pairs(_UserService.UserEntities) do
 		            if userEntity.PlayerMovement ~= nil then
-		                _HexaTileManager:TriggerArrive(userEntity.PlayerMovement.currentTile, userEntity)
+		                _TileManager:TriggerArrive(userEntity.PlayerMovement.currentTile, userEntity)
 		            end
 		            break
 		        end

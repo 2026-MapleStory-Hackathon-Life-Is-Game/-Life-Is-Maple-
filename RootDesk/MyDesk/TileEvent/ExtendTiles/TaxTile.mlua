@@ -1,9 +1,9 @@
 @Component
-script TaxTile extends HexaTile
+script TaxTile extends BaseTile
 
-	-- 세금 칸: 주스탯 감소.
 	@ExecSpace("ServerOnly")
 	method void OnArrive(Entity piece)
+		-- ⚠️ base 직접 수정(영구): cp:TaxStat() → AddMainStat(base, 감소). 동적 버프(self:Add~) 아님.
 		local cp = self:CP(piece)
 		if isvalid(cp) then cp:TaxStat() end
 		log("[TaxTile] 세금 칸 효과 적용 tile=" .. self.Entity.Name)

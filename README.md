@@ -324,7 +324,7 @@ ui/
 ```lua
 -- 예시: 헌트 칸에서 전투력 계산 후 보상 지급
 method void OnTile()
-    local tileType = _HexaTileManager:GetTileType(_PlayerMovement.currentTile)
+    local tileType = _TileManager:GetTileType(_PlayerMovement.currentTile)
     if tileType == "Hunt" then
         -- 칸 이벤트 처리...
         -- 완료되면:

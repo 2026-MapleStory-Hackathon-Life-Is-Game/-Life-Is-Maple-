@@ -1,0 +1,111 @@
+@Component
+script BaseTile extends Component
+
+	@Sync
+	property string tileType = ""
+
+	@ExecSpace("ServerOnly")
+	method void OnBeginPlay()
+		-- 자신을 TileManager에 이름으로 등록한다.
+		-- (서브클래스는 OnBeginPlay를 따로 정의하지 않으면 이 base 등록을 그대로 상속한다.)
+		_TileManager:RegisterTile(self.Entity.Name, self)
+	end
+
+	@ExecSpace("ServerOnly")
+	method void OnArrive(Entity piece)
+		-- 기본 동작 없음 (서브클래스에서 구현). override 안 됐을 때만 찍힘.
+		log("[BaseTile] OnArrive (미구현 base) tile=" .. self.Entity.Name)
+	end
+
+	method any CP(Entity piece)
+		return piece:GetComponent("script.CombatPowerManager")
+	end
+
+	method any Buff(Entity piece)
+		return piece:GetComponent("script.BuffManager")
+	end
+
+	method any Equip(Entity piece)
+		return piece:GetComponent("script.EquipmentManager")
+	end
+
+	@ExecSpace("ServerOnly")
+	method void AddMainStat(Entity piece, string kind, number value)
+		-- 주스탯 동적 증감. 직업 주스탯 1개에만 적용.
+		local buff = self:Buff(piece)
+		if isvalid(buff) == false then return end
+		if kind == "percent" then
+			buff:AddRawModifier({ statPct = value })
+		else
+			buff:AddRawModifier({ statFlat = value })
+		end
+	end
+
+	@ExecSpace("ServerOnly")
+	method void AddAllStat(Entity piece, string kind, number value)
+		-- 올스탯 동적 증감. STR/DEX/INT/LUK 4스탯 모두에 적용(부스탯은 메이플식 가중).
+		local buff = self:Buff(piece)
+		if isvalid(buff) == false then return end
+		if kind == "percent" then
+			buff:AddRawModifier({ allStatPct = value })
+		else
+			buff:AddRawModifier({ allStatFlat = value })
+		end
+	end
+
+	@ExecSpace("ServerOnly")
+	method void AddMainAttack(Entity piece, string kind, number value)
+		-- 공격력/마력 동적 증감.
+		local buff = self:Buff(piece)
+		if isvalid(buff) == false then return end
+		if kind == "percent" then
+			buff:AddRawModifier({ attackPct = value })
+		else
+			buff:AddRawModifier({ attackFlat = value })
+		end
+	end
+
+	@ExecSpace("ServerOnly")
+	method void AddDamage(Entity piece, number value)
+		-- 추가 대미지% 동적 증감.
+		local buff = self:Buff(piece)
+		if isvalid(buff) == false then return end
+		buff:AddRawModifier({ damagePct = value })
+	end
+
+	@ExecSpace("ServerOnly")
+	method void AddCritical(Entity piece, number value)
+		-- 크리티컬 대미지% 동적 증감.
+		local buff = self:Buff(piece)
+		if isvalid(buff) == false then return end
+		buff:AddRawModifier({ critPct = value })
+	end
+
+	method string RollOutcome(string tableName)
+		-- Weight 합으로 1~합 정수를 굴려 누적 가중치 구간에 해당하는 Outcome을 반환한다.
+		local ds = _DataService:GetTable(tableName)
+		if isvalid(ds) == false then
+			log_error("[BaseTile] 확률 테이블 없음: " .. tableName)
+			return ""
+		end
+		local rows = ds:GetRowCount()
+		local total = 0
+		for i = 1, rows do
+			total += (tonumber(ds:GetCell(i, "Weight")) or 0)
+		end
+		if total <= 0 then
+			log_warning("[BaseTile] 확률 테이블 가중치 합 0: " .. tableName)
+			return ""
+		end
+		local roll = _UtilLogic:RandomIntegerRange(1, total)
+		local acc = 0
+		for i = 1, rows do
+			acc += (tonumber(ds:GetCell(i, "Weight")) or 0)
+			if roll <= acc then
+				return ds:GetCell(i, "Outcome")
+			end
+		end
+		return ds:GetCell(rows, "Outcome")
+	end
+
+end
