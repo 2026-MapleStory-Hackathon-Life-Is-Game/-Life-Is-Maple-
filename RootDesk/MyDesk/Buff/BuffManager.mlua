@@ -5,6 +5,12 @@ script BuffManager extends Component
 
 	property table ListBuffs = {}
 
+	-- 현재 진영 키(진영명 그대로, 예: "Nova"). 미선택 시 "".
+	-- Camp 슬롯 버프가 적용/해제될 때 갱신된다. 서버가 세팅하면 소유 클라로 동기화되어,
+	-- 클라가 자기 진영을 읽어 타일 시각을 로컬 교체하는 데 쓴다.
+	@TargetUserSync
+	property string CampName = ""
+
 	method void OnBeginPlay()
 		-- @Component라 인스턴스(플레이어)마다 테이블을 새로 만든다(공유 방지).
 		self.SlotBuffs = {}
@@ -84,6 +90,10 @@ script BuffManager extends Component
 				return
 			end
 			self.SlotBuffs[category] = buff
+			if category == "Camp" then
+				self.CampName = buffName
+				log("BuffManager: 진영 키 = " .. self.CampName)
+			end
 			log("BuffManager: [슬롯:" .. category .. "] → " .. buffName
 				.. " 적용 (Tier " .. tostring(buff.tier) .. ")")
 		else
@@ -114,6 +124,7 @@ script BuffManager extends Component
 		-- 만약 카테고리가 존재한다면, 슬롯 버프(갈아끼워지는 버프)를 제거합니다.
 		if category ~= "" then
 			self.SlotBuffs[category] = nil
+			if category == "Camp" then self.CampName = "" end
 			log("BuffManager: [슬롯:" .. category .. "] 제거")
 		else -- 만약 카테고리가 존재하지 않는다면 동일한 버프의 이름을 전부 제거합니다.
 			for i = #self.ListBuffs, 1, -1 do
