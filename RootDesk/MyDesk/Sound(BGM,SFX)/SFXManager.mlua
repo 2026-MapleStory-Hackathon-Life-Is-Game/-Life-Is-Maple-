@@ -1,0 +1,41 @@
+@Logic
+script SFXManager extends Logic
+
+	property string clickRUID = "972843e759204d3e9ad84e7d3fa94f83"
+
+	property string diceRUID = "9a72968f10c443558d65a4aa2bd48e1b"
+
+	property string winRUID = "2194bc42a2b14ecd85bc62cd2ab1872f"
+
+	property number volume = 1.0
+
+	property string Say_Start = "04ca8c287bad49e286bc0feb17cb8824"
+
+	property string Say_GameOver = "415afeeaf4714b78bfd66b92d4ff056a"
+
+	@ExecSpace("ClientOnly")
+	method void PlayClick()
+		        -- 버튼 클릭 효과음.
+		        self:Play(self.clickRUID)
+	end
+
+	@ExecSpace("ClientOnly")
+	method void PlayDice()
+		        -- 주사위 굴림 효과음.
+		        self:Play(self.diceRUID)
+	end
+
+	@ExecSpace("ClientOnly")
+	method void PlayWin()
+		        -- 결과(승리) 팡파르.
+		        self:Play(self.Say_GameOver)
+	end
+
+	@ExecSpace("ClientOnly")
+	method void Play(string ruid)
+		        -- 공통 재생부. 빈 RUID는 무시한다.
+		        if ruid == nil or ruid == "" then return end
+		        _SoundService:PlaySound(ruid, self.volume)
+	end
+
+end

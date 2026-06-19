@@ -46,6 +46,7 @@ script UnderButton extends Component
 	end
 
 	method void OnDicePanelClickOpen(any event)
+		_SFXManager:PlayClick()
 		if self:CanOpenDicePanel() == false then
 					return   -- 주사위 차례가 아니면 패널 안 열림
 				end
@@ -55,6 +56,7 @@ script UnderButton extends Component
 
 	method void OnClickRoll(any event)
 		-- 주사위 로직 발동
+		_SFXManager:PlayClick()
 		_SingleTurnManager:RequestRollDice()
 		_MultiTurnManager:RequestRollDice()
 		
@@ -63,17 +65,18 @@ script UnderButton extends Component
 	end
 
 	method void OnDicePanelClickClose(any event)
+		_SFXManager:PlayClick()
 		self.DicePanel.Visible = false
 		self.WholePanel.Visible = true
 	end
 
 	method boolean CanOpenDicePanel()
 		local mode = _GameModeManager._activeMode
-
+		
 				if mode == "SINGLE" then
 					-- 싱글: DICE 단계 + 굴리는 중이 아니어야 OK (연출 중 재오픈 차단)
 					return _SingleTurnManager._currentState == "DICE" and _SingleTurnManager._isRolling == false
-
+		
 				elseif mode == "MULTI" then
 					-- 멀티: DICE 단계 + 굴리는 중 아님 + 내가 현재 턴 플레이어여야 함
 					if _MultiTurnManager._currentState ~= "DICE" then

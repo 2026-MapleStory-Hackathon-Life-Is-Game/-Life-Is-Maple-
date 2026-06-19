@@ -75,6 +75,7 @@ script JobSelectUI extends Logic
 	@ExecSpace("ClientOnly")
 	method void SelectJob(string jobName)
 		-- Client→Server RPC: send selected job to server (all UI jobs are advancement 1).
+		_SFXManager:PlayClick()
 		_JobWeaponManager:OnJobSelected(jobName, 1)
 	end
 

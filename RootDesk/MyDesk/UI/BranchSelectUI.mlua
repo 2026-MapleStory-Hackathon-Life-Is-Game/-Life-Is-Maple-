@@ -62,6 +62,7 @@ script BranchSelectUI extends Logic
 
 	@ExecSpace("ClientOnly")
 	method void SelectBranch(string tileName)
+		_SFXManager:PlayClick()
 		log("분기 선택: " .. tileName)
 		
 				-- 로컬 플레이어의 PlayerMovement 컴포넌트를 찾아 서버로 전달

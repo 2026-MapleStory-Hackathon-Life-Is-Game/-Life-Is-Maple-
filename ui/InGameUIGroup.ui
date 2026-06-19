@@ -2839,6 +2839,125 @@
         }
       },
       {
+        "id": "81437709-abea-4122-a8fb-4a3311a5c881",
+        "path": "/ui/InGameUIGroup/UI_RollDice/DiceSparkle",
+        "componentNames": "MOD.Core.UITransformComponent,MOD.Core.UIAreaParticleComponent",
+        "jsonString": {
+          "name": "DiceSparkle",
+          "path": "/ui/InGameUIGroup/UI_RollDice/DiceSparkle",
+          "nameEditable": true,
+          "enable": false,
+          "visible": true,
+          "localize": true,
+          "displayOrder": 4,
+          "pathConstraints": "////",
+          "revision": 0,
+          "origin": {
+            "type": "Model",
+            "entry_id": "UIEmpty",
+            "sub_entity_id": null,
+            "root_entity_id": null,
+            "replaced_model_id": null
+          },
+          "modelId": "uiempty",
+          "@components": [
+            {
+              "@type": "MOD.Core.UITransformComponent",
+              "ActivePlatform": 255,
+              "AlignmentOption": 0,
+              "AnchorsMax": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "AnchorsMin": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "MobileOnly": false,
+              "OffsetMax": {
+                "x": 190.0,
+                "y": 173.0
+              },
+              "OffsetMin": {
+                "x": -190.0,
+                "y": -67.0
+              },
+              "Pivot": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "RectSize": {
+                "x": 380.0,
+                "y": 240.0
+              },
+              "UIMode": 1,
+              "UIScale": {
+                "x": 1.0,
+                "y": 1.0,
+                "z": 1.0
+              },
+              "UIVersion": 2,
+              "anchoredPosition": {
+                "x": 0.0,
+                "y": 53.0
+              },
+              "Position": {
+                "x": 0.0,
+                "y": 53.0,
+                "z": 0.0
+              },
+              "QuaternionRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 1.0
+              },
+              "Scale": {
+                "x": 1.0,
+                "y": 1.0,
+                "z": 1.0
+              },
+              "Enable": true
+            },
+            {
+              "@type": "MOD.Core.UIAreaParticleComponent",
+              "AreaOffset": {
+                "x": 0.0,
+                "y": 0.0
+              },
+              "AreaSize": {
+                "x": 380.0,
+                "y": 240.0
+              },
+              "ParticleType": 3,
+              "AutoRandomSeed": true,
+              "Color": {
+                "r": 1.0,
+                "g": 0.9019608,
+                "b": 0.5019608,
+                "a": 1.0
+              },
+              "LocalScale": {
+                "x": 1.0,
+                "y": 1.0
+              },
+              "Loop": true,
+              "NeedMigration": false,
+              "ParticleCount": 1.5,
+              "ParticleLifeTime": 1.0,
+              "ParticleSize": 1.0,
+              "ParticleSpeed": 1.0,
+              "PlayOnEnable": true,
+              "PlaySpeed": 1.0,
+              "Prewarm": false,
+              "RandomSeed": 0,
+              "Enable": true
+            }
+          ],
+          "@version": 1
+        }
+      },
+      {
         "id": "14dc1c11-16ef-43d8-a888-d767279dd4a0",
         "path": "/ui/InGameUIGroup/DiceBuff",
         "componentNames": "MOD.Core.UITransformComponent,MOD.Core.SpriteGUIRendererComponent",

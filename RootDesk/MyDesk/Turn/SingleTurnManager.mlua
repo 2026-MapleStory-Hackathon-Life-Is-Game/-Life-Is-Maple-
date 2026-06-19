@@ -10,8 +10,6 @@ script SingleTurnManager extends Logic
 	@Sync
 	property integer remainDiceTotal = 0
 
-	-- 주사위를 굴려 연출이 재생되는 동안 true. 연출 종료(OnDiceAnimationEnd)에서 해제.
-	-- DICE 상태가 연출 내내 유지되므로, 이 플래그가 없으면 연출 중 재굴림이 가능하다.
 	@Sync
 	property boolean _isRolling = false
 
@@ -108,12 +106,18 @@ script SingleTurnManager extends Logic
 		            return
 		        end
 		        self._isRolling = true
-
+		
 		        local total = _DiceManager:Roll()
 		        self.remainDiceTotal = total
 		        -- 개별 눈은 DiceManager의 @Sync 프로퍼티에서 읽음
+		
 		        self:PlayDiceAnimation(_DiceManager._dice1, _DiceManager._dice2, total)
 		        -- ※ 여기서 AdvanceState 안 함! 연출 끝난 뒤 OnDiceAnimationEnd에서 진행
+				
+				-- 주사위 던진 결과를 출력함
+						_TimerService:SetTimerOnce(function()
+						    self:PlayTotalDiceSFX(total)
+						end, 2.0)
 	end
 
 	@ExecSpace("Client")
@@ -122,6 +126,11 @@ script SingleTurnManager extends Logic
 		            -- 연출 끝 → 서버에 이동 진행 요청
 		            self:OnDiceAnimationEnd()
 		        end)
+	end
+
+	@ExecSpace("Client")
+	method void PlayTotalDiceSFX(number total)
+		_DiceManager:PlayTotalDiceSFX(total)
 	end
 
 	@ExecSpace("Server")

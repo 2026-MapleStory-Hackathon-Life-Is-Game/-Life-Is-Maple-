@@ -1,0 +1,76 @@
+@Logic
+script DiceManager extends Logic
+
+	@Sync
+	property integer _dice1 = 0
+
+	@Sync
+	property integer _dice2 = 0
+
+	@Sync
+	property integer _total = 0
+
+	property string two_SFX = "bfd2e465bd1642fca3ebc675803c07bb"
+
+	property string three_SFX = "8dea906403d945dba263ec03e4c04052"
+
+	property string four_SFX = "d17ce220ee504ac49380d56ea70321ef"
+
+	property string five_SFX = "f348aeca940f435d8312c4efe0a7a5c2"
+
+	property string six_SFX = "f7ca1a848f9f4d00af731ff58989d39d"
+
+	property string seven_SFX = "1aeced3b1ae648568397fe74b5cc0988"
+
+	property string eight_SFX = "e98fb316b68a4cf0b0933009736ac446"
+
+	property string nine_SFX = "1b9337776d92414f9d34b3795af38ee0"
+
+	property string ten_SFX = "4f734032f9ee4a60b2bf14f4392661ef"
+
+	property string eleven_SFX = "7a701eb3ee254187b50752d69d64385a"
+
+	property string twelve_SFX = "919a0108f61e419d842a54566bb39b7b"
+
+	@ExecSpace("Server")
+	method integer Roll()
+		        local d1 = _UtilLogic:RandomIntegerRange(1, 6)
+		        local d2 = _UtilLogic:RandomIntegerRange(1, 6)
+		        local total = d1 + d2
+		
+				-- 주사위 던진 결과를 출력함
+				_TimerService:SetTimerOnce(function()
+				    self:PlayTotalDiceSFX(total)
+				end, 2.0)
+		
+		        self._dice1 = d1
+		        self._dice2 = d2
+		        self._total = total
+		
+		        log("[DiceManager] 주사위: " .. tostring(d1) .. " + " .. tostring(d2) .. " = " .. tostring(total))
+		        return total
+	end
+
+	@ExecSpace("Client")
+	method void PlayTotalDiceSFX(number total)
+		local ruid = ""
+		
+		if total == 2 then ruid = self.two_SFX
+		elseif total == 3 then ruid = self.three_SFX
+		elseif total == 4 then ruid = self.four_SFX
+		elseif total == 5 then ruid = self.five_SFX
+		elseif total == 6 then ruid = self.six_SFX
+		elseif total == 7 then ruid = self.seven_SFX
+		elseif total == 8 then ruid = self.eight_SFX
+		elseif total == 9 then ruid = self.nine_SFX
+		elseif total == 10 then ruid = self.ten_SFX
+		elseif total == 11 then ruid = self.eleven_SFX
+		elseif total == 12 then ruid = self.twelve_SFX
+		end
+		
+		--total 값에 따른 효과음 출력
+		_SoundService:PlaySound(ruid, _SFXManager.volume)
+		
+	end
+
+end

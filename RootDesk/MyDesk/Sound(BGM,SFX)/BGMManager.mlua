@@ -1,0 +1,40 @@
+@Logic
+script BGMManager extends Logic
+
+	property string The_Great_Melee = "93153b02180e45478f538063fd6b56bc"
+
+	property string North_Forest = "96caf11b323447fd829582091b364995"
+
+	property string MiniGame_1 = "8ca27cca659448c1b957a1c841712aa3"
+
+	property string StarPlanet = "a6803c3691ee4058b200aa1fe999dabe"
+
+	property string Henesys_Park = "ae1e81ea94f5421580ecbdf1b0fddfaf"
+
+	property string Lanias_House = "5e25983d0fbb48b5aa60654699e209fc"
+
+	property string Violine = "5d6edb441b68427abede76c385ca072b"
+
+	property string StrawBerry_Garden = "27845f761e1441fda0a6df50a0ca1027"
+
+	property string Maple_Live = "853c80d50c6644218eb9414752994641"
+
+	property string FlagRace = "6a3a57485388476da1969ca1a8d6d4c4"
+
+	property string The_Great_Field_Day = "2daeb6e95eac49a6b4a3105c0a6c895d"
+
+	property string MiniGame_2 = "b9cc105e858e48cfac26c73ee8ff2e08"
+
+	property number volume = 1.0
+
+	method void OnBeginPlay()
+		self:PlayBGM("b9cc105e858e48cfac26c73ee8ff2e08")
+	end
+
+	method void PlayBGM(string ruid)
+		-- 공통 재생부. 빈 RUID는 무시한다.
+		        if ruid == nil or ruid == "" then return end
+				_SoundService:PlayBGM(ruid, self.volume)
+	end
+
+end

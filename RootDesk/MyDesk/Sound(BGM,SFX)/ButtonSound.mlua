@@ -1,0 +1,17 @@
+@Component
+script ButtonSound extends Component
+
+	@EventSender("Self")
+	handler HandleButtonClickEvent(ButtonClickEvent event)
+		--------------- Native Event Sender Info ----------------
+		-- Sender: ButtonComponent
+		-- Space: Client
+		---------------------------------------------------------
+		
+		-- Parameters
+		-- local Entity = event.Entity
+		---------------------------------------------------------
+		_SFXManager:PlayClick()
+	end
+
+end
