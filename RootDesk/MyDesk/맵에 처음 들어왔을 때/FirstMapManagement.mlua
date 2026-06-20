@@ -1,5 +1,5 @@
 @Component
-script InGameMapManagement extends Component
+script FirstMapManagement extends Component
 
 	property Entity lobbyGroup = "1b439576-8c6f-4a2a-bbfe-7538a59c5a8a"
 
@@ -7,8 +7,9 @@ script InGameMapManagement extends Component
 
 	@ExecSpace("ClientOnly")
 	method void OnBeginPlay()
-		-- 게임 맵 진입: 인게임 UI 켜고 로비 UI 끔.
+		
 		self:ApplyUI()
+		
 		-- 게임 시작(1단계) 시 진영 선택 패널을 자동으로 연다.
 		_CampSelectUI:ShowSelectPanel()
 	end
