@@ -1,0 +1,84 @@
+@Logic
+script BranchSelectUI extends Logic
+
+	property Entity panel = "13367a9a-0361-4ca5-8c7e-f472404b1edf"
+
+	property ButtonComponent Btn_1 = "62e3d5e3-4d0f-461c-b9db-e22cbf3f3b95"
+
+	property ButtonComponent Btn_2 = "4451329f-7cc4-4731-babb-184b16c137e7"
+
+	property ButtonComponent Btn_3 = "025339b8-ccdc-4df8-b998-693ba9e1371a"
+
+	property ButtonComponent Btn_4 = "369b9a2a-e947-462e-88b5-d441abf77e20"
+
+	property ButtonComponent Btn_5 = "bfb77a28-b8f8-426c-a83f-50cdca47fa4b"
+
+	property table choiceTiles = {}
+
+	property table handlers = {}
+
+	@ExecSpace("ClientOnly")
+	method void OnBeginPlay()
+		if isvalid(self.panel) then
+		  self.panel.Enable = false
+		end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void Show(table tileNames, table branchTexts)
+		log("BranchUI Show 진입! panel valid=" .. tostring(isvalid(self.panel)))   -- ← 추가
+				if isvalid(self.panel) == false then return end
+				self.panel.Enable = true
+				log("패널 켜짐, count=" .. #tileNames)   -- ← 추가
+		
+				self.choiceTiles = tileNames
+				local buttons = {self.Btn_1, self.Btn_2, self.Btn_3, self.Btn_4, self.Btn_5}
+				local count = #tileNames
+		
+				for i = 1, 5 do
+					local btn = buttons[i]
+					if i <= count then
+						log("버튼 " .. i .. " 활성화 시도")   -- ← 추가
+						btn.Entity.Enable = true
+						btn.Entity.TextComponent.Text = branchTexts[i]
+						local tileName = tileNames[i]
+						self.handlers[i] = btn.Entity:ConnectEvent(ButtonClickEvent, function()
+							self:SelectBranch(tileName)
+						end)
+					else
+						btn.Entity.Enable = false
+					end
+				end
+				log("Show 완료")   -- ← 추가
+	end
+
+	@ExecSpace("ClientOnly")
+	method void Hide()
+		self:DisconnectAll()
+				if isvalid(self.panel) then
+					self.panel.Enable = false
+				end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void SelectBranch(string tileName)
+		log("분기 선택: " .. tileName)
+		
+				-- 로컬 플레이어의 PlayerMovement 컴포넌트를 찾아 서버로 전달
+				local player = _UserService.LocalPlayer   -- 접근자 이름은 프로젝트 기준 확인
+				player.PlayerMovement:OnBranchSelected(tileName)
+		
+				self:Hide()   -- 선택했으니 UI 닫기
+	end
+
+	method void DisconnectAll()
+		local buttons = {self.Btn_1, self.Btn_2, self.Btn_3, self.Btn_4, self.Btn_5}
+				for i = 1, 5 do
+					if self.handlers[i] ~= nil then
+						buttons[i].Entity:DisconnectEvent(ButtonClickEvent, self.handlers[i])
+						self.handlers[i] = nil
+					end
+				end
+	end
+
+end

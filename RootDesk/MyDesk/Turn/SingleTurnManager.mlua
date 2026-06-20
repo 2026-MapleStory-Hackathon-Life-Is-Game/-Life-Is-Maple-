@@ -1,0 +1,141 @@
+@Logic
+script SingleTurnManager extends Logic
+
+	@Sync
+	property string _currentState = "IDLE"
+
+	@Sync
+	property boolean _isActive = false
+
+	@Sync
+	property integer remainDiceTotal = 0
+
+	property any _turnButtonHandler = nil
+
+	method void OnEndPlay()
+		        -- 클라이언트: 턴 버튼 이벤트 핸들러 해제
+		        if self:IsClient() then
+		            local btn = _EntityService:GetEntityByPath("/ui/DefaultGroup/UnderButton")
+		            if isvalid(btn) and self._turnButtonHandler ~= nil then
+		                btn:DisconnectEvent(ButtonClickEvent, self._turnButtonHandler)
+		                self._turnButtonHandler = nil
+		            end
+		        end
+	end
+
+	@ExecSpace("Server")
+	method void Start()
+		        self._isActive = true
+		        self._currentState = "IDLE"
+		        log("[SingleTurnManager] 게임 시작")
+		        self:AdvanceState()
+	end
+
+	@ExecSpace("Server")
+	method void Stop()
+		        self._isActive = false
+		        self._currentState = "IDLE"
+		        log("[SingleTurnManager] 게임 종료")
+	end
+
+	@ExecSpace("Server")
+	method string GetNextState()
+		        if self._currentState == "IDLE" then return "TURN_START"
+		        elseif self._currentState == "TURN_START" then return "DICE"
+		        elseif self._currentState == "DICE" then return "MOVE"
+		        elseif self._currentState == "MOVE" then return "TILE"
+		        elseif self._currentState == "TILE" then return "TURN_END"
+		        elseif self._currentState == "TURN_END" then return "TURN_START"
+		        end
+		        return "IDLE"
+	end
+
+	@ExecSpace("Server")
+	method void AdvanceState()
+		        if not self._isActive then return end
+		        local nextState = self:GetNextState()
+		        self._currentState = nextState
+		        log("[SingleTurnManager] 상태 전환 → " .. nextState)
+		        self:ExecuteCurrentState()
+	end
+
+	@ExecSpace("Server")
+	method void ExecuteCurrentState()
+		        local s = self._currentState
+		        if s == "TURN_START" then self:OnTurnStart()
+		        elseif s == "DICE" then self:OnDice()
+		        elseif s == "MOVE" then self:OnMove()
+		        elseif s == "TILE" then self:OnTile()
+		        elseif s == "TURN_END" then self:OnTurnEnd()
+		        end
+	end
+
+	@ExecSpace("Server")
+	method void OnTurnStart()
+		        log("[SingleTurnManager] 턴 시작")
+		        self:AdvanceState()
+	end
+
+	@ExecSpace("Server")
+	method void OnDice()
+		        log("[SingleTurnManager] 주사위 단계 - 입력 대기 중")
+	end
+
+	@ExecSpace("Server")
+	method void OnMove()
+		        log("[SingleTurnManager] 이동 단계, 주사위=" .. tostring(self.remainDiceTotal))
+		        for _, userEntity in pairs(_UserService.UserEntities) do
+		            if userEntity.PlayerMovement ~= nil then
+		                userEntity.PlayerMovement:MoveSteps(self.remainDiceTotal)
+		            end
+		            break   -- 싱글이라 플레이어는 한 명
+		        end
+	end
+
+	@ExecSpace("Server")
+	method void OnTile()
+		        log("[SingleTurnManager] 타일 이벤트 단계 (건너뜀)")
+		        self:AdvanceState()
+	end
+
+	@ExecSpace("Server")
+	method void OnTurnEnd()
+		        log("[SingleTurnManager] 턴 종료 → 다음 턴 시작")
+		        self:AdvanceState()
+	end
+
+	@ExecSpace("Server")
+	method void RequestRollDice()
+		if not self._isActive then return end
+		        if self._currentState ~= "DICE" then return end
+		
+		        local total = _DiceManager:Roll()
+		        self.remainDiceTotal = total
+		        -- 개별 눈은 DiceManager의 @Sync 프로퍼티에서 읽음
+		        self:PlayDiceAnimation(_DiceManager._dice1, _DiceManager._dice2, total)
+		        -- ※ 여기서 AdvanceState 안 함! 연출 끝난 뒤 OnDiceAnimationEnd에서 진행
+	end
+
+	@ExecSpace("Client")
+	method void PlayDiceAnimation(integer d1, integer d2, integer total)
+		_RollDiceAnimationUI:Show(d1, d2, total, function()
+		            -- 연출 끝 → 서버에 이동 진행 요청
+		            self:OnDiceAnimationEnd()
+		        end)
+	end
+
+	@ExecSpace("Server")
+	method void OnMoveComplete()
+		        if not self._isActive then return end
+		        if self._currentState ~= "MOVE" then return end
+		        log("[SingleTurnManager] 이동 완료 수신 → TILE 진행")
+		        self:AdvanceState()
+	end
+
+	@ExecSpace("Server")
+	method void OnDiceAnimationEnd()
+		if self._currentState ~= "DICE" then return end
+		        self:AdvanceState()   -- DICE → MOVE (OnMove가 이동 시작)
+	end
+
+end

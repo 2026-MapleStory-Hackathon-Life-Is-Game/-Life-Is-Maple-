@@ -1,0 +1,34 @@
+@Logic
+script ExtraTableManager extends Logic
+
+	method table CreateEmptyExtra()
+		-- extra 기본 골격 (모든 키 0으로 시작)
+		return {
+		        statFlat = 0, statPct = 0,
+		        attackFlat = 0, attackPct = 0,
+		        damagePct = 0, bossDamagePct = 0,
+		    }
+	end
+
+	method void AddModifiers(table extra, table m)
+		if m == nil then return end
+		    extra.statFlat      = extra.statFlat      + (m.statFlat or 0)
+		    extra.statPct       = extra.statPct      + (m.statPct or 0)
+		    extra.attackFlat    = extra.attackFlat    + (m.attackFlat or 0)
+		    extra.attackPct     = extra.attackPct     + (m.attackPct or 0)
+		    extra.damagePct     = extra.damagePct     + (m.damagePct or 0)
+		    extra.bossDamagePct = extra.bossDamagePct + (m.bossDamagePct or 0)
+	end
+
+	method table GetExtra()
+		local extra = self:CreateEmptyExtra()
+		
+		    self:AddModifiers(extra, _BuffManager:GetModifiers())
+		    --self:AddModifiers(extra, _GuildManager:GetModifiers())
+			--self:AddModifiers(extra, _UnionManager:GetModifiers())
+		    -- 매니저가 늘면 여기에 한 줄씩 추가
+		
+		    return extra
+	end
+
+end

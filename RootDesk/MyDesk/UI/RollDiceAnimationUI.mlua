@@ -1,0 +1,73 @@
+@Logic
+script RollDiceAnimationUI extends Logic
+
+	property Entity panel = "7fe00e77-22a6-4d0f-b5df-1106f0279438"
+
+	property SpriteGUIRendererComponent leftDice = "6ee9f4af-07be-46d9-b226-aed331a42dbe"
+
+	property SpriteGUIRendererComponent rightDice = "03c58a3f-6538-4721-8720-4ab090eea81b"
+
+	property TextGUIRendererComponent resultText = "0746379f-0e16-4898-93ff-a8363188d3d0"
+
+	property table diceSprites = {}
+
+	property Entity DiceBuffPanel = "14dc1c11-16ef-43d8-a888-d767279dd4a0"
+
+	property TextGUIRendererComponent diceBuffText = "5050589f-ca63-47e5-8201-ab05bdb14c1e"
+
+	@ExecSpace("ClientOnly")
+	method void OnBeginPlay()
+		-- 눈금별 RUID 등록 (실제 RUID로 교체)
+		        self.diceSprites = {
+		            "a16cdbe6f0c545238c182da21f12b8b5", "4ecb111c2b2749b8af2ff2f581787163", "cca8ae22a4e84eba8572c2279d4661e7",
+		            "84dd7ba746a0476181a007321c0fc7e0", "4a770d8eec474a0da194f559e00eb112", "187ea1dc9d2b456595c1b69ac6ab60a6",
+		        }
+		        if isvalid(self.panel) then
+		            self.panel.Enable = false   -- 평소엔 숨김
+		        end
+		
+				if isvalid(self.DiceBuffPanel) then
+		            self.DiceBuffPanel.Enable = false   -- 평소엔 숨김
+		        end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void Show(integer d1, integer d2, integer total, any onComplete)
+		if isvalid(self.panel) == false then return end
+		
+		        -- 패널 켜고, 주사위 눈 스프라이트 교체
+		        self.panel.Enable = true
+		        self.leftDice.ImageRUID  = self.diceSprites[d1]
+		        self.rightDice.ImageRUID = self.diceSprites[d2]
+		
+		        -- 결과 텍스트
+		        self.resultText.Text =
+		            "주사위 결과: " .. tostring(d1) .. " + " .. tostring(d2) .. " = " .. tostring(total)
+		
+		        -- 타이머 중첩: (애니메이션 시간) 뒤 1초 더 대기 → 패널 끄고 onComplete
+		        -- 여기선 애니메이션 1초 + 추가 1초로 가정 (실제 연출 길이에 맞춰 조정)
+		        _TimerService:SetTimerOnce(function()
+		            _TimerService:SetTimerOnce(function()
+		                self.panel.Enable = false
+		                if onComplete ~= nil then
+		                    onComplete()
+		                end
+		            end, 1.0)   -- 결과 본 뒤 1초 대기
+		        end, 2.0)       -- 주사위 굴러가는 연출 1초    
+	end
+
+	@ExecSpace("ClientOnly")
+	method void ChangeDiceBuff(integer remaining)
+		if isvalid(self.DiceBuffPanel) == false then return end
+		
+		        if remaining > 0 then
+		            -- 이동 중: 패널 켜고 숫자 갱신
+		            self.DiceBuffPanel.Enable = true
+		            self.diceBuffText.Text = tostring(remaining)
+		        else
+		            -- 다 썼으면 숨김
+		            self.DiceBuffPanel.Enable = false
+		        end
+	end
+
+end

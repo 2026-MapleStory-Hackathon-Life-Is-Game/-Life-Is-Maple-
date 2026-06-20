@@ -1,0 +1,86 @@
+# ===== MapleStory Worlds (MOD) .gitignore =====
+
+# --- 로컬 설정 / 사용자별 환경 ---
+# 에디터가 생성하는 로컬 사용자 설정 (PC마다 다름)
+*.user
+*.local
+LocalSettings/
+UserSettings/
+
+# --- 캐시 / 임시 파일 ---
+# 에디터가 자동 생성하는 캐시 (재생성되므로 추적 불필요)
+Cache/
+.cache/
+Temp/
+tmp/
+*.tmp
+*.cache
+
+# --- 빌드 / 배포 산출물 ---
+# 게시(Publish) 시 생성되는 빌드 결과물
+Build/
+Builds/
+Output/
+Dist/
+*.modpkg
+
+# --- 로그 ---
+Logs/
+*.log
+
+# --- 리소스 임포트 캐시 ---
+# 원본이 아닌, 임포트 과정에서 생성되는 중간 파일
+ImportCache/
+Library/
+Imported/
+
+# --- OS 생성 파일 ---
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+ehthumbs.db
+desktop.ini
+
+# --- IDE / 에디터 ---
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ===== 메이플스토리 월드 Native & 환경 (추가됨) =====
+# 공식 제공 내장 스크립트 및 환경 폴더
+Environment/
+
+# ===== Claude Code 연동 및 임시 문서 (추가됨) =====
+# 로컬 전용 AI 연동 데이터 및 자동 생성 문서
+.claude/
+docs/
+.mcp.json
+AGENTS.md
+CLAUDE.md
+SESSION_STATUS.md
+skills-lock.json
+
+# ===== 로컬 유틸리티 스크립트 (추가됨) =====
+# 프로젝트 실행과 무관한 개인용/작업용 스크립트
+update_piece_sprites.cjs
+create_models.cjs
+fix_piece_models.cjs
+setup_map.cjs
+
+# ===== 추적할 것 (참고) =====
+# 아래는 무시하지 말 것 — 실제 게임 콘텐츠/스크립트
+# *.codeblock   (스크립트)
+# *.model       (모델)
+# *.directory   (폴더 구조)
+# *.scene / *.map (맵 데이터)
+#
+# [내가 직접 작업한 중요 데이터 - 자동 추적됨]
+# Global/       (월드 세팅)
+# map/          (수정한 맵 정보)
+# RootDesk/     (직접 작성한 로직/스크립트 정보)
+# ui/           (직접 만든 UI 폴더)

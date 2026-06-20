@@ -1,0 +1,64 @@
+@Logic
+script CombatPowerManager extends Logic
+
+	@Sync
+	property number MainStat = 0 -- 주스탯 (STR/DEX/INT/LUK 중 직업 별로 하나)
+
+	@Sync
+	property number MainAttack = 0 -- 기본 공/마
+
+	@Sync
+	property number ExtraDamage = 0 -- 기본 추가 대미지%
+
+	@Sync
+	property number BossDamage = 0 -- 기본 보스 공격 대미지%
+
+	@Sync
+	property number CriticalDamage = 1.35 -- 크리티컬 대미지 (일단 고정 상태로 설정)
+
+	@Sync
+	property number CombatPower = 0 -- 최종 환산 전투력 표기
+
+	method number CalculateCurrentMainStat(table extra)
+		-- 스탯 = (주스탯 + 가산) * (1 + 스탯%) * 4.5 / 100
+		
+		local stat = (self.MainStat + extra.statFlat) * (1 + extra.statPct / 100)
+		
+		return stat * 4.5 / 100
+	end
+
+	method number CalculateCurrentMainAttack(table extra)
+		-- 공/마 = 기본공마 * (1 + 공마%) + 가산공마
+		return self.MainAttack * (1 + extra.attackPct / 100) + extra.attackFlat
+	end
+
+	method number CalculateCurrentExtraDamage(table extra)
+		
+		-- 대미지 = 1 + (추가대미지% + 보스대미지%)
+		local totalDamage     = self.ExtraDamage + extra.damagePct
+		local totalBossDamage = self.BossDamage + extra.bossDamagePct
+		
+		return 1 + (totalDamage + totalBossDamage) / 100
+	end
+
+	method number CalculateCurrentCriticalDamage(table extra)
+		-- 크리티컬 대미지 (현재 고정값 반환)
+		
+		return self.CriticalDamage
+	end
+
+	method number CalculateCurrentCombatPower(table extra)
+		-- 최종 전투력 = 스탯 * 공/마 * 대미지 * 크리티컬 대미지
+		local extra = _ExtraTableManager:GetExtra()
+		
+		    local stat   = self:CalculateCurrentMainStat(extra)
+		    local attack = self:CalculateCurrentMainAttack(extra)
+		    local damage = self:CalculateCurrentExtraDamage(extra)
+		    local crit   = self:CalculateCurrentCriticalDamage()
+		
+		    self.CombatPower = stat * attack * damage * crit
+		    return self.CombatPower
+		
+	end
+
+end

@@ -1,0 +1,116 @@
+@Component
+script PlayerMovement extends Component
+
+	@Sync
+	property string currentTile = "HexaTile_0"
+
+	@Sync
+	property number remainingSteps = 0
+
+	method void OnBeginPlay()
+		        self.currentTile = "HexaTile_0"
+	end
+
+	@ExecSpace("Server")
+	method void MoveSteps(number steps)
+		        self.remainingSteps = steps
+				
+				-- 남은 주사위 이동 횟수를 표시
+				self:UpdateDiceBuffUI(steps)
+		
+				-- 실제 행동 로직
+		        self:MoveNextStep()
+	end
+
+	@ExecSpace("Server")
+	method void MoveNextStep()
+		        -- 이동을 다 썼으면 종료 + 턴 매니저에 완료 알림
+		        if self.remainingSteps <= 0 then
+		            self:ChangePlayerState("IDLE")
+		            -- 활성인 턴 매니저만 반응한다(비활성 쪽은 내부에서 무시).
+		            _SingleTurnManager:OnMoveComplete()
+		            _MultiTurnManager:OnMoveComplete()
+		            return
+		        end
+		
+		        local nextList = _HexaTileManager:GetNextTiles(self.currentTile)
+		
+		        -- End 타일: 더 갈 곳이 없으면 멈춘다.
+		        if #nextList == 0 then
+		            self.remainingSteps = 0
+		            self:ChangePlayerState("IDLE")
+		            return
+		        end
+		
+		        -- 분기 타일: 갈래들의 표시 이름을 모아 선택 UI를 띄우고 대기.
+		        if #nextList >= 2 then
+		            local branchTexts = {}
+		            for i = 1, #nextList do
+		                branchTexts[i] = _HexaTileManager:GetTileBranch(nextList[i])
+		            end
+		            self:ShowBranchUI(nextList, branchTexts)
+		            return   -- 선택이 올 때까지 멈춤 (OnBranchSelected에서 재개)
+		        end
+		
+		        -- 직선: 다음 타일로 한 칸 진행.
+		        local nextTileName = nextList[1]
+		        self.currentTile = nextTileName
+		        self.remainingSteps = self.remainingSteps - 1
+		
+				-- 값이 변화했기 때문에, UI 갱신
+				self:UpdateDiceBuffUI(self.remainingSteps)
+		
+		        self:MoveToTile(nextTileName)
+	end
+
+	@ExecSpace("Server")
+	method void OnBranchSelected(string tileName)
+		        self.currentTile = tileName
+		        self.remainingSteps = self.remainingSteps - 1
+		        self:MoveToTile(tileName)
+	end
+
+	@ExecSpace("Client")
+	method void MoveToTile(string tileName)
+		        local target = _HexaTileManager:GetTileEntity(tileName)
+		        if target == nil then
+		            return
+		        end
+		
+		        -- 목적지 좌표 (평면이므로 z는 버리고 x,y만 사용)
+		        local destPos = target.TransformComponent.WorldPosition
+		        local dest2D  = Vector2(destPos.x, destPos.y)
+		
+		        -- 진행 방향에 따라 바라보는 방향 전환
+		        local curX = self.Entity.TransformComponent.WorldPosition.x
+		        if dest2D.x > curX then
+		            self.Entity.PlayerControllerComponent.LookDirectionX = 1     -- 오른쪽
+		        elseif dest2D.x < curX then
+		            self.Entity.PlayerControllerComponent.LookDirectionX = -1    -- 왼쪽
+		        end
+		        -- x가 같으면(수직 이동) 방향 유지
+		
+		        -- 걷는 애니메이션으로 전환 후 Tween 이동
+		        self:ChangePlayerState("MOVE")
+		        local tween = _TweenLogic:MoveTo(self.Entity, dest2D, 0.5, EaseType.Linear)
+		        tween:SetOnEndCallback(function()
+		            self:MoveNextStep()   -- 한 칸 도착 → 다음 칸 시도(서버에서 실행)
+		        end)
+	end
+
+	@ExecSpace("Client")
+	method void ChangePlayerState(string state)
+		        self.Entity.StateComponent:ChangeState(state)
+	end
+
+	@ExecSpace("Client")
+	method void ShowBranchUI(table tileNames, table branchTexts)
+		        _BranchSelectUI:Show(tileNames, branchTexts)
+	end
+
+	@ExecSpace("Client")
+	method void UpdateDiceBuffUI(integer remaining)
+		 _RollDiceAnimationUI:ChangeDiceBuff(remaining)
+	end
+
+end

@@ -1,0 +1,73 @@
+--[[
+    GameModeManager
+    ----------------------------------------------------------------------------
+    게임 모드(싱글/멀티)를 결정하고, 해당 턴 매니저를 시작·종료시키는 진입 매니저(Logic).
+
+    한 세션에는 한 모드만 활성화된다(_activeMode). 시작 시점에 모드가 갈리므로
+    이후 각 턴 매니저는 자기 _isActive로 활성 여부를 스스로 판단한다.
+--]]
+@Logic
+script GameModeManager extends Logic
+
+    @Sync
+    property string _activeMode = "NONE"        -- "NONE" / "SINGLE" / "MULTI"
+
+    @Sync
+    property boolean _isGameActive = false
+
+    method void OnBeginPlay()
+        log("[GameModeManager] OnBeginPlay: 모드 선택 대기 중")
+        -- TODO: 실제로는 모드 선택 UI에서 StartSinglePlayer/StartMultiPlayer를 호출해야 함.
+        --       현재는 테스트를 위해 싱글 모드를 바로 시작한다.
+        self:StartSinglePlayer()
+    end
+
+    method void OnEndPlay()
+        log("[GameModeManager] OnEndPlay")
+    end
+
+    -- 싱글플레이 모드를 시작한다.
+    @ExecSpace("Server")
+    method void StartSinglePlayer()
+        if self._isGameActive then
+            log_warning("[GameModeManager] 이미 게임이 진행 중입니다.")
+            return
+        end
+        log("[GameModeManager] 싱글플레이 모드 시작")
+        self._activeMode = "SINGLE"
+        self._isGameActive = true
+        _SingleTurnManager:Start()
+    end
+
+    -- 멀티플레이 모드를 시작한다 (2~4인).
+    @ExecSpace("Server")
+    method void StartMultiPlayer(integer playerCount)
+        if self._isGameActive then
+            log_warning("[GameModeManager] 이미 게임이 진행 중입니다.")
+            return
+        end
+        if playerCount < 2 or playerCount > 4 then
+            log_error("[GameModeManager] 멀티플레이 인원은 2~4명이어야 합니다: " .. tostring(playerCount))
+            return
+        end
+        log("[GameModeManager] 멀티플레이 모드 시작 (" .. tostring(playerCount) .. "명)")
+        self._activeMode = "MULTI"
+        self._isGameActive = true
+        _MultiTurnManager:Start(playerCount)
+    end
+
+    -- 현재 게임 세션을 종료한다.
+    @ExecSpace("Server")
+    method void EndGame()
+        if not self._isGameActive then return end
+        log("[GameModeManager] 게임 종료 (모드: " .. self._activeMode .. ")")
+        if self._activeMode == "SINGLE" then
+            _SingleTurnManager:Stop()
+        elseif self._activeMode == "MULTI" then
+            _MultiTurnManager:Stop()
+        end
+        self._activeMode = "NONE"
+        self._isGameActive = false
+    end
+
+end
