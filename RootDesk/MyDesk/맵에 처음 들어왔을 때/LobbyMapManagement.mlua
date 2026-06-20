@@ -7,7 +7,8 @@ script LobbyMapManagement extends Component
 
 	@ExecSpace("ClientOnly")
 	method void OnBeginPlay()
-		-- 로비 맵 진입: 로비 UI 켜고 인게임 UI 끔.
+		-- 로비가 시작 맵일 때(월드 입장 시점) 초기 UI 세팅.
+		-- (맵 간 전환 시 UI 전환은 PlayerMovement.OnMapEnter가 담당)
 		self:ApplyUI()
 	end
 

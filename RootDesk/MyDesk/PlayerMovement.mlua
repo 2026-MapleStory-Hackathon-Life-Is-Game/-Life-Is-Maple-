@@ -10,11 +10,30 @@ script PlayerMovement extends Component
 	method void OnBeginPlay()
 		        self.currentTile = "Tile_1"
 		        self:ApplyPhysicsForMap()
+		        self:UpdateMapUI()
 	end
 
 	-- 맵 전환마다 호출: 인게임에선 물리/입력을 끄고(트윈 보드 이동이 먹히도록), 그 외 맵에선 켠다.
 	method void OnMapEnter(Entity enteredMap)
 		        self:ApplyPhysicsForMap()
+		        self:UpdateMapUI()
+	end
+
+	-- [클라/로컬플레이어] 현재 맵에 맞춰 로비/게임 UI를 전환한다.
+	-- 맵 관리 컴포넌트(LobbyMapManagement/FirstMapManagement)의 OnMapEnter는 플레이어
+	-- 진입에 발동하지 않으므로, 매 전환마다 확실히 도는 이 플레이어 훅에서 UI를 전환한다.
+	@ExecSpace("ClientOnly")
+	method void UpdateMapUI()
+		        -- 내 플레이어가 이동한 경우만 내 화면 UI를 바꾼다(다른 플레이어 진입은 무시).
+		        if self.Entity ~= _UserService.LocalPlayer then return end
+		        local isLobby = (self.Entity.CurrentMapName == "Lobby")
+		        local lobby = _EntityService:GetEntity("1b439576-8c6f-4a2a-bbfe-7538a59c5a8a")
+		        local ingame = _EntityService:GetEntity("a322b09a-023e-427d-9c6c-19724156dab7")
+		        if isvalid(lobby) then lobby.Enable = isLobby end
+		        if isvalid(ingame) then ingame.Enable = (isLobby == false) end
+		        -- 게임 맵 진입 시 진영 선택 패널 자동 오픈.
+		        if isLobby == false then _CampSelectUI:ShowSelectPanel() end
+		        log("[PlayerMovement] UI 전환 → " .. (isLobby and "로비" or "게임"))
 	end
 
 	-- 현재 맵 기준으로 Body/Movement/PlayerController 활성 여부를 결정한다.
