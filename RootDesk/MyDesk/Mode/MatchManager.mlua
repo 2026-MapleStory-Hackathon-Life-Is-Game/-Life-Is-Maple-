@@ -8,7 +8,7 @@
       - 첫 입장자 기준 30초 카운트다운 시작.
       - 4명(MAX) 도달 시 즉시 시작.
       - 30초 만료 시 2명(MIN) 이상이면 현재 인원으로 시작, 1명뿐이면 타이머 리셋 후 계속 대기.
-      - 매칭 성립 시 참가자 전원을 게임 맵(InGame) 시작 타일로 텔레포트 후 멀티 게임 시작.
+      - 매칭 성립 시 참가자 전원을 게임 맵(Map_01) 시작 타일로 텔레포트 후 멀티 게임 시작.
 
     싱글 모드의 게임 맵 전환도 TeleportPlayersToGame을 재사용한다(GameModeManager가 호출).
 --]]
@@ -177,17 +177,17 @@ script MatchManager extends Logic
 
     -- ──────────────────────────── 맵 전환 ────────────────────────────
 
-    -- 참가자 전원을 게임 맵(InGame) 시작 타일 위치로 텔레포트한다. (싱글도 재사용)
+    -- 참가자 전원을 게임 맵(Map_01) 시작 타일 위치로 텔레포트한다. (싱글도 재사용)
     @ExecSpace("ServerOnly")
     method void TeleportPlayersToGame(table userIds)
         local destPos = self:GetGameSpawnPosition()
         for _, uid in ipairs(userIds) do
             local userEntity = _UserService:GetUserEntityByUserId(uid)
             if isvalid(userEntity) then
-                _TeleportService:TeleportToMapPosition(userEntity, destPos, "InGame")
+                _TeleportService:TeleportToMapPosition(userEntity, destPos, "Map_01")
                 -- 보드 시작 칸으로 상태 리셋
                 if userEntity.PlayerMovement ~= nil then
-                    userEntity.PlayerMovement.currentTile = "HexaTile_0"
+                    userEntity.PlayerMovement.currentTile = "Tile_1"
                 end
                 log("[MatchManager] 게임 맵 전환: " .. uid)
             else
@@ -208,13 +208,13 @@ script MatchManager extends Logic
         end
     end
 
-    -- 게임 맵 시작 타일(HexaTile_0)의 월드 좌표. 없으면 폴백.
+    -- 게임 맵 시작 타일(Tile_1)의 월드 좌표. 없으면 폴백.
     method Vector3 GetGameSpawnPosition()
-        local startTile = _TileManager:GetTileEntity("HexaTile_0")
+        local startTile = _TileManager:GetTileEntity("Tile_1")
         if isvalid(startTile) then
             return startTile.TransformComponent.WorldPosition
         end
-        log_warning("[MatchManager] 시작 타일(HexaTile_0) 미발견 → 폴백 좌표 사용")
+        log_warning("[MatchManager] 시작 타일(Tile_1) 미발견 → 폴백 좌표 사용")
         return Vector3(0, 0, 0)
     end
 
