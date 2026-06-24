@@ -8290,7 +8290,7 @@
         }
       },
       {
-        "id": "a5556d86-e837-4ce5-b93a-1d9baeacd095",
+        "id": "c877b5a8-cf5a-4b8f-b92f-0044cec1ff10",
         "path": "/maps/Map_01/Tiles/Tile_1",
         "componentNames": "MOD.Core.TransformComponent,MOD.Core.TriggerComponent,MOD.Core.TagComponent",
         "jsonString": {
@@ -8305,18 +8305,18 @@
           "revision": 1,
           "origin": {
             "type": "Model",
-            "entry_id": "mapempty",
+            "entry_id": "456f166b-8da0-4231-ad40-f236465cb10d",
             "sub_entity_id": null,
-            "root_entity_id": "3b23659e-a77e-44c4-af74-c0b149109818",
+            "root_entity_id": null,
             "replaced_model_id": null
           },
-          "modelId": "mapempty",
+          "modelId": "456f166b-8da0-4231-ad40-f236465cb10d",
           "@components": [
             {
               "@type": "MOD.Core.TransformComponent",
               "Position": {
-                "x": -0.0335,
-                "y": -0.0001,
+                "x": -0.0035,
+                "y": 0.1056,
                 "z": 0.0
               },
               "QuaternionRotation": {
@@ -8325,34 +8325,15 @@
                 "z": 0.0,
                 "w": 1.0
               },
-              "Scale": {
-                "x": 1.0,
-                "y": 1.0,
-                "z": 1.0
-              },
               "Enable": true
             },
             {
               "@type": "MOD.Core.TriggerComponent",
-              "BoxSize": {
-                "x": 0.99,
-                "y": 0.99
-              },
-              "ColliderOffset": {
-                "x": -0.00499996543,
-                "y": -0.00499996543
-              },
-              "CollisionGroup": {
-                "Id": "6c3384cba3aa4de4bb0664bf9dc2ad13"
-              },
               "IsLegacy": false,
               "Enable": true
             },
             {
               "@type": "MOD.Core.TagComponent",
-              "Tags": [
-                "HexaTile"
-              ],
               "Enable": true
             }
           ],
@@ -8360,7 +8341,78 @@
         }
       },
       {
-        "id": "814865b5-f41e-4a35-a76c-52872e2d8aca",
+        "id": "567ac3ec-e114-42eb-8275-d945ef1795d8",
+        "path": "/maps/Map_01/Tiles/Tile_1/UIText",
+        "componentNames": "MOD.Core.UITransformComponent,MOD.Core.TextGUIRendererComponent,MOD.Core.SpriteGUIRendererComponent",
+        "jsonString": {
+          "name": "UIText",
+          "path": "/maps/Map_01/Tiles/Tile_1/UIText",
+          "nameEditable": true,
+          "enable": true,
+          "visible": true,
+          "localize": false,
+          "displayOrder": 0,
+          "pathConstraints": "/////",
+          "revision": 1,
+          "origin": {
+            "type": "Model",
+            "entry_id": "456f166b-8da0-4231-ad40-f236465cb10d",
+            "sub_entity_id": "a2073840-d198-4ece-bb14-3e228f7228dd",
+            "root_entity_id": null,
+            "replaced_model_id": null
+          },
+          "modelId": "a2073840-d198-4ece-bb14-3e228f7228dd",
+          "@components": [
+            {
+              "@type": "MOD.Core.UITransformComponent",
+              "AlignmentOption": 0,
+              "AnchorsMax": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "AnchorsMin": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "MobileOnly": false,
+              "OffsetMax": {
+                "x": 50.77778,
+                "y": 248.755569
+              },
+              "OffsetMin": {
+                "x": -49.22222,
+                "y": 148.755569
+              },
+              "RectSize": {
+                "x": 100.0,
+                "y": 100.0
+              },
+              "UIMode": 2,
+              "UIVersion": 2,
+              "QuaternionRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 1.0
+              },
+              "Enable": true
+            },
+            {
+              "@type": "MOD.Core.TextGUIRendererComponent",
+              "OverrideSorting": false,
+              "Enable": true
+            },
+            {
+              "@type": "MOD.Core.SpriteGUIRendererComponent",
+              "OverrideSorting": false,
+              "Enable": true
+            }
+          ],
+          "@version": 1
+        }
+      },
+      {
+        "id": "b265a5ff-cfa4-4c7f-8521-531682ff6ce4",
         "path": "/maps/Map_01/Tiles/Tile_2",
         "componentNames": "MOD.Core.TransformComponent,MOD.Core.TriggerComponent,MOD.Core.TagComponent",
         "jsonString": {
@@ -8375,19 +8427,19 @@
           "revision": 1,
           "origin": {
             "type": "Model",
-            "entry_id": "mapempty",
+            "entry_id": "456f166b-8da0-4231-ad40-f236465cb10d",
             "sub_entity_id": null,
-            "root_entity_id": "3b23659e-a77e-44c4-af74-c0b149109818",
+            "root_entity_id": "b265a5ff-cfa4-4c7f-8521-531682ff6ce4",
             "replaced_model_id": null
           },
-          "modelId": "mapempty",
+          "modelId": "456f166b-8da0-4231-ad40-f236465cb10d",
           "@components": [
             {
               "@type": "MOD.Core.TransformComponent",
               "Position": {
-                "x": 2.0,
-                "y": 0.0053,
-                "z": 0.0
+                "x": 2.01,
+                "y": 0.0908,
+                "z": 999.999
               },
               "QuaternionRotation": {
                 "x": 0.0,
@@ -8404,25 +8456,11 @@
             },
             {
               "@type": "MOD.Core.TriggerComponent",
-              "BoxSize": {
-                "x": 0.99,
-                "y": 0.99
-              },
-              "ColliderOffset": {
-                "x": -0.00499996543,
-                "y": -0.00499996543
-              },
-              "CollisionGroup": {
-                "Id": "6c3384cba3aa4de4bb0664bf9dc2ad13"
-              },
               "IsLegacy": false,
               "Enable": true
             },
             {
               "@type": "MOD.Core.TagComponent",
-              "Tags": [
-                "HexaTile"
-              ],
               "Enable": true
             }
           ],
@@ -8430,7 +8468,78 @@
         }
       },
       {
-        "id": "460f60ff-e570-4f6a-b2f3-e6648ee7a0cb",
+        "id": "5c94830f-ef80-4ba5-968a-6564b5e86ebb",
+        "path": "/maps/Map_01/Tiles/Tile_2/UIText",
+        "componentNames": "MOD.Core.UITransformComponent,MOD.Core.TextGUIRendererComponent,MOD.Core.SpriteGUIRendererComponent",
+        "jsonString": {
+          "name": "UIText",
+          "path": "/maps/Map_01/Tiles/Tile_2/UIText",
+          "nameEditable": true,
+          "enable": true,
+          "visible": true,
+          "localize": false,
+          "displayOrder": 0,
+          "pathConstraints": "/////",
+          "revision": 1,
+          "origin": {
+            "type": "Model",
+            "entry_id": "456f166b-8da0-4231-ad40-f236465cb10d",
+            "sub_entity_id": "a2073840-d198-4ece-bb14-3e228f7228dd",
+            "root_entity_id": "b265a5ff-cfa4-4c7f-8521-531682ff6ce4",
+            "replaced_model_id": null
+          },
+          "modelId": "a2073840-d198-4ece-bb14-3e228f7228dd",
+          "@components": [
+            {
+              "@type": "MOD.Core.UITransformComponent",
+              "AlignmentOption": 0,
+              "AnchorsMax": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "AnchorsMin": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "MobileOnly": false,
+              "OffsetMax": {
+                "x": 50.77778,
+                "y": 248.755569
+              },
+              "OffsetMin": {
+                "x": -49.22222,
+                "y": 148.755569
+              },
+              "RectSize": {
+                "x": 100.0,
+                "y": 100.0
+              },
+              "UIMode": 2,
+              "UIVersion": 2,
+              "QuaternionRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 1.0
+              },
+              "Enable": true
+            },
+            {
+              "@type": "MOD.Core.TextGUIRendererComponent",
+              "OverrideSorting": false,
+              "Enable": true
+            },
+            {
+              "@type": "MOD.Core.SpriteGUIRendererComponent",
+              "OverrideSorting": false,
+              "Enable": true
+            }
+          ],
+          "@version": 1
+        }
+      },
+      {
+        "id": "dce066d6-a542-4a46-a511-192c57fbb85a",
         "path": "/maps/Map_01/Tiles/Tile_3",
         "componentNames": "MOD.Core.TransformComponent,MOD.Core.TriggerComponent,MOD.Core.TagComponent",
         "jsonString": {
@@ -8445,19 +8554,19 @@
           "revision": 1,
           "origin": {
             "type": "Model",
-            "entry_id": "mapempty",
+            "entry_id": "456f166b-8da0-4231-ad40-f236465cb10d",
             "sub_entity_id": null,
-            "root_entity_id": "3b23659e-a77e-44c4-af74-c0b149109818",
+            "root_entity_id": "b265a5ff-cfa4-4c7f-8521-531682ff6ce4",
             "replaced_model_id": null
           },
-          "modelId": "mapempty",
+          "modelId": "456f166b-8da0-4231-ad40-f236465cb10d",
           "@components": [
             {
               "@type": "MOD.Core.TransformComponent",
               "Position": {
-                "x": 3.9547,
-                "y": -0.0182,
-                "z": 0.0
+                "x": 4.0072,
+                "y": 0.0602,
+                "z": 999.999
               },
               "QuaternionRotation": {
                 "x": 0.0,
@@ -8474,25 +8583,11 @@
             },
             {
               "@type": "MOD.Core.TriggerComponent",
-              "BoxSize": {
-                "x": 0.99,
-                "y": 0.99
-              },
-              "ColliderOffset": {
-                "x": -0.00499996543,
-                "y": -0.00499996543
-              },
-              "CollisionGroup": {
-                "Id": "6c3384cba3aa4de4bb0664bf9dc2ad13"
-              },
               "IsLegacy": false,
               "Enable": true
             },
             {
               "@type": "MOD.Core.TagComponent",
-              "Tags": [
-                "HexaTile"
-              ],
               "Enable": true
             }
           ],
@@ -8500,7 +8595,79 @@
         }
       },
       {
-        "id": "9ee35b1d-cab1-46ba-b2e6-874120b7da30",
+        "id": "c6a7b4f5-0f57-4f28-8d6b-4747eaa02f99",
+        "path": "/maps/Map_01/Tiles/Tile_3/UIText",
+        "componentNames": "MOD.Core.UITransformComponent,MOD.Core.TextGUIRendererComponent,MOD.Core.SpriteGUIRendererComponent",
+        "jsonString": {
+          "name": "UIText",
+          "path": "/maps/Map_01/Tiles/Tile_3/UIText",
+          "nameEditable": true,
+          "enable": true,
+          "visible": true,
+          "localize": false,
+          "displayOrder": 0,
+          "pathConstraints": "/////",
+          "revision": 1,
+          "origin": {
+            "type": "Model",
+            "entry_id": "456f166b-8da0-4231-ad40-f236465cb10d",
+            "sub_entity_id": "a2073840-d198-4ece-bb14-3e228f7228dd",
+            "root_entity_id": "b265a5ff-cfa4-4c7f-8521-531682ff6ce4",
+            "replaced_model_id": null
+          },
+          "modelId": "a2073840-d198-4ece-bb14-3e228f7228dd",
+          "@components": [
+            {
+              "@type": "MOD.Core.UITransformComponent",
+              "AlignmentOption": 0,
+              "AnchorsMax": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "AnchorsMin": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "MobileOnly": false,
+              "OffsetMax": {
+                "x": 50.77778,
+                "y": 248.755569
+              },
+              "OffsetMin": {
+                "x": -49.22222,
+                "y": 148.755569
+              },
+              "RectSize": {
+                "x": 100.0,
+                "y": 100.0
+              },
+              "UIMode": 2,
+              "UIVersion": 2,
+              "QuaternionRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 1.0
+              },
+              "Enable": true
+            },
+            {
+              "@type": "MOD.Core.TextGUIRendererComponent",
+              "OverrideSorting": false,
+              "SortingLayer": "MapLayer2",
+              "Enable": true
+            },
+            {
+              "@type": "MOD.Core.SpriteGUIRendererComponent",
+              "OverrideSorting": false,
+              "Enable": true
+            }
+          ],
+          "@version": 1
+        }
+      },
+      {
+        "id": "f3abcd2f-1b8d-4400-8717-e498aa0ef58b",
         "path": "/maps/Map_01/Tiles/Tile_4",
         "componentNames": "MOD.Core.TransformComponent,MOD.Core.TriggerComponent,MOD.Core.TagComponent",
         "jsonString": {
@@ -8515,19 +8682,19 @@
           "revision": 1,
           "origin": {
             "type": "Model",
-            "entry_id": "mapempty",
+            "entry_id": "456f166b-8da0-4231-ad40-f236465cb10d",
             "sub_entity_id": null,
-            "root_entity_id": "3b23659e-a77e-44c4-af74-c0b149109818",
+            "root_entity_id": "b265a5ff-cfa4-4c7f-8521-531682ff6ce4",
             "replaced_model_id": null
           },
-          "modelId": "mapempty",
+          "modelId": "456f166b-8da0-4231-ad40-f236465cb10d",
           "@components": [
             {
               "@type": "MOD.Core.TransformComponent",
               "Position": {
-                "x": 6.0001,
-                "y": -0.0229,
-                "z": 0.0
+                "x": 6.0047,
+                "y": 0.0239,
+                "z": 999.999
               },
               "QuaternionRotation": {
                 "x": 0.0,
@@ -8544,25 +8711,11 @@
             },
             {
               "@type": "MOD.Core.TriggerComponent",
-              "BoxSize": {
-                "x": 0.99,
-                "y": 0.99
-              },
-              "ColliderOffset": {
-                "x": -0.00499996543,
-                "y": -0.00499996543
-              },
-              "CollisionGroup": {
-                "Id": "6c3384cba3aa4de4bb0664bf9dc2ad13"
-              },
               "IsLegacy": false,
               "Enable": true
             },
             {
               "@type": "MOD.Core.TagComponent",
-              "Tags": [
-                "HexaTile"
-              ],
               "Enable": true
             }
           ],
@@ -8570,7 +8723,79 @@
         }
       },
       {
-        "id": "38226121-8ffa-4b8a-9bac-5d0fb065588d",
+        "id": "b6f52982-8f51-4627-a3ca-5731fae28eea",
+        "path": "/maps/Map_01/Tiles/Tile_4/UIText",
+        "componentNames": "MOD.Core.UITransformComponent,MOD.Core.TextGUIRendererComponent,MOD.Core.SpriteGUIRendererComponent",
+        "jsonString": {
+          "name": "UIText",
+          "path": "/maps/Map_01/Tiles/Tile_4/UIText",
+          "nameEditable": true,
+          "enable": true,
+          "visible": true,
+          "localize": false,
+          "displayOrder": 0,
+          "pathConstraints": "/////",
+          "revision": 1,
+          "origin": {
+            "type": "Model",
+            "entry_id": "456f166b-8da0-4231-ad40-f236465cb10d",
+            "sub_entity_id": "a2073840-d198-4ece-bb14-3e228f7228dd",
+            "root_entity_id": "b265a5ff-cfa4-4c7f-8521-531682ff6ce4",
+            "replaced_model_id": null
+          },
+          "modelId": "a2073840-d198-4ece-bb14-3e228f7228dd",
+          "@components": [
+            {
+              "@type": "MOD.Core.UITransformComponent",
+              "AlignmentOption": 0,
+              "AnchorsMax": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "AnchorsMin": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "MobileOnly": false,
+              "OffsetMax": {
+                "x": 50.77778,
+                "y": 248.755569
+              },
+              "OffsetMin": {
+                "x": -49.22222,
+                "y": 148.755569
+              },
+              "RectSize": {
+                "x": 100.0,
+                "y": 100.0
+              },
+              "UIMode": 2,
+              "UIVersion": 2,
+              "QuaternionRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 1.0
+              },
+              "Enable": true
+            },
+            {
+              "@type": "MOD.Core.TextGUIRendererComponent",
+              "OverrideSorting": false,
+              "SortingLayer": "MapLayer2",
+              "Enable": true
+            },
+            {
+              "@type": "MOD.Core.SpriteGUIRendererComponent",
+              "OverrideSorting": false,
+              "Enable": true
+            }
+          ],
+          "@version": 1
+        }
+      },
+      {
+        "id": "2f478469-b77f-4f6d-a373-545a948bbd58",
         "path": "/maps/Map_01/Tiles/Tile_5",
         "componentNames": "MOD.Core.TransformComponent,MOD.Core.TriggerComponent,MOD.Core.TagComponent",
         "jsonString": {
@@ -8585,19 +8810,19 @@
           "revision": 1,
           "origin": {
             "type": "Model",
-            "entry_id": "mapempty",
+            "entry_id": "456f166b-8da0-4231-ad40-f236465cb10d",
             "sub_entity_id": null,
-            "root_entity_id": "3b23659e-a77e-44c4-af74-c0b149109818",
+            "root_entity_id": "b265a5ff-cfa4-4c7f-8521-531682ff6ce4",
             "replaced_model_id": null
           },
-          "modelId": "mapempty",
+          "modelId": "456f166b-8da0-4231-ad40-f236465cb10d",
           "@components": [
             {
               "@type": "MOD.Core.TransformComponent",
               "Position": {
-                "x": 7.0403,
-                "y": 2.0374,
-                "z": 0.0
+                "x": 6.9986,
+                "y": 2.0168,
+                "z": 999.999
               },
               "QuaternionRotation": {
                 "x": 0.0,
@@ -8614,25 +8839,11 @@
             },
             {
               "@type": "MOD.Core.TriggerComponent",
-              "BoxSize": {
-                "x": 0.99,
-                "y": 0.99
-              },
-              "ColliderOffset": {
-                "x": -0.00499996543,
-                "y": -0.00499996543
-              },
-              "CollisionGroup": {
-                "Id": "6c3384cba3aa4de4bb0664bf9dc2ad13"
-              },
               "IsLegacy": false,
               "Enable": true
             },
             {
               "@type": "MOD.Core.TagComponent",
-              "Tags": [
-                "HexaTile"
-              ],
               "Enable": true
             }
           ],
@@ -8640,7 +8851,79 @@
         }
       },
       {
-        "id": "037cce8f-badb-47c8-a60d-ee82a52a5245",
+        "id": "313a53e3-8c11-43de-b6a3-0035b6c5800d",
+        "path": "/maps/Map_01/Tiles/Tile_5/UIText",
+        "componentNames": "MOD.Core.UITransformComponent,MOD.Core.TextGUIRendererComponent,MOD.Core.SpriteGUIRendererComponent",
+        "jsonString": {
+          "name": "UIText",
+          "path": "/maps/Map_01/Tiles/Tile_5/UIText",
+          "nameEditable": true,
+          "enable": true,
+          "visible": true,
+          "localize": false,
+          "displayOrder": 0,
+          "pathConstraints": "/////",
+          "revision": 1,
+          "origin": {
+            "type": "Model",
+            "entry_id": "456f166b-8da0-4231-ad40-f236465cb10d",
+            "sub_entity_id": "a2073840-d198-4ece-bb14-3e228f7228dd",
+            "root_entity_id": "b265a5ff-cfa4-4c7f-8521-531682ff6ce4",
+            "replaced_model_id": null
+          },
+          "modelId": "a2073840-d198-4ece-bb14-3e228f7228dd",
+          "@components": [
+            {
+              "@type": "MOD.Core.UITransformComponent",
+              "AlignmentOption": 0,
+              "AnchorsMax": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "AnchorsMin": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "MobileOnly": false,
+              "OffsetMax": {
+                "x": 50.77778,
+                "y": 248.755569
+              },
+              "OffsetMin": {
+                "x": -49.22222,
+                "y": 148.755569
+              },
+              "RectSize": {
+                "x": 100.0,
+                "y": 100.0
+              },
+              "UIMode": 2,
+              "UIVersion": 2,
+              "QuaternionRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 1.0
+              },
+              "Enable": true
+            },
+            {
+              "@type": "MOD.Core.TextGUIRendererComponent",
+              "OverrideSorting": false,
+              "SortingLayer": "MapLayer2",
+              "Enable": true
+            },
+            {
+              "@type": "MOD.Core.SpriteGUIRendererComponent",
+              "OverrideSorting": false,
+              "Enable": true
+            }
+          ],
+          "@version": 1
+        }
+      },
+      {
+        "id": "56efc40a-ceff-4da6-af94-94a18b2da342",
         "path": "/maps/Map_01/Tiles/Tile_6",
         "componentNames": "MOD.Core.TransformComponent,MOD.Core.TriggerComponent,MOD.Core.TagComponent",
         "jsonString": {
@@ -8655,19 +8938,19 @@
           "revision": 1,
           "origin": {
             "type": "Model",
-            "entry_id": "mapempty",
+            "entry_id": "456f166b-8da0-4231-ad40-f236465cb10d",
             "sub_entity_id": null,
-            "root_entity_id": "3b23659e-a77e-44c4-af74-c0b149109818",
+            "root_entity_id": "b265a5ff-cfa4-4c7f-8521-531682ff6ce4",
             "replaced_model_id": null
           },
-          "modelId": "mapempty",
+          "modelId": "456f166b-8da0-4231-ad40-f236465cb10d",
           "@components": [
             {
               "@type": "MOD.Core.TransformComponent",
               "Position": {
-                "x": 7.9767,
-                "y": 4.0284,
-                "z": 0.0
+                "x": 7.9982,
+                "y": 4.0268,
+                "z": 999.999
               },
               "QuaternionRotation": {
                 "x": 0.0,
@@ -8684,25 +8967,11 @@
             },
             {
               "@type": "MOD.Core.TriggerComponent",
-              "BoxSize": {
-                "x": 0.99,
-                "y": 0.99
-              },
-              "ColliderOffset": {
-                "x": -0.00499996543,
-                "y": -0.00499996543
-              },
-              "CollisionGroup": {
-                "Id": "6c3384cba3aa4de4bb0664bf9dc2ad13"
-              },
               "IsLegacy": false,
               "Enable": true
             },
             {
               "@type": "MOD.Core.TagComponent",
-              "Tags": [
-                "HexaTile"
-              ],
               "Enable": true
             }
           ],
@@ -8710,7 +8979,79 @@
         }
       },
       {
-        "id": "bc6012b3-c0b7-4623-b9d2-c0cd7a29ee03",
+        "id": "892a388c-aaed-482b-bd56-0d3e34b81817",
+        "path": "/maps/Map_01/Tiles/Tile_6/UIText",
+        "componentNames": "MOD.Core.UITransformComponent,MOD.Core.TextGUIRendererComponent,MOD.Core.SpriteGUIRendererComponent",
+        "jsonString": {
+          "name": "UIText",
+          "path": "/maps/Map_01/Tiles/Tile_6/UIText",
+          "nameEditable": true,
+          "enable": true,
+          "visible": true,
+          "localize": false,
+          "displayOrder": 0,
+          "pathConstraints": "/////",
+          "revision": 1,
+          "origin": {
+            "type": "Model",
+            "entry_id": "456f166b-8da0-4231-ad40-f236465cb10d",
+            "sub_entity_id": "a2073840-d198-4ece-bb14-3e228f7228dd",
+            "root_entity_id": "b265a5ff-cfa4-4c7f-8521-531682ff6ce4",
+            "replaced_model_id": null
+          },
+          "modelId": "a2073840-d198-4ece-bb14-3e228f7228dd",
+          "@components": [
+            {
+              "@type": "MOD.Core.UITransformComponent",
+              "AlignmentOption": 0,
+              "AnchorsMax": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "AnchorsMin": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "MobileOnly": false,
+              "OffsetMax": {
+                "x": 50.77778,
+                "y": 248.755569
+              },
+              "OffsetMin": {
+                "x": -49.22222,
+                "y": 148.755569
+              },
+              "RectSize": {
+                "x": 100.0,
+                "y": 100.0
+              },
+              "UIMode": 2,
+              "UIVersion": 2,
+              "QuaternionRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 1.0
+              },
+              "Enable": true
+            },
+            {
+              "@type": "MOD.Core.TextGUIRendererComponent",
+              "OverrideSorting": false,
+              "SortingLayer": "MapLayer2",
+              "Enable": true
+            },
+            {
+              "@type": "MOD.Core.SpriteGUIRendererComponent",
+              "OverrideSorting": false,
+              "Enable": true
+            }
+          ],
+          "@version": 1
+        }
+      },
+      {
+        "id": "03fd05f9-a231-4fe0-9dc4-4ceb60ea41f0",
         "path": "/maps/Map_01/Tiles/Tile_7",
         "componentNames": "MOD.Core.TransformComponent,MOD.Core.TriggerComponent,MOD.Core.TagComponent",
         "jsonString": {
@@ -8725,19 +9066,19 @@
           "revision": 1,
           "origin": {
             "type": "Model",
-            "entry_id": "mapempty",
+            "entry_id": "456f166b-8da0-4231-ad40-f236465cb10d",
             "sub_entity_id": null,
-            "root_entity_id": "3b23659e-a77e-44c4-af74-c0b149109818",
+            "root_entity_id": "b265a5ff-cfa4-4c7f-8521-531682ff6ce4",
             "replaced_model_id": null
           },
-          "modelId": "mapempty",
+          "modelId": "456f166b-8da0-4231-ad40-f236465cb10d",
           "@components": [
             {
               "@type": "MOD.Core.TransformComponent",
               "Position": {
-                "x": 6.9991,
-                "y": 6.0528,
-                "z": 0.0
+                "x": 6.9914,
+                "y": 6.0026,
+                "z": 999.999
               },
               "QuaternionRotation": {
                 "x": 0.0,
@@ -8754,25 +9095,11 @@
             },
             {
               "@type": "MOD.Core.TriggerComponent",
-              "BoxSize": {
-                "x": 0.99,
-                "y": 0.99
-              },
-              "ColliderOffset": {
-                "x": -0.00499996543,
-                "y": -0.00499996543
-              },
-              "CollisionGroup": {
-                "Id": "6c3384cba3aa4de4bb0664bf9dc2ad13"
-              },
               "IsLegacy": false,
               "Enable": true
             },
             {
               "@type": "MOD.Core.TagComponent",
-              "Tags": [
-                "HexaTile"
-              ],
               "Enable": true
             }
           ],
@@ -8780,7 +9107,79 @@
         }
       },
       {
-        "id": "6c17a465-a9d3-40de-9ed8-88c614e58340",
+        "id": "487f49e1-a886-458a-9ebe-1bba96d33e05",
+        "path": "/maps/Map_01/Tiles/Tile_7/UIText",
+        "componentNames": "MOD.Core.UITransformComponent,MOD.Core.TextGUIRendererComponent,MOD.Core.SpriteGUIRendererComponent",
+        "jsonString": {
+          "name": "UIText",
+          "path": "/maps/Map_01/Tiles/Tile_7/UIText",
+          "nameEditable": true,
+          "enable": true,
+          "visible": true,
+          "localize": false,
+          "displayOrder": 0,
+          "pathConstraints": "/////",
+          "revision": 1,
+          "origin": {
+            "type": "Model",
+            "entry_id": "456f166b-8da0-4231-ad40-f236465cb10d",
+            "sub_entity_id": "a2073840-d198-4ece-bb14-3e228f7228dd",
+            "root_entity_id": "b265a5ff-cfa4-4c7f-8521-531682ff6ce4",
+            "replaced_model_id": null
+          },
+          "modelId": "a2073840-d198-4ece-bb14-3e228f7228dd",
+          "@components": [
+            {
+              "@type": "MOD.Core.UITransformComponent",
+              "AlignmentOption": 0,
+              "AnchorsMax": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "AnchorsMin": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "MobileOnly": false,
+              "OffsetMax": {
+                "x": 50.77778,
+                "y": 248.755569
+              },
+              "OffsetMin": {
+                "x": -49.22222,
+                "y": 148.755569
+              },
+              "RectSize": {
+                "x": 100.0,
+                "y": 100.0
+              },
+              "UIMode": 2,
+              "UIVersion": 2,
+              "QuaternionRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 1.0
+              },
+              "Enable": true
+            },
+            {
+              "@type": "MOD.Core.TextGUIRendererComponent",
+              "OverrideSorting": false,
+              "SortingLayer": "MapLayer2",
+              "Enable": true
+            },
+            {
+              "@type": "MOD.Core.SpriteGUIRendererComponent",
+              "OverrideSorting": false,
+              "Enable": true
+            }
+          ],
+          "@version": 1
+        }
+      },
+      {
+        "id": "be646ad9-e689-4f57-af65-8af92e21aca8",
         "path": "/maps/Map_01/Tiles/Tile_8",
         "componentNames": "MOD.Core.TransformComponent,MOD.Core.TriggerComponent,MOD.Core.TagComponent",
         "jsonString": {
@@ -8795,19 +9194,19 @@
           "revision": 1,
           "origin": {
             "type": "Model",
-            "entry_id": "mapempty",
+            "entry_id": "456f166b-8da0-4231-ad40-f236465cb10d",
             "sub_entity_id": null,
-            "root_entity_id": "3b23659e-a77e-44c4-af74-c0b149109818",
+            "root_entity_id": "b265a5ff-cfa4-4c7f-8521-531682ff6ce4",
             "replaced_model_id": null
           },
-          "modelId": "mapempty",
+          "modelId": "456f166b-8da0-4231-ad40-f236465cb10d",
           "@components": [
             {
               "@type": "MOD.Core.TransformComponent",
               "Position": {
-                "x": 2.9844,
-                "y": 6.9863,
-                "z": 0.0
+                "x": 4.9925,
+                "y": 7.0322,
+                "z": 999.999
               },
               "QuaternionRotation": {
                 "x": 0.0,
@@ -8824,25 +9223,11 @@
             },
             {
               "@type": "MOD.Core.TriggerComponent",
-              "BoxSize": {
-                "x": 0.99,
-                "y": 0.99
-              },
-              "ColliderOffset": {
-                "x": -0.00499996543,
-                "y": -0.00499996543
-              },
-              "CollisionGroup": {
-                "Id": "6c3384cba3aa4de4bb0664bf9dc2ad13"
-              },
               "IsLegacy": false,
               "Enable": true
             },
             {
               "@type": "MOD.Core.TagComponent",
-              "Tags": [
-                "HexaTile"
-              ],
               "Enable": true
             }
           ],
@@ -8850,7 +9235,79 @@
         }
       },
       {
-        "id": "ca571b7d-5d0e-479e-b94f-0b54ab51374f",
+        "id": "1676e61c-5361-4333-be0a-b880745b3249",
+        "path": "/maps/Map_01/Tiles/Tile_8/UIText",
+        "componentNames": "MOD.Core.UITransformComponent,MOD.Core.TextGUIRendererComponent,MOD.Core.SpriteGUIRendererComponent",
+        "jsonString": {
+          "name": "UIText",
+          "path": "/maps/Map_01/Tiles/Tile_8/UIText",
+          "nameEditable": true,
+          "enable": true,
+          "visible": true,
+          "localize": false,
+          "displayOrder": 0,
+          "pathConstraints": "/////",
+          "revision": 1,
+          "origin": {
+            "type": "Model",
+            "entry_id": "456f166b-8da0-4231-ad40-f236465cb10d",
+            "sub_entity_id": "a2073840-d198-4ece-bb14-3e228f7228dd",
+            "root_entity_id": "b265a5ff-cfa4-4c7f-8521-531682ff6ce4",
+            "replaced_model_id": null
+          },
+          "modelId": "a2073840-d198-4ece-bb14-3e228f7228dd",
+          "@components": [
+            {
+              "@type": "MOD.Core.UITransformComponent",
+              "AlignmentOption": 0,
+              "AnchorsMax": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "AnchorsMin": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "MobileOnly": false,
+              "OffsetMax": {
+                "x": 50.77778,
+                "y": 248.755569
+              },
+              "OffsetMin": {
+                "x": -49.22222,
+                "y": 148.755569
+              },
+              "RectSize": {
+                "x": 100.0,
+                "y": 100.0
+              },
+              "UIMode": 2,
+              "UIVersion": 2,
+              "QuaternionRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 1.0
+              },
+              "Enable": true
+            },
+            {
+              "@type": "MOD.Core.TextGUIRendererComponent",
+              "OverrideSorting": false,
+              "SortingLayer": "MapLayer2",
+              "Enable": true
+            },
+            {
+              "@type": "MOD.Core.SpriteGUIRendererComponent",
+              "OverrideSorting": false,
+              "Enable": true
+            }
+          ],
+          "@version": 1
+        }
+      },
+      {
+        "id": "8e691ade-3c9d-4633-846e-046956aca94a",
         "path": "/maps/Map_01/Tiles/Tile_9",
         "componentNames": "MOD.Core.TransformComponent,MOD.Core.TriggerComponent,MOD.Core.TagComponent",
         "jsonString": {
@@ -8865,19 +9322,19 @@
           "revision": 1,
           "origin": {
             "type": "Model",
-            "entry_id": "mapempty",
+            "entry_id": "456f166b-8da0-4231-ad40-f236465cb10d",
             "sub_entity_id": null,
-            "root_entity_id": "3b23659e-a77e-44c4-af74-c0b149109818",
+            "root_entity_id": "b265a5ff-cfa4-4c7f-8521-531682ff6ce4",
             "replaced_model_id": null
           },
-          "modelId": "mapempty",
+          "modelId": "456f166b-8da0-4231-ad40-f236465cb10d",
           "@components": [
             {
               "@type": "MOD.Core.TransformComponent",
               "Position": {
-                "x": 5.02,
-                "y": 6.9809,
-                "z": 0.0
+                "x": 2.9939,
+                "y": 7.013,
+                "z": 999.999
               },
               "QuaternionRotation": {
                 "x": 0.0,
@@ -8894,25 +9351,11 @@
             },
             {
               "@type": "MOD.Core.TriggerComponent",
-              "BoxSize": {
-                "x": 0.99,
-                "y": 0.99
-              },
-              "ColliderOffset": {
-                "x": -0.00499996543,
-                "y": -0.00499996543
-              },
-              "CollisionGroup": {
-                "Id": "6c3384cba3aa4de4bb0664bf9dc2ad13"
-              },
               "IsLegacy": false,
               "Enable": true
             },
             {
               "@type": "MOD.Core.TagComponent",
-              "Tags": [
-                "HexaTile"
-              ],
               "Enable": true
             }
           ],
@@ -8920,7 +9363,79 @@
         }
       },
       {
-        "id": "e88220cf-dcbd-40f2-9c74-6569186f6fe9",
+        "id": "861a8486-4e6c-476a-851c-eeeb882fef5b",
+        "path": "/maps/Map_01/Tiles/Tile_9/UIText",
+        "componentNames": "MOD.Core.UITransformComponent,MOD.Core.TextGUIRendererComponent,MOD.Core.SpriteGUIRendererComponent",
+        "jsonString": {
+          "name": "UIText",
+          "path": "/maps/Map_01/Tiles/Tile_9/UIText",
+          "nameEditable": true,
+          "enable": true,
+          "visible": true,
+          "localize": false,
+          "displayOrder": 0,
+          "pathConstraints": "/////",
+          "revision": 1,
+          "origin": {
+            "type": "Model",
+            "entry_id": "456f166b-8da0-4231-ad40-f236465cb10d",
+            "sub_entity_id": "a2073840-d198-4ece-bb14-3e228f7228dd",
+            "root_entity_id": "b265a5ff-cfa4-4c7f-8521-531682ff6ce4",
+            "replaced_model_id": null
+          },
+          "modelId": "a2073840-d198-4ece-bb14-3e228f7228dd",
+          "@components": [
+            {
+              "@type": "MOD.Core.UITransformComponent",
+              "AlignmentOption": 0,
+              "AnchorsMax": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "AnchorsMin": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "MobileOnly": false,
+              "OffsetMax": {
+                "x": 50.77778,
+                "y": 248.755569
+              },
+              "OffsetMin": {
+                "x": -49.22222,
+                "y": 148.755569
+              },
+              "RectSize": {
+                "x": 100.0,
+                "y": 100.0
+              },
+              "UIMode": 2,
+              "UIVersion": 2,
+              "QuaternionRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 1.0
+              },
+              "Enable": true
+            },
+            {
+              "@type": "MOD.Core.TextGUIRendererComponent",
+              "OverrideSorting": false,
+              "SortingLayer": "MapLayer2",
+              "Enable": true
+            },
+            {
+              "@type": "MOD.Core.SpriteGUIRendererComponent",
+              "OverrideSorting": false,
+              "Enable": true
+            }
+          ],
+          "@version": 1
+        }
+      },
+      {
+        "id": "ba0b15dc-4b40-47c9-899e-4672a08ef008",
         "path": "/maps/Map_01/Tiles/Tile_10",
         "componentNames": "MOD.Core.TransformComponent,MOD.Core.TriggerComponent,MOD.Core.TagComponent",
         "jsonString": {
@@ -8935,19 +9450,19 @@
           "revision": 1,
           "origin": {
             "type": "Model",
-            "entry_id": "mapempty",
+            "entry_id": "456f166b-8da0-4231-ad40-f236465cb10d",
             "sub_entity_id": null,
-            "root_entity_id": "3b23659e-a77e-44c4-af74-c0b149109818",
+            "root_entity_id": "b265a5ff-cfa4-4c7f-8521-531682ff6ce4",
             "replaced_model_id": null
           },
-          "modelId": "mapempty",
+          "modelId": "456f166b-8da0-4231-ad40-f236465cb10d",
           "@components": [
             {
               "@type": "MOD.Core.TransformComponent",
               "Position": {
-                "x": 1.0782,
-                "y": 6.9735,
-                "z": 0.0
+                "x": 0.9894,
+                "y": 7.0223,
+                "z": 999.999
               },
               "QuaternionRotation": {
                 "x": 0.0,
@@ -8964,25 +9479,11 @@
             },
             {
               "@type": "MOD.Core.TriggerComponent",
-              "BoxSize": {
-                "x": 0.99,
-                "y": 0.99
-              },
-              "ColliderOffset": {
-                "x": -0.00499996543,
-                "y": -0.00499996543
-              },
-              "CollisionGroup": {
-                "Id": "6c3384cba3aa4de4bb0664bf9dc2ad13"
-              },
               "IsLegacy": false,
               "Enable": true
             },
             {
               "@type": "MOD.Core.TagComponent",
-              "Tags": [
-                "HexaTile"
-              ],
               "Enable": true
             }
           ],
@@ -8990,7 +9491,79 @@
         }
       },
       {
-        "id": "77b239d9-d654-4dfc-80f1-ffd54847b1b4",
+        "id": "b730ea01-e50c-4cd0-bcc6-011f4533a18d",
+        "path": "/maps/Map_01/Tiles/Tile_10/UIText",
+        "componentNames": "MOD.Core.UITransformComponent,MOD.Core.TextGUIRendererComponent,MOD.Core.SpriteGUIRendererComponent",
+        "jsonString": {
+          "name": "UIText",
+          "path": "/maps/Map_01/Tiles/Tile_10/UIText",
+          "nameEditable": true,
+          "enable": true,
+          "visible": true,
+          "localize": false,
+          "displayOrder": 0,
+          "pathConstraints": "/////",
+          "revision": 1,
+          "origin": {
+            "type": "Model",
+            "entry_id": "456f166b-8da0-4231-ad40-f236465cb10d",
+            "sub_entity_id": "a2073840-d198-4ece-bb14-3e228f7228dd",
+            "root_entity_id": "b265a5ff-cfa4-4c7f-8521-531682ff6ce4",
+            "replaced_model_id": null
+          },
+          "modelId": "a2073840-d198-4ece-bb14-3e228f7228dd",
+          "@components": [
+            {
+              "@type": "MOD.Core.UITransformComponent",
+              "AlignmentOption": 0,
+              "AnchorsMax": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "AnchorsMin": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "MobileOnly": false,
+              "OffsetMax": {
+                "x": 50.77778,
+                "y": 248.755569
+              },
+              "OffsetMin": {
+                "x": -49.22222,
+                "y": 148.755569
+              },
+              "RectSize": {
+                "x": 100.0,
+                "y": 100.0
+              },
+              "UIMode": 2,
+              "UIVersion": 2,
+              "QuaternionRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 1.0
+              },
+              "Enable": true
+            },
+            {
+              "@type": "MOD.Core.TextGUIRendererComponent",
+              "OverrideSorting": false,
+              "SortingLayer": "MapLayer2",
+              "Enable": true
+            },
+            {
+              "@type": "MOD.Core.SpriteGUIRendererComponent",
+              "OverrideSorting": false,
+              "Enable": true
+            }
+          ],
+          "@version": 1
+        }
+      },
+      {
+        "id": "1fd6b712-f9e0-45fd-b880-eedc82739edb",
         "path": "/maps/Map_01/Tiles/Tile_11",
         "componentNames": "MOD.Core.TransformComponent,MOD.Core.TriggerComponent,MOD.Core.TagComponent",
         "jsonString": {
@@ -9005,19 +9578,19 @@
           "revision": 1,
           "origin": {
             "type": "Model",
-            "entry_id": "mapempty",
+            "entry_id": "456f166b-8da0-4231-ad40-f236465cb10d",
             "sub_entity_id": null,
-            "root_entity_id": "3b23659e-a77e-44c4-af74-c0b149109818",
+            "root_entity_id": "b265a5ff-cfa4-4c7f-8521-531682ff6ce4",
             "replaced_model_id": null
           },
-          "modelId": "mapempty",
+          "modelId": "456f166b-8da0-4231-ad40-f236465cb10d",
           "@components": [
             {
               "@type": "MOD.Core.TransformComponent",
               "Position": {
-                "x": -1.0082,
-                "y": 8.022,
-                "z": 0.0
+                "x": -0.9865,
+                "y": 8.0177,
+                "z": 999.999
               },
               "QuaternionRotation": {
                 "x": 0.0,
@@ -9034,25 +9607,11 @@
             },
             {
               "@type": "MOD.Core.TriggerComponent",
-              "BoxSize": {
-                "x": 0.99,
-                "y": 0.99
-              },
-              "ColliderOffset": {
-                "x": -0.00499996543,
-                "y": -0.00499996543
-              },
-              "CollisionGroup": {
-                "Id": "6c3384cba3aa4de4bb0664bf9dc2ad13"
-              },
               "IsLegacy": false,
               "Enable": true
             },
             {
               "@type": "MOD.Core.TagComponent",
-              "Tags": [
-                "HexaTile"
-              ],
               "Enable": true
             }
           ],
@@ -9060,7 +9619,79 @@
         }
       },
       {
-        "id": "dd50b860-0b0c-4074-9b2c-8fd1be9bbd95",
+        "id": "0782de85-fe0c-4e14-a44a-c40d1bcd928b",
+        "path": "/maps/Map_01/Tiles/Tile_11/UIText",
+        "componentNames": "MOD.Core.UITransformComponent,MOD.Core.TextGUIRendererComponent,MOD.Core.SpriteGUIRendererComponent",
+        "jsonString": {
+          "name": "UIText",
+          "path": "/maps/Map_01/Tiles/Tile_11/UIText",
+          "nameEditable": true,
+          "enable": true,
+          "visible": true,
+          "localize": false,
+          "displayOrder": 0,
+          "pathConstraints": "/////",
+          "revision": 1,
+          "origin": {
+            "type": "Model",
+            "entry_id": "456f166b-8da0-4231-ad40-f236465cb10d",
+            "sub_entity_id": "a2073840-d198-4ece-bb14-3e228f7228dd",
+            "root_entity_id": "b265a5ff-cfa4-4c7f-8521-531682ff6ce4",
+            "replaced_model_id": null
+          },
+          "modelId": "a2073840-d198-4ece-bb14-3e228f7228dd",
+          "@components": [
+            {
+              "@type": "MOD.Core.UITransformComponent",
+              "AlignmentOption": 0,
+              "AnchorsMax": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "AnchorsMin": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "MobileOnly": false,
+              "OffsetMax": {
+                "x": 50.77778,
+                "y": 248.755569
+              },
+              "OffsetMin": {
+                "x": -49.22222,
+                "y": 148.755569
+              },
+              "RectSize": {
+                "x": 100.0,
+                "y": 100.0
+              },
+              "UIMode": 2,
+              "UIVersion": 2,
+              "QuaternionRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 1.0
+              },
+              "Enable": true
+            },
+            {
+              "@type": "MOD.Core.TextGUIRendererComponent",
+              "OverrideSorting": false,
+              "SortingLayer": "MapLayer2",
+              "Enable": true
+            },
+            {
+              "@type": "MOD.Core.SpriteGUIRendererComponent",
+              "OverrideSorting": false,
+              "Enable": true
+            }
+          ],
+          "@version": 1
+        }
+      },
+      {
+        "id": "9f622365-8df6-4c1b-aa7b-7865dbc635cf",
         "path": "/maps/Map_01/Tiles/Tile_12",
         "componentNames": "MOD.Core.TransformComponent,MOD.Core.TriggerComponent,MOD.Core.TagComponent",
         "jsonString": {
@@ -9075,19 +9706,19 @@
           "revision": 1,
           "origin": {
             "type": "Model",
-            "entry_id": "mapempty",
+            "entry_id": "456f166b-8da0-4231-ad40-f236465cb10d",
             "sub_entity_id": null,
-            "root_entity_id": "3b23659e-a77e-44c4-af74-c0b149109818",
+            "root_entity_id": "b265a5ff-cfa4-4c7f-8521-531682ff6ce4",
             "replaced_model_id": null
           },
-          "modelId": "mapempty",
+          "modelId": "456f166b-8da0-4231-ad40-f236465cb10d",
           "@components": [
             {
               "@type": "MOD.Core.TransformComponent",
               "Position": {
-                "x": -2.9397,
-                "y": 8.016,
-                "z": 0.0
+                "x": -2.9909,
+                "y": 7.9871,
+                "z": 999.999
               },
               "QuaternionRotation": {
                 "x": 0.0,
@@ -9104,25 +9735,11 @@
             },
             {
               "@type": "MOD.Core.TriggerComponent",
-              "BoxSize": {
-                "x": 0.99,
-                "y": 0.99
-              },
-              "ColliderOffset": {
-                "x": -0.00499996543,
-                "y": -0.00499996543
-              },
-              "CollisionGroup": {
-                "Id": "6c3384cba3aa4de4bb0664bf9dc2ad13"
-              },
               "IsLegacy": false,
               "Enable": true
             },
             {
               "@type": "MOD.Core.TagComponent",
-              "Tags": [
-                "HexaTile"
-              ],
               "Enable": true
             }
           ],
@@ -9130,7 +9747,79 @@
         }
       },
       {
-        "id": "7fd9b2b1-08f0-4bb2-b1fe-9ed7e58bebeb",
+        "id": "2b8805dd-ff28-4a29-8eff-1cd86205b4f4",
+        "path": "/maps/Map_01/Tiles/Tile_12/UIText",
+        "componentNames": "MOD.Core.UITransformComponent,MOD.Core.TextGUIRendererComponent,MOD.Core.SpriteGUIRendererComponent",
+        "jsonString": {
+          "name": "UIText",
+          "path": "/maps/Map_01/Tiles/Tile_12/UIText",
+          "nameEditable": true,
+          "enable": true,
+          "visible": true,
+          "localize": false,
+          "displayOrder": 0,
+          "pathConstraints": "/////",
+          "revision": 1,
+          "origin": {
+            "type": "Model",
+            "entry_id": "456f166b-8da0-4231-ad40-f236465cb10d",
+            "sub_entity_id": "a2073840-d198-4ece-bb14-3e228f7228dd",
+            "root_entity_id": "b265a5ff-cfa4-4c7f-8521-531682ff6ce4",
+            "replaced_model_id": null
+          },
+          "modelId": "a2073840-d198-4ece-bb14-3e228f7228dd",
+          "@components": [
+            {
+              "@type": "MOD.Core.UITransformComponent",
+              "AlignmentOption": 0,
+              "AnchorsMax": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "AnchorsMin": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "MobileOnly": false,
+              "OffsetMax": {
+                "x": 50.77778,
+                "y": 248.755569
+              },
+              "OffsetMin": {
+                "x": -49.22222,
+                "y": 148.755569
+              },
+              "RectSize": {
+                "x": 100.0,
+                "y": 100.0
+              },
+              "UIMode": 2,
+              "UIVersion": 2,
+              "QuaternionRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 1.0
+              },
+              "Enable": true
+            },
+            {
+              "@type": "MOD.Core.TextGUIRendererComponent",
+              "OverrideSorting": false,
+              "SortingLayer": "MapLayer2",
+              "Enable": true
+            },
+            {
+              "@type": "MOD.Core.SpriteGUIRendererComponent",
+              "OverrideSorting": false,
+              "Enable": true
+            }
+          ],
+          "@version": 1
+        }
+      },
+      {
+        "id": "0214d817-0b1c-405b-9957-c2b72a8667d8",
         "path": "/maps/Map_01/Tiles/Tile_13",
         "componentNames": "MOD.Core.TransformComponent,MOD.Core.TriggerComponent,MOD.Core.TagComponent",
         "jsonString": {
@@ -9145,19 +9834,19 @@
           "revision": 1,
           "origin": {
             "type": "Model",
-            "entry_id": "mapempty",
+            "entry_id": "456f166b-8da0-4231-ad40-f236465cb10d",
             "sub_entity_id": null,
-            "root_entity_id": "3b23659e-a77e-44c4-af74-c0b149109818",
+            "root_entity_id": "b265a5ff-cfa4-4c7f-8521-531682ff6ce4",
             "replaced_model_id": null
           },
-          "modelId": "mapempty",
+          "modelId": "456f166b-8da0-4231-ad40-f236465cb10d",
           "@components": [
             {
               "@type": "MOD.Core.TransformComponent",
               "Position": {
-                "x": -5.0472,
-                "y": 9.0206,
-                "z": 0.0
+                "x": -5.0123,
+                "y": 9.0395,
+                "z": 999.999
               },
               "QuaternionRotation": {
                 "x": 0.0,
@@ -9174,25 +9863,11 @@
             },
             {
               "@type": "MOD.Core.TriggerComponent",
-              "BoxSize": {
-                "x": 0.99,
-                "y": 0.99
-              },
-              "ColliderOffset": {
-                "x": -0.00499996543,
-                "y": -0.00499996543
-              },
-              "CollisionGroup": {
-                "Id": "6c3384cba3aa4de4bb0664bf9dc2ad13"
-              },
               "IsLegacy": false,
               "Enable": true
             },
             {
               "@type": "MOD.Core.TagComponent",
-              "Tags": [
-                "HexaTile"
-              ],
               "Enable": true
             }
           ],
@@ -9200,7 +9875,79 @@
         }
       },
       {
-        "id": "4b2b532a-a365-40b5-8e46-21d7504ff918",
+        "id": "b27ea419-fa4c-4bde-bc68-2427b378a8dc",
+        "path": "/maps/Map_01/Tiles/Tile_13/UIText",
+        "componentNames": "MOD.Core.UITransformComponent,MOD.Core.TextGUIRendererComponent,MOD.Core.SpriteGUIRendererComponent",
+        "jsonString": {
+          "name": "UIText",
+          "path": "/maps/Map_01/Tiles/Tile_13/UIText",
+          "nameEditable": true,
+          "enable": true,
+          "visible": true,
+          "localize": false,
+          "displayOrder": 0,
+          "pathConstraints": "/////",
+          "revision": 1,
+          "origin": {
+            "type": "Model",
+            "entry_id": "456f166b-8da0-4231-ad40-f236465cb10d",
+            "sub_entity_id": "a2073840-d198-4ece-bb14-3e228f7228dd",
+            "root_entity_id": "b265a5ff-cfa4-4c7f-8521-531682ff6ce4",
+            "replaced_model_id": null
+          },
+          "modelId": "a2073840-d198-4ece-bb14-3e228f7228dd",
+          "@components": [
+            {
+              "@type": "MOD.Core.UITransformComponent",
+              "AlignmentOption": 0,
+              "AnchorsMax": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "AnchorsMin": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "MobileOnly": false,
+              "OffsetMax": {
+                "x": 50.77778,
+                "y": 248.755569
+              },
+              "OffsetMin": {
+                "x": -49.22222,
+                "y": 148.755569
+              },
+              "RectSize": {
+                "x": 100.0,
+                "y": 100.0
+              },
+              "UIMode": 2,
+              "UIVersion": 2,
+              "QuaternionRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 1.0
+              },
+              "Enable": true
+            },
+            {
+              "@type": "MOD.Core.TextGUIRendererComponent",
+              "OverrideSorting": false,
+              "SortingLayer": "MapLayer2",
+              "Enable": true
+            },
+            {
+              "@type": "MOD.Core.SpriteGUIRendererComponent",
+              "OverrideSorting": false,
+              "Enable": true
+            }
+          ],
+          "@version": 1
+        }
+      },
+      {
+        "id": "819e2cc8-37fb-4726-b616-2e9fe0080855",
         "path": "/maps/Map_01/Tiles/Tile_14",
         "componentNames": "MOD.Core.TransformComponent,MOD.Core.TriggerComponent,MOD.Core.TagComponent",
         "jsonString": {
@@ -9215,19 +9962,19 @@
           "revision": 1,
           "origin": {
             "type": "Model",
-            "entry_id": "mapempty",
+            "entry_id": "456f166b-8da0-4231-ad40-f236465cb10d",
             "sub_entity_id": null,
-            "root_entity_id": "3b23659e-a77e-44c4-af74-c0b149109818",
+            "root_entity_id": "b265a5ff-cfa4-4c7f-8521-531682ff6ce4",
             "replaced_model_id": null
           },
-          "modelId": "mapempty",
+          "modelId": "456f166b-8da0-4231-ad40-f236465cb10d",
           "@components": [
             {
               "@type": "MOD.Core.TransformComponent",
               "Position": {
-                "x": -5.0042,
-                "y": 10.9611,
-                "z": 0.0
+                "x": -5.0102,
+                "y": 11.0039,
+                "z": 999.999
               },
               "QuaternionRotation": {
                 "x": 0.0,
@@ -9244,25 +9991,11 @@
             },
             {
               "@type": "MOD.Core.TriggerComponent",
-              "BoxSize": {
-                "x": 0.99,
-                "y": 0.99
-              },
-              "ColliderOffset": {
-                "x": -0.00499996543,
-                "y": -0.00499996543
-              },
-              "CollisionGroup": {
-                "Id": "6c3384cba3aa4de4bb0664bf9dc2ad13"
-              },
               "IsLegacy": false,
               "Enable": true
             },
             {
               "@type": "MOD.Core.TagComponent",
-              "Tags": [
-                "HexaTile"
-              ],
               "Enable": true
             }
           ],
@@ -9270,7 +10003,79 @@
         }
       },
       {
-        "id": "6f7f3045-0a42-4e22-b630-2c921400832d",
+        "id": "8a454e1c-85ca-4e9b-9b72-82f985480f2e",
+        "path": "/maps/Map_01/Tiles/Tile_14/UIText",
+        "componentNames": "MOD.Core.UITransformComponent,MOD.Core.TextGUIRendererComponent,MOD.Core.SpriteGUIRendererComponent",
+        "jsonString": {
+          "name": "UIText",
+          "path": "/maps/Map_01/Tiles/Tile_14/UIText",
+          "nameEditable": true,
+          "enable": true,
+          "visible": true,
+          "localize": false,
+          "displayOrder": 0,
+          "pathConstraints": "/////",
+          "revision": 1,
+          "origin": {
+            "type": "Model",
+            "entry_id": "456f166b-8da0-4231-ad40-f236465cb10d",
+            "sub_entity_id": "a2073840-d198-4ece-bb14-3e228f7228dd",
+            "root_entity_id": "b265a5ff-cfa4-4c7f-8521-531682ff6ce4",
+            "replaced_model_id": null
+          },
+          "modelId": "a2073840-d198-4ece-bb14-3e228f7228dd",
+          "@components": [
+            {
+              "@type": "MOD.Core.UITransformComponent",
+              "AlignmentOption": 0,
+              "AnchorsMax": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "AnchorsMin": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "MobileOnly": false,
+              "OffsetMax": {
+                "x": 50.77778,
+                "y": 248.755569
+              },
+              "OffsetMin": {
+                "x": -49.22222,
+                "y": 148.755569
+              },
+              "RectSize": {
+                "x": 100.0,
+                "y": 100.0
+              },
+              "UIMode": 2,
+              "UIVersion": 2,
+              "QuaternionRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 1.0
+              },
+              "Enable": true
+            },
+            {
+              "@type": "MOD.Core.TextGUIRendererComponent",
+              "OverrideSorting": false,
+              "SortingLayer": "MapLayer2",
+              "Enable": true
+            },
+            {
+              "@type": "MOD.Core.SpriteGUIRendererComponent",
+              "OverrideSorting": false,
+              "Enable": true
+            }
+          ],
+          "@version": 1
+        }
+      },
+      {
+        "id": "dc8f949a-5357-4cb5-960e-c0cc91d2fd17",
         "path": "/maps/Map_01/Tiles/Tile_15",
         "componentNames": "MOD.Core.TransformComponent,MOD.Core.TriggerComponent,MOD.Core.TagComponent",
         "jsonString": {
@@ -9285,19 +10090,19 @@
           "revision": 1,
           "origin": {
             "type": "Model",
-            "entry_id": "mapempty",
+            "entry_id": "456f166b-8da0-4231-ad40-f236465cb10d",
             "sub_entity_id": null,
-            "root_entity_id": "3b23659e-a77e-44c4-af74-c0b149109818",
+            "root_entity_id": "b265a5ff-cfa4-4c7f-8521-531682ff6ce4",
             "replaced_model_id": null
           },
-          "modelId": "mapempty",
+          "modelId": "456f166b-8da0-4231-ad40-f236465cb10d",
           "@components": [
             {
               "@type": "MOD.Core.TransformComponent",
               "Position": {
-                "x": -3.979,
-                "y": 13.0035,
-                "z": 0.0
+                "x": -3.9992,
+                "y": 12.9854,
+                "z": 999.999
               },
               "QuaternionRotation": {
                 "x": 0.0,
@@ -9314,25 +10119,11 @@
             },
             {
               "@type": "MOD.Core.TriggerComponent",
-              "BoxSize": {
-                "x": 0.99,
-                "y": 0.99
-              },
-              "ColliderOffset": {
-                "x": -0.00499996543,
-                "y": -0.00499996543
-              },
-              "CollisionGroup": {
-                "Id": "6c3384cba3aa4de4bb0664bf9dc2ad13"
-              },
               "IsLegacy": false,
               "Enable": true
             },
             {
               "@type": "MOD.Core.TagComponent",
-              "Tags": [
-                "HexaTile"
-              ],
               "Enable": true
             }
           ],
@@ -9340,7 +10131,79 @@
         }
       },
       {
-        "id": "54892ace-a6ed-4b58-9b8a-8fceaf5c48af",
+        "id": "81e3f1b1-528b-4dce-a78d-731b03e59584",
+        "path": "/maps/Map_01/Tiles/Tile_15/UIText",
+        "componentNames": "MOD.Core.UITransformComponent,MOD.Core.TextGUIRendererComponent,MOD.Core.SpriteGUIRendererComponent",
+        "jsonString": {
+          "name": "UIText",
+          "path": "/maps/Map_01/Tiles/Tile_15/UIText",
+          "nameEditable": true,
+          "enable": true,
+          "visible": true,
+          "localize": false,
+          "displayOrder": 0,
+          "pathConstraints": "/////",
+          "revision": 1,
+          "origin": {
+            "type": "Model",
+            "entry_id": "456f166b-8da0-4231-ad40-f236465cb10d",
+            "sub_entity_id": "a2073840-d198-4ece-bb14-3e228f7228dd",
+            "root_entity_id": "b265a5ff-cfa4-4c7f-8521-531682ff6ce4",
+            "replaced_model_id": null
+          },
+          "modelId": "a2073840-d198-4ece-bb14-3e228f7228dd",
+          "@components": [
+            {
+              "@type": "MOD.Core.UITransformComponent",
+              "AlignmentOption": 0,
+              "AnchorsMax": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "AnchorsMin": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "MobileOnly": false,
+              "OffsetMax": {
+                "x": 50.77778,
+                "y": 248.755569
+              },
+              "OffsetMin": {
+                "x": -49.22222,
+                "y": 148.755569
+              },
+              "RectSize": {
+                "x": 100.0,
+                "y": 100.0
+              },
+              "UIMode": 2,
+              "UIVersion": 2,
+              "QuaternionRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 1.0
+              },
+              "Enable": true
+            },
+            {
+              "@type": "MOD.Core.TextGUIRendererComponent",
+              "OverrideSorting": false,
+              "SortingLayer": "MapLayer2",
+              "Enable": true
+            },
+            {
+              "@type": "MOD.Core.SpriteGUIRendererComponent",
+              "OverrideSorting": false,
+              "Enable": true
+            }
+          ],
+          "@version": 1
+        }
+      },
+      {
+        "id": "9e4208c9-9068-4f66-b9c5-44eb06f1eecf",
         "path": "/maps/Map_01/Tiles/Tile_16",
         "componentNames": "MOD.Core.TransformComponent,MOD.Core.TriggerComponent,MOD.Core.TagComponent",
         "jsonString": {
@@ -9355,19 +10218,19 @@
           "revision": 1,
           "origin": {
             "type": "Model",
-            "entry_id": "mapempty",
+            "entry_id": "456f166b-8da0-4231-ad40-f236465cb10d",
             "sub_entity_id": null,
-            "root_entity_id": "3b23659e-a77e-44c4-af74-c0b149109818",
+            "root_entity_id": "b265a5ff-cfa4-4c7f-8521-531682ff6ce4",
             "replaced_model_id": null
           },
-          "modelId": "mapempty",
+          "modelId": "456f166b-8da0-4231-ad40-f236465cb10d",
           "@components": [
             {
               "@type": "MOD.Core.TransformComponent",
               "Position": {
-                "x": -1.9803,
-                "y": 12.9882,
-                "z": 0.0
+                "x": -1.9959,
+                "y": 13.0118,
+                "z": 999.999
               },
               "QuaternionRotation": {
                 "x": 0.0,
@@ -9384,25 +10247,11 @@
             },
             {
               "@type": "MOD.Core.TriggerComponent",
-              "BoxSize": {
-                "x": 0.99,
-                "y": 0.99
-              },
-              "ColliderOffset": {
-                "x": -0.00499996543,
-                "y": -0.00499996543
-              },
-              "CollisionGroup": {
-                "Id": "6c3384cba3aa4de4bb0664bf9dc2ad13"
-              },
               "IsLegacy": false,
               "Enable": true
             },
             {
               "@type": "MOD.Core.TagComponent",
-              "Tags": [
-                "HexaTile"
-              ],
               "Enable": true
             }
           ],
@@ -9410,7 +10259,79 @@
         }
       },
       {
-        "id": "818dbeb3-9c14-4686-af14-32246d38e3ce",
+        "id": "0fc7e268-b828-480d-b197-f4fc81e5cbf1",
+        "path": "/maps/Map_01/Tiles/Tile_16/UIText",
+        "componentNames": "MOD.Core.UITransformComponent,MOD.Core.TextGUIRendererComponent,MOD.Core.SpriteGUIRendererComponent",
+        "jsonString": {
+          "name": "UIText",
+          "path": "/maps/Map_01/Tiles/Tile_16/UIText",
+          "nameEditable": true,
+          "enable": true,
+          "visible": true,
+          "localize": false,
+          "displayOrder": 0,
+          "pathConstraints": "/////",
+          "revision": 1,
+          "origin": {
+            "type": "Model",
+            "entry_id": "456f166b-8da0-4231-ad40-f236465cb10d",
+            "sub_entity_id": "a2073840-d198-4ece-bb14-3e228f7228dd",
+            "root_entity_id": "b265a5ff-cfa4-4c7f-8521-531682ff6ce4",
+            "replaced_model_id": null
+          },
+          "modelId": "a2073840-d198-4ece-bb14-3e228f7228dd",
+          "@components": [
+            {
+              "@type": "MOD.Core.UITransformComponent",
+              "AlignmentOption": 0,
+              "AnchorsMax": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "AnchorsMin": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "MobileOnly": false,
+              "OffsetMax": {
+                "x": 50.77778,
+                "y": 248.755569
+              },
+              "OffsetMin": {
+                "x": -49.22222,
+                "y": 148.755569
+              },
+              "RectSize": {
+                "x": 100.0,
+                "y": 100.0
+              },
+              "UIMode": 2,
+              "UIVersion": 2,
+              "QuaternionRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 1.0
+              },
+              "Enable": true
+            },
+            {
+              "@type": "MOD.Core.TextGUIRendererComponent",
+              "OverrideSorting": false,
+              "SortingLayer": "MapLayer2",
+              "Enable": true
+            },
+            {
+              "@type": "MOD.Core.SpriteGUIRendererComponent",
+              "OverrideSorting": false,
+              "Enable": true
+            }
+          ],
+          "@version": 1
+        }
+      },
+      {
+        "id": "f5ac9285-020b-4044-932f-1eb1ec3b404d",
         "path": "/maps/Map_01/Tiles/Tile_17",
         "componentNames": "MOD.Core.TransformComponent,MOD.Core.TriggerComponent,MOD.Core.TagComponent",
         "jsonString": {
@@ -9425,19 +10346,19 @@
           "revision": 1,
           "origin": {
             "type": "Model",
-            "entry_id": "mapempty",
+            "entry_id": "456f166b-8da0-4231-ad40-f236465cb10d",
             "sub_entity_id": null,
-            "root_entity_id": "3b23659e-a77e-44c4-af74-c0b149109818",
+            "root_entity_id": "b265a5ff-cfa4-4c7f-8521-531682ff6ce4",
             "replaced_model_id": null
           },
-          "modelId": "mapempty",
+          "modelId": "456f166b-8da0-4231-ad40-f236465cb10d",
           "@components": [
             {
               "@type": "MOD.Core.TransformComponent",
               "Position": {
-                "x": -0.0368,
-                "y": 12.9915,
-                "z": 0.0
+                "x": 0.013,
+                "y": 13.0154,
+                "z": 999.999
               },
               "QuaternionRotation": {
                 "x": 0.0,
@@ -9454,25 +10375,11 @@
             },
             {
               "@type": "MOD.Core.TriggerComponent",
-              "BoxSize": {
-                "x": 0.99,
-                "y": 0.99
-              },
-              "ColliderOffset": {
-                "x": -0.00499996543,
-                "y": -0.00499996543
-              },
-              "CollisionGroup": {
-                "Id": "6c3384cba3aa4de4bb0664bf9dc2ad13"
-              },
               "IsLegacy": false,
               "Enable": true
             },
             {
               "@type": "MOD.Core.TagComponent",
-              "Tags": [
-                "HexaTile"
-              ],
               "Enable": true
             }
           ],
@@ -9480,7 +10387,79 @@
         }
       },
       {
-        "id": "93b4e0ee-6d7a-4a9a-8420-5eabc8970366",
+        "id": "7144d62c-eee7-4ef0-b27e-57d25cae50af",
+        "path": "/maps/Map_01/Tiles/Tile_17/UIText",
+        "componentNames": "MOD.Core.UITransformComponent,MOD.Core.TextGUIRendererComponent,MOD.Core.SpriteGUIRendererComponent",
+        "jsonString": {
+          "name": "UIText",
+          "path": "/maps/Map_01/Tiles/Tile_17/UIText",
+          "nameEditable": true,
+          "enable": true,
+          "visible": true,
+          "localize": false,
+          "displayOrder": 0,
+          "pathConstraints": "/////",
+          "revision": 1,
+          "origin": {
+            "type": "Model",
+            "entry_id": "456f166b-8da0-4231-ad40-f236465cb10d",
+            "sub_entity_id": "a2073840-d198-4ece-bb14-3e228f7228dd",
+            "root_entity_id": "b265a5ff-cfa4-4c7f-8521-531682ff6ce4",
+            "replaced_model_id": null
+          },
+          "modelId": "a2073840-d198-4ece-bb14-3e228f7228dd",
+          "@components": [
+            {
+              "@type": "MOD.Core.UITransformComponent",
+              "AlignmentOption": 0,
+              "AnchorsMax": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "AnchorsMin": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "MobileOnly": false,
+              "OffsetMax": {
+                "x": 50.77778,
+                "y": 248.755569
+              },
+              "OffsetMin": {
+                "x": -49.22222,
+                "y": 148.755569
+              },
+              "RectSize": {
+                "x": 100.0,
+                "y": 100.0
+              },
+              "UIMode": 2,
+              "UIVersion": 2,
+              "QuaternionRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 1.0
+              },
+              "Enable": true
+            },
+            {
+              "@type": "MOD.Core.TextGUIRendererComponent",
+              "OverrideSorting": false,
+              "SortingLayer": "MapLayer2",
+              "Enable": true
+            },
+            {
+              "@type": "MOD.Core.SpriteGUIRendererComponent",
+              "OverrideSorting": false,
+              "Enable": true
+            }
+          ],
+          "@version": 1
+        }
+      },
+      {
+        "id": "2ad450e9-cada-4ae6-8164-daf0d5c795e9",
         "path": "/maps/Map_01/Tiles/Tile_18",
         "componentNames": "MOD.Core.TransformComponent,MOD.Core.TriggerComponent,MOD.Core.TagComponent",
         "jsonString": {
@@ -9495,19 +10474,19 @@
           "revision": 1,
           "origin": {
             "type": "Model",
-            "entry_id": "mapempty",
+            "entry_id": "456f166b-8da0-4231-ad40-f236465cb10d",
             "sub_entity_id": null,
-            "root_entity_id": "3b23659e-a77e-44c4-af74-c0b149109818",
+            "root_entity_id": "b265a5ff-cfa4-4c7f-8521-531682ff6ce4",
             "replaced_model_id": null
           },
-          "modelId": "mapempty",
+          "modelId": "456f166b-8da0-4231-ad40-f236465cb10d",
           "@components": [
             {
               "@type": "MOD.Core.TransformComponent",
               "Position": {
-                "x": 1.9902,
-                "y": 12.9396,
-                "z": 0.0
+                "x": 2.0219,
+                "y": 12.9962,
+                "z": 999.999
               },
               "QuaternionRotation": {
                 "x": 0.0,
@@ -9524,25 +10503,11 @@
             },
             {
               "@type": "MOD.Core.TriggerComponent",
-              "BoxSize": {
-                "x": 0.99,
-                "y": 0.99
-              },
-              "ColliderOffset": {
-                "x": -0.00499996543,
-                "y": -0.00499996543
-              },
-              "CollisionGroup": {
-                "Id": "6c3384cba3aa4de4bb0664bf9dc2ad13"
-              },
               "IsLegacy": false,
               "Enable": true
             },
             {
               "@type": "MOD.Core.TagComponent",
-              "Tags": [
-                "HexaTile"
-              ],
               "Enable": true
             }
           ],
@@ -9550,7 +10515,79 @@
         }
       },
       {
-        "id": "b4b097d3-2f19-4a7a-93f9-e783fc1bfb03",
+        "id": "01f5a9ef-03ed-4f3e-a78d-b4b8a1f65f5c",
+        "path": "/maps/Map_01/Tiles/Tile_18/UIText",
+        "componentNames": "MOD.Core.UITransformComponent,MOD.Core.TextGUIRendererComponent,MOD.Core.SpriteGUIRendererComponent",
+        "jsonString": {
+          "name": "UIText",
+          "path": "/maps/Map_01/Tiles/Tile_18/UIText",
+          "nameEditable": true,
+          "enable": true,
+          "visible": true,
+          "localize": false,
+          "displayOrder": 0,
+          "pathConstraints": "/////",
+          "revision": 1,
+          "origin": {
+            "type": "Model",
+            "entry_id": "456f166b-8da0-4231-ad40-f236465cb10d",
+            "sub_entity_id": "a2073840-d198-4ece-bb14-3e228f7228dd",
+            "root_entity_id": "b265a5ff-cfa4-4c7f-8521-531682ff6ce4",
+            "replaced_model_id": null
+          },
+          "modelId": "a2073840-d198-4ece-bb14-3e228f7228dd",
+          "@components": [
+            {
+              "@type": "MOD.Core.UITransformComponent",
+              "AlignmentOption": 0,
+              "AnchorsMax": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "AnchorsMin": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "MobileOnly": false,
+              "OffsetMax": {
+                "x": 50.77778,
+                "y": 248.755569
+              },
+              "OffsetMin": {
+                "x": -49.22222,
+                "y": 148.755569
+              },
+              "RectSize": {
+                "x": 100.0,
+                "y": 100.0
+              },
+              "UIMode": 2,
+              "UIVersion": 2,
+              "QuaternionRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 1.0
+              },
+              "Enable": true
+            },
+            {
+              "@type": "MOD.Core.TextGUIRendererComponent",
+              "OverrideSorting": false,
+              "SortingLayer": "MapLayer2",
+              "Enable": true
+            },
+            {
+              "@type": "MOD.Core.SpriteGUIRendererComponent",
+              "OverrideSorting": false,
+              "Enable": true
+            }
+          ],
+          "@version": 1
+        }
+      },
+      {
+        "id": "3941cacb-677c-4bc9-8557-201928057db5",
         "path": "/maps/Map_01/Tiles/Tile_19",
         "componentNames": "MOD.Core.TransformComponent,MOD.Core.TriggerComponent,MOD.Core.TagComponent",
         "jsonString": {
@@ -9565,19 +10602,19 @@
           "revision": 1,
           "origin": {
             "type": "Model",
-            "entry_id": "mapempty",
+            "entry_id": "456f166b-8da0-4231-ad40-f236465cb10d",
             "sub_entity_id": null,
-            "root_entity_id": "3b23659e-a77e-44c4-af74-c0b149109818",
+            "root_entity_id": "b265a5ff-cfa4-4c7f-8521-531682ff6ce4",
             "replaced_model_id": null
           },
-          "modelId": "mapempty",
+          "modelId": "456f166b-8da0-4231-ad40-f236465cb10d",
           "@components": [
             {
               "@type": "MOD.Core.TransformComponent",
               "Position": {
-                "x": 3.9797,
-                "y": 12.9334,
-                "z": 0.0
+                "x": 3.9966,
+                "y": 12.9998,
+                "z": 999.999
               },
               "QuaternionRotation": {
                 "x": 0.0,
@@ -9594,25 +10631,11 @@
             },
             {
               "@type": "MOD.Core.TriggerComponent",
-              "BoxSize": {
-                "x": 0.99,
-                "y": 0.99
-              },
-              "ColliderOffset": {
-                "x": -0.00499996543,
-                "y": -0.00499996543
-              },
-              "CollisionGroup": {
-                "Id": "6c3384cba3aa4de4bb0664bf9dc2ad13"
-              },
               "IsLegacy": false,
               "Enable": true
             },
             {
               "@type": "MOD.Core.TagComponent",
-              "Tags": [
-                "HexaTile"
-              ],
               "Enable": true
             }
           ],
@@ -9620,7 +10643,79 @@
         }
       },
       {
-        "id": "dce95986-14f0-42e9-8646-2e1d597c6cbf",
+        "id": "a5909b4c-e7ad-4d60-91ae-e031faaecf7a",
+        "path": "/maps/Map_01/Tiles/Tile_19/UIText",
+        "componentNames": "MOD.Core.UITransformComponent,MOD.Core.TextGUIRendererComponent,MOD.Core.SpriteGUIRendererComponent",
+        "jsonString": {
+          "name": "UIText",
+          "path": "/maps/Map_01/Tiles/Tile_19/UIText",
+          "nameEditable": true,
+          "enable": true,
+          "visible": true,
+          "localize": false,
+          "displayOrder": 0,
+          "pathConstraints": "/////",
+          "revision": 1,
+          "origin": {
+            "type": "Model",
+            "entry_id": "456f166b-8da0-4231-ad40-f236465cb10d",
+            "sub_entity_id": "a2073840-d198-4ece-bb14-3e228f7228dd",
+            "root_entity_id": "b265a5ff-cfa4-4c7f-8521-531682ff6ce4",
+            "replaced_model_id": null
+          },
+          "modelId": "a2073840-d198-4ece-bb14-3e228f7228dd",
+          "@components": [
+            {
+              "@type": "MOD.Core.UITransformComponent",
+              "AlignmentOption": 0,
+              "AnchorsMax": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "AnchorsMin": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "MobileOnly": false,
+              "OffsetMax": {
+                "x": 50.77778,
+                "y": 248.755569
+              },
+              "OffsetMin": {
+                "x": -49.22222,
+                "y": 148.755569
+              },
+              "RectSize": {
+                "x": 100.0,
+                "y": 100.0
+              },
+              "UIMode": 2,
+              "UIVersion": 2,
+              "QuaternionRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 1.0
+              },
+              "Enable": true
+            },
+            {
+              "@type": "MOD.Core.TextGUIRendererComponent",
+              "OverrideSorting": false,
+              "SortingLayer": "MapLayer2",
+              "Enable": true
+            },
+            {
+              "@type": "MOD.Core.SpriteGUIRendererComponent",
+              "OverrideSorting": false,
+              "Enable": true
+            }
+          ],
+          "@version": 1
+        }
+      },
+      {
+        "id": "8f85f914-a25a-47af-91ac-19126486e708",
         "path": "/maps/Map_01/Tiles/Tile_20",
         "componentNames": "MOD.Core.TransformComponent,MOD.Core.TriggerComponent,MOD.Core.TagComponent",
         "jsonString": {
@@ -9635,19 +10730,19 @@
           "revision": 1,
           "origin": {
             "type": "Model",
-            "entry_id": "mapempty",
+            "entry_id": "456f166b-8da0-4231-ad40-f236465cb10d",
             "sub_entity_id": null,
-            "root_entity_id": "3b23659e-a77e-44c4-af74-c0b149109818",
+            "root_entity_id": "b265a5ff-cfa4-4c7f-8521-531682ff6ce4",
             "replaced_model_id": null
           },
-          "modelId": "mapempty",
+          "modelId": "456f166b-8da0-4231-ad40-f236465cb10d",
           "@components": [
             {
               "@type": "MOD.Core.TransformComponent",
               "Position": {
-                "x": 8.0459,
-                "y": 13.9847,
-                "z": 0.0
+                "x": 6.0109,
+                "y": 14.0237,
+                "z": 999.999
               },
               "QuaternionRotation": {
                 "x": 0.0,
@@ -9664,25 +10759,11 @@
             },
             {
               "@type": "MOD.Core.TriggerComponent",
-              "BoxSize": {
-                "x": 0.99,
-                "y": 0.99
-              },
-              "ColliderOffset": {
-                "x": -0.00499996543,
-                "y": -0.00499996543
-              },
-              "CollisionGroup": {
-                "Id": "6c3384cba3aa4de4bb0664bf9dc2ad13"
-              },
               "IsLegacy": false,
               "Enable": true
             },
             {
               "@type": "MOD.Core.TagComponent",
-              "Tags": [
-                "HexaTile"
-              ],
               "Enable": true
             }
           ],
@@ -9690,7 +10771,79 @@
         }
       },
       {
-        "id": "36d398f4-3c04-49a6-aa36-a02027fc3bb1",
+        "id": "9a58ea58-ae5e-42c8-945d-5165dc88995c",
+        "path": "/maps/Map_01/Tiles/Tile_20/UIText",
+        "componentNames": "MOD.Core.UITransformComponent,MOD.Core.TextGUIRendererComponent,MOD.Core.SpriteGUIRendererComponent",
+        "jsonString": {
+          "name": "UIText",
+          "path": "/maps/Map_01/Tiles/Tile_20/UIText",
+          "nameEditable": true,
+          "enable": true,
+          "visible": true,
+          "localize": false,
+          "displayOrder": 0,
+          "pathConstraints": "/////",
+          "revision": 1,
+          "origin": {
+            "type": "Model",
+            "entry_id": "456f166b-8da0-4231-ad40-f236465cb10d",
+            "sub_entity_id": "a2073840-d198-4ece-bb14-3e228f7228dd",
+            "root_entity_id": "b265a5ff-cfa4-4c7f-8521-531682ff6ce4",
+            "replaced_model_id": null
+          },
+          "modelId": "a2073840-d198-4ece-bb14-3e228f7228dd",
+          "@components": [
+            {
+              "@type": "MOD.Core.UITransformComponent",
+              "AlignmentOption": 0,
+              "AnchorsMax": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "AnchorsMin": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "MobileOnly": false,
+              "OffsetMax": {
+                "x": 50.77778,
+                "y": 248.755569
+              },
+              "OffsetMin": {
+                "x": -49.22222,
+                "y": 148.755569
+              },
+              "RectSize": {
+                "x": 100.0,
+                "y": 100.0
+              },
+              "UIMode": 2,
+              "UIVersion": 2,
+              "QuaternionRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 1.0
+              },
+              "Enable": true
+            },
+            {
+              "@type": "MOD.Core.TextGUIRendererComponent",
+              "OverrideSorting": false,
+              "SortingLayer": "MapLayer2",
+              "Enable": true
+            },
+            {
+              "@type": "MOD.Core.SpriteGUIRendererComponent",
+              "OverrideSorting": false,
+              "Enable": true
+            }
+          ],
+          "@version": 1
+        }
+      },
+      {
+        "id": "065fceaf-51cb-4549-808f-c732d3d7eabc",
         "path": "/maps/Map_01/Tiles/Tile_21",
         "componentNames": "MOD.Core.TransformComponent,MOD.Core.TriggerComponent,MOD.Core.TagComponent",
         "jsonString": {
@@ -9705,19 +10858,19 @@
           "revision": 1,
           "origin": {
             "type": "Model",
-            "entry_id": "mapempty",
+            "entry_id": "456f166b-8da0-4231-ad40-f236465cb10d",
             "sub_entity_id": null,
-            "root_entity_id": "3b23659e-a77e-44c4-af74-c0b149109818",
+            "root_entity_id": "b265a5ff-cfa4-4c7f-8521-531682ff6ce4",
             "replaced_model_id": null
           },
-          "modelId": "mapempty",
+          "modelId": "456f166b-8da0-4231-ad40-f236465cb10d",
           "@components": [
             {
               "@type": "MOD.Core.TransformComponent",
               "Position": {
-                "x": 6.0124,
-                "y": 13.9874,
-                "z": 0.0
+                "x": 7.997,
+                "y": 14.0102,
+                "z": 999.999
               },
               "QuaternionRotation": {
                 "x": 0.0,
@@ -9734,25 +10887,11 @@
             },
             {
               "@type": "MOD.Core.TriggerComponent",
-              "BoxSize": {
-                "x": 0.99,
-                "y": 0.99
-              },
-              "ColliderOffset": {
-                "x": -0.00499996543,
-                "y": -0.00499996543
-              },
-              "CollisionGroup": {
-                "Id": "6c3384cba3aa4de4bb0664bf9dc2ad13"
-              },
               "IsLegacy": false,
               "Enable": true
             },
             {
               "@type": "MOD.Core.TagComponent",
-              "Tags": [
-                "HexaTile"
-              ],
               "Enable": true
             }
           ],
@@ -9760,7 +10899,79 @@
         }
       },
       {
-        "id": "69c5e614-7506-47a1-9911-becac5bd6c71",
+        "id": "6f2393f3-a804-4c2a-ace6-24ad0f291dc9",
+        "path": "/maps/Map_01/Tiles/Tile_21/UIText",
+        "componentNames": "MOD.Core.UITransformComponent,MOD.Core.TextGUIRendererComponent,MOD.Core.SpriteGUIRendererComponent",
+        "jsonString": {
+          "name": "UIText",
+          "path": "/maps/Map_01/Tiles/Tile_21/UIText",
+          "nameEditable": true,
+          "enable": true,
+          "visible": true,
+          "localize": false,
+          "displayOrder": 0,
+          "pathConstraints": "/////",
+          "revision": 1,
+          "origin": {
+            "type": "Model",
+            "entry_id": "456f166b-8da0-4231-ad40-f236465cb10d",
+            "sub_entity_id": "a2073840-d198-4ece-bb14-3e228f7228dd",
+            "root_entity_id": "b265a5ff-cfa4-4c7f-8521-531682ff6ce4",
+            "replaced_model_id": null
+          },
+          "modelId": "a2073840-d198-4ece-bb14-3e228f7228dd",
+          "@components": [
+            {
+              "@type": "MOD.Core.UITransformComponent",
+              "AlignmentOption": 0,
+              "AnchorsMax": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "AnchorsMin": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "MobileOnly": false,
+              "OffsetMax": {
+                "x": 50.77778,
+                "y": 248.755569
+              },
+              "OffsetMin": {
+                "x": -49.22222,
+                "y": 148.755569
+              },
+              "RectSize": {
+                "x": 100.0,
+                "y": 100.0
+              },
+              "UIMode": 2,
+              "UIVersion": 2,
+              "QuaternionRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 1.0
+              },
+              "Enable": true
+            },
+            {
+              "@type": "MOD.Core.TextGUIRendererComponent",
+              "OverrideSorting": false,
+              "SortingLayer": "MapLayer2",
+              "Enable": true
+            },
+            {
+              "@type": "MOD.Core.SpriteGUIRendererComponent",
+              "OverrideSorting": false,
+              "Enable": true
+            }
+          ],
+          "@version": 1
+        }
+      },
+      {
+        "id": "b9d7abaa-6f82-41a1-b3d0-39572c483e71",
         "path": "/maps/Map_01/Tiles/Tile_22",
         "componentNames": "MOD.Core.TransformComponent,MOD.Core.TriggerComponent,MOD.Core.TagComponent",
         "jsonString": {
@@ -9775,19 +10986,19 @@
           "revision": 1,
           "origin": {
             "type": "Model",
-            "entry_id": "mapempty",
+            "entry_id": "456f166b-8da0-4231-ad40-f236465cb10d",
             "sub_entity_id": null,
-            "root_entity_id": "3b23659e-a77e-44c4-af74-c0b149109818",
+            "root_entity_id": "b265a5ff-cfa4-4c7f-8521-531682ff6ce4",
             "replaced_model_id": null
           },
-          "modelId": "mapempty",
+          "modelId": "456f166b-8da0-4231-ad40-f236465cb10d",
           "@components": [
             {
               "@type": "MOD.Core.TransformComponent",
               "Position": {
-                "x": 10.0079,
-                "y": 15.0169,
-                "z": 0.0
+                "x": 10.0173,
+                "y": 14.9771,
+                "z": 999.999
               },
               "QuaternionRotation": {
                 "x": 0.0,
@@ -9804,25 +11015,11 @@
             },
             {
               "@type": "MOD.Core.TriggerComponent",
-              "BoxSize": {
-                "x": 0.99,
-                "y": 0.99
-              },
-              "ColliderOffset": {
-                "x": -0.00499996543,
-                "y": -0.00499996543
-              },
-              "CollisionGroup": {
-                "Id": "6c3384cba3aa4de4bb0664bf9dc2ad13"
-              },
               "IsLegacy": false,
               "Enable": true
             },
             {
               "@type": "MOD.Core.TagComponent",
-              "Tags": [
-                "HexaTile"
-              ],
               "Enable": true
             }
           ],
@@ -9830,7 +11027,79 @@
         }
       },
       {
-        "id": "85e645d5-6bd5-401a-b15e-20ed7eb3968c",
+        "id": "b7678a71-6c5b-4032-aae2-2680ffc10503",
+        "path": "/maps/Map_01/Tiles/Tile_22/UIText",
+        "componentNames": "MOD.Core.UITransformComponent,MOD.Core.TextGUIRendererComponent,MOD.Core.SpriteGUIRendererComponent",
+        "jsonString": {
+          "name": "UIText",
+          "path": "/maps/Map_01/Tiles/Tile_22/UIText",
+          "nameEditable": true,
+          "enable": true,
+          "visible": true,
+          "localize": false,
+          "displayOrder": 0,
+          "pathConstraints": "/////",
+          "revision": 1,
+          "origin": {
+            "type": "Model",
+            "entry_id": "456f166b-8da0-4231-ad40-f236465cb10d",
+            "sub_entity_id": "a2073840-d198-4ece-bb14-3e228f7228dd",
+            "root_entity_id": "b265a5ff-cfa4-4c7f-8521-531682ff6ce4",
+            "replaced_model_id": null
+          },
+          "modelId": "a2073840-d198-4ece-bb14-3e228f7228dd",
+          "@components": [
+            {
+              "@type": "MOD.Core.UITransformComponent",
+              "AlignmentOption": 0,
+              "AnchorsMax": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "AnchorsMin": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "MobileOnly": false,
+              "OffsetMax": {
+                "x": 50.77778,
+                "y": 248.755569
+              },
+              "OffsetMin": {
+                "x": -49.22222,
+                "y": 148.755569
+              },
+              "RectSize": {
+                "x": 100.0,
+                "y": 100.0
+              },
+              "UIMode": 2,
+              "UIVersion": 2,
+              "QuaternionRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 1.0
+              },
+              "Enable": true
+            },
+            {
+              "@type": "MOD.Core.TextGUIRendererComponent",
+              "OverrideSorting": false,
+              "SortingLayer": "MapLayer2",
+              "Enable": true
+            },
+            {
+              "@type": "MOD.Core.SpriteGUIRendererComponent",
+              "OverrideSorting": false,
+              "Enable": true
+            }
+          ],
+          "@version": 1
+        }
+      },
+      {
+        "id": "f1032665-9d1f-416e-b3b2-006729da6584",
         "path": "/maps/Map_01/Tiles/Tile_23",
         "componentNames": "MOD.Core.TransformComponent,MOD.Core.TriggerComponent,MOD.Core.TagComponent",
         "jsonString": {
@@ -9845,19 +11114,19 @@
           "revision": 1,
           "origin": {
             "type": "Model",
-            "entry_id": "mapempty",
+            "entry_id": "456f166b-8da0-4231-ad40-f236465cb10d",
             "sub_entity_id": null,
-            "root_entity_id": "3b23659e-a77e-44c4-af74-c0b149109818",
+            "root_entity_id": "b265a5ff-cfa4-4c7f-8521-531682ff6ce4",
             "replaced_model_id": null
           },
-          "modelId": "mapempty",
+          "modelId": "456f166b-8da0-4231-ad40-f236465cb10d",
           "@components": [
             {
               "@type": "MOD.Core.TransformComponent",
               "Position": {
-                "x": 10.0232,
-                "y": 16.976,
-                "z": 0.0
+                "x": 10.008,
+                "y": 17.0043,
+                "z": 999.999
               },
               "QuaternionRotation": {
                 "x": 0.0,
@@ -9874,25 +11143,11 @@
             },
             {
               "@type": "MOD.Core.TriggerComponent",
-              "BoxSize": {
-                "x": 0.99,
-                "y": 0.99
-              },
-              "ColliderOffset": {
-                "x": -0.00499996543,
-                "y": -0.00499996543
-              },
-              "CollisionGroup": {
-                "Id": "6c3384cba3aa4de4bb0664bf9dc2ad13"
-              },
               "IsLegacy": false,
               "Enable": true
             },
             {
               "@type": "MOD.Core.TagComponent",
-              "Tags": [
-                "HexaTile"
-              ],
               "Enable": true
             }
           ],
@@ -9900,7 +11155,79 @@
         }
       },
       {
-        "id": "ab9fa794-2ccb-4009-9c9f-0d24df8ff9b8",
+        "id": "f3abdac0-faf3-4f51-853b-faa7fecb898d",
+        "path": "/maps/Map_01/Tiles/Tile_23/UIText",
+        "componentNames": "MOD.Core.UITransformComponent,MOD.Core.TextGUIRendererComponent,MOD.Core.SpriteGUIRendererComponent",
+        "jsonString": {
+          "name": "UIText",
+          "path": "/maps/Map_01/Tiles/Tile_23/UIText",
+          "nameEditable": true,
+          "enable": true,
+          "visible": true,
+          "localize": false,
+          "displayOrder": 0,
+          "pathConstraints": "/////",
+          "revision": 1,
+          "origin": {
+            "type": "Model",
+            "entry_id": "456f166b-8da0-4231-ad40-f236465cb10d",
+            "sub_entity_id": "a2073840-d198-4ece-bb14-3e228f7228dd",
+            "root_entity_id": "b265a5ff-cfa4-4c7f-8521-531682ff6ce4",
+            "replaced_model_id": null
+          },
+          "modelId": "a2073840-d198-4ece-bb14-3e228f7228dd",
+          "@components": [
+            {
+              "@type": "MOD.Core.UITransformComponent",
+              "AlignmentOption": 0,
+              "AnchorsMax": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "AnchorsMin": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "MobileOnly": false,
+              "OffsetMax": {
+                "x": 50.77778,
+                "y": 248.755569
+              },
+              "OffsetMin": {
+                "x": -49.22222,
+                "y": 148.755569
+              },
+              "RectSize": {
+                "x": 100.0,
+                "y": 100.0
+              },
+              "UIMode": 2,
+              "UIVersion": 2,
+              "QuaternionRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 1.0
+              },
+              "Enable": true
+            },
+            {
+              "@type": "MOD.Core.TextGUIRendererComponent",
+              "OverrideSorting": false,
+              "SortingLayer": "MapLayer2",
+              "Enable": true
+            },
+            {
+              "@type": "MOD.Core.SpriteGUIRendererComponent",
+              "OverrideSorting": false,
+              "Enable": true
+            }
+          ],
+          "@version": 1
+        }
+      },
+      {
+        "id": "d4ab96ee-8025-44fa-8598-fed3e99dc553",
         "path": "/maps/Map_01/Tiles/Tile_24",
         "componentNames": "MOD.Core.TransformComponent,MOD.Core.TriggerComponent,MOD.Core.TagComponent",
         "jsonString": {
@@ -9915,19 +11242,19 @@
           "revision": 1,
           "origin": {
             "type": "Model",
-            "entry_id": "mapempty",
+            "entry_id": "456f166b-8da0-4231-ad40-f236465cb10d",
             "sub_entity_id": null,
-            "root_entity_id": "3b23659e-a77e-44c4-af74-c0b149109818",
+            "root_entity_id": "b265a5ff-cfa4-4c7f-8521-531682ff6ce4",
             "replaced_model_id": null
           },
-          "modelId": "mapempty",
+          "modelId": "456f166b-8da0-4231-ad40-f236465cb10d",
           "@components": [
             {
               "@type": "MOD.Core.TransformComponent",
               "Position": {
-                "x": 7.9709,
-                "y": 17.9896,
-                "z": 0.0
+                "x": 8.0148,
+                "y": 18.0225,
+                "z": 999.999
               },
               "QuaternionRotation": {
                 "x": 0.0,
@@ -9944,25 +11271,11 @@
             },
             {
               "@type": "MOD.Core.TriggerComponent",
-              "BoxSize": {
-                "x": 0.99,
-                "y": 0.99
-              },
-              "ColliderOffset": {
-                "x": -0.00499996543,
-                "y": -0.00499996543
-              },
-              "CollisionGroup": {
-                "Id": "6c3384cba3aa4de4bb0664bf9dc2ad13"
-              },
               "IsLegacy": false,
               "Enable": true
             },
             {
               "@type": "MOD.Core.TagComponent",
-              "Tags": [
-                "HexaTile"
-              ],
               "Enable": true
             }
           ],
@@ -9970,7 +11283,79 @@
         }
       },
       {
-        "id": "20b3bbb5-c8a8-4430-8476-fcd3b2127b4a",
+        "id": "5daf800a-96ef-417e-be74-b8f3af555c98",
+        "path": "/maps/Map_01/Tiles/Tile_24/UIText",
+        "componentNames": "MOD.Core.UITransformComponent,MOD.Core.TextGUIRendererComponent,MOD.Core.SpriteGUIRendererComponent",
+        "jsonString": {
+          "name": "UIText",
+          "path": "/maps/Map_01/Tiles/Tile_24/UIText",
+          "nameEditable": true,
+          "enable": true,
+          "visible": true,
+          "localize": false,
+          "displayOrder": 0,
+          "pathConstraints": "/////",
+          "revision": 1,
+          "origin": {
+            "type": "Model",
+            "entry_id": "456f166b-8da0-4231-ad40-f236465cb10d",
+            "sub_entity_id": "a2073840-d198-4ece-bb14-3e228f7228dd",
+            "root_entity_id": "b265a5ff-cfa4-4c7f-8521-531682ff6ce4",
+            "replaced_model_id": null
+          },
+          "modelId": "a2073840-d198-4ece-bb14-3e228f7228dd",
+          "@components": [
+            {
+              "@type": "MOD.Core.UITransformComponent",
+              "AlignmentOption": 0,
+              "AnchorsMax": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "AnchorsMin": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "MobileOnly": false,
+              "OffsetMax": {
+                "x": 50.77778,
+                "y": 248.755569
+              },
+              "OffsetMin": {
+                "x": -49.22222,
+                "y": 148.755569
+              },
+              "RectSize": {
+                "x": 100.0,
+                "y": 100.0
+              },
+              "UIMode": 2,
+              "UIVersion": 2,
+              "QuaternionRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 1.0
+              },
+              "Enable": true
+            },
+            {
+              "@type": "MOD.Core.TextGUIRendererComponent",
+              "OverrideSorting": false,
+              "SortingLayer": "MapLayer2",
+              "Enable": true
+            },
+            {
+              "@type": "MOD.Core.SpriteGUIRendererComponent",
+              "OverrideSorting": false,
+              "Enable": true
+            }
+          ],
+          "@version": 1
+        }
+      },
+      {
+        "id": "d6ce2287-717e-48de-bcc7-ce3d5a03410e",
         "path": "/maps/Map_01/Tiles/Tile_25",
         "componentNames": "MOD.Core.TransformComponent,MOD.Core.TriggerComponent,MOD.Core.TagComponent",
         "jsonString": {
@@ -9985,19 +11370,19 @@
           "revision": 1,
           "origin": {
             "type": "Model",
-            "entry_id": "mapempty",
+            "entry_id": "456f166b-8da0-4231-ad40-f236465cb10d",
             "sub_entity_id": null,
-            "root_entity_id": "3b23659e-a77e-44c4-af74-c0b149109818",
+            "root_entity_id": "b265a5ff-cfa4-4c7f-8521-531682ff6ce4",
             "replaced_model_id": null
           },
-          "modelId": "mapempty",
+          "modelId": "456f166b-8da0-4231-ad40-f236465cb10d",
           "@components": [
             {
               "@type": "MOD.Core.TransformComponent",
               "Position": {
-                "x": 5.9283,
-                "y": 18.994,
-                "z": 0.0
+                "x": 5.993,
+                "y": 19.0122,
+                "z": 999.999
               },
               "QuaternionRotation": {
                 "x": 0.0,
@@ -10014,25 +11399,11 @@
             },
             {
               "@type": "MOD.Core.TriggerComponent",
-              "BoxSize": {
-                "x": 0.99,
-                "y": 0.99
-              },
-              "ColliderOffset": {
-                "x": -0.00499996543,
-                "y": -0.00499996543
-              },
-              "CollisionGroup": {
-                "Id": "6c3384cba3aa4de4bb0664bf9dc2ad13"
-              },
               "IsLegacy": false,
               "Enable": true
             },
             {
               "@type": "MOD.Core.TagComponent",
-              "Tags": [
-                "HexaTile"
-              ],
               "Enable": true
             }
           ],
@@ -10040,7 +11411,79 @@
         }
       },
       {
-        "id": "fd81979b-5e31-4db1-a893-b3739b8d5c83",
+        "id": "df5ca750-fc2e-4865-bb57-a45fc530d3b6",
+        "path": "/maps/Map_01/Tiles/Tile_25/UIText",
+        "componentNames": "MOD.Core.UITransformComponent,MOD.Core.TextGUIRendererComponent,MOD.Core.SpriteGUIRendererComponent",
+        "jsonString": {
+          "name": "UIText",
+          "path": "/maps/Map_01/Tiles/Tile_25/UIText",
+          "nameEditable": true,
+          "enable": true,
+          "visible": true,
+          "localize": false,
+          "displayOrder": 0,
+          "pathConstraints": "/////",
+          "revision": 1,
+          "origin": {
+            "type": "Model",
+            "entry_id": "456f166b-8da0-4231-ad40-f236465cb10d",
+            "sub_entity_id": "a2073840-d198-4ece-bb14-3e228f7228dd",
+            "root_entity_id": "b265a5ff-cfa4-4c7f-8521-531682ff6ce4",
+            "replaced_model_id": null
+          },
+          "modelId": "a2073840-d198-4ece-bb14-3e228f7228dd",
+          "@components": [
+            {
+              "@type": "MOD.Core.UITransformComponent",
+              "AlignmentOption": 0,
+              "AnchorsMax": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "AnchorsMin": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "MobileOnly": false,
+              "OffsetMax": {
+                "x": 50.77778,
+                "y": 248.755569
+              },
+              "OffsetMin": {
+                "x": -49.22222,
+                "y": 148.755569
+              },
+              "RectSize": {
+                "x": 100.0,
+                "y": 100.0
+              },
+              "UIMode": 2,
+              "UIVersion": 2,
+              "QuaternionRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 1.0
+              },
+              "Enable": true
+            },
+            {
+              "@type": "MOD.Core.TextGUIRendererComponent",
+              "OverrideSorting": false,
+              "SortingLayer": "MapLayer2",
+              "Enable": true
+            },
+            {
+              "@type": "MOD.Core.SpriteGUIRendererComponent",
+              "OverrideSorting": false,
+              "Enable": true
+            }
+          ],
+          "@version": 1
+        }
+      },
+      {
+        "id": "d9d610a6-e311-4ea7-9387-431b8cdc987b",
         "path": "/maps/Map_01/Tiles/Tile_26",
         "componentNames": "MOD.Core.TransformComponent,MOD.Core.TriggerComponent,MOD.Core.TagComponent",
         "jsonString": {
@@ -10055,19 +11498,19 @@
           "revision": 1,
           "origin": {
             "type": "Model",
-            "entry_id": "mapempty",
+            "entry_id": "456f166b-8da0-4231-ad40-f236465cb10d",
             "sub_entity_id": null,
-            "root_entity_id": "3b23659e-a77e-44c4-af74-c0b149109818",
+            "root_entity_id": "b265a5ff-cfa4-4c7f-8521-531682ff6ce4",
             "replaced_model_id": null
           },
-          "modelId": "mapempty",
+          "modelId": "456f166b-8da0-4231-ad40-f236465cb10d",
           "@components": [
             {
               "@type": "MOD.Core.TransformComponent",
               "Position": {
-                "x": 3.932,
-                "y": 18.9974,
-                "z": 0.0
+                "x": 4.0285,
+                "y": 19.0272,
+                "z": 999.999
               },
               "QuaternionRotation": {
                 "x": 0.0,
@@ -10084,25 +11527,11 @@
             },
             {
               "@type": "MOD.Core.TriggerComponent",
-              "BoxSize": {
-                "x": 0.99,
-                "y": 0.99
-              },
-              "ColliderOffset": {
-                "x": -0.00499996543,
-                "y": -0.00499996543
-              },
-              "CollisionGroup": {
-                "Id": "6c3384cba3aa4de4bb0664bf9dc2ad13"
-              },
               "IsLegacy": false,
               "Enable": true
             },
             {
               "@type": "MOD.Core.TagComponent",
-              "Tags": [
-                "HexaTile"
-              ],
               "Enable": true
             }
           ],
@@ -10110,7 +11539,79 @@
         }
       },
       {
-        "id": "cc0a10bb-c421-4efd-abd3-3f9a7d7a2320",
+        "id": "7af761ab-fe6e-4ea8-b6af-d43e686cbb15",
+        "path": "/maps/Map_01/Tiles/Tile_26/UIText",
+        "componentNames": "MOD.Core.UITransformComponent,MOD.Core.TextGUIRendererComponent,MOD.Core.SpriteGUIRendererComponent",
+        "jsonString": {
+          "name": "UIText",
+          "path": "/maps/Map_01/Tiles/Tile_26/UIText",
+          "nameEditable": true,
+          "enable": true,
+          "visible": true,
+          "localize": false,
+          "displayOrder": 0,
+          "pathConstraints": "/////",
+          "revision": 1,
+          "origin": {
+            "type": "Model",
+            "entry_id": "456f166b-8da0-4231-ad40-f236465cb10d",
+            "sub_entity_id": "a2073840-d198-4ece-bb14-3e228f7228dd",
+            "root_entity_id": "b265a5ff-cfa4-4c7f-8521-531682ff6ce4",
+            "replaced_model_id": null
+          },
+          "modelId": "a2073840-d198-4ece-bb14-3e228f7228dd",
+          "@components": [
+            {
+              "@type": "MOD.Core.UITransformComponent",
+              "AlignmentOption": 0,
+              "AnchorsMax": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "AnchorsMin": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "MobileOnly": false,
+              "OffsetMax": {
+                "x": 50.77778,
+                "y": 248.755569
+              },
+              "OffsetMin": {
+                "x": -49.22222,
+                "y": 148.755569
+              },
+              "RectSize": {
+                "x": 100.0,
+                "y": 100.0
+              },
+              "UIMode": 2,
+              "UIVersion": 2,
+              "QuaternionRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 1.0
+              },
+              "Enable": true
+            },
+            {
+              "@type": "MOD.Core.TextGUIRendererComponent",
+              "OverrideSorting": false,
+              "SortingLayer": "MapLayer2",
+              "Enable": true
+            },
+            {
+              "@type": "MOD.Core.SpriteGUIRendererComponent",
+              "OverrideSorting": false,
+              "Enable": true
+            }
+          ],
+          "@version": 1
+        }
+      },
+      {
+        "id": "9dd7def8-8b83-4606-ab34-fc9d7051af17",
         "path": "/maps/Map_01/Tiles/Tile_27",
         "componentNames": "MOD.Core.TransformComponent,MOD.Core.TriggerComponent,MOD.Core.TagComponent",
         "jsonString": {
@@ -10125,19 +11626,19 @@
           "revision": 1,
           "origin": {
             "type": "Model",
-            "entry_id": "mapempty",
+            "entry_id": "456f166b-8da0-4231-ad40-f236465cb10d",
             "sub_entity_id": null,
-            "root_entity_id": "3b23659e-a77e-44c4-af74-c0b149109818",
+            "root_entity_id": "b265a5ff-cfa4-4c7f-8521-531682ff6ce4",
             "replaced_model_id": null
           },
-          "modelId": "mapempty",
+          "modelId": "456f166b-8da0-4231-ad40-f236465cb10d",
           "@components": [
             {
               "@type": "MOD.Core.TransformComponent",
               "Position": {
-                "x": 1.9821,
-                "y": 19.01,
-                "z": 0.0
+                "x": 1.99,
+                "y": 19.0194,
+                "z": 999.999
               },
               "QuaternionRotation": {
                 "x": 0.0,
@@ -10154,25 +11655,83 @@
             },
             {
               "@type": "MOD.Core.TriggerComponent",
-              "BoxSize": {
-                "x": 0.99,
-                "y": 0.99
-              },
-              "ColliderOffset": {
-                "x": -0.00499996543,
-                "y": -0.00499996543
-              },
-              "CollisionGroup": {
-                "Id": "6c3384cba3aa4de4bb0664bf9dc2ad13"
-              },
               "IsLegacy": false,
               "Enable": true
             },
             {
               "@type": "MOD.Core.TagComponent",
-              "Tags": [
-                "HexaTile"
-              ],
+              "Enable": true
+            }
+          ],
+          "@version": 1
+        }
+      },
+      {
+        "id": "4641b4a7-912d-4d1c-a54f-05f2722d4c0a",
+        "path": "/maps/Map_01/Tiles/Tile_27/UIText",
+        "componentNames": "MOD.Core.UITransformComponent,MOD.Core.TextGUIRendererComponent,MOD.Core.SpriteGUIRendererComponent",
+        "jsonString": {
+          "name": "UIText",
+          "path": "/maps/Map_01/Tiles/Tile_27/UIText",
+          "nameEditable": true,
+          "enable": true,
+          "visible": true,
+          "localize": false,
+          "displayOrder": 0,
+          "pathConstraints": "/////",
+          "revision": 1,
+          "origin": {
+            "type": "Model",
+            "entry_id": "456f166b-8da0-4231-ad40-f236465cb10d",
+            "sub_entity_id": "a2073840-d198-4ece-bb14-3e228f7228dd",
+            "root_entity_id": "b265a5ff-cfa4-4c7f-8521-531682ff6ce4",
+            "replaced_model_id": null
+          },
+          "modelId": "a2073840-d198-4ece-bb14-3e228f7228dd",
+          "@components": [
+            {
+              "@type": "MOD.Core.UITransformComponent",
+              "AlignmentOption": 0,
+              "AnchorsMax": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "AnchorsMin": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "MobileOnly": false,
+              "OffsetMax": {
+                "x": 50.77778,
+                "y": 248.755569
+              },
+              "OffsetMin": {
+                "x": -49.22222,
+                "y": 148.755569
+              },
+              "RectSize": {
+                "x": 100.0,
+                "y": 100.0
+              },
+              "UIMode": 2,
+              "UIVersion": 2,
+              "QuaternionRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 1.0
+              },
+              "Enable": true
+            },
+            {
+              "@type": "MOD.Core.TextGUIRendererComponent",
+              "OverrideSorting": false,
+              "SortingLayer": "MapLayer2",
+              "Enable": true
+            },
+            {
+              "@type": "MOD.Core.SpriteGUIRendererComponent",
+              "OverrideSorting": false,
               "Enable": true
             }
           ],
@@ -10556,7 +12115,7 @@
             {
               "@type": "MOD.Core.TransformComponent",
               "Position": {
-                "x": 0.110235214,
+                "x": 0.115348339,
                 "y": 1.11119747,
                 "z": 999.8
               },
@@ -24603,11 +26162,11 @@
       },
       {
         "id": "46cf63b2-001e-4bfa-96ec-2e274e05ba21",
-        "path": "/maps/Map_01/TestManagement",
-        "componentNames": "MOD.Core.TransformComponent,script.TestManagement",
+        "path": "/maps/Map_01/FirstMapManagement",
+        "componentNames": "MOD.Core.TransformComponent,script.FirstMapManagement",
         "jsonString": {
-          "name": "TestManagement",
-          "path": "/maps/Map_01/TestManagement",
+          "name": "FirstMapManagement",
+          "path": "/maps/Map_01/FirstMapManagement",
           "nameEditable": true,
           "enable": true,
           "visible": true,
@@ -24640,7 +26199,7 @@
               "Enable": true
             },
             {
-              "@type": "script.TestManagement",
+              "@type": "script.FirstMapManagement",
               "Enable": true
             }
           ],

@@ -17,247 +17,271 @@ script TileManager extends Logic
 
 	property integer _visualRetries = 0
 
-	method void OnBeginPlay()
-		        -- 1) 타일 연결 그래프 정의
-		        --    next   : 다음으로 갈 수 있는 타일 이름 목록 (2개 이상이면 분기)
-		        --    type   : 칸 종류 (Start/Hunt/Tax/Boss/Village/Guild/End ...)
-		        --    branch : 분기 갈래에만 존재. 선택 UI 버튼에 표시할 이름.
-		        self.tileGraph = {
-		            ["Tile_1"]  = { next = {"Tile_2"},  type = "Start" },
-		            ["Tile_2"]  = { next = {"Tile_3"},  type = "Hunt" },
-		            ["Tile_3"]  = { next = {"Tile_4"},  type = "Hunt" },
-		            ["Tile_4"]  = { next = {"Tile_5"},  type = "HuntPlus" },
-		            ["Tile_5"]  = { next = {"Tile_6"},  type = "Tax" },
-		            ["Tile_6"]  = { next = {"Tile_7"},  type = "Hunt" },
-		            ["Tile_7"]  = { next = {"Tile_9"},  type = "Boss" },
-		            ["Tile_9"]  = { next = {"Tile_8"},  type = "Hunt" },
-		            ["Tile_8"]  = { next = {"Tile_10"}, type = "Village" },
-		            ["Tile_10"] = { next = {"Tile_11"}, type = "Hunt" },
-		            ["Tile_11"] = { next = {"Tile_12"}, type = "HuntPlus" },
-		            ["Tile_12"] = { next = {"Tile_13"}, type = "Tax" },
-		            ["Tile_13"] = { next = {"Tile_14"}, type = "Hunt" },
-		            ["Tile_14"] = { next = {"Tile_15"}, type = "Guild" },
-		            ["Tile_15"] = { next = {"Tile_16"}, type = "Hunt" },
-		            ["Tile_16"] = { next = {"Tile_17"}, type = "HuntPlus" },
-		            ["Tile_17"] = { next = {"Tile_18"}, type = "Tax" },
-		            ["Tile_18"] = { next = {"Tile_19"}, type = "Hunt" },
-		            ["Tile_19"] = { next = {"Tile_21"}, type = "Boss" },
-		            ["Tile_21"] = { next = {"Tile_20"}, type = "Hunt" },
-		            ["Tile_20"] = { next = {"Tile_22"}, type = "Union" },
-		            ["Tile_22"] = { next = {"Tile_23"}, type = "Hunt" },
-		            ["Tile_23"] = { next = {"Tile_24"}, type = "HuntPlus" },
-		            ["Tile_24"] = { next = {"Tile_25"}, type = "Tax" },
-		            ["Tile_25"] = { next = {"Tile_26"}, type = "Hunt" },
-		            ["Tile_26"] = { next = {"Tile_27"}, type = "Hunt" },
-		            ["Tile_27"] = { next = {},          type = "End" },
-		        }
-		
-		        -- 2~3) 타일 엔티티 수집 + (서버) 칸 컴포넌트 부착.
-		        --       맵 분리 구조에서는 시작 시점(로비)에 게임 맵이 안 떠 있어 0개가 잡힌다.
-		        --       그래서 InGame 진입 시 PlayerMovement가 EnsureTilesCollected()로 재수집한다.
-		        self:CollectTiles()
-	end
-
 	method void CollectTiles()
-		        self.tileEntities = {}
-		        local entities = _EntityService:GetEntitiesByTag("HexaTile")
-		        local count = 0
-		        for _, entity in pairs(entities) do
-		            self.tileEntities[entity.Name] = entity
-		            count += 1
-		        end
-		        log("[TileManager] 타일 수집: " .. tostring(count) .. "개")
+		self.tileEntities = {}
+				local entities = _EntityService:GetEntitiesByTag("HexaTile")
+				local count = 0
+				for _, entity in pairs(entities) do
+					local key = entity.CurrentMapName .. "_" .. entity.Name
+					self.tileEntities[key] = entity
+					count += 1
+				end
+				log("[TileManager] 타일 수집: " .. tostring(count) .. "개")
+				
+				if self:IsServer() then
+					self:BuildVariants()
+					
+					for key, entity in pairs(self.tileEntities) do
+						if self.variant[key] == nil then
+							-- 이중 구조가 아닌 key(Map_Tile) 검색용 예외 처리
+							local mapName = entity.CurrentMapName
+							local tileName = entity.Name
+							local data = self.tileGraph[mapName .. "_" .. tileName]
 		
-		        if self:IsServer() then
-		            -- 1) 변형 타일 먼저 구성(종류 컴포넌트 부착 + variant 맵).
-		            self:BuildVariants()
-		            -- 2) 변형이 아닌 일반 타일만 기존 단일-부착 경로로 처리.
-		            for name, entity in pairs(self.tileEntities) do
-		                if self.variant[name] == nil then
-		                    local data = self.tileGraph[name]
-		                    if data ~= nil then
-		                        local compName = self:TypeToComponent(data.type)
-		                        if compName ~= "" and self.tileComponents[name] == nil then
-		                            entity:AddComponent(compName)
-		                            self.tileComponents[name] = entity:GetComponent("script." .. compName)
-		                        end
-		                    end
-		                end
-		            end
-		        end
+							if data ~= nil then
+								local compName = self:TypeToComponent(data.type)
+								if compName ~= "" and self.tileComponents[key] == nil then
+									entity:AddComponent(compName)
+									self.tileComponents[key] = entity:GetComponent("script." .. compName)
+								end
+							end
+						end
+					end
+				end
 	end
 
 	method boolean IsVariantTile(string tileName)
-		        return self.variant[tileName] ~= nil
+		return self.variant[tileName] ~= nil
 	end
 
 	@ExecSpace("ServerOnly")
 	method void BuildVariants()
-		        local ds = _DataService:GetTable("TileVariant")
-		        if isvalid(ds) == false then return end
-		        for i = 1, ds:GetRowCount() do
-		            local tileName = ds:GetCell(i, "TileName")
-		            local camp     = ds:GetCell(i, "Camp")
-		            local typ      = ds:GetCell(i, "Type")
-		            local entity   = self.tileEntities[tileName]
-		            if isvalid(entity) and typ ~= "" and camp ~= "" then
-		                local compName = self:TypeToComponent(typ)
-		                if compName ~= "" then
-		                    local comp = entity:GetComponent("script." .. compName)
-		                    if comp == nil then
-		                        entity:AddComponent(compName)
-		                        comp = entity:GetComponent("script." .. compName)
-		                    end
-		                    if self.variant[tileName] == nil then self.variant[tileName] = {} end
-		                    self.variant[tileName][camp] = comp
-		                    log("[TileManager] 변형 부착 " .. tileName .. "[" .. camp .. "] -> " .. compName)
-		                end
-		            end
-		        end
+		local ds = _DataService:GetTable("TileVariant")
+				if not isvalid(ds) then return end
+				for i = 1, ds:GetRowCount() do
+					local tileName = ds:GetCell(i, "TileName")
+					local camp     = ds:GetCell(i, "Camp")
+					local typ      = ds:GetCell(i, "Type")
+					
+					for key, entity in pairs(self.tileEntities) do
+						if entity.Name == tileName and typ ~= "" and camp ~= "" then
+							local compName = self:TypeToComponent(typ)
+							if compName ~= "" then
+								local comp = entity:GetComponent("script." .. compName)
+								if comp == nil then
+									entity:AddComponent(compName)
+									comp = entity:GetComponent("script." .. compName)
+								end
+								if self.variant[key] == nil then self.variant[key] = {} end
+								self.variant[key][camp] = comp
+							end
+						end
+					end
+				end
 	end
 
 	method void EnsureTilesCollected()
-		        self._collectRetries = 0
-		        self:TryCollect()
-	end
-
-	method void TryCollect()
-		        -- CollectTiles 후 0개면 0.2초 간격으로 최대 15회 재시도(클라 비동기 맵 로드 대비).
-		        self:CollectTiles()
-		        if self:CountTiles() > 0 then return end
-		        self._collectRetries += 1
-		        if self._collectRetries <= 15 then
-		            _TimerService:SetTimerOnce(function() self:TryCollect() end, 0.2)
-		        else
-		            log_warning("[TileManager] 타일 수집 실패: 재시도 초과")
-		        end
+		if self:IsServer() then
+					self:CollectTiles()
+				else
+					_TimerService:SetTimerOnce(function()
+						log("[TileManager] 클라이언트 타일 수집 지연 실행")
+						self:CollectTiles()
+					end, 0.5)
+				end
 	end
 
 	method integer CountTiles()
-		        local c = 0
-		        for _, e in pairs(self.tileEntities) do c += 1 end
-		        return c
+		local c = 0
+				for _, e in pairs(self.tileEntities) do c += 1 end
+				return c
 	end
 
 	method string TypeToComponent(string tileType)
-		        if tileType == "Start" then return "StartTile"
-		        elseif tileType == "Hunt" then return "HuntTile"
-		        elseif tileType == "HuntPlus" then return "HuntPlusTile"
-		        elseif tileType == "Tax" then return "TaxTile"
-		        elseif tileType == "Boss" then return "BossTile"
-		        elseif tileType == "Village" then return "VillageTile"
-		        elseif tileType == "Guild" then return "GuildTile"
-		        elseif tileType == "Union" then return "UnionTile"
-		        elseif tileType == "End" then return "EndTile"
-		        end
-		        return ""
+		if tileType == "Start" then return "StartTile"
+				elseif tileType == "Hunt" then return "HuntTile"
+				elseif tileType == "HuntPlus" then return "HuntPlusTile"
+				elseif tileType == "Tax" then return "TaxTile"
+				elseif tileType == "Boss" then return "BossTile"
+				elseif tileType == "Village" then return "VillageTile"
+				elseif tileType == "Guild" then return "GuildTile"
+				elseif tileType == "Union" then return "UnionTile"
+				elseif tileType == "End" then return "EndTile"
+				end
+				return ""
 	end
 
-	method table GetNextTiles(string tileName)
-		        local data = self.tileGraph[tileName]
-		        if data == nil then
-		            return {}
-		        end
-		        return data.next
+	method table GetNextTiles(string mapName, string tileName)
+		local key = mapName .. "_" .. tileName
+		    if self.tileGraph[key] then 
+		        return self.tileGraph[key].nexts 
+		    end
+		    return {}
 	end
 
-	method string GetTileType(string tileName)
-		        local data = self.tileGraph[tileName]
-		        if data == nil then
-		            return ""
-		        end
-		        return data.type
+	method Entity GetTileEntity(string mapName, string tileName)
+		return self.tileEntities[mapName .. "_" .. tileName]
 	end
 
-	method Entity GetTileEntity(string tileName)
-		        return self.tileEntities[tileName]
-	end
-
-	method string GetTileBranch(string tileName)
-		        local data = self.tileGraph[tileName]
-		        if data == nil or data.branch == nil then
-		            return ""
-		        end
-		        return data.branch
+	method string GetTileBranch(string mapName, string tileName)
+		local key = mapName .. "_" .. tileName
+		    if self.tileGraph[key] then 
+		        return self.tileGraph[key].branch or "" 
+		    end
+		    return ""
 	end
 
 	@ExecSpace("ServerOnly")
 	method void RegisterTile(string tileName, BaseTile tile)
-		        self.tileComponents[tileName] = tile
+		self.tileComponents[tileName] = tile
 	end
 
 	method BaseTile GetTileComponent(string tileName)
-		        return self.tileComponents[tileName]
+		return self.tileComponents[tileName]
 	end
 
 	@ExecSpace("ServerOnly")
-	method void TriggerArrive(string tileName, Entity piece)
-		        -- 변형 타일: 도착한 말의 진영으로 적용할 종류 컴포넌트를 고른다.
-		        if self:IsVariantTile(tileName) then
-		            local campKey = ""
-		            ---@type BuffManager
-		            local buff = piece:GetComponent("script.BuffManager")
-		            if isvalid(buff) then campKey = buff.CampName end
-		            local comp = self.variant[tileName][campKey]
-		            if comp == nil then
-		                log("[TileManager] 변형 분기 없음 tile=" .. tileName .. " camp=" .. campKey .. " (폴백: 효과 없음)")
-		                return
-		            end
-		            log("[TileManager] 변형 분기 tile=" .. tileName .. " camp=" .. campKey)
-		            comp:OnArrive(piece)
-		            return
-		        end
-		
-		        -- 일반 타일: 기존 단일 등록 경로.
-		        local comp = self.tileComponents[tileName]
-		        if comp == nil then
-		            log("[TileManager] 타일 컴포넌트 미등록: " .. tileName)
-		            return
-		        end
-		        comp:OnArrive(piece)
+	method void TriggerArrive(string mapName, string tileName, Entity piece)
+		local key = mapName .. "_" .. tileName
+				if self:IsVariantTile(key) then
+					local campKey = ""
+					local buff = piece:GetComponent("script.BuffManager")
+					if isvalid(buff) then campKey = buff.CampName end
+					local comp = self.variant[key][campKey]
+					if comp == nil then return end
+					comp:OnArrive(piece)
+					return
+				end
+				
+				local comp = self.tileComponents[key]
+				if comp == nil then return end
+				comp:OnArrive(piece)
 	end
 
 	@ExecSpace("ClientOnly")
 	method void RequestCampVisuals()
-		        self._visualRetries = 0
-		        self:TryApplyCampVisuals()
+		self._visualRetries = 0
+				self:TryApplyCampVisuals()
 	end
 
 	@ExecSpace("ClientOnly")
 	method void TryApplyCampVisuals()
-		        -- 준비됐으면 1회 적용하고 종료, 아니면 0.2초 간격 재시도(최대 25회).
-		        if self:ApplyCampVisualsLocal() then return end
-		        self._visualRetries += 1
-		        if self._visualRetries <= 25 then
-		            _TimerService:SetTimerOnce(function() self:TryApplyCampVisuals() end, 0.2)
-		        end
+		if self:ApplyCampVisualsLocal() then return end
+				self._visualRetries += 1
+				if self._visualRetries <= 25 then
+					_TimerService:SetTimerOnce(function() self:TryApplyCampVisuals() end, 0.2)
+				end
 	end
 
 	@ExecSpace("ClientOnly")
 	method boolean ApplyCampVisualsLocal()
-		        if self:CountTiles() == 0 then return false end
-		        local me = _UserService.LocalPlayer
-		        if isvalid(me) == false then return false end
-		        ---@type BuffManager
-		        local buff = me:GetComponent("script.BuffManager")
-		        if isvalid(buff) == false then return false end
-		        local myCamp = buff.CampName
-		        if myCamp == "" then return false end
+		if self:CountTiles() == 0 then return false end
+				local me = _UserService.LocalPlayer
+				if not isvalid(me) then return false end
+				local buff = me:GetComponent("script.BuffManager")
+				if not isvalid(buff) then return false end
+				local myCamp = buff.CampName
+				if myCamp == "" then return false end
 		
-		        local ds = _DataService:GetTable("TileVariant")
-		        if isvalid(ds) == false then return true end   -- 적용할 데이터 없음 = 준비는 됨
-		        for i = 1, ds:GetRowCount() do
-		            if ds:GetCell(i, "Camp") == myCamp then
-		                local tileName = ds:GetCell(i, "TileName")
-		                local ruid     = ds:GetCell(i, "SpriteRUID")
-		                local entity   = self.tileEntities[tileName]
-		                if isvalid(entity) and ruid ~= "" and isvalid(entity.SpriteRendererComponent) then
-		                    entity.SpriteRendererComponent.SpriteRUID = ruid
-		                    log("[TileManager] (클라) 진영 시각 " .. tileName .. " <- " .. ruid)
-		                end
-		            end
-		        end
-		        return true
+				local ds = _DataService:GetTable("TileVariant")
+				if not isvalid(ds) then return true end
+				for i = 1, ds:GetRowCount() do
+					if ds:GetCell(i, "Camp") == myCamp then
+						local tileName = ds:GetCell(i, "TileName")
+						local ruid     = ds:GetCell(i, "SpriteRUID")
+						
+						for key, entity in pairs(self.tileEntities) do
+							if entity.Name == tileName and ruid ~= "" and isvalid(entity.SpriteRendererComponent) then
+								entity.SpriteRendererComponent.SpriteRUID = ruid
+							end
+						end
+					end
+				end
+				
+				return true
+	end
+
+	@ExecSpace("ServerOnly")
+	method void OnBeginPlay()
+				self:BuildTileGraph()
+				self:CollectTiles()
+	end
+
+	@ExecSpace("ServerOnly")
+	method void BuildTileGraph()
+		local ds = _DataService:GetTable("TileEventData")
+				if not isvalid(ds) then
+					log_warning("[TileManager] TileEventData 테이블 없음")
+					return
+				end
+		
+				local stageToMap = {[1]="Map_01", [2]="Map_02", [3]="Map_03"}
+				local rowCount = ds:GetRowCount()
+		
+				-- 1패스: 존재 여부 맵 구성 ("stage_index_branch" → true)
+				local exists = {}
+				for i = 1, rowCount do
+					local stage  = tonumber(ds:GetCell(i, "Stage"))
+					local idx    = tonumber(ds:GetCell(i, "TileIndex"))
+					local branch = ds:GetCell(i, "Branch")
+					if stage and idx then
+						exists[stage .. "_" .. idx .. "_" .. branch] = true
+					end
+				end
+		
+				local function tileNameOf(idx, branch)
+					if branch == "" or branch == "BRANCH" then
+						return "Tile_" .. idx
+					end
+					return "Tile_" .. idx .. "_" .. branch
+				end
+		
+				-- 2패스: 그래프 구성
+				local count = 0
+				for i = 1, rowCount do
+					local stage  = tonumber(ds:GetCell(i, "Stage"))
+					local idx    = tonumber(ds:GetCell(i, "TileIndex"))
+					local branch = ds:GetCell(i, "Branch")
+					local typ    = ds:GetCell(i, "Type")
+					if not stage or not idx then continue end
+		
+					local mapName = stageToMap[stage]
+					if not mapName then continue end
+		
+					local tName    = tileNameOf(idx, branch)
+					local graphKey = mapName .. "_" .. tName
+					local nexts    = {}
+		
+					if typ ~= "End" then
+						local ni = idx + 1
+						if branch == "BRANCH" then
+							-- 다음 인덱스에 A/B 분기 연결
+							if exists[stage .. "_" .. ni .. "_A"] then
+								table.insert(nexts, tileNameOf(ni, "A"))
+							end
+							if exists[stage .. "_" .. ni .. "_B"] then
+								table.insert(nexts, tileNameOf(ni, "B"))
+							end
+						elseif branch == "A" or branch == "B" then
+							-- 같은 브랜치 계속 → 없으면 합류 지점으로
+							if exists[stage .. "_" .. ni .. "_" .. branch] then
+								table.insert(nexts, tileNameOf(ni, branch))
+							elseif exists[stage .. "_" .. ni .. "_"] or exists[stage .. "_" .. ni .. "_BRANCH"] then
+								table.insert(nexts, "Tile_" .. ni)
+							end
+						else
+							-- 일반 타일: 다음이 BRANCH 타일이어도 이름은 "Tile_{ni}"
+							if exists[stage .. "_" .. ni .. "_"] or exists[stage .. "_" .. ni .. "_BRANCH"] then
+								table.insert(nexts, "Tile_" .. ni)
+							end
+						end
+					end
+		
+					self.tileGraph[graphKey] = {nexts=nexts, type=typ, branch=branch}
+					count += 1
+				end
+		
+				log("[TileManager] 타일 그래프 구성 완료: " .. tostring(count) .. "개")
 	end
 
 end

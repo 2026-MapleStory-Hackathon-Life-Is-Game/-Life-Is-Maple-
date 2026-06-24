@@ -6,11 +6,12 @@ script FirstMapManagement extends Component
 	property Entity inGameGroup = "a322b09a-023e-427d-9c6c-19724156dab7"
 
 	@ExecSpace("ClientOnly")
-	method void OnBeginPlay()
+	method void OnMapEnter(Entity enteredMap)
 		-- Map_01이 시작 맵일 때(직접 플레이/테스트)만 초기 UI 세팅 + 진영 선택.
 		-- 로비→텔레포트로 들어오는 정상 플로우의 UI 전환/진영패널은 PlayerMovement.OnMapEnter가 담당.
+		
 		self:ApplyUI()
-		_CampSelectUI:ShowSelectPanel()
+		--_CampSelectUI:ShowSelectPanel()
 	end
 
 	@ExecSpace("ClientOnly")
