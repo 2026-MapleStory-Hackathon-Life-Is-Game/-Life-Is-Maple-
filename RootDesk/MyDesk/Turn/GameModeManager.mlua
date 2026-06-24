@@ -64,14 +64,45 @@ script GameModeManager extends Logic
 	@ExecSpace("Server")
 	method void OnPlayerReachedEnd(Entity piece)
 		        if not self._isGameActive then return end
-		        if self._activeMode == "SINGLE" then
-		            self:FinishGame(piece)
-		        elseif self._activeMode == "MULTI" then
-		            -- 멀티: 해당 플레이어 완주 처리. 전원 완주 시 MultiTurnManager가 FinishMulti를 호출한다.
-		            if isvalid(piece) and piece.PlayerComponent ~= nil then
-		                _MultiTurnManager:MarkPlayerFinished(piece.PlayerComponent.UserId)
-		            end
-		        end
+		
+				-- 플레이어의 현재 맵 이름 확인
+				local currentMap = piece.CurrentMapName
+		
+				if currentMap == "Map_01" then
+					log("[GameModeManager] Map_01 완주 -> Map_02 이동")
+			
+					if self._activeMode == "SINGLE" then
+						self:MoveToNextMap(piece, "Map_02")
+					elseif self._activeMode == "MULTI" then
+						-- 멀티: 해당 플레이어 완주 처리. 전원 완주 시 MultiTurnManager가 FinishMulti를 호출한다. [cite: 69]
+						if isvalid(piece) and piece.PlayerComponent ~= nil then
+							_MultiTurnManager:MarkPlayerFinished(piece.PlayerComponent.UserId)
+						end
+					end
+			
+				elseif currentMap == "Map_02" then
+					log("[GameModeManager] Map_02 완주 -> Map_03 이동")
+					if self._activeMode == "SINGLE" then
+					self:MoveToNextMap(piece, "Map_03")
+					elseif self._activeMode == "MULTI" then
+						-- 멀티: 해당 플레이어 완주 처리. 전원 완주 시 MultiTurnManager가 FinishMulti를 호출한다. [cite: 69]
+						if isvalid(piece) and piece.PlayerComponent ~= nil then
+							_MultiTurnManager:MarkPlayerFinished(piece.PlayerComponent.UserId)
+						end
+					end
+			
+			
+				else
+					-- Map_03 도착 시 최종 완주 처리
+					if self._activeMode == "SINGLE" then
+						self:FinishGame(piece)
+					elseif self._activeMode == "MULTI" then
+						-- 멀티: 해당 플레이어 완주 처리. 전원 완주 시 MultiTurnManager가 FinishMulti를 호출한다. [cite: 69]
+						if isvalid(piece) and piece.PlayerComponent ~= nil then
+							_MultiTurnManager:MarkPlayerFinished(piece.PlayerComponent.UserId)
+						end
+					end
+				end
 	end
 
 	@ExecSpace("Server")
@@ -189,6 +220,35 @@ script GameModeManager extends Logic
 	@ExecSpace("Client")
 	method void ShowResult(string message)
 		        _ResultUI:Show(message)
+	end
+
+	@ExecSpace("Server")
+	method void MoveToNextMap(Entity piece, string nextMapName)
+		if not isvalid(piece) then return end
+		
+				-- 1. 다음 맵 엔티티 찾기
+				local nextMapEntity = _EntityService:GetEntityByPath("/maps/" .. nextMapName)
+				if not isvalid(nextMapEntity) then
+					log_error("[GameModeManager] 다음 맵을 찾을 수 없습니다: " .. nextMapName)
+					return
+				end
+		
+				-- 2. 해당 맵으로 텔레포트 
+				-- (Tile_1의 위치를 잡기 전이므로 임시 좌표(0,0)로 이동시킵니다)
+				_TeleportService:TeleportToMapPosition(piece, Vector3(0,0,0), nextMapEntity.Name)
+		
+				-- 3. 이동력 및 위치 변수 초기화
+				local pm = piece:GetComponent("script.PlayerMovement")
+				if isvalid(pm) then
+					pm.currentTile = "Tile_1"
+					pm.remainingSteps = 0
+					pm:ChangePlayerState("IDLE")
+				end
+		
+				-- 만약 바로 시작하면 TileManager의 타일 수집이 덜 끝날 수 있으므로 타이머 사용 권장
+				    _TimerService:SetTimerOnce(function()
+				        _SingleTurnManager:Start() -- 여기서 Start()가 호출되면 다시 TURN_START 단계부터 시작함
+				    end, 1.0)
 	end
 
 end
