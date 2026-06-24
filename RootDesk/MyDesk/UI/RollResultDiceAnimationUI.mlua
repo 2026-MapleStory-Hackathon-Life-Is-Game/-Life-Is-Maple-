@@ -1,0 +1,103 @@
+@Logic
+script RollResultDiceAnimationUI extends Logic
+
+	property Entity panel = "3f6e7924-909b-4856-bff4-06a1c4d4169a"
+
+	property SpriteGUIRendererComponent leftDice = "5e5ae24c-e218-4e4c-a54b-a35ce41cb108"
+
+	property SpriteGUIRendererComponent rightDice = "03c56c53-dbfe-44c6-a3de-98baf3d3aa1f"
+
+	property TextGUIRendererComponent resultText = "c65cf185-345f-41a1-a867-23e77171d5fb"
+
+	property table diceSprites = {}
+
+	property Entity diceParticle = "6aa0244c-966a-4524-84e9-206362ba02c9"
+
+	property TextGUIRendererComponent two_Value = "b260fb78-d608-402d-afca-7696ac9c774e"
+
+	property TextGUIRendererComponent three_Value = "0654d502-c9a9-4f20-98dd-a59d8702d03a"
+
+	property TextGUIRendererComponent four_Value = "a1a2e2ed-b9f6-4b86-b6de-08ec21930056"
+
+	property TextGUIRendererComponent five_Value = "e59f674d-afcc-4447-9200-320417073414"
+
+	property TextGUIRendererComponent six_Value = "70bc444b-f0e0-4c8e-a5ab-12fba680f693"
+
+	property TextGUIRendererComponent seven_Value = "017eaf63-e989-4ec9-b8d1-65dfd9c26f3c"
+
+	property TextGUIRendererComponent eight_Value = "521fbbbd-6ecc-49c5-bbe3-5e45a99b00ee"
+
+	property TextGUIRendererComponent nine_Value = "5212b687-952d-4ac2-9cb9-4b82772ba852"
+
+	property TextGUIRendererComponent ten_Value = "e0b0ae19-2671-4d2c-bcf2-f1b48d81e518"
+
+	property TextGUIRendererComponent eleven_Value = "415e430e-e1c7-4209-87e6-57883706b90a"
+
+	property TextGUIRendererComponent twelve_Value = "8c4863cd-02ba-4353-8852-3a1c4956ff64"
+
+	@ExecSpace("ClientOnly")
+	method void OnBeginPlay()
+		-- 눈금별 RUID 등록 (실제 RUID로 교체)
+		        self.diceSprites = {
+		            "a16cdbe6f0c545238c182da21f12b8b5", "4ecb111c2b2749b8af2ff2f581787163", "cca8ae22a4e84eba8572c2279d4661e7",
+		            "84dd7ba746a0476181a007321c0fc7e0", "4a770d8eec474a0da194f559e00eb112", "187ea1dc9d2b456595c1b69ac6ab60a6",
+		        }
+		        if isvalid(self.panel) then
+		            self.panel.Enable = false   -- 평소엔 숨김
+		        end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void Show(integer d1, integer d2, integer total, table resultTable, string gameOutcome, any onComplete)
+		-- 주사위 패널을 켜기 전에 보드의 텍스트들을 대성공/성공/실패로 갱신!
+				self:UpdateBoardUI(resultTable)
+				
+				_SFXManager:PlayDice()   -- 주사위 굴림 효과음
+				
+				-- 패널 켜고, 주사위 눈 스프라이트 교체
+				self.panel.Enable = true
+				if isvalid(self.diceParticle) then self.diceParticle.Enable = true end   -- 반짝임 시작
+				self.leftDice.ImageRUID  = self.diceSprites[d1]
+				self.rightDice.ImageRUID = self.diceSprites[d2]
+		
+				-- 최종 결과 텍스트 (예: 주사위 결과: 4 + 6 = 10 (대성공))
+				self.resultText.Text = "주사위 결과: " .. tostring(d1) .. " + " .. tostring(d2) .. " = " .. tostring(total) .. " (" .. gameOutcome .. ")"
+		
+				-- 타이머 중첩: 결과 본 뒤 1초 대기
+				_TimerService:SetTimerOnce(function()
+					_TimerService:SetTimerOnce(function()
+						self.panel.Enable = false
+						if isvalid(self.diceParticle) then self.diceParticle.Enable = false end   -- 반짝임 종료
+						if onComplete ~= nil then
+							onComplete()
+						end
+					end, 1.0)
+				end, 4.0)
+	end
+
+	@ExecSpace("ClientOnly")
+	method void UpdateBoardUI(table resultTable)
+		local panels = {
+					self.two_Value, self.three_Value, self.four_Value,
+					self.five_Value, self.six_Value, self.seven_Value, self.eight_Value,
+					self.nine_Value, self.ten_Value, self.eleven_Value, self.twelve_Value
+				}
+				
+				for i = 1, 11 do
+					local comp = panels[i]
+					if comp ~= nil then
+						local diceNum = i + 1 -- 배열 1번 인덱스가 주사위 2눈금이므로 +1
+						
+						if diceNum == 12 then 
+							comp.Text = "대성공"
+						else
+							local res = resultTable[diceNum]
+							if res == 2 then comp.Text = "대성공"
+							elseif res == 1 then comp.Text = "성공"
+							else comp.Text = "실패" end
+						end
+					end
+				end
+	end
+
+end

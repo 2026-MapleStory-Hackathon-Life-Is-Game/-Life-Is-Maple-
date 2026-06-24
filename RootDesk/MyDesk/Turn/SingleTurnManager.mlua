@@ -39,7 +39,7 @@ script SingleTurnManager extends Logic
 		        self._isActive = false
 		        self._currentState = "IDLE"
 		        self._isRolling = false
-		        log("[SingleTurnManager] 게임 종료")
+		        log("[SingleTurnManager] 턴 강제 종료")
 	end
 
 	@ExecSpace("Server")
@@ -48,7 +48,8 @@ script SingleTurnManager extends Logic
 		        elseif self._currentState == "TURN_START" then return "DICE"
 		        elseif self._currentState == "DICE" then return "MOVE"
 		        elseif self._currentState == "MOVE" then return "TILE"
-		        elseif self._currentState == "TILE" then return "TURN_END"
+		        elseif self._currentState == "TILE" then return "RESULT_DICE"
+		        elseif self._currentState == "RESULT_DICE" then return "TURN_END"
 		        elseif self._currentState == "TURN_END" then return "TURN_START"
 		        end
 		        return "IDLE"
@@ -70,6 +71,7 @@ script SingleTurnManager extends Logic
 		        elseif s == "DICE" then self:OnDice()
 		        elseif s == "MOVE" then self:OnMove()
 		        elseif s == "TILE" then self:OnTile()
+				elseif s == "RESULT_DICE" then self:OnResultDice()
 		        elseif s == "TURN_END" then self:OnTurnEnd()
 		        end
 	end
@@ -141,18 +143,6 @@ script SingleTurnManager extends Logic
 	end
 
 	@ExecSpace("Server")
-	method void OnTile()
-		        -- 도착한 타일의 OnArrive 호출 (싱글: 플레이어 한 명)
-		        for _, userEntity in pairs(_UserService.UserEntities) do
-		            if userEntity.PlayerMovement ~= nil then
-		                _TileManager:TriggerArrive(userEntity.PlayerMovement.currentTile, userEntity)
-		            end
-		            break
-		        end
-		        self:AdvanceState()
-	end
-
-	@ExecSpace("Server")
 	method void OnMoveComplete()
 		        if not self._isActive then return end
 		        if self._currentState ~= "MOVE" then return end
@@ -161,9 +151,79 @@ script SingleTurnManager extends Logic
 	end
 
 	@ExecSpace("Server")
+	method void OnTile()
+		        -- 도착한 타일의 OnArrive 호출 (싱글: 플레이어 한 명)
+		        for _, userEntity in pairs(_UserService.UserEntities) do
+					if userEntity.PlayerMovement ~= nil then
+						_TileManager:TriggerArrive(userEntity.CurrentMapName, userEntity.PlayerMovement.currentTile, userEntity)
+					end
+					break
+				end
+				self:AdvanceState()
+	end
+
+	@ExecSpace("Server")
+	method void RequestRollResultDice()
+		if not self._isActive then return end
+				if self._currentState ~= "RESULT_DICE" then return end
+		
+				-- 1. 주사위를 굴리고 total 값만 받음
+				local total = _ResultDiceManager:Roll()
+				self.remainDiceTotal = total
+		
+				-- 2. 매니저에서 필요한 변수들을 하나하나 일일이 가져옴 (기존 방식)
+				local d1 = _ResultDiceManager._dice1
+				local d2 = _ResultDiceManager._dice2
+				local gameOutcome = _ResultDiceManager.GameOutcome
+				local resultTable = _ResultDiceManager:GetResultTable()
+		
+				-- 3. 가져온 값들을 UI 연출 쪽으로 넘김
+				self:PlayResultDiceAnimation(d1, d2, total, resultTable, gameOutcome)
+				
+	end
+
+	@ExecSpace("Server")
+	method void OnResultDice()
+				log("[SingleTurnManager] 결과 주사위 단계 진입 -> 굴림 요청")
+				self:RequestRollResultDice()
+	end
+
+	@ExecSpace("Client")
+	method void PlayTotalResultDiceSFX(integer total)
+		_ResultDiceManager:PlayTotalResultDiceSFX(total)
+	end
+
+	@ExecSpace("Client")
+	method void PlayResultDiceAnimation(integer d1, integer d2, integer total, table resultTable, string gameOutcome)
+		_RollResultDiceAnimationUI:Show(d1, d2, total, resultTable, gameOutcome, function()
+					self:OnResultDiceAnimationEnd()
+				end)
+	end
+
+	@ExecSpace("Server")
+	method void OnResultDiceAnimationEnd()
+		if self._currentState ~= "RESULT_DICE" then return end
+		self:AdvanceState()   -- RESULT_DICE → TURN_END (OnMove가 이동 시작)
+	end
+
+	@ExecSpace("Server")
 	method void OnTurnEnd()
 		        log("[SingleTurnManager] 턴 종료 → 다음 턴 시작")
 		        self:AdvanceState()
+	end
+
+	method void OnBeginPlay()
+		--if self:IsServer() then
+		--            -- 클라이언트 UI가 모두 로딩될 때까지 2초 대기 후 강제 실행
+		--            _TimerService:SetTimerOnce(function()
+		--                -- 게임이 시작되자마자 강제로 상태를 RESULT_DICE로 맞추고 주사위를 굴립니다.
+		--                self._isActive = true
+		--                self._currentState = "RESULT_DICE"
+		--                
+		--                log("[Test] RESULT_DICE 강제 테스트 시작!")
+		--                self:RequestRollResultDice()
+		--            end, 0.01)
+		--        end
 	end
 
 end
