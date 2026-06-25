@@ -35,6 +35,19 @@ script EquipTooltip extends Logic
 		if tc ~= nil then tc.Text = s end
 	end
 
+	method void BringToFront()
+		-- 툴팁 그룹을 형제 중 맨 뒤(=화면 최상단)로 이동. displayOrder/GroupOrder가 런타임 정렬을
+		-- 그대로 안 따르는 문제(인벤 패널에 가려짐) 우회 — show 시마다 최상단으로 끌어올린다.
+		local grp = _EntityService:GetEntityByPath("/ui/InGameUIGroup/EquipTooltip")
+		if isvalid(grp) == false then return end
+		local uit = grp.UITransformComponent
+		if isvalid(uit) == false then return end
+		local idx = 99
+		local parent = grp.Parent
+		if isvalid(parent) and parent.Children ~= nil then idx = #parent.Children - 1 end
+		_UILogic:SetSiblingIndex(uit, idx)
+	end
+
 	method void ShowItem(string equipName)
 		-- 장비칸 호버: 그 장비 스펙만(우측 비교칼럼 숨김).
 		if self:IsClient() == false then return end
@@ -42,6 +55,7 @@ script EquipTooltip extends Logic
 		self:SetText(self.leftText, self:BuildSpec(equipName))
 		if isvalid(self.rightPanel) then self.rightPanel.Enable = false end
 		if isvalid(self.tipRoot) then self.tipRoot.Enable = true end
+		self:BringToFront()
 		log("[EquipTooltip] ShowItem: " .. equipName)
 	end
 
@@ -57,6 +71,7 @@ script EquipTooltip extends Logic
 			self:SetText(self.rightText, self:BuildSpec(currentName))
 		end
 		if isvalid(self.tipRoot) then self.tipRoot.Enable = true end
+		self:BringToFront()
 		log("[EquipTooltip] ShowCompare: " .. newName .. " vs " .. currentName)
 	end
 

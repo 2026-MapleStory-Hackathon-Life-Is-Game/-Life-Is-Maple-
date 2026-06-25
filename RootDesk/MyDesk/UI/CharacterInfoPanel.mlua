@@ -117,22 +117,45 @@ script CharacterInfoPanel extends Component
 	end
 
 	method void SetSlotIcon(SpriteGUIRendererComponent renderer, string equipName)
-		-- equipName의 Icon RUID를 슬롯 렌더러에 적용. 빈 이름이면 투명.
+		-- equipName의 Icon RUID를 슬롯에 적용 + 아이템명 텍스트 표시(아이콘 없어도 장착 확인 가능).
 		if isvalid(renderer) == false then return end
+		local e = renderer.Entity
 		if equipName == "" then
 			renderer.Color = Color(1, 1, 1, 0)
+			self:SetSlotLabel(e, "(없음)", false)
 			return
 		end
 		local ds = _DataService:GetTable("EquipData")
 		local ruid = ""
+		local dname = equipName
 		for i = 1, ds:GetRowCount() do
-			if ds:GetCell(i, "EquipName") == equipName then ruid = ds:GetCell(i, "Icon"); break end
+			if ds:GetCell(i, "EquipName") == equipName then
+				ruid = ds:GetCell(i, "Icon")
+				dname = ds:GetCell(i, "Name")
+				break
+			end
 		end
 		if ruid ~= "" then
 			renderer.ImageRUID = ruid
 			renderer.Color = Color(1, 1, 1, 1)
 		else
 			renderer.Color = Color(1, 1, 1, 0)
+		end
+		self:SetSlotLabel(e, dname, true)
+	end
+
+	method void SetSlotLabel(Entity slotEntity, string text, boolean equipped)
+		-- 슬롯 버튼 자체의 TextComponent에 장착 아이템명(또는 "(없음)")을 작게 표시.
+		-- 아이콘 RUID가 아직 비어 있어도 무엇이 장착됐는지 글자로 확인 가능.
+		if isvalid(slotEntity) == false then return end
+		local tc = slotEntity:GetComponent("MOD.Core.TextComponent")
+		if tc == nil then return end
+		tc.Text = text
+		tc.FontSize = 12
+		if equipped then
+			tc.FontColor = Color(1, 1, 1, 1)
+		else
+			tc.FontColor = Color(0.6, 0.62, 0.68, 1)
 		end
 	end
 

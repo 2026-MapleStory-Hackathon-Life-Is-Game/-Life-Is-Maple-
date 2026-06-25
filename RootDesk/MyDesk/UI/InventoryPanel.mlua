@@ -132,13 +132,15 @@ script InventoryPanel extends Component
 		local name = items[index + 1]
 		if name == nil then return end
 
-		-- 아이콘 RUID 조회
+		-- 아이콘 RUID + 표시명 조회
 		local ds = _DataService:GetTable("EquipData")
 		local ruid = ""
+		local dname = name
 		if isvalid(ds) then
 			for i = 1, ds:GetRowCount() do
 				if ds:GetCell(i, "EquipName") == name then
 					ruid = ds:GetCell(i, "Icon")
+					dname = ds:GetCell(i, "Name")
 					break
 				end
 			end
@@ -153,6 +155,13 @@ script InventoryPanel extends Component
 			rend.Color = Color(1, 1, 1, 1)
 		end
 
+		-- 아이콘이 없어도 무슨 아이템인지 보이도록 셀 버튼 텍스트에 이름 표시
+		local tc = cell:GetComponent("MOD.Core.TextComponent")
+		if tc ~= nil then
+			tc.Text = dname
+			tc.FontSize = 12
+		end
+
 		-- 클릭 + 호버 이벤트 배선(OnClear에서 해제)
 		local capturedName = name
 		local h = cell:ConnectEvent(ButtonClickEvent, function()
@@ -165,11 +174,13 @@ script InventoryPanel extends Component
 	end
 
 	method void OnGridCellClear(integer index, Entity cell)
-		-- GridView OnClear 콜백: 셀 이벤트 핸들 해제 + 아이콘 초기화.
+		-- GridView OnClear 콜백: 셀 이벤트 핸들 해제 + 아이콘/텍스트 초기화.
 		local rend = cell.SpriteGUIRendererComponent
 		if isvalid(rend) then
 			rend.Color = Color(1, 1, 1, 0)
 		end
+		local tc = cell:GetComponent("MOD.Core.TextComponent")
+		if tc ~= nil then tc.Text = "" end
 		local toRemove = {}
 		for i, r in ipairs(self.cellHandlers) do
 			if r.entity == cell then
