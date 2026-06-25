@@ -10,13 +10,6 @@ script BaseEquipment extends Component
 	@Sync
 	property SyncTable<string, boolean> Owned
 
-	method void OnBeginPlay()
-		-- 서버: 인스턴스별 상태 초기화. SyncTable은 선언 시 자동으로 빈 상태이므로 Clear 불필요.
-		if self:IsServer() then
-			self.Equipped = ""
-		end
-	end
-
 	method string EquipCategory()
 		-- 서브클래스가 override("Weapon"/"Armor"/"Accessory"). base는 미지정.
 		return ""
@@ -77,8 +70,9 @@ script BaseEquipment extends Component
 
 	@ExecSpace("Server")
 	method void RequestEquip(string equipName)
-		-- 보유→슬롯(기존 장착품은 보유로 복귀). 타입 검증.
+		-- 보유→슬롯(기존 장착품은 보유로 복귀). 타입 + 보유 검증.
 		if self:Accepts(equipName) == false then return end
+		if self.Owned[equipName] ~= true then return end   -- 보유하지 않은 아이템 장착 차단
 		local prev = self.Equipped
 		if prev ~= "" then self.Owned[prev] = true end
 		self.Equipped = equipName
