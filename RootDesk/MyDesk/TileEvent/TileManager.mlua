@@ -146,6 +146,8 @@ script TileManager extends Logic
 	@ExecSpace("ServerOnly")
 	method void TriggerArrive(string mapName, string tileName, Entity piece)
 		local key = mapName .. "_" .. tileName
+				-- 레벨: 도착 타일의 (Stage,Tier)로 단조 증가 설정. 타일 효과(OnArrive)보다 먼저 → 효과가 갱신된 레벨 참조 가능.
+				self:ApplyTileLevel(key, piece)
 				if self:IsVariantTile(key) then
 					local campKey = ""
 					local buff = piece:GetComponent("script.BuffManager")
@@ -159,6 +161,34 @@ script TileManager extends Logic
 				local comp = self.tileComponents[key]
 				if comp == nil then return end
 				comp:OnArrive(piece)
+	end
+
+	@ExecSpace("ServerOnly")
+	method void ApplyTileLevel(string key, Entity piece)
+		-- 도착 타일의 (Stage,Tier)에 맞는 레벨로 단조 증가 설정(낮아지지 않음).
+		if isvalid(piece) == false then return end
+		local data = self.tileGraph[key]
+		if data == nil or data.stage == nil or data.tier == nil then return end
+		local cp = piece:GetComponent("script.CombatPowerManager")
+		if isvalid(cp) == false then return end
+		local lv = self:LevelForStageTier(data.stage, data.tier)
+		if lv > cp.Level then
+			cp:SetLevel(lv)
+			log("[TileManager] 레벨 적용: " .. key .. " (Stage=" .. tostring(data.stage) .. " Tier=" .. tostring(data.tier) .. ") → Lv." .. tostring(lv))
+		end
+	end
+
+	method integer LevelForStageTier(integer stage, integer tier)
+		-- (Stage,Tier)→Level. Stage 1은 Tier 무관 Lv.10. 미일치 시 10 폴백.
+		if stage == 1 then return 10 end
+		local ds = _DataService:GetTable("TierLevel")
+		if isvalid(ds) == false then return 10 end
+		for i = 1, ds:GetRowCount() do
+			if tonumber(ds:GetCell(i, "Stage")) == stage and tonumber(ds:GetCell(i, "Tier")) == tier then
+				return tonumber(ds:GetCell(i, "Level"))
+			end
+		end
+		return 10
 	end
 
 	@ExecSpace("ClientOnly")
@@ -245,6 +275,7 @@ script TileManager extends Logic
 					local idx    = tonumber(ds:GetCell(i, "TileIndex"))
 					local branch = ds:GetCell(i, "Branch")
 					local typ    = ds:GetCell(i, "Type")
+					local tier   = tonumber(ds:GetCell(i, "Tier"))
 					if not stage or not idx then continue end
 		
 					local mapName = stageToMap[stage]
@@ -279,7 +310,7 @@ script TileManager extends Logic
 						end
 					end
 		
-					self.tileGraph[graphKey] = {nexts=nexts, type=typ, branch=branch}
+					self.tileGraph[graphKey] = {nexts=nexts, type=typ, branch=branch, stage=stage, tier=tier}
 					count += 1
 				end
 		
