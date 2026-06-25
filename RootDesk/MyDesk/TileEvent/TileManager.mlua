@@ -17,6 +17,12 @@ script TileManager extends Logic
 
 	property integer _visualRetries = 0
 
+	-- 사냥 타일 몬스터: 서버가 맵 시작 시 (Region,Tier) 가중 롤로 1회 결정 → 클라가 동기화 받아 타일 위 스프라이트 적용.
+	@Sync
+	property SyncTable<string, string> TileMonster
+
+	property integer _monsterRetries = 0
+
 	method void CollectTiles()
 		self.tileEntities = {}
 				local entities = _EntityService:GetEntitiesByTag("HexaTile")
@@ -191,10 +197,112 @@ script TileManager extends Logic
 		return 10
 	end
 
+	-- ===== 사냥 타일 몬스터 스폰 (서버 1회 롤 → @Sync → 클라 적용) =====
+
+	@ExecSpace("ServerOnly")
+	method void RollAllTileMonsters()
+		-- 맵 시작 시 사냥 타일마다 (Region,Tier) 가중 롤로 몬스터 1종 결정 → 동기화 테이블에 저장.
+		local count = 0
+		for key, data in pairs(self.tileGraph) do
+			if data.type == "Hunt" or data.type == "HuntPlus" then
+				local mn = self:RollMonster(data.region or "", data.tier or 0)
+				if mn ~= "" then
+					self.TileMonster[key] = mn
+					count += 1
+				end
+			end
+		end
+		log("[TileManager] 사냥 타일 몬스터 롤 완료: " .. tostring(count) .. "개")
+	end
+
+	method string RollMonster(string region, integer tier)
+		-- MonsterSpawn에서 (Region,Tier) 일치 행을 Weight 가중 롤로 1종 뽑는다. (BaseTile.RollItem과 동일 패턴)
+		local ds = _DataService:GetTable("MonsterSpawn")
+		if isvalid(ds) == false then return "" end
+		local rows = ds:GetRowCount()
+		local function match(i)
+			return ds:GetCell(i, "Region") == region and tonumber(ds:GetCell(i, "Tier")) == tier
+		end
+		local total = 0
+		for i = 1, rows do
+			if match(i) then total += (tonumber(ds:GetCell(i, "Weight")) or 0) end
+		end
+		if total <= 0 then return "" end
+		local roll = _UtilLogic:RandomIntegerRange(1, total)
+		local acc = 0
+		for i = 1, rows do
+			if match(i) then
+				acc += (tonumber(ds:GetCell(i, "Weight")) or 0)
+				if roll <= acc then return ds:GetCell(i, "MonsterName") end
+			end
+		end
+		return ""
+	end
+
+	@ExecSpace("ClientOnly")
+	method void RequestTileMonsters()
+		-- 맵 진입 시 클라가 호출. 타일 수집 + 서버 동기화 도착까지 재시도하며 적용.
+		self._monsterRetries = 0
+		self:TryApplyTileMonsters()
+	end
+
+	@ExecSpace("ClientOnly")
+	method void TryApplyTileMonsters()
+		if self:ApplyTileMonstersLocal() then return end
+		self._monsterRetries += 1
+		if self._monsterRetries <= 25 then
+			_TimerService:SetTimerOnce(function() self:TryApplyTileMonsters() end, 0.2)
+		end
+	end
+
+	@ExecSpace("ClientOnly")
+	method boolean ApplyTileMonstersLocal()
+		-- 각 사냥 타일의 'Monster' 자식(y+0.5)에 STAND 스프라이트 적용. 동기화 도착 전이면 false 반환(재시도).
+		if self:CountTiles() == 0 then return false end
+		local any = false
+		for key, entity in pairs(self.tileEntities) do
+			local mn = self.TileMonster[key]
+			if mn ~= nil and mn ~= "" and isvalid(entity) then
+				any = true
+				local stand = self:MonsterStandRUID(mn)
+				if stand ~= "" then
+					local child = self:FindChild(entity, "Monster")
+					if isvalid(child) and isvalid(child.SpriteRendererComponent) then
+						child.SpriteRendererComponent.SpriteRUID = stand
+					end
+				end
+			end
+		end
+		return any
+	end
+
+	method Entity FindChild(Entity parent, string childName)
+		-- parent의 직계 자식 중 이름 일치 엔티티 반환(없으면 nil).
+		local children = parent.Children
+		if children == nil then return nil end
+		for i = 1, #children do
+			if children[i].Name == childName then return children[i] end
+		end
+		return nil
+	end
+
+	method string MonsterStandRUID(string monsterName)
+		-- TierMonster에서 MonsterName 일치 행의 STAND(애니클립 RUID) 반환. (아트가 채우기 전엔 "")
+		local ds = _DataService:GetTable("TierMonster")
+		if isvalid(ds) == false then return "" end
+		for i = 1, ds:GetRowCount() do
+			if ds:GetCell(i, "MonsterName") == monsterName then
+				return ds:GetCell(i, "STAND")
+			end
+		end
+		return ""
+	end
+
 	@ExecSpace("ClientOnly")
 	method void RequestCampVisuals()
 		self._visualRetries = 0
 				self:TryApplyCampVisuals()
+				self:RequestTileMonsters()
 	end
 
 	@ExecSpace("ClientOnly")
@@ -237,6 +345,7 @@ script TileManager extends Logic
 	@ExecSpace("ServerOnly")
 	method void OnBeginPlay()
 				self:BuildTileGraph()
+				self:RollAllTileMonsters()
 				self:CollectTiles()
 	end
 
@@ -276,6 +385,7 @@ script TileManager extends Logic
 					local branch = ds:GetCell(i, "Branch")
 					local typ    = ds:GetCell(i, "Type")
 					local tier   = tonumber(ds:GetCell(i, "Tier"))
+					local region = ds:GetCell(i, "Region")
 					if not stage or not idx then continue end
 		
 					local mapName = stageToMap[stage]
@@ -310,7 +420,7 @@ script TileManager extends Logic
 						end
 					end
 		
-					self.tileGraph[graphKey] = {nexts=nexts, type=typ, branch=branch, stage=stage, tier=tier}
+					self.tileGraph[graphKey] = {nexts=nexts, type=typ, branch=branch, stage=stage, tier=tier, region=region}
 					count += 1
 				end
 		
