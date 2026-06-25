@@ -1,0 +1,129 @@
+-- 타입별 장비 컴포넌트의 공통 베이스(BaseTile←BossTile 패턴과 동일).
+-- 서브클래스(Weapon/Armor/Accessory)가 EquipCategory()만 override한다.
+-- 각 컴포넌트는 자기 타입의 보유함(Owned)+장착슬롯(Equipped)을 독립 보유한다.
+@Component
+script BaseEquipment extends Component
+
+	@TargetUserSync
+	property string Equipped = ""
+
+	@Sync
+	property SyncTable<string, boolean> Owned
+
+	method void OnBeginPlay()
+		-- 서버: 인스턴스별 상태 초기화. SyncTable은 선언 시 자동으로 빈 상태이므로 Clear 불필요.
+		if self:IsServer() then
+			self.Equipped = ""
+		end
+	end
+
+	method string EquipCategory()
+		-- 서브클래스가 override("Weapon"/"Armor"/"Accessory"). base는 미지정.
+		return ""
+	end
+
+	method integer FindRow(string equipName)
+		-- EquipData에서 equipName 행 인덱스(없으면 -1).
+		local ds = _DataService:GetTable("EquipData")
+		if isvalid(ds) == false then return -1 end
+		for i = 1, ds:GetRowCount() do
+			if ds:GetCell(i, "EquipName") == equipName then return i end
+		end
+		return -1
+	end
+
+	method boolean Accepts(string equipName)
+		-- equipName이 이 컴포넌트 타입에 속하는지(CSV Category).
+		if equipName == "" then return false end
+		local row = self:FindRow(equipName)
+		if row == -1 then return false end
+		return _DataService:GetTable("EquipData"):GetCell(row, "Category") == self:EquipCategory()
+	end
+
+	method table ItemModifiers(string equipName)
+		-- equipName 1개의 수치 modifier(없으면 0).
+		local m = { statFlat = 0, statPct = 0, attackFlat = 0, attackPct = 0, damagePct = 0, bossDamagePct = 0 }
+		if equipName == "" then return m end
+		local row = self:FindRow(equipName)
+		if row == -1 then return m end
+		local ds = _DataService:GetTable("EquipData")
+		m.statFlat = tonumber(ds:GetCell(row, "Stat")) or 0
+		m.attackFlat = tonumber(ds:GetCell(row, "Attack")) or 0
+		m.damagePct = tonumber(ds:GetCell(row, "Damage")) or 0
+		m.bossDamagePct = tonumber(ds:GetCell(row, "BossDamage")) or 0
+		return m
+	end
+
+	method table EquippedModifiers()
+		-- 현재 장착품의 modifier.
+		return self:ItemModifiers(self.Equipped)
+	end
+
+	method table ModifiersWith(string candidate)
+		-- 이 슬롯에 candidate를 끼웠을 때(미리보기). candidate가 이 타입 아니면 현재값.
+		if self:Accepts(candidate) then return self:ItemModifiers(candidate) end
+		return self:EquippedModifiers()
+	end
+
+	method void Acquire(string equipName)
+		-- 보유함에 추가(미장착). 타입 불일치면 무시.
+		if self:Accepts(equipName) == false then
+			log_warning("BaseEquipment.Acquire: " .. equipName .. " not " .. self:EquipCategory())
+			return
+		end
+		self.Owned[equipName] = true
+		log(self:EquipCategory() .. "Eq: [보유+] " .. equipName)
+	end
+
+	@ExecSpace("Server")
+	method void RequestEquip(string equipName)
+		-- 보유→슬롯(기존 장착품은 보유로 복귀). 타입 검증.
+		if self:Accepts(equipName) == false then return end
+		local prev = self.Equipped
+		if prev ~= "" then self.Owned[prev] = true end
+		self.Equipped = equipName
+		self.Owned[equipName] = nil
+		log(self:EquipCategory() .. "Eq: 장착 " .. equipName)
+		self:Recalc()
+	end
+
+	@ExecSpace("Server")
+	method void RequestUnequip()
+		-- 슬롯→보유, 슬롯 비움.
+		if self.Equipped == "" then return end
+		self.Owned[self.Equipped] = true
+		log(self:EquipCategory() .. "Eq: 해제 " .. self.Equipped)
+		self.Equipped = ""
+		self:Recalc()
+	end
+
+	method table OwnedSorted()
+		-- 보유 equipName을 단독 전투력 환산값 내림차순 배열로(빈칸 compact).
+		local cp = self.Entity:GetComponent("script.CombatPowerManager")
+		local arr = {}
+		for name, owned in pairs(self.Owned) do
+			if owned == true then table.insert(arr, name) end
+		end
+		local function powerOf(n)
+			if isvalid(cp) then return cp:ItemStandalonePower(self:ItemModifiers(n)) end
+			return 0
+		end
+		table.sort(arr, function(a, b) return powerOf(a) > powerOf(b) end)
+		return arr
+	end
+
+	method void Recalc()
+		-- 같은 플레이어 CombatPowerManager 재계산.
+		local cp = self.Entity:GetComponent("script.CombatPowerManager")
+		if isvalid(cp) then cp:CalculateCurrentCombatPower() end
+	end
+
+	@ExecSpace("ServerOnly")
+	method void ResetAll()
+		-- 슬롯/보유 비움.
+		self.Equipped = ""
+		self.Owned:Clear()
+		self:Recalc()
+	end
+
+end

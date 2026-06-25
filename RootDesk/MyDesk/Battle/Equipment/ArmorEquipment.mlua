@@ -1,0 +1,7 @@
+@Component
+script ArmorEquipment extends BaseEquipment
+	method string EquipCategory()
+		-- 보호구 타입.
+		return "Armor"
+	end
+end
