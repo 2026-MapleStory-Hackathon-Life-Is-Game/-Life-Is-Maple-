@@ -239,9 +239,11 @@ script CombatPowerManager extends Component
 	end
 
 	method number CalculateCurrentMainAttack(table extra)
-		-- 공/마 = 기본공마 * (1 + (base% + 버프%)) + 가산공마
+		-- 공/마 = 기본공마 * (1 + (base% + 버프%)) + 가산공마. 무기 미장착 등으로 0 이하면 최소 1(디폴트).
 		local pct = self.BaseAttackPct + extra.attackPct
-		return self.MainAttack * (1 + pct / 100) + extra.attackFlat
+		local atk = self.MainAttack * (1 + pct / 100) + extra.attackFlat
+		if atk < 1 then atk = 1 end
+		return atk
 	end
 
 	method number CalculateCurrentExtraDamage(table extra)
