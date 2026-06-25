@@ -37,6 +37,13 @@ script CombatPowerManager extends Component
 	@Sync
 	property SyncTable<string, number> CurrentExtra
 
+	-- 레벨: 타일 도착 시 (Stage,Tier)로 동적 설정. 기본 Lv.10. LevelStat = 레벨 환산 주스탯 base(표시용).
+	@Sync
+	property integer Level = 10
+
+	@Sync
+	property number LevelStat = 0
+
 	@Sync
 	property string MainStatType = ""
 
@@ -62,6 +69,27 @@ script CombatPowerManager extends Component
 			.. " 공마타입=" .. self.MainAttackType)
 	end
 
+	method number LevelMainStat()
+		-- 현재 레벨의 주스탯 base 환산값(전투력 문서: 4+5n / Lv.100 초과 18+5n).
+		if self.Level <= 100 then return 4 + 5 * self.Level end
+		return 18 + 5 * self.Level
+	end
+
+	@ExecSpace("ServerOnly")
+	method void SetLevel(integer level)
+		-- 레벨 설정 → 주스탯 base 환산 갱신 + 전투력 재계산. (역행 클램프 없음)
+		self.Level = level
+		self:CalculateCurrentCombatPower()
+		log("CombatPowerManager: 레벨=" .. tostring(level) .. " → 주스탯base=" .. tostring(self:LevelMainStat()))
+	end
+
+	method number DisplayStat(string name)
+		-- 패널 표시용 스탯: 주스탯이면 base+레벨환산, 부스탯이면 base.
+		local v = self:GetStat(name)
+		if name == self:MainStatField() then v = v + self:LevelMainStat() end
+		return v
+	end
+
 	@ExecSpace("ServerOnly")
 	method void ResetAll()
 		self.STR = 0
@@ -76,6 +104,7 @@ script CombatPowerManager extends Component
 		self.CriticalDamage = 1.35
 		self.MainStatType = ""
 		self.MainAttackType = ""
+		self.Level = 10
 		self:CalculateCurrentCombatPower()
 		log("CombatPowerManager: 전투력 base 초기화")
 	end
@@ -197,8 +226,9 @@ script CombatPowerManager extends Component
 		local allFlat = extra.allStatFlat or 0
 		local allPct  = extra.allStatPct or 0
 		
-		local mainVal = self:GetStat(self:MainStatField())
-		local subVal  = (self.STR + self.DEX + self.INT + self.LUK) - mainVal  -- 부스탯 3개 합
+		local mainBase = self:GetStat(self:MainStatField())
+		local subVal   = (self.STR + self.DEX + self.INT + self.LUK) - mainBase  -- 부스탯 3개 합(레벨 미포함)
+		local mainVal  = mainBase + self:LevelMainStat()                          -- 주스탯 base + 레벨 환산
 		
 		local mainPct     = self.BaseStatPct + extra.statPct + allPct
 		local mainApplied = (mainVal + extra.statFlat + allFlat) * (1 + mainPct / 100)
@@ -243,6 +273,7 @@ script CombatPowerManager extends Component
 		
 		self.CombatPower = stat * attack * damage * crit
 		if self:IsServer() then
+			self.LevelStat = self:LevelMainStat()
 			self.CurrentExtra["statFlat"]      = extra.statFlat or 0
 			self.CurrentExtra["statPct"]       = extra.statPct or 0
 			self.CurrentExtra["allStatFlat"]   = extra.allStatFlat or 0
