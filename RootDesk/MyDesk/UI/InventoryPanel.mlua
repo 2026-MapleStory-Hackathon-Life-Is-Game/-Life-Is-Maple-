@@ -9,6 +9,8 @@ script InventoryPanel extends Component
 	property any cellHandlers = nil
 	property string _lastClickName = ""
 	property number _lastClickTime = 0
+	property number _pollTimer = 0
+	property string _lastListSig = ""
 
 	method void OnBeginPlay()
 		-- 클라: 패널 숨김 + GridView 셀 프리팹 주입 + 탭 버튼 이벤트 배선.
@@ -184,11 +186,32 @@ script InventoryPanel extends Component
 	end
 
 	method void OnCellState(string equipName, ButtonStateChangeEvent ev)
-		-- 인벤 셀 호버 진입 → 증감 포함 스펙 툴팁 표시, 이탈 → 숨김.
+		-- 인벤 셀 호버 진입 → 좌(새)/우(현재 장착) 비교 툴팁, 이탈 → 숨김.
 		if ev.state == ButtonState.Hover then
-			_EquipTooltip:ShowItem(equipName, true)
+			local cur = ""
+			local p = _UserService.LocalPlayer
+			if isvalid(p) then
+				local m = _EquipmentRouter:ManagerForItem(p, equipName)
+				if isvalid(m) then cur = m.Equipped end
+			end
+			_EquipTooltip:ShowCompare(equipName, cur)
 		elseif ev.state == ButtonState.Normal then
 			_EquipTooltip:Hide()
+		end
+	end
+
+	method void OnUpdate(number delta)
+		-- 인벤 열린 동안 0.2초마다 목록 변경 감지 → Rebuild.
+		if self:IsClient() == false or self.isOpen == false then return end
+		self._pollTimer = self._pollTimer + delta
+		if self._pollTimer < 0.2 then return end
+		self._pollTimer = 0
+		local items = self:CurrentList()
+		local sig = table.concat(items, ",")
+		if sig ~= self._lastListSig then
+			self._lastListSig = sig
+			self:Rebuild()
+			log("[InventoryPanel] 목록 변경 감지 → Rebuild count=" .. tostring(#items))
 		end
 	end
 

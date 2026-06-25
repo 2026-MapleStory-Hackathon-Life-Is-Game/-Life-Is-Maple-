@@ -1,8 +1,10 @@
 @Logic
 script EquipTooltip extends Logic
 
-	property Entity tipRoot = "3c8db8e6-693d-4adb-af8c-f0645c71d210"
-	property Entity tipText = "aa4a4adf-a413-4a10-86d4-d9fc2042154e"
+	property Entity tipRoot = "48c6b3b8-a8b4-41ef-885f-9399aa02318b"
+	property Entity leftText = "282fa91f-76b4-40ad-b5f3-01a572bc395f"
+	property Entity rightPanel = "2eadd2c1-b2ce-40ca-b5c2-36a82b3dde91"
+	property Entity rightText = "650b4b13-2ae7-4dfc-aa33-1d79a7f9b500"
 
 	method void OnBeginPlay()
 		-- 클라: 툴팁 패널 숨김.
@@ -11,47 +13,57 @@ script EquipTooltip extends Logic
 		end
 	end
 
-	method void ShowItem(string equipName, boolean showDelta)
-		-- 장비 옵션(+선택적 전투력 증감)을 툴팁 패널에 표시.
-		if self:IsClient() == false then return end
-		if equipName == "" then return end
+	method string BuildSpec(string equipName)
+		-- 장비 1개의 스펙 문자열(이름/스탯/공마/대미지/보스대미지). 없으면 "".
+		if equipName == "" then return "" end
 		local ds = _DataService:GetTable("EquipData")
-		if isvalid(ds) == false then return end
+		if isvalid(ds) == false then return "" end
 		local row = -1
 		for i = 1, ds:GetRowCount() do
 			if ds:GetCell(i, "EquipName") == equipName then row = i; break end
 		end
-		if row == -1 then return end
-		local s = ds:GetCell(row, "Name") .. "\n"
+		if row == -1 then return "" end
+		return ds:GetCell(row, "Name") .. "\n"
 			.. "스탯 " .. ds:GetCell(row, "Stat") .. "  공/마 " .. ds:GetCell(row, "Attack") .. "\n"
 			.. "대미지 " .. ds:GetCell(row, "Damage") .. "%  보스 " .. ds:GetCell(row, "BossDamage") .. "%"
-		if showDelta then
-			local p = _UserService.LocalPlayer
-			if isvalid(p) then
-				local cp = p:GetComponent("script.CombatPowerManager")
-				if isvalid(cp) then
-					local d = cp:PreviewPowerWithSwap(equipName) - cp.CombatPower
-					local pfx = "+"
-					if d < 0 then pfx = "" end
-					s = s .. "\n전투력 " .. pfx .. tostring(math.floor(d))
-				end
-			end
+	end
+
+	method void SetText(Entity e, string s)
+		-- 텍스트 엔티티의 TextComponent.Text 설정.
+		if isvalid(e) == false then return end
+		local tc = e:GetComponent("MOD.Core.TextComponent")
+		if tc ~= nil then tc.Text = s end
+	end
+
+	method void ShowItem(string equipName)
+		-- 장비칸 호버: 그 장비 스펙만(우측 비교칼럼 숨김).
+		if self:IsClient() == false then return end
+		if equipName == "" then return end
+		self:SetText(self.leftText, self:BuildSpec(equipName))
+		if isvalid(self.rightPanel) then self.rightPanel.Enable = false end
+		if isvalid(self.tipRoot) then self.tipRoot.Enable = true end
+		log("[EquipTooltip] ShowItem: " .. equipName)
+	end
+
+	method void ShowCompare(string newName, string currentName)
+		-- 인벤 호버: 좌=새 장비 스펙, 우=현재 장착 장비 스펙.
+		if self:IsClient() == false then return end
+		if newName == "" then return end
+		self:SetText(self.leftText, self:BuildSpec(newName))
+		if isvalid(self.rightPanel) then self.rightPanel.Enable = true end
+		if currentName == "" then
+			self:SetText(self.rightText, "(미장착)")
+		else
+			self:SetText(self.rightText, self:BuildSpec(currentName))
 		end
-		if isvalid(self.tipText) then
-			local tc = self.tipText:GetComponent("MOD.Core.TextComponent")
-			if tc ~= nil then tc.Text = s end
-		end
-		if isvalid(self.tipRoot) then
-			self.tipRoot.Enable = true
-		end
-		log("[EquipTooltip] Show: " .. equipName)
+		if isvalid(self.tipRoot) then self.tipRoot.Enable = true end
+		log("[EquipTooltip] ShowCompare: " .. newName .. " vs " .. currentName)
 	end
 
 	method void Hide()
 		-- 툴팁 패널 숨김.
-		if self:IsClient() == false then return end
-		if isvalid(self.tipRoot) then
-			self.tipRoot.Enable = false
+		if self:IsClient() then
+			if isvalid(self.tipRoot) then self.tipRoot.Enable = false end
 		end
 	end
 

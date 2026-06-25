@@ -26,6 +26,8 @@ script CharacterInfoPanel extends Component
 	property string _lastSlotCat = ""
 	property number _lastSlotTime = 0
 	property any invPanel = nil
+	property number _pollTimer = 0
+	property string _lastSlotSig = ""
 
 	method void OnBeginPlay()
 		-- 클라 전용: 패널 시작은 숨김 + 슬롯 호버/더블클릭 배선.
@@ -153,10 +155,32 @@ script CharacterInfoPanel extends Component
 		return ""
 	end
 
+	method void OnUpdate(number delta)
+		-- 패널 열린 동안 0.2초마다 슬롯 장착 변경 감지 → 갱신.
+		if self:IsClient() == false or self.isOpen == false then return end
+		self._pollTimer = self._pollTimer + delta
+		if self._pollTimer < 0.2 then return end
+		self._pollTimer = 0
+		local p = _UserService.LocalPlayer
+		if isvalid(p) == false then return end
+		local w = p:GetComponent("script.WeaponEquipment")
+		local a = p:GetComponent("script.ArmorEquipment")
+		local ac = p:GetComponent("script.AccessoryEquipment")
+		local we = isvalid(w) and w.Equipped or ""
+		local ae = isvalid(a) and a.Equipped or ""
+		local ace = isvalid(ac) and ac.Equipped or ""
+		local sig = we .. "," .. ae .. "," .. ace
+		if sig ~= self._lastSlotSig then
+			self._lastSlotSig = sig
+			self:Refresh()
+			log("[CharacterInfoPanel] 장착 변경 감지 → Refresh: " .. sig)
+		end
+	end
+
 	method void OnSlotState(string category, ButtonStateChangeEvent ev)
 		-- 슬롯 호버 진입 → 스펙 툴팁 표시, 이탈 → 숨김.
 		if ev.state == ButtonState.Hover then
-			_EquipTooltip:ShowItem(self:EquippedOf(category), false)
+			_EquipTooltip:ShowItem(self:EquippedOf(category))
 		elseif ev.state == ButtonState.Normal then
 			_EquipTooltip:Hide()
 		end
