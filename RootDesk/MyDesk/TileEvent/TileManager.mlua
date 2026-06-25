@@ -205,7 +205,7 @@ script TileManager extends Logic
 		local count = 0
 		for key, data in pairs(self.tileGraph) do
 			if data.type == "Hunt" or data.type == "HuntPlus" then
-				local mn = self:RollMonster(data.region or "", data.tier or 0)
+				local mn = self:RollMonster(data.region or "", data.tier or 0, data.type)
 				if mn ~= "" then
 					self.TileMonster[key] = mn
 					count += 1
@@ -215,13 +215,16 @@ script TileManager extends Logic
 		log("[TileManager] 사냥 타일 몬스터 롤 완료: " .. tostring(count) .. "개")
 	end
 
-	method string RollMonster(string region, integer tier)
-		-- MonsterSpawn에서 (Region,Tier) 일치 행을 Weight 가중 롤로 1종 뽑는다. (BaseTile.RollItem과 동일 패턴)
+	method string RollMonster(string region, integer tier, string tileType)
+		-- MonsterSpawn에서 (Region,Tier,Type) 일치 행을 Weight 가중 롤로 1종 뽑는다. (BaseTile.RollItem과 동일 패턴)
+		-- tileType은 "Hunt"/"HuntPlus" — Hunt와 HuntPlus가 서로 다른 몬스터 풀을 갖도록 분리.
 		local ds = _DataService:GetTable("MonsterSpawn")
 		if isvalid(ds) == false then return "" end
 		local rows = ds:GetRowCount()
 		local function match(i)
-			return ds:GetCell(i, "Region") == region and tonumber(ds:GetCell(i, "Tier")) == tier
+			return ds:GetCell(i, "Region") == region
+				and tonumber(ds:GetCell(i, "Tier")) == tier
+				and ds:GetCell(i, "Type") == tileType
 		end
 		local total = 0
 		for i = 1, rows do
