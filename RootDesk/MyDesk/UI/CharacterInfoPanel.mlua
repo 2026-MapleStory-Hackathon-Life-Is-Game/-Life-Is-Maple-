@@ -1,0 +1,141 @@
+@Component
+script CharacterInfoPanel extends Component
+
+	property Entity panelRoot = "b44f68dd-26ca-49c7-b421-c4209f8d52c8"
+	property Entity nameText = "a40298e2-1c84-41c4-85ce-fb08b41df38d"
+	property Entity levelText = "573d0df1-6c4b-4e4a-bd03-ca3c0d0f1f87"
+	property Entity campText = "ffc0f0a6-b990-4b5e-909e-23f49d09dc10"
+	property Entity jobText = "e0cd3aad-6a6c-44a8-aa6c-4b094d0ae037"
+	property Entity branchText = "0d672d4a-4e63-4d81-acd5-f08be89bf53a"
+	property Entity powerText = "51f9de3a-e292-458b-b777-55d2cd2db86a"
+	property Entity strText = "8f82e52e-7461-4c22-9bf1-1516af710d1c"
+	property Entity dexText = "3b8e7127-1905-4d3d-80ef-9b03b8f5a1be"
+	property Entity intText = "7769e133-aed2-4948-a642-2d5fb1a59fe7"
+	property Entity lukText = "e77c96c9-dc96-4dda-b695-f2267f407fd8"
+	property Entity atkText = "9ef89606-c983-4169-a0bf-946e3f4f2cce"
+	property Entity dmgText = "007a8d70-bedc-4e09-a5b4-2caba4356635"
+	property Entity bossDmgText = "c1852777-f8c5-4122-a756-ba623e52f889"
+	property SpriteGUIRendererComponent weaponIcon = "6c335f85-1f69-41d6-b227-9e7a83a6c3c6"
+	property SpriteGUIRendererComponent armorIcon = "14bced64-3df4-4847-97b0-9326723785e5"
+	property SpriteGUIRendererComponent accessoryIcon = "2ed86335-c04c-437e-a4f1-d772eb8cc139"
+
+	property any cpComp = nil
+	property boolean isOpen = false
+
+	method void OnBeginPlay()
+		-- 클라 전용: 패널 시작은 숨김.
+		if self:IsClient() then
+			self.cpComp = nil
+			self.isOpen = false
+			if isvalid(self.panelRoot) then self.panelRoot.Enable = false end
+		end
+	end
+
+	method void SetText(Entity e, string s)
+		-- 텍스트 엔티티의 TextComponent.Text 설정.
+		if isvalid(e) == false then return end
+		local tc = e:GetComponent("MOD.Core.TextComponent")
+		if tc ~= nil then tc.Text = s end
+	end
+
+	method void Open()
+		-- 캐릭터 정보 패널 열기 + 즉시 갱신.
+		if self:IsClient() == false then return end
+		self.isOpen = true
+		if isvalid(self.panelRoot) then self.panelRoot.Enable = true end
+		self:Refresh()
+	end
+
+	method void Close()
+		-- 패널 닫기.
+		if self:IsClient() == false then return end
+		self.isOpen = false
+		if isvalid(self.panelRoot) then self.panelRoot.Enable = false end
+	end
+
+	method string OrDash(string v)
+		-- 미선택('') → '--'.
+		if v == nil or v == "" then return "--" end
+		return v
+	end
+
+	method void Refresh()
+		-- 좌측 정보 + 우측 수치 + 장비칸 아이콘 갱신.
+		if self:IsClient() == false or self.isOpen == false then return end
+		local p = _UserService.LocalPlayer
+		if isvalid(p) == false then return end
+		if isvalid(self.cpComp) == false then self.cpComp = p:GetComponent("script.CombatPowerManager") end
+
+		self:SetText(self.nameText, p.PlayerComponent.Nickname)
+		self:SetText(self.levelText, "Lv.10")
+		local buff = p:GetComponent("script.BuffManager")
+		local job  = p:GetComponent("script.JobWeaponManager")
+		local mv   = p:GetComponent("script.PlayerMovement")
+		self:SetText(self.campText,   self:OrDash(isvalid(buff) and buff.CampName or ""))
+		self:SetText(self.jobText,    self:OrDash(isvalid(job) and job.currentJob or ""))
+		self:SetText(self.branchText, self:OrDash(isvalid(mv) and mv.currentTile or ""))
+
+		---@type CombatPowerManager
+		local cp = self.cpComp
+		if isvalid(cp) then
+			self:SetText(self.powerText, "전투력: " .. self:FormatPower(cp.CombatPower))
+			self:SetText(self.strText, tostring(math.floor(cp.STR)))
+			self:SetText(self.dexText, tostring(math.floor(cp.DEX)))
+			self:SetText(self.intText, tostring(math.floor(cp.INT)))
+			self:SetText(self.lukText, tostring(math.floor(cp.LUK)))
+			self:SetText(self.atkText,     tostring(math.floor(cp:DisplayMainAttack())))
+			self:SetText(self.dmgText,     tostring(math.floor(cp:DisplayDamagePct())) .. "%")
+			self:SetText(self.bossDmgText, tostring(math.floor(cp:DisplayBossDamagePct())) .. "%")
+		end
+		self:RefreshSlots()
+	end
+
+	method void RefreshSlots()
+		-- 장비칸 3슬롯 아이콘 갱신(빈 슬롯은 투명).
+		local p = _UserService.LocalPlayer
+		if isvalid(p) == false then return end
+		local w = p:GetComponent("script.WeaponEquipment")
+		local a = p:GetComponent("script.ArmorEquipment")
+		local ac = p:GetComponent("script.AccessoryEquipment")
+		self:SetSlotIcon(self.weaponIcon, isvalid(w) and w.Equipped or "")
+		self:SetSlotIcon(self.armorIcon, isvalid(a) and a.Equipped or "")
+		self:SetSlotIcon(self.accessoryIcon, isvalid(ac) and ac.Equipped or "")
+	end
+
+	method void SetSlotIcon(SpriteGUIRendererComponent renderer, string equipName)
+		-- equipName의 Icon RUID를 슬롯 렌더러에 적용. 빈 이름이면 투명.
+		if isvalid(renderer) == false then return end
+		if equipName == "" then
+			renderer.Color = Color(1, 1, 1, 0)
+			return
+		end
+		local ds = _DataService:GetTable("EquipData")
+		local ruid = ""
+		for i = 1, ds:GetRowCount() do
+			if ds:GetCell(i, "EquipName") == equipName then ruid = ds:GetCell(i, "Icon"); break end
+		end
+		if ruid ~= "" then
+			renderer.ImageRUID = ruid
+			renderer.Color = Color(1, 1, 1, 1)
+		else
+			renderer.Color = Color(1, 1, 1, 0)
+		end
+	end
+
+	method string FormatPower(number value)
+		-- 전투력 "○○만 ○○○○" 표기(1만 미만 그대로).
+		local n = math.floor(value)
+		if n >= 10000 then
+			local man = math.floor(n / 10000)
+			return tostring(man) .. "만 " .. string.format("%04d", n % 10000)
+		end
+		return tostring(n)
+	end
+
+	@ExecSpace("ClientOnly")
+	method void OnSyncProperty(string name, any value)
+		-- 전투력/장비 변경 동기화 시 패널이 열려 있으면 갱신.
+		if self.isOpen then self:Refresh() end
+	end
+
+end
