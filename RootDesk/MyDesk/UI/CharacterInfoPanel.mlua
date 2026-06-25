@@ -22,12 +22,24 @@ script CharacterInfoPanel extends Component
 	property any cpComp = nil
 	property boolean isOpen = false
 
+	property any slotHandlers = nil
+	property string _lastSlotCat = ""
+	property number _lastSlotTime = 0
+	property any invPanel = nil
+
 	method void OnBeginPlay()
-		-- 클라 전용: 패널 시작은 숨김.
+		-- 클라 전용: 패널 시작은 숨김 + 슬롯 호버/더블클릭 배선.
 		if self:IsClient() then
 			self.cpComp = nil
 			self.isOpen = false
+			self.slotHandlers = {}
+			self._lastSlotCat = ""
+			self._lastSlotTime = 0
+			self.invPanel = nil
 			if isvalid(self.panelRoot) then self.panelRoot.Enable = false end
+			self:WireSlot(self.weaponIcon, "Weapon")
+			self:WireSlot(self.armorIcon, "Armor")
+			self:WireSlot(self.accessoryIcon, "Accessory")
 		end
 	end
 
@@ -120,6 +132,73 @@ script CharacterInfoPanel extends Component
 		else
 			renderer.Color = Color(1, 1, 1, 0)
 		end
+	end
+
+	method void WireSlot(SpriteGUIRendererComponent renderer, string category)
+		-- 슬롯 버튼에 호버(툴팁)+더블클릭(해제) 이벤트 배선.
+		if isvalid(renderer) == false or isvalid(renderer.Entity) == false then return end
+		local e = renderer.Entity
+		local cat = category
+		local hc = e:ConnectEvent(ButtonClickEvent, function() self:OnSlotClicked(cat) end)
+		local hs = e:ConnectEvent(ButtonStateChangeEvent, function(ev) self:OnSlotState(cat, ev) end)
+		table.insert(self.slotHandlers, { entity = e, click = hc, state = hs })
+	end
+
+	method string EquippedOf(string category)
+		-- 카테고리 슬롯의 현재 장착 equipName 반환.
+		local p = _UserService.LocalPlayer
+		if isvalid(p) == false then return "" end
+		local m = _EquipmentRouter:ManagerFor(p, category)
+		if isvalid(m) then return m.Equipped end
+		return ""
+	end
+
+	method void OnSlotState(string category, ButtonStateChangeEvent ev)
+		-- 슬롯 호버 진입 → 스펙 툴팁 표시, 이탈 → 숨김.
+		if ev.state == ButtonState.Hover then
+			_EquipTooltip:ShowItem(self:EquippedOf(category), false)
+		elseif ev.state == ButtonState.Normal then
+			_EquipTooltip:Hide()
+		end
+	end
+
+	method void OnSlotClicked(string category)
+		-- 더블클릭(0.3초 내 같은 슬롯 2회) → 장착 해제 + 배낭 열려 있으면 탭 자동전환.
+		local now = _UtilLogic.ElapsedSeconds
+		if self._lastSlotCat == category and (now - self._lastSlotTime) <= 0.3 then
+			self._lastSlotCat = ""
+			local p = _UserService.LocalPlayer
+			if isvalid(p) then
+				local m = _EquipmentRouter:ManagerFor(p, category)
+				if isvalid(m) then m:RequestUnequip() end
+			end
+			if isvalid(self.invPanel) == false then
+				local ie = _EntityService:GetEntityByPath("/ui/InGameUIGroup/Inventory_Panel/Ctrl")
+				if isvalid(ie) then
+					self.invPanel = ie:GetComponent("script.InventoryPanel")
+				end
+			end
+			if isvalid(self.invPanel) and self.invPanel.isOpen then
+				self.invPanel:SelectTab(category)
+			end
+			log("[CharacterInfoPanel] 더블클릭 해제: " .. category)
+		else
+			self._lastSlotCat = category
+			self._lastSlotTime = now
+		end
+	end
+
+	method void OnEndPlay()
+		-- 슬롯 이벤트 핸들 해제.
+		if self.slotHandlers ~= nil then
+			for _, r in ipairs(self.slotHandlers) do
+				if isvalid(r.entity) then
+					r.entity:DisconnectEvent(ButtonClickEvent, r.click)
+					r.entity:DisconnectEvent(ButtonStateChangeEvent, r.state)
+				end
+			end
+		end
+		self.slotHandlers = {}
 	end
 
 	method string FormatPower(number value)

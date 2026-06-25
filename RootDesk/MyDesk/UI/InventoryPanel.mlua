@@ -151,12 +151,15 @@ script InventoryPanel extends Component
 			rend.Color = Color(1, 1, 1, 1)
 		end
 
-		-- 더블클릭 이벤트 배선(OnClear에서 해제)
+		-- 클릭 + 호버 이벤트 배선(OnClear에서 해제)
 		local capturedName = name
 		local h = cell:ConnectEvent(ButtonClickEvent, function()
 			self:OnCellClicked(capturedName)
 		end)
-		table.insert(self.cellHandlers, { entity = cell, evtH = h })
+		local hs = cell:ConnectEvent(ButtonStateChangeEvent, function(ev)
+			self:OnCellState(capturedName, ev)
+		end)
+		table.insert(self.cellHandlers, { entity = cell, evtH = h, stateH = hs })
 	end
 
 	method void OnGridCellClear(integer index, Entity cell)
@@ -169,11 +172,23 @@ script InventoryPanel extends Component
 		for i, r in ipairs(self.cellHandlers) do
 			if r.entity == cell then
 				cell:DisconnectEvent(ButtonClickEvent, r.evtH)
+				if r.stateH ~= nil then
+					cell:DisconnectEvent(ButtonStateChangeEvent, r.stateH)
+				end
 				table.insert(toRemove, i)
 			end
 		end
 		for i = #toRemove, 1, -1 do
 			table.remove(self.cellHandlers, toRemove[i])
+		end
+	end
+
+	method void OnCellState(string equipName, ButtonStateChangeEvent ev)
+		-- 인벤 셀 호버 진입 → 증감 포함 스펙 툴팁 표시, 이탈 → 숨김.
+		if ev.state == ButtonState.Hover then
+			_EquipTooltip:ShowItem(equipName, true)
+		elseif ev.state == ButtonState.Normal then
+			_EquipTooltip:Hide()
 		end
 	end
 
@@ -200,11 +215,14 @@ script InventoryPanel extends Component
 	end
 
 	method void OnEndPlay()
-		-- 셀 핸들 + 탭 핸들 모두 해제.
+		-- 셀 핸들(클릭+호버) + 탭 핸들 모두 해제.
 		if self.cellHandlers ~= nil then
 			for _, r in ipairs(self.cellHandlers) do
 				if isvalid(r.entity) then
 					r.entity:DisconnectEvent(ButtonClickEvent, r.evtH)
+					if r.stateH ~= nil then
+						r.entity:DisconnectEvent(ButtonStateChangeEvent, r.stateH)
+					end
 				end
 			end
 		end

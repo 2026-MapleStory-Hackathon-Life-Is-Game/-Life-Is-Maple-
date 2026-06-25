@@ -1,0 +1,58 @@
+@Logic
+script EquipTooltip extends Logic
+
+	property Entity tipRoot = "3c8db8e6-693d-4adb-af8c-f0645c71d210"
+	property Entity tipText = "aa4a4adf-a413-4a10-86d4-d9fc2042154e"
+
+	method void OnBeginPlay()
+		-- 클라: 툴팁 패널 숨김.
+		if self:IsClient() then
+			if isvalid(self.tipRoot) then self.tipRoot.Enable = false end
+		end
+	end
+
+	method void ShowItem(string equipName, boolean showDelta)
+		-- 장비 옵션(+선택적 전투력 증감)을 툴팁 패널에 표시.
+		if self:IsClient() == false then return end
+		if equipName == "" then return end
+		local ds = _DataService:GetTable("EquipData")
+		if isvalid(ds) == false then return end
+		local row = -1
+		for i = 1, ds:GetRowCount() do
+			if ds:GetCell(i, "EquipName") == equipName then row = i; break end
+		end
+		if row == -1 then return end
+		local s = ds:GetCell(row, "Name") .. "\n"
+			.. "스탯 " .. ds:GetCell(row, "Stat") .. "  공/마 " .. ds:GetCell(row, "Attack") .. "\n"
+			.. "대미지 " .. ds:GetCell(row, "Damage") .. "%  보스 " .. ds:GetCell(row, "BossDamage") .. "%"
+		if showDelta then
+			local p = _UserService.LocalPlayer
+			if isvalid(p) then
+				local cp = p:GetComponent("script.CombatPowerManager")
+				if isvalid(cp) then
+					local d = cp:PreviewPowerWithSwap(equipName) - cp.CombatPower
+					local pfx = "+"
+					if d < 0 then pfx = "" end
+					s = s .. "\n전투력 " .. pfx .. tostring(math.floor(d))
+				end
+			end
+		end
+		if isvalid(self.tipText) then
+			local tc = self.tipText:GetComponent("MOD.Core.TextComponent")
+			if tc ~= nil then tc.Text = s end
+		end
+		if isvalid(self.tipRoot) then
+			self.tipRoot.Enable = true
+		end
+		log("[EquipTooltip] Show: " .. equipName)
+	end
+
+	method void Hide()
+		-- 툴팁 패널 숨김.
+		if self:IsClient() == false then return end
+		if isvalid(self.tipRoot) then
+			self.tipRoot.Enable = false
+		end
+	end
+
+end
