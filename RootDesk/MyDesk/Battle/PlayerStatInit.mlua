@@ -13,6 +13,10 @@ script PlayerStatInit extends Logic
 
 	property any userEnterHandler = nil
 
+	-- [임시/디버그] 입장 시 장착/해제 테스트용 더미 장비를 인벤토리에 지급한다. 출시 전 false 또는 블록 제거.
+	@Sync
+	property boolean debugGrantTestItems = true
+
 	method void OnBeginPlay()
 		if self:IsServer() then
 			self.userEnterHandler = _UserService:ConnectEvent(UserEnterEvent, self.OnUserEnter)
@@ -41,6 +45,15 @@ script PlayerStatInit extends Logic
 		self:AddIfMissing(p, "script.ExtraTableManager")
 		self:AddIfMissing(p, "script.CombatPowerManager")
 		log("[PlayerStatInit] 전투 컴포넌트 부착 완료: " .. event.UserId)
+
+		-- [임시/디버그] 장착/해제 테스트용 더미 장비를 각 타입 인벤토리에 지급(보호구/무기/장신구). 출시 전 제거.
+		if self.debugGrantTestItems then
+			local dummies = { "Beginner_Club", "Basic_Weapon", "White_Set", "Black_Set", "Papulatus_Mark", "Guardian_Angel_Ring" }
+			for i = 1, #dummies do
+				_EquipmentRouter:Acquire(p, dummies[i])
+			end
+			log("[PlayerStatInit] (디버그) 테스트 더미 장비 지급: " .. tostring(#dummies) .. "개")
+		end
 
 		-- 빈 장비 기준 전투력 초기 계산.
 		local cp = p:GetComponent("script.CombatPowerManager")
