@@ -5452,7 +5452,130 @@
         "id": "c4fadd74-2612-44e0-913c-94d38acf97f1",
         "path": "/ui/InGameUIGroup/Inventory_Panel/Window/Grid",
         "componentNames": "MOD.Core.UITransformComponent,MOD.Core.GridViewComponent",
-        "jsonString": "{\"name\":\"Grid\",\"path\":\"/ui/InGameUIGroup/Inventory_Panel/Window/Grid\",\"nameEditable\":true,\"enable\":true,\"visible\":true,\"localize\":true,\"displayOrder\":5,\"pathConstraints\":\"/////\",\"revision\":0,\"origin\":{\"type\":\"Model\",\"entry_id\":\"UIEmpty\",\"sub_entity_id\":null,\"root_entity_id\":null,\"replaced_model_id\":null},\"modelId\":\"uiempty\",\"@components\":[{\"@type\":\"MOD.Core.UITransformComponent\",\"ActivePlatform\":255,\"AlignmentOption\":0,\"AnchorsMax\":{\"x\":0.5,\"y\":0.5},\"AnchorsMin\":{\"x\":0.5,\"y\":0.5},\"MobileOnly\":false,\"OffsetMax\":{\"x\":320,\"y\":210},\"OffsetMin\":{\"x\":-320,\"y\":-170},\"Pivot\":{\"x\":0.5,\"y\":0.5},\"RectSize\":{\"x\":640,\"y\":380},\"UIMode\":1,\"UIScale\":{\"x\":1,\"y\":1,\"z\":1},\"UIVersion\":2,\"anchoredPosition\":{\"x\":0,\"y\":20},\"Position\":{\"x\":0,\"y\":20,\"z\":0},\"QuaternionRotation\":{\"x\":0,\"y\":0,\"z\":0,\"w\":1},\"Scale\":{\"x\":1,\"y\":1,\"z\":1},\"Enable\":true},{\"@type\":\"MOD.Core.GridViewComponent\",\"CellSize\":{\"x\":96,\"y\":96},\"FixedCount\":6,\"FixedType\":0,\"HorizontalScrollBarDirection\":0,\"Padding\":{\"left\":16,\"right\":16,\"top\":100,\"bottom\":16},\"ScrollBarBackgroundColor\":{\"r\":1,\"g\":1,\"b\":1,\"a\":0},\"ScrollBarBackgroundImageRUID\":{\"DataId\":\"\"},\"ScrollBarHandleColor\":{\"r\":0.725,\"g\":0.71,\"b\":0.698,\"a\":1},\"ScrollBarHandleImageRUID\":{\"DataId\":\"\"},\"ScrollBarThickness\":10,\"ScrollBarVisible\":1,\"Spacing\":{\"x\":8,\"y\":8},\"TotalCount\":0,\"UseScroll\":true,\"VerticalScrollBarDirection\":0,\"Enable\":true}],\"@version\":1}"
+        "jsonString": {
+          "name": "Grid",
+          "path": "/ui/InGameUIGroup/Inventory_Panel/Window/Grid",
+          "nameEditable": true,
+          "enable": true,
+          "visible": true,
+          "localize": true,
+          "displayOrder": 5,
+          "pathConstraints": "/////",
+          "revision": 0,
+          "origin": {
+            "type": "Model",
+            "entry_id": "UIEmpty",
+            "sub_entity_id": null,
+            "root_entity_id": null,
+            "replaced_model_id": null
+          },
+          "modelId": "uiempty",
+          "@components": [
+            {
+              "@type": "MOD.Core.UITransformComponent",
+              "ActivePlatform": 255,
+              "AlignmentOption": 0,
+              "AnchorsMax": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "AnchorsMin": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "MobileOnly": false,
+              "OffsetMax": {
+                "x": 320,
+                "y": 210
+              },
+              "OffsetMin": {
+                "x": -320,
+                "y": -170
+              },
+              "Pivot": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "RectSize": {
+                "x": 640,
+                "y": 380
+              },
+              "UIMode": 1,
+              "UIScale": {
+                "x": 1,
+                "y": 1,
+                "z": 1
+              },
+              "UIVersion": 2,
+              "anchoredPosition": {
+                "x": 0,
+                "y": 20
+              },
+              "Position": {
+                "x": 0,
+                "y": 20,
+                "z": 0
+              },
+              "QuaternionRotation": {
+                "x": 0,
+                "y": 0,
+                "z": 0,
+                "w": 1
+              },
+              "Scale": {
+                "x": 1,
+                "y": 1,
+                "z": 1
+              },
+              "Enable": true
+            },
+            {
+              "@type": "MOD.Core.GridViewComponent",
+              "CellSize": {
+                "x": 96,
+                "y": 96
+              },
+              "FixedCount": 6,
+              "FixedType": 0,
+              "HorizontalScrollBarDirection": 0,
+              "Padding": {
+                "left": 16,
+                "right": 16,
+                "top": 100,
+                "bottom": 16
+              },
+              "ScrollBarBackgroundColor": {
+                "r": 1,
+                "g": 1,
+                "b": 1,
+                "a": 0
+              },
+              "ScrollBarBackgroundImageRUID": {
+                "DataId": ""
+              },
+              "ScrollBarHandleColor": {
+                "r": 0.725,
+                "g": 0.71,
+                "b": 0.698,
+                "a": 1
+              },
+              "ScrollBarHandleImageRUID": {
+                "DataId": ""
+              },
+              "ScrollBarThickness": 10,
+              "ScrollBarVisible": 1,
+              "Spacing": {
+                "x": 8,
+                "y": 8
+              },
+              "TotalCount": 0,
+              "UseScroll": true,
+              "VerticalScrollBarDirection": 0,
+              "Enable": true
+            }
+          ],
+          "@version": 1
+        }
       },
       {
         "id": "5c958470-46b3-40e2-a250-24aaa2847a6e",
@@ -5700,105 +5823,6 @@
               "UseConstraintX": false,
               "UseConstraintY": false,
               "UseOutLine": false,
-              "Enable": true
-            }
-          ],
-          "@version": 1
-        }
-      },
-      {
-        "id": "28408ba3-d73b-4aa4-bd2c-23253abaacb4",
-        "path": "/ui/InGameUIGroup/EquipTooltip",
-        "componentNames": "MOD.Core.UITransformComponent,MOD.Core.UIGroupComponent,MOD.Core.CanvasGroupComponent",
-        "jsonString": {
-          "name": "EquipTooltip",
-          "path": "/ui/InGameUIGroup/EquipTooltip",
-          "nameEditable": true,
-          "enable": true,
-          "visible": true,
-          "localize": true,
-          "displayOrder": 8,
-          "pathConstraints": "///",
-          "revision": 0,
-          "origin": {
-            "type": "Model",
-            "entry_id": "UIGroup",
-            "sub_entity_id": null,
-            "root_entity_id": null,
-            "replaced_model_id": null
-          },
-          "modelId": "uigroup",
-          "@components": [
-            {
-              "@type": "MOD.Core.UITransformComponent",
-              "ActivePlatform": 255,
-              "AlignmentOption": 0,
-              "AnchorsMax": {
-                "x": 0.5,
-                "y": 0.5
-              },
-              "AnchorsMin": {
-                "x": 0.5,
-                "y": 0.5
-              },
-              "MobileOnly": false,
-              "OffsetMax": {
-                "x": 960,
-                "y": 540
-              },
-              "OffsetMin": {
-                "x": -960,
-                "y": -540
-              },
-              "Pivot": {
-                "x": 0.5,
-                "y": 0.5
-              },
-              "RectSize": {
-                "x": 1920,
-                "y": 1080
-              },
-              "UIMode": 1,
-              "UIScale": {
-                "x": 1,
-                "y": 1,
-                "z": 1
-              },
-              "UIVersion": 2,
-              "anchoredPosition": {
-                "x": 0,
-                "y": 0
-              },
-              "Position": {
-                "x": 0,
-                "y": 0,
-                "z": 0
-              },
-              "QuaternionRotation": {
-                "x": 0,
-                "y": 0,
-                "z": 0,
-                "w": 1
-              },
-              "Scale": {
-                "x": 1,
-                "y": 1,
-                "z": 1
-              },
-              "Enable": true
-            },
-            {
-              "@type": "MOD.Core.UIGroupComponent",
-              "DefaultShow": true,
-              "GroupOrder": 80,
-              "GroupType": 1,
-              "Enable": true
-            },
-            {
-              "@type": "MOD.Core.CanvasGroupComponent",
-              "BlocksRaycasts": true,
-              "GroupAlpha": 1,
-              "Interactable": true,
               "Enable": true
             }
           ],
@@ -9606,7 +9630,195 @@
         }
       },
       {
-        "id": "48c6b3b8-a8b4-41ef-885f-9399aa02318b",
+        "id": "676cce37-8a90-43c5-80bd-3331e0a932cd",
+        "path": "/ui/InGameUIGroup/EquipTooltip",
+        "componentNames": "MOD.Core.UITransformComponent,MOD.Core.UIGroupComponent,MOD.Core.CanvasGroupComponent",
+        "jsonString": {
+          "name": "EquipTooltip",
+          "path": "/ui/InGameUIGroup/EquipTooltip",
+          "nameEditable": true,
+          "enable": true,
+          "visible": true,
+          "localize": true,
+          "displayOrder": 10,
+          "pathConstraints": "///",
+          "revision": 0,
+          "origin": {
+            "type": "Model",
+            "entry_id": "UIGroup",
+            "sub_entity_id": null,
+            "root_entity_id": null,
+            "replaced_model_id": null
+          },
+          "modelId": "uigroup",
+          "@components": [
+            {
+              "@type": "MOD.Core.UITransformComponent",
+              "ActivePlatform": 255,
+              "AlignmentOption": 15,
+              "AnchorsMax": {
+                "x": 1,
+                "y": 1
+              },
+              "AnchorsMin": {
+                "x": 0,
+                "y": 0
+              },
+              "MobileOnly": false,
+              "OffsetMax": {
+                "x": 0,
+                "y": 0
+              },
+              "OffsetMin": {
+                "x": 0,
+                "y": 0
+              },
+              "Pivot": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "RectSize": {
+                "x": 1920,
+                "y": 1080
+              },
+              "UIMode": 1,
+              "UIScale": {
+                "x": 1,
+                "y": 1,
+                "z": 1
+              },
+              "UIVersion": 2,
+              "anchoredPosition": {
+                "x": 0,
+                "y": 0
+              },
+              "Position": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+              },
+              "QuaternionRotation": {
+                "x": 0,
+                "y": 0,
+                "z": 0,
+                "w": 1
+              },
+              "Scale": {
+                "x": 1,
+                "y": 1,
+                "z": 1
+              },
+              "Enable": true
+            },
+            {
+              "@type": "MOD.Core.UIGroupComponent",
+              "DefaultShow": true,
+              "GroupOrder": 80,
+              "GroupType": 1,
+              "Enable": true
+            },
+            {
+              "@type": "MOD.Core.CanvasGroupComponent",
+              "BlocksRaycasts": true,
+              "GroupAlpha": 1,
+              "Interactable": true,
+              "Enable": true
+            }
+          ],
+          "@version": 1
+        }
+      },
+      {
+        "id": "d344d723-3c74-4331-9dc3-fd05635a9a83",
+        "path": "/ui/InGameUIGroup/EquipTooltip/Ctrl",
+        "componentNames": "MOD.Core.UITransformComponent,script.EquipTooltip",
+        "jsonString": {
+          "name": "Ctrl",
+          "path": "/ui/InGameUIGroup/EquipTooltip/Ctrl",
+          "nameEditable": true,
+          "enable": true,
+          "visible": true,
+          "localize": true,
+          "displayOrder": 1,
+          "pathConstraints": "////",
+          "revision": 0,
+          "origin": {
+            "type": "Model",
+            "entry_id": "UIEmpty",
+            "sub_entity_id": null,
+            "root_entity_id": null,
+            "replaced_model_id": null
+          },
+          "modelId": "uiempty",
+          "@components": [
+            {
+              "@type": "MOD.Core.UITransformComponent",
+              "ActivePlatform": 255,
+              "AlignmentOption": 15,
+              "AnchorsMax": {
+                "x": 1,
+                "y": 1
+              },
+              "AnchorsMin": {
+                "x": 0,
+                "y": 0
+              },
+              "MobileOnly": false,
+              "OffsetMax": {
+                "x": 0,
+                "y": 0
+              },
+              "OffsetMin": {
+                "x": 0,
+                "y": 0
+              },
+              "Pivot": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "RectSize": {
+                "x": 1920,
+                "y": 1080
+              },
+              "UIMode": 1,
+              "UIScale": {
+                "x": 1,
+                "y": 1,
+                "z": 1
+              },
+              "UIVersion": 2,
+              "anchoredPosition": {
+                "x": 0,
+                "y": 0
+              },
+              "Position": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+              },
+              "QuaternionRotation": {
+                "x": 0,
+                "y": 0,
+                "z": 0,
+                "w": 1
+              },
+              "Scale": {
+                "x": 1,
+                "y": 1,
+                "z": 1
+              },
+              "Enable": true
+            },
+            {
+              "@type": "script.EquipTooltip",
+              "Enable": true
+            }
+          ],
+          "@version": 1
+        }
+      },
+      {
+        "id": "5329f5e0-0d69-4621-83f9-fa2a682c4845",
         "path": "/ui/InGameUIGroup/EquipTooltip/Tip",
         "componentNames": "MOD.Core.UITransformComponent",
         "jsonString": {
@@ -9616,7 +9828,7 @@
           "enable": false,
           "visible": true,
           "localize": true,
-          "displayOrder": 0,
+          "displayOrder": 2,
           "pathConstraints": "////",
           "revision": 0,
           "origin": {
@@ -9642,11 +9854,11 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 530,
+                "x": 550,
                 "y": 100
               },
               "OffsetMin": {
-                "x": 70,
+                "x": 90,
                 "y": -100
               },
               "Pivot": {
@@ -9665,7 +9877,7 @@
               },
               "UIVersion": 2,
               "anchoredPosition": {
-                "x": 300,
+                "x": 320,
                 "y": 0
               },
               "Position": {
@@ -9691,7 +9903,153 @@
         }
       },
       {
-        "id": "422ea71a-d348-4d4b-a29a-f6676cdf084b",
+        "id": "775b1c0b-1296-4a62-8f42-d488e12d1951",
+        "path": "/ui/InGameUIGroup/EquipTooltip/Tip/Bg",
+        "componentNames": "MOD.Core.UITransformComponent,MOD.Core.SpriteGUIRendererComponent",
+        "jsonString": {
+          "name": "Bg",
+          "path": "/ui/InGameUIGroup/EquipTooltip/Tip/Bg",
+          "nameEditable": true,
+          "enable": true,
+          "visible": true,
+          "localize": true,
+          "displayOrder": 2,
+          "pathConstraints": "/////",
+          "revision": 0,
+          "origin": {
+            "type": "Model",
+            "entry_id": "UISprite",
+            "sub_entity_id": null,
+            "root_entity_id": null,
+            "replaced_model_id": null
+          },
+          "modelId": "uisprite",
+          "@components": [
+            {
+              "@type": "MOD.Core.UITransformComponent",
+              "ActivePlatform": 255,
+              "AlignmentOption": 15,
+              "AnchorsMax": {
+                "x": 1,
+                "y": 1
+              },
+              "AnchorsMin": {
+                "x": 0,
+                "y": 0
+              },
+              "MobileOnly": false,
+              "OffsetMax": {
+                "x": 0,
+                "y": 0
+              },
+              "OffsetMin": {
+                "x": 0,
+                "y": 0
+              },
+              "Pivot": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "RectSize": {
+                "x": 100,
+                "y": 100
+              },
+              "UIMode": 1,
+              "UIScale": {
+                "x": 1,
+                "y": 1,
+                "z": 1
+              },
+              "UIVersion": 2,
+              "anchoredPosition": {
+                "x": 0,
+                "y": 0
+              },
+              "Position": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+              },
+              "QuaternionRotation": {
+                "x": 0,
+                "y": 0,
+                "z": 0,
+                "w": 1
+              },
+              "Scale": {
+                "x": 1,
+                "y": 1,
+                "z": 1
+              },
+              "Enable": true
+            },
+            {
+              "@type": "MOD.Core.SpriteGUIRendererComponent",
+              "AnimClipPlayType": 0,
+              "EndFrameIndex": 2147483647,
+              "ImageRUID": {
+                "DataId": "4fea64a3307cda641809ad8be0d4890b"
+              },
+              "IgnoreMapLayerCheck": false,
+              "LocalPosition": {
+                "x": 0,
+                "y": 0
+              },
+              "LocalScale": {
+                "x": 1,
+                "y": 1
+              },
+              "MaterialId": "",
+              "OrderInLayer": 0,
+              "OverrideSorting": false,
+              "PlayRate": 1,
+              "PreserveAspect": false,
+              "PreserveSprite": 0,
+              "SortingLayer": "UI",
+              "StartFrameIndex": 0,
+              "Color": {
+                "r": 0.13333333333333333,
+                "g": 0.1607843137254902,
+                "b": 0.2,
+                "a": 0.92
+              },
+              "DropShadow": false,
+              "DropShadowAngle": 120,
+              "DropShadowColor": {
+                "r": 0,
+                "g": 0,
+                "b": 0,
+                "a": 0.72
+              },
+              "DropShadowDistance": 3,
+              "FillAmount": 1,
+              "FillCenter": true,
+              "FillClockWise": true,
+              "FillMethod": 0,
+              "FillOrigin": 0,
+              "FlipX": false,
+              "FlipY": false,
+              "FrameColumn": 1,
+              "FrameRate": 0,
+              "FrameRow": 1,
+              "Outline": false,
+              "OutlineColor": {
+                "r": 0,
+                "g": 0,
+                "b": 0,
+                "a": 1
+              },
+              "OutlineWidth": 3,
+              "RaycastTarget": false,
+              "Type": 0,
+              "Enable": true
+            }
+          ],
+          "@version": 1
+        }
+      },
+      {
+        "id": "24d2c39e-279a-4e79-a497-186dae72c194",
         "path": "/ui/InGameUIGroup/EquipTooltip/Tip/Left",
         "componentNames": "MOD.Core.UITransformComponent",
         "jsonString": {
@@ -9701,7 +10059,7 @@
           "enable": true,
           "visible": true,
           "localize": true,
-          "displayOrder": 0,
+          "displayOrder": 3,
           "pathConstraints": "/////",
           "revision": 0,
           "origin": {
@@ -9727,20 +10085,20 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 225,
-                "y": 90
+                "x": 226,
+                "y": 92
               },
               "OffsetMin": {
-                "x": 10,
-                "y": -90
+                "x": 8,
+                "y": -92
               },
               "Pivot": {
                 "x": 0,
                 "y": 0.5
               },
               "RectSize": {
-                "x": 215,
-                "y": 180
+                "x": 218,
+                "y": 184
               },
               "UIMode": 1,
               "UIScale": {
@@ -9750,7 +10108,7 @@
               },
               "UIVersion": 2,
               "anchoredPosition": {
-                "x": 10,
+                "x": 8,
                 "y": 0
               },
               "Position": {
@@ -9776,7 +10134,7 @@
         }
       },
       {
-        "id": "86daed1b-d99f-4217-8f97-b1ac61ba6393",
+        "id": "047075a4-9d23-4d02-94dd-a9e31f9d358d",
         "path": "/ui/InGameUIGroup/EquipTooltip/Tip/Left/Bg",
         "componentNames": "MOD.Core.UITransformComponent,MOD.Core.SpriteGUIRendererComponent",
         "jsonString": {
@@ -9786,7 +10144,7 @@
           "enable": true,
           "visible": true,
           "localize": true,
-          "displayOrder": 0,
+          "displayOrder": 2,
           "pathConstraints": "//////",
           "revision": 0,
           "origin": {
@@ -9861,7 +10219,7 @@
               "AnimClipPlayType": 0,
               "EndFrameIndex": 2147483647,
               "ImageRUID": {
-                "DataId": "1705e3c5b2c146ac9a699f96fb067408"
+                "DataId": "4fea64a3307cda641809ad8be0d4890b"
               },
               "IgnoreMapLayerCheck": false,
               "LocalPosition": {
@@ -9881,10 +10239,10 @@
               "SortingLayer": "UI",
               "StartFrameIndex": 0,
               "Color": {
-                "r": 1,
-                "g": 1,
-                "b": 1,
-                "a": 0.85
+                "r": 0.1843137254901961,
+                "g": 0.22745098039215686,
+                "b": 0.2901960784313726,
+                "a": 1
               },
               "DropShadow": false,
               "DropShadowAngle": 120,
@@ -9922,7 +10280,7 @@
         }
       },
       {
-        "id": "282fa91f-76b4-40ad-b5f3-01a572bc395f",
+        "id": "7d8b95f1-7d0c-463b-8518-5e37c79569f1",
         "path": "/ui/InGameUIGroup/EquipTooltip/Tip/Left/Text",
         "componentNames": "MOD.Core.UITransformComponent,MOD.Core.SpriteGUIRendererComponent,MOD.Core.TextComponent",
         "jsonString": {
@@ -9932,7 +10290,7 @@
           "enable": true,
           "visible": true,
           "localize": true,
-          "displayOrder": 1,
+          "displayOrder": 3,
           "pathConstraints": "//////",
           "revision": 0,
           "origin": {
@@ -9958,19 +10316,19 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 203,
-                "y": -12
+                "x": 212,
+                "y": 12
               },
               "OffsetMin": {
                 "x": 12,
-                "y": -172
+                "y": -148
               },
               "Pivot": {
                 "x": 0,
                 "y": 1
               },
               "RectSize": {
-                "x": 191,
+                "x": 200,
                 "y": 160
               },
               "UIMode": 1,
@@ -9982,7 +10340,7 @@
               "UIVersion": 2,
               "anchoredPosition": {
                 "x": 12,
-                "y": -12
+                "y": 12
               },
               "Position": {
                 "x": 0,
@@ -10125,7 +10483,7 @@
         }
       },
       {
-        "id": "2eadd2c1-b2ce-40ca-b5c2-36a82b3dde91",
+        "id": "a758f39c-16f4-4498-a6df-a1f2ce43f4ed",
         "path": "/ui/InGameUIGroup/EquipTooltip/Tip/Right",
         "componentNames": "MOD.Core.UITransformComponent",
         "jsonString": {
@@ -10135,7 +10493,7 @@
           "enable": true,
           "visible": true,
           "localize": true,
-          "displayOrder": 1,
+          "displayOrder": 4,
           "pathConstraints": "/////",
           "revision": 0,
           "origin": {
@@ -10161,20 +10519,20 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": -10,
-                "y": 90
+                "x": -8,
+                "y": 92
               },
               "OffsetMin": {
-                "x": -225,
-                "y": -90
+                "x": -226,
+                "y": -92
               },
               "Pivot": {
                 "x": 1,
                 "y": 0.5
               },
               "RectSize": {
-                "x": 215,
-                "y": 180
+                "x": 218,
+                "y": 184
               },
               "UIMode": 1,
               "UIScale": {
@@ -10184,7 +10542,7 @@
               },
               "UIVersion": 2,
               "anchoredPosition": {
-                "x": -10,
+                "x": -8,
                 "y": 0
               },
               "Position": {
@@ -10210,7 +10568,7 @@
         }
       },
       {
-        "id": "49bf4ad3-1843-438c-9b8d-25dca52494c0",
+        "id": "f1a8ea51-c0f2-4e2c-a553-17a4d4915c36",
         "path": "/ui/InGameUIGroup/EquipTooltip/Tip/Right/Bg",
         "componentNames": "MOD.Core.UITransformComponent,MOD.Core.SpriteGUIRendererComponent",
         "jsonString": {
@@ -10220,7 +10578,7 @@
           "enable": true,
           "visible": true,
           "localize": true,
-          "displayOrder": 0,
+          "displayOrder": 2,
           "pathConstraints": "//////",
           "revision": 0,
           "origin": {
@@ -10295,7 +10653,7 @@
               "AnimClipPlayType": 0,
               "EndFrameIndex": 2147483647,
               "ImageRUID": {
-                "DataId": "1705e3c5b2c146ac9a699f96fb067408"
+                "DataId": "4fea64a3307cda641809ad8be0d4890b"
               },
               "IgnoreMapLayerCheck": false,
               "LocalPosition": {
@@ -10315,10 +10673,10 @@
               "SortingLayer": "UI",
               "StartFrameIndex": 0,
               "Color": {
-                "r": 1,
-                "g": 1,
-                "b": 1,
-                "a": 0.75
+                "r": 0.22745098039215686,
+                "g": 0.18823529411764706,
+                "b": 0.18823529411764706,
+                "a": 1
               },
               "DropShadow": false,
               "DropShadowAngle": 120,
@@ -10356,7 +10714,7 @@
         }
       },
       {
-        "id": "650b4b13-2ae7-4dfc-aa33-1d79a7f9b500",
+        "id": "c3c73602-fc17-458e-85fe-8dcd34571e23",
         "path": "/ui/InGameUIGroup/EquipTooltip/Tip/Right/Text",
         "componentNames": "MOD.Core.UITransformComponent,MOD.Core.SpriteGUIRendererComponent,MOD.Core.TextComponent",
         "jsonString": {
@@ -10366,7 +10724,7 @@
           "enable": true,
           "visible": true,
           "localize": true,
-          "displayOrder": 1,
+          "displayOrder": 3,
           "pathConstraints": "//////",
           "revision": 0,
           "origin": {
@@ -10392,19 +10750,19 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 203,
-                "y": -12
+                "x": 212,
+                "y": 12
               },
               "OffsetMin": {
                 "x": 12,
-                "y": -172
+                "y": -148
               },
               "Pivot": {
                 "x": 0,
                 "y": 1
               },
               "RectSize": {
-                "x": 191,
+                "x": 200,
                 "y": 160
               },
               "UIMode": 1,
@@ -10416,7 +10774,7 @@
               "UIVersion": 2,
               "anchoredPosition": {
                 "x": 12,
-                "y": -12
+                "y": 12
               },
               "Position": {
                 "x": 0,

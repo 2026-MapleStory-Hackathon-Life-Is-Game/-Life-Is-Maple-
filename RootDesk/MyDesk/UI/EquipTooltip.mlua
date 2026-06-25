@@ -1,10 +1,10 @@
 @Logic
 script EquipTooltip extends Logic
 
-	property Entity tipRoot = "48c6b3b8-a8b4-41ef-885f-9399aa02318b"
-	property Entity leftText = "282fa91f-76b4-40ad-b5f3-01a572bc395f"
-	property Entity rightPanel = "2eadd2c1-b2ce-40ca-b5c2-36a82b3dde91"
-	property Entity rightText = "650b4b13-2ae7-4dfc-aa33-1d79a7f9b500"
+	property Entity tipRoot = "5329f5e0-0d69-4621-83f9-fa2a682c4845"
+	property Entity leftText = "7d8b95f1-7d0c-463b-8518-5e37c79569f1"
+	property Entity rightPanel = "a758f39c-16f4-4498-a6df-a1f2ce43f4ed"
+	property Entity rightText = "c3c73602-fc17-458e-85fe-8dcd34571e23"
 
 	method void OnBeginPlay()
 		-- 클라: 툴팁 패널 숨김.
