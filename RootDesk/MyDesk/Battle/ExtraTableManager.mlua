@@ -8,11 +8,13 @@ script ExtraTableManager extends Component
 		        allStatFlat = 0, allStatPct = 0,
 		        attackFlat = 0, attackPct = 0,
 		        damagePct = 0,
+		        bossDamagePct = 0,
 		        critPct = 0,
 		    }
 	end
 
 	method void AddModifiers(table extra, table m)
+		-- extra에 modifier 테이블 m을 누적 합산한다.
 		if m == nil then return end
 		    extra.statFlat      = extra.statFlat      + (m.statFlat or 0)
 		    extra.statPct       = extra.statPct      + (m.statPct or 0)
@@ -21,19 +23,19 @@ script ExtraTableManager extends Component
 		    extra.attackFlat    = extra.attackFlat    + (m.attackFlat or 0)
 		    extra.attackPct     = extra.attackPct     + (m.attackPct or 0)
 		    extra.damagePct     = extra.damagePct     + (m.damagePct or 0)
+		    extra.bossDamagePct = extra.bossDamagePct + (m.bossDamagePct or 0)
 		    extra.critPct       = extra.critPct       + (m.critPct or 0)
 	end
 
 	method table GetExtra()
-		-- 같은 플레이어의 BuffManager + EquipmentManager 수정자를 합산한다.
+		-- 같은 플레이어의 BuffManager + EquipmentRouter 수정자를 합산한다.
 		local extra = self:CreateEmptyExtra()
-		
+
 		local buff = self.Entity:GetComponent("script.BuffManager")
 		if isvalid(buff) then self:AddModifiers(extra, buff:GetModifiers()) end
-		
-		local equip = self.Entity:GetComponent("script.EquipmentManager")
-		if isvalid(equip) then self:AddModifiers(extra, equip:GetModifiers()) end
-		
+
+		self:AddModifiers(extra, _EquipmentRouter:TotalModifiers(self.Entity))
+
 		return extra
 	end
 
