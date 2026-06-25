@@ -83,8 +83,8 @@ script BossTile extends BaseTile
 			log("[BossTile] " .. displayName .. " 대성공! (전투력 " .. tostring(power)
 				.. " ≥ " .. tostring(requiredPower) .. ") → 장신구 " .. drop .. " 획득")
 			if drop ~= "" then
-				local equip = self:Equip(piece)
-				if isvalid(equip) then equip:Equip(drop) end   -- 장신구 스탯이 전투력에 반영됨
+				local equip = self:EquipManagerFor(piece, drop)
+				if isvalid(equip) then equip:Acquire(drop) end   -- 장신구 타입 인벤에 보유
 			end
 		elseif power >= requiredPower / 2 then
 			-- 성공: 주스탯(직업 주스탯)을 소폭 올린다. 내부에서 전투력도 재계산된다.

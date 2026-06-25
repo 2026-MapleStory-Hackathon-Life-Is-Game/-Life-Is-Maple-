@@ -200,12 +200,14 @@ script GameModeManager extends Logic
 		        if isvalid(entity) == false then return end
 		        local buff = entity:GetComponent("script.BuffManager")
 		        if isvalid(buff) then buff:ResetAll() end
-		        local equip = entity:GetComponent("script.EquipmentManager")
-		        if isvalid(equip) then equip:ResetAll() end
+		        for _, t in ipairs({ "script.WeaponEquipment", "script.ArmorEquipment", "script.AccessoryEquipment" }) do
+		            local m = entity:GetComponent(t)
+		            if isvalid(m) then m:ResetAll() end
+		        end
 		        local cp = entity:GetComponent("script.CombatPowerManager")
 		        if isvalid(cp) then cp:ResetAll() end
-		        -- 초기화 후 기본 무기/방어구를 다시 장착(전투력 재계산 포함).
-		        _PlayerStatInit:EquipDefaults(entity)
+		        -- 초기화 후 빈 장비 기준 전투력 재계산.
+		        if isvalid(cp) then cp:CalculateCurrentCombatPower() end
 	end
 
 	method string GetPlayerName(Entity entity)
