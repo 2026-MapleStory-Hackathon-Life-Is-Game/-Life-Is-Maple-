@@ -7,11 +7,15 @@ script UnderButton extends Component
 
 	property any closeHandler = nil
 
+	property any mapHandler = nil
+
 	property ButtonComponent OpenDicePanelButton = "64eadf42-ab0c-4d9c-99f4-9da65935f7d1"
 
 	property ButtonComponent RollDiceButton = "859b1f3d-8c48-4216-b425-18e45ef436bd"
 
 	property ButtonComponent CloseDicePanelButton = "fbabd9a0-bb4d-47be-bcf0-d8625ee61e1c"
+
+	property ButtonComponent MapViewButton = "f4d5b8f1-b4f3-48f2-a9d4-e113e1204abe"
 
 	property Entity WholePanel = "f6591a77-568d-41c8-b6f0-b4721629787f"
 
@@ -25,8 +29,11 @@ script UnderButton extends Component
 			self.openHandler = self.OpenDicePanelButton.Entity:ConnectEvent(ButtonClickEvent,self.OnDicePanelClickOpen)
 			self.rollHandler = self.RollDiceButton.Entity:ConnectEvent(ButtonClickEvent,self.OnClickRoll)
 			self.closeHandler = self.CloseDicePanelButton.Entity:ConnectEvent(ButtonClickEvent,self.OnDicePanelClickClose)
-			
-			self.DicePanel.Visible = false	
+			if isvalid(self.MapViewButton.Entity) then
+				self.mapHandler = self.MapViewButton.Entity:ConnectEvent(ButtonClickEvent, self.OnClickMap)
+			end
+		
+			self.DicePanel.Visible = false
 		end
 		
 	end
@@ -42,6 +49,9 @@ script UnderButton extends Component
 					if self.closeHandler ~= nil then
 						self.CloseDicePanelButton.Entity:DisconnectEvent(ButtonClickEvent, self.closeHandler)
 					end
+					if self.mapHandler ~= nil and isvalid(self.MapViewButton.Entity) then
+						self.MapViewButton.Entity:DisconnectEvent(ButtonClickEvent, self.mapHandler)
+					end
 				end
 	end
 
@@ -50,6 +60,8 @@ script UnderButton extends Component
 		if self:CanOpenDicePanel() == false then
 					return   -- 주사위 차례가 아니면 패널 안 열림
 				end
+				-- 주사위 패널 열기 전 맵 뷰 닫기
+				_MapViewManager:CloseMapView()
 				self.DicePanel.Visible = true
 				self.WholePanel.Visible = false
 	end
@@ -68,6 +80,12 @@ script UnderButton extends Component
 		_SFXManager:PlayClick()
 		self.DicePanel.Visible = false
 		self.WholePanel.Visible = true
+	end
+
+	method void OnClickMap(any event)
+		_SFXManager:PlayClick()
+		if not self:CanOpenDicePanel() then return end
+		_MapViewManager:Toggle()
 	end
 
 	method boolean CanOpenDicePanel()
@@ -91,6 +109,11 @@ script UnderButton extends Component
 		
 				-- 그 외(NONE 등): 못 엶
 				return false
+	end
+
+	@ExecSpace("ServerOnly")
+	method void OnInitialize()
+		-- 여기서 table을 매핑
 	end
 
 end

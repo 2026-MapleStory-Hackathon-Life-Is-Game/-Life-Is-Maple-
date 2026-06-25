@@ -950,12 +950,12 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": -453.862671,
-                "y": -92.267
+                "x": 155.3435,
+                "y": -95.9696045
               },
               "OffsetMin": {
-                "x": -753.8627,
-                "y": -192.267
+                "x": -144.6565,
+                "y": -195.9696
               },
               "Pivot": {
                 "x": 0.5,
@@ -973,8 +973,8 @@
               },
               "UIVersion": 2,
               "anchoredPosition": {
-                "x": -603.8627,
-                "y": -142.267
+                "x": 5.3435,
+                "y": -145.9696
               },
               "Rotation": {
                 "x": 0.0,
@@ -982,8 +982,8 @@
                 "z": 0.0
               },
               "Position": {
-                "x": -603.8627,
-                "y": -142.267,
+                "x": 5.3435,
+                "y": -145.9696,
                 "z": 0.0
               },
               "QuaternionRotation": {
@@ -1144,11 +1144,11 @@
       },
       {
         "id": "9cdcac8a-2a4d-4f0b-b128-5fa7e1c1246f",
-        "path": "/ui/InGameUIGroup/UnderButton/UnderButton_Panel_Whole/UIButton_1",
+        "path": "/ui/InGameUIGroup/UnderButton/UnderButton_Panel_Whole/PlayerInfoButton",
         "componentNames": "MOD.Core.UITransformComponent,MOD.Core.SpriteGUIRendererComponent,MOD.Core.ButtonComponent",
         "jsonString": {
-          "name": "UIButton_1",
-          "path": "/ui/InGameUIGroup/UnderButton/UnderButton_Panel_Whole/UIButton_1",
+          "name": "PlayerInfoButton",
+          "path": "/ui/InGameUIGroup/UnderButton/UnderButton_Panel_Whole/PlayerInfoButton",
           "nameEditable": true,
           "enable": true,
           "visible": true,
@@ -1178,20 +1178,20 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": -35.209198,
-                "y": -95.9694061
+                "x": 901.2289,
+                "y": 11.0349007
               },
               "OffsetMin": {
-                "x": -335.2092,
-                "y": -195.9694
+                "x": 751.2289,
+                "y": -138.9651
               },
               "Pivot": {
                 "x": 0.5,
                 "y": 0.5
               },
               "RectSize": {
-                "x": 300.0,
-                "y": 100.0
+                "x": 150.0,
+                "y": 150.0
               },
               "UIMode": 1,
               "UIScale": {
@@ -1201,8 +1201,8 @@
               },
               "UIVersion": 2,
               "anchoredPosition": {
-                "x": -185.2092,
-                "y": -145.9694
+                "x": 826.2289,
+                "y": -63.9651
               },
               "Rotation": {
                 "x": 0.0,
@@ -1210,8 +1210,8 @@
                 "z": 0.0
               },
               "Position": {
-                "x": -185.2092,
-                "y": -145.9694,
+                "x": 826.2289,
+                "y": -63.9651,
                 "z": 0.0
               },
               "QuaternionRotation": {
@@ -1285,11 +1285,11 @@
       },
       {
         "id": "d12aeed0-4c49-4c6d-9c33-5dde61e129b7",
-        "path": "/ui/InGameUIGroup/UnderButton/UnderButton_Panel_Whole/UIButton_1/UIText",
+        "path": "/ui/InGameUIGroup/UnderButton/UnderButton_Panel_Whole/PlayerInfoButton/UIText",
         "componentNames": "MOD.Core.UITransformComponent,MOD.Core.TextGUIRendererComponent",
         "jsonString": {
           "name": "UIText",
-          "path": "/ui/InGameUIGroup/UnderButton/UnderButton_Panel_Whole/UIButton_1/UIText",
+          "path": "/ui/InGameUIGroup/UnderButton/UnderButton_Panel_Whole/PlayerInfoButton/UIText",
           "nameEditable": true,
           "enable": true,
           "visible": true,
@@ -1319,11 +1319,11 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 150.0,
+                "x": 75.0,
                 "y": 50.0
               },
               "OffsetMin": {
-                "x": -150.0,
+                "x": -75.0,
                 "y": -50.0
               },
               "Pivot": {
@@ -1331,7 +1331,7 @@
                 "y": 0.5
               },
               "RectSize": {
-                "x": 300.0,
+                "x": 150.0,
                 "y": 100.0
               },
               "UIMode": 1,
@@ -1365,7 +1365,7 @@
               },
               "OverrideSorting": false,
               "SortingLayer": "MapLayer0",
-              "Text": "캐릭터정보",
+              "Text": "캐릭터\\n정보",
               "Enable": true
             }
           ],
@@ -1374,11 +1374,11 @@
       },
       {
         "id": "620689f7-d644-4347-94c3-9a74de27cc46",
-        "path": "/ui/InGameUIGroup/UnderButton/UnderButton_Panel_Whole/UIButton_2",
+        "path": "/ui/InGameUIGroup/UnderButton/UnderButton_Panel_Whole/BagButton",
         "componentNames": "MOD.Core.UITransformComponent,MOD.Core.SpriteGUIRendererComponent,MOD.Core.ButtonComponent",
         "jsonString": {
-          "name": "UIButton_2",
-          "path": "/ui/InGameUIGroup/UnderButton/UnderButton_Panel_Whole/UIButton_2",
+          "name": "BagButton",
+          "path": "/ui/InGameUIGroup/UnderButton/UnderButton_Panel_Whole/BagButton",
           "nameEditable": true,
           "enable": true,
           "visible": true,
@@ -1408,19 +1408,19 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 369.8693,
-                "y": -95.9689
+                "x": 901.2289,
+                "y": 168.2804
               },
               "OffsetMin": {
-                "x": 69.86929,
-                "y": -195.9689
+                "x": 751.2289,
+                "y": 68.2804
               },
               "Pivot": {
                 "x": 0.5,
                 "y": 0.5
               },
               "RectSize": {
-                "x": 300.0,
+                "x": 150.0,
                 "y": 100.0
               },
               "UIMode": 1,
@@ -1431,8 +1431,8 @@
               },
               "UIVersion": 2,
               "anchoredPosition": {
-                "x": 219.8693,
-                "y": -145.9689
+                "x": 826.2289,
+                "y": 118.2804
               },
               "Rotation": {
                 "x": 0.0,
@@ -1440,8 +1440,8 @@
                 "z": 0.0
               },
               "Position": {
-                "x": 219.8693,
-                "y": -145.9689,
+                "x": 826.2289,
+                "y": 118.2804,
                 "z": 0.0
               },
               "QuaternionRotation": {
@@ -1515,11 +1515,11 @@
       },
       {
         "id": "00d48ee3-f89e-4284-8d11-1b0d4b69d4bd",
-        "path": "/ui/InGameUIGroup/UnderButton/UnderButton_Panel_Whole/UIButton_2/UIText",
+        "path": "/ui/InGameUIGroup/UnderButton/UnderButton_Panel_Whole/BagButton/UIText",
         "componentNames": "MOD.Core.UITransformComponent,MOD.Core.TextGUIRendererComponent",
         "jsonString": {
           "name": "UIText",
-          "path": "/ui/InGameUIGroup/UnderButton/UnderButton_Panel_Whole/UIButton_2/UIText",
+          "path": "/ui/InGameUIGroup/UnderButton/UnderButton_Panel_Whole/BagButton/UIText",
           "nameEditable": true,
           "enable": true,
           "visible": true,
@@ -1603,30 +1603,31 @@
         }
       },
       {
-        "id": "12257908-0928-4239-a95c-09f6dcad7870",
-        "path": "/ui/InGameUIGroup/UnderButton/UnderButton_Panel_Whole/UIButton_3",
+        "id": "f4d5b8f1-b4f3-48f2-a9d4-e113e1204abe",
+        "path": "/ui/InGameUIGroup/UnderButton/UnderButton_Panel_Whole/MapViewButton",
         "componentNames": "MOD.Core.UITransformComponent,MOD.Core.SpriteGUIRendererComponent,MOD.Core.ButtonComponent",
         "jsonString": {
-          "name": "UIButton_3",
-          "path": "/ui/InGameUIGroup/UnderButton/UnderButton_Panel_Whole/UIButton_3",
+          "name": "MapViewButton",
+          "path": "/ui/InGameUIGroup/UnderButton/UnderButton_Panel_Whole/MapViewButton",
           "nameEditable": true,
           "enable": true,
           "visible": true,
           "localize": true,
           "displayOrder": 3,
           "pathConstraints": "/////",
-          "revision": 1,
+          "revision": 0,
           "origin": {
             "type": "Model",
-            "entry_id": "uibutton",
+            "entry_id": "UIButton",
             "sub_entity_id": null,
-            "root_entity_id": "64eadf42-ab0c-4d9c-99f4-9da65935f7d1",
+            "root_entity_id": null,
             "replaced_model_id": null
           },
           "modelId": "uibutton",
           "@components": [
             {
               "@type": "MOD.Core.UITransformComponent",
+              "ActivePlatform": 255,
               "AlignmentOption": 0,
               "AnchorsMax": {
                 "x": 0.5,
@@ -1638,19 +1639,19 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 746.6641,
-                "y": -95.9687958
+                "x": 901.2289,
+                "y": 341.2082
               },
               "OffsetMin": {
-                "x": 446.664124,
-                "y": -195.9688
+                "x": 751.2289,
+                "y": 241.208191
               },
               "Pivot": {
                 "x": 0.5,
                 "y": 0.5
               },
               "RectSize": {
-                "x": 300.0,
+                "x": 150.0,
                 "y": 100.0
               },
               "UIMode": 1,
@@ -1661,37 +1662,85 @@
               },
               "UIVersion": 2,
               "anchoredPosition": {
-                "x": 596.6641,
-                "y": -145.9688
-              },
-              "Rotation": {
-                "x": 0.0,
-                "y": 0.0,
-                "z": 0.0
+                "x": 826.2289,
+                "y": 291.2082
               },
               "Position": {
-                "x": 596.6641,
-                "y": -145.9688,
+                "x": 826.2289,
+                "y": 291.2082,
                 "z": 0.0
               },
               "QuaternionRotation": {
                 "x": 0.0,
                 "y": 0.0,
                 "z": 0.0,
-                "w": -1.0
+                "w": 1.0
               },
               "Scale": {
                 "x": 1.0,
                 "y": 1.0,
                 "z": 1.0
               },
-              "ZRotation": 0.0,
               "Enable": true
             },
             {
               "@type": "MOD.Core.SpriteGUIRendererComponent",
+              "AnimClipPlayType": 0,
+              "EndFrameIndex": 2147483647,
+              "IgnoreMapLayerCheck": false,
+              "ImageRUID": {
+                "DataId": "cc3457b8e97b3e14f9d5c39ccdd640bf"
+              },
+              "LocalPosition": {
+                "x": 0.0,
+                "y": 0.0
+              },
+              "LocalScale": {
+                "x": 1.0,
+                "y": 1.0
+              },
+              "MaterialId": "",
+              "OrderInLayer": 0,
               "OverrideSorting": false,
-              "SortingLayer": "MapLayer0",
+              "PlayRate": 1.0,
+              "PreserveSprite": 0,
+              "SortingLayer": "UI",
+              "StartFrameIndex": 0,
+              "Color": {
+                "r": 1.0,
+                "g": 1.0,
+                "b": 1.0,
+                "a": 1.0
+              },
+              "DropShadow": false,
+              "DropShadowAngle": 120.0,
+              "DropShadowColor": {
+                "r": 0.0,
+                "g": 0.0,
+                "b": 0.0,
+                "a": 0.72
+              },
+              "DropShadowDistance": 3.0,
+              "FillAmount": 1.0,
+              "FillCenter": true,
+              "FillClockWise": true,
+              "FillMethod": 0,
+              "FillOrigin": 0,
+              "FlipX": false,
+              "FlipY": false,
+              "FrameColumn": 1,
+              "FrameRate": 0,
+              "FrameRow": 1,
+              "Outline": false,
+              "OutlineColor": {
+                "r": 0.0,
+                "g": 0.0,
+                "b": 0.0,
+                "a": 1.0
+              },
+              "OutlineWidth": 3.0,
+              "RaycastTarget": true,
+              "Type": 1,
               "Enable": true
             },
             {
@@ -1730,13 +1779,18 @@
                 "ColorMultiplier": 1.0,
                 "FadeDuration": 0.1
               },
+              "IgnoreMapLayerCheck": false,
               "ImageRUIDs": {
                 "HighlightedSprite": null,
                 "PressedSprite": null,
                 "SelectedSprite": null,
                 "DisabledSprite": null
               },
+              "KeyCode": 0,
+              "OrderInLayer": 0,
               "OverrideSorting": false,
+              "SortingLayer": "UI",
+              "Transition": 1,
               "Enable": true
             }
           ],
@@ -1744,30 +1798,31 @@
         }
       },
       {
-        "id": "5f7e2b9f-b6f5-4962-bdaf-822202498306",
-        "path": "/ui/InGameUIGroup/UnderButton/UnderButton_Panel_Whole/UIButton_3/UIText",
-        "componentNames": "MOD.Core.UITransformComponent,MOD.Core.TextGUIRendererComponent",
+        "id": "775fec6e-2cb9-4488-ac47-04010591110e",
+        "path": "/ui/InGameUIGroup/UnderButton/UnderButton_Panel_Whole/MapViewButton/UIText",
+        "componentNames": "MOD.Core.UITransformComponent,MOD.Core.SpriteGUIRendererComponent,MOD.Core.TextComponent",
         "jsonString": {
           "name": "UIText",
-          "path": "/ui/InGameUIGroup/UnderButton/UnderButton_Panel_Whole/UIButton_3/UIText",
+          "path": "/ui/InGameUIGroup/UnderButton/UnderButton_Panel_Whole/MapViewButton/UIText",
           "nameEditable": true,
           "enable": true,
           "visible": true,
           "localize": true,
           "displayOrder": 0,
           "pathConstraints": "//////",
-          "revision": 1,
+          "revision": 0,
           "origin": {
             "type": "Model",
-            "entry_id": "uitextguirenderer",
+            "entry_id": "UIText",
             "sub_entity_id": null,
-            "root_entity_id": "15a169bc-aee1-47ea-9d70-5f8a7f53565c",
+            "root_entity_id": null,
             "replaced_model_id": null
           },
-          "modelId": "uitextguirenderer",
+          "modelId": "uitext",
           "@components": [
             {
               "@type": "MOD.Core.UITransformComponent",
+              "ActivePlatform": 255,
               "AlignmentOption": 0,
               "AnchorsMax": {
                 "x": 0.5,
@@ -1779,11 +1834,11 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 150.0,
+                "x": 75.0,
                 "y": 50.0
               },
               "OffsetMin": {
-                "x": -150.0,
+                "x": -75.0,
                 "y": -50.0
               },
               "Pivot": {
@@ -1791,10 +1846,15 @@
                 "y": 0.5
               },
               "RectSize": {
-                "x": 300.0,
+                "x": 150.0,
                 "y": 100.0
               },
               "UIMode": 1,
+              "UIScale": {
+                "x": 1.0,
+                "y": 1.0,
+                "z": 1.0
+              },
               "UIVersion": 2,
               "anchoredPosition": {
                 "x": 0.0,
@@ -1811,21 +1871,128 @@
                 "z": 0.0,
                 "w": 1.0
               },
+              "Scale": {
+                "x": 1.0,
+                "y": 1.0,
+                "z": 1.0
+              },
               "Enable": true
             },
             {
-              "@type": "MOD.Core.TextGUIRendererComponent",
-              "BestFit": true,
-              "Font": "Maple",
+              "@type": "MOD.Core.SpriteGUIRendererComponent",
+              "AnimClipPlayType": 0,
+              "EndFrameIndex": 2147483647,
+              "IgnoreMapLayerCheck": false,
+              "ImageRUID": {
+                "DataId": ""
+              },
+              "LocalPosition": {
+                "x": 0.0,
+                "y": 0.0
+              },
+              "LocalScale": {
+                "x": 1.0,
+                "y": 1.0
+              },
+              "MaterialId": "",
+              "OrderInLayer": 0,
+              "OverrideSorting": false,
+              "PlayRate": 1.0,
+              "PreserveSprite": 0,
+              "SortingLayer": "UI",
+              "StartFrameIndex": 0,
+              "Color": {
+                "r": 1.0,
+                "g": 1.0,
+                "b": 1.0,
+                "a": 0.0
+              },
+              "DropShadow": false,
+              "DropShadowAngle": 120.0,
+              "DropShadowColor": {
+                "r": 0.0,
+                "g": 0.0,
+                "b": 0.0,
+                "a": 0.72
+              },
+              "DropShadowDistance": 3.0,
+              "FillAmount": 1.0,
+              "FillCenter": true,
+              "FillClockWise": true,
+              "FillMethod": 0,
+              "FillOrigin": 0,
+              "FlipX": false,
+              "FlipY": false,
+              "FrameColumn": 1,
+              "FrameRate": 0,
+              "FrameRow": 1,
+              "Outline": false,
+              "OutlineColor": {
+                "r": 0.0,
+                "g": 0.0,
+                "b": 0.0,
+                "a": 1.0
+              },
+              "OutlineWidth": 3.0,
+              "RaycastTarget": false,
+              "Type": 0,
+              "Enable": true
+            },
+            {
+              "@type": "MOD.Core.TextComponent",
+              "Alignment": 4,
+              "AllowAutomaticTranslation": true,
+              "BestFit": false,
+              "Bold": false,
+              "ConstraintX": 100.0,
+              "ConstraintY": 100.0,
+              "DropShadow": false,
+              "DropShadowAngle": 120.0,
+              "DropShadowColor": {
+                "r": 0.0,
+                "g": 0.0,
+                "b": 0.0,
+                "a": 0.72
+              },
+              "DropShadowDistance": 3.0,
+              "Font": 1,
               "FontColor": {
                 "r": 1.0,
                 "g": 1.0,
                 "b": 1.0,
                 "a": 1.0
               },
+              "FontSize": 40,
+              "IgnoreMapLayerCheck": false,
+              "IsLocalizationKey": false,
+              "MaxSize": 40,
+              "MinSize": 10,
+              "OrderInLayer": 0,
+              "OutlineColor": {
+                "r": 0.698039234,
+                "g": 0.698039234,
+                "b": 0.698039234,
+                "a": 1.0
+              },
+              "OutlineDistance": {
+                "x": 1.0,
+                "y": -1.0
+              },
+              "OutlineWidth": 1.0,
+              "Overflow": 0,
               "OverrideSorting": false,
-              "SortingLayer": "MapLayer0",
+              "Padding": {
+                "left": 0,
+                "right": 0,
+                "top": 0,
+                "bottom": 0
+              },
+              "SizeFit": false,
+              "SortingLayer": "UI",
               "Text": "맵",
+              "UseConstraintX": false,
+              "UseConstraintY": false,
+              "UseOutLine": false,
               "Enable": true
             }
           ],
@@ -1958,12 +2125,12 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": -453.862671,
-                "y": -92.267
+                "x": -54.2345276,
+                "y": -93.56929
               },
               "OffsetMin": {
-                "x": -753.8627,
-                "y": -192.267
+                "x": -354.234528,
+                "y": -193.56929
               },
               "Pivot": {
                 "x": 0.5,
@@ -1981,31 +2148,25 @@
               },
               "UIVersion": 2,
               "anchoredPosition": {
-                "x": -603.8627,
-                "y": -142.267
-              },
-              "Rotation": {
-                "x": 0.0,
-                "y": 0.0,
-                "z": 0.0
+                "x": -204.234528,
+                "y": -143.56929
               },
               "Position": {
-                "x": -603.8627,
-                "y": -142.267,
+                "x": -204.234528,
+                "y": -143.56929,
                 "z": 0.0
               },
               "QuaternionRotation": {
                 "x": 0.0,
                 "y": 0.0,
                 "z": 0.0,
-                "w": -1.0
+                "w": 1.0
               },
               "Scale": {
                 "x": 1.0,
                 "y": 1.0,
                 "z": 1.0
               },
-              "ZRotation": 0.0,
               "Enable": true
             },
             {
@@ -2188,12 +2349,12 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": -35.209198,
-                "y": -95.9694061
+                "x": 364.419,
+                "y": -97.2717
               },
               "OffsetMin": {
-                "x": -335.2092,
-                "y": -195.9694
+                "x": 64.41901,
+                "y": -197.2717
               },
               "Pivot": {
                 "x": 0.5,
@@ -2211,31 +2372,25 @@
               },
               "UIVersion": 2,
               "anchoredPosition": {
-                "x": -185.2092,
-                "y": -145.9694
-              },
-              "Rotation": {
-                "x": 0.0,
-                "y": 0.0,
-                "z": 0.0
+                "x": 214.419,
+                "y": -147.2717
               },
               "Position": {
-                "x": -185.2092,
-                "y": -145.9694,
+                "x": 214.419,
+                "y": -147.2717,
                 "z": 0.0
               },
               "QuaternionRotation": {
                 "x": 0.0,
                 "y": 0.0,
                 "z": 0.0,
-                "w": -1.0
+                "w": 1.0
               },
               "Scale": {
                 "x": 1.0,
                 "y": 1.0,
                 "z": 1.0
               },
-              "ZRotation": 0.0,
               "Enable": true
             },
             {

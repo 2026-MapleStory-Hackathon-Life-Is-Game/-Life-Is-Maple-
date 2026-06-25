@@ -8348,7 +8348,7 @@
           "name": "UIText",
           "path": "/maps/Map_01/Tiles/Tile_1/UIText",
           "nameEditable": true,
-          "enable": true,
+          "enable": false,
           "visible": true,
           "localize": false,
           "displayOrder": 0,
@@ -8376,16 +8376,16 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 50.77778,
-                "y": 248.755569
+                "x": 75.77778,
+                "y": 275.4889
               },
               "OffsetMin": {
-                "x": -49.22222,
-                "y": 148.755569
+                "x": -74.22222,
+                "y": 125.488892
               },
               "RectSize": {
-                "x": 100.0,
-                "y": 100.0
+                "x": 150.0,
+                "y": 150.0
               },
               "UIMode": 2,
               "UIVersion": 2,
@@ -8447,11 +8447,6 @@
                 "z": 0.0,
                 "w": 1.0
               },
-              "Scale": {
-                "x": 1.0,
-                "y": 1.0,
-                "z": 1.0
-              },
               "Enable": true
             },
             {
@@ -8475,7 +8470,7 @@
           "name": "UIText",
           "path": "/maps/Map_01/Tiles/Tile_2/UIText",
           "nameEditable": true,
-          "enable": true,
+          "enable": false,
           "visible": true,
           "localize": false,
           "displayOrder": 0,
@@ -8503,16 +8498,16 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 50.77778,
-                "y": 248.755569
+                "x": 75.77778,
+                "y": 275.4889
               },
               "OffsetMin": {
-                "x": -49.22222,
-                "y": 148.755569
+                "x": -74.22222,
+                "y": 125.488892
               },
               "RectSize": {
-                "x": 100.0,
-                "y": 100.0
+                "x": 150.0,
+                "y": 150.0
               },
               "UIMode": 2,
               "UIVersion": 2,
@@ -8574,11 +8569,6 @@
                 "z": 0.0,
                 "w": 1.0
               },
-              "Scale": {
-                "x": 1.0,
-                "y": 1.0,
-                "z": 1.0
-              },
               "Enable": true
             },
             {
@@ -8602,7 +8592,7 @@
           "name": "UIText",
           "path": "/maps/Map_01/Tiles/Tile_3/UIText",
           "nameEditable": true,
-          "enable": true,
+          "enable": false,
           "visible": true,
           "localize": false,
           "displayOrder": 0,
@@ -8630,16 +8620,16 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 50.77778,
-                "y": 248.755569
+                "x": 75.77778,
+                "y": 275.4889
               },
               "OffsetMin": {
-                "x": -49.22222,
-                "y": 148.755569
+                "x": -74.22222,
+                "y": 125.488892
               },
               "RectSize": {
-                "x": 100.0,
-                "y": 100.0
+                "x": 150.0,
+                "y": 150.0
               },
               "UIMode": 2,
               "UIVersion": 2,
@@ -8654,7 +8644,6 @@
             {
               "@type": "MOD.Core.TextGUIRendererComponent",
               "OverrideSorting": false,
-              "SortingLayer": "MapLayer2",
               "Enable": true
             },
             {
@@ -8702,11 +8691,6 @@
                 "z": 0.0,
                 "w": 1.0
               },
-              "Scale": {
-                "x": 1.0,
-                "y": 1.0,
-                "z": 1.0
-              },
               "Enable": true
             },
             {
@@ -8730,7 +8714,7 @@
           "name": "UIText",
           "path": "/maps/Map_01/Tiles/Tile_4/UIText",
           "nameEditable": true,
-          "enable": true,
+          "enable": false,
           "visible": true,
           "localize": false,
           "displayOrder": 0,
@@ -8758,16 +8742,16 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 50.77778,
-                "y": 248.755569
+                "x": 75.77778,
+                "y": 275.4889
               },
               "OffsetMin": {
-                "x": -49.22222,
-                "y": 148.755569
+                "x": -74.22222,
+                "y": 125.488892
               },
               "RectSize": {
-                "x": 100.0,
-                "y": 100.0
+                "x": 150.0,
+                "y": 150.0
               },
               "UIMode": 2,
               "UIVersion": 2,
@@ -8781,8 +8765,9 @@
             },
             {
               "@type": "MOD.Core.TextGUIRendererComponent",
+              "MaxSize": 200.0,
+              "MinSize": 10.0,
               "OverrideSorting": false,
-              "SortingLayer": "MapLayer2",
               "Enable": true
             },
             {
@@ -8830,11 +8815,6 @@
                 "z": 0.0,
                 "w": 1.0
               },
-              "Scale": {
-                "x": 1.0,
-                "y": 1.0,
-                "z": 1.0
-              },
               "Enable": true
             },
             {
@@ -8858,7 +8838,7 @@
           "name": "UIText",
           "path": "/maps/Map_01/Tiles/Tile_5/UIText",
           "nameEditable": true,
-          "enable": true,
+          "enable": false,
           "visible": true,
           "localize": false,
           "displayOrder": 0,
@@ -8886,16 +8866,16 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 50.77778,
-                "y": 248.755569
+                "x": 75.77778,
+                "y": 275.4889
               },
               "OffsetMin": {
-                "x": -49.22222,
-                "y": 148.755569
+                "x": -74.22222,
+                "y": 125.488892
               },
               "RectSize": {
-                "x": 100.0,
-                "y": 100.0
+                "x": 150.0,
+                "y": 150.0
               },
               "UIMode": 2,
               "UIVersion": 2,
@@ -8909,8 +8889,9 @@
             },
             {
               "@type": "MOD.Core.TextGUIRendererComponent",
+              "MaxSize": 200.0,
+              "MinSize": 10.0,
               "OverrideSorting": false,
-              "SortingLayer": "MapLayer2",
               "Enable": true
             },
             {
@@ -8923,7 +8904,7 @@
         }
       },
       {
-        "id": "56efc40a-ceff-4da6-af94-94a18b2da342",
+        "id": "e16fb98e-4ef2-4bef-be07-c6da47faa5e0",
         "path": "/maps/Map_01/Tiles/Tile_6",
         "componentNames": "MOD.Core.TransformComponent,MOD.Core.TriggerComponent,MOD.Core.TagComponent",
         "jsonString": {
@@ -8948,8 +8929,8 @@
             {
               "@type": "MOD.Core.TransformComponent",
               "Position": {
-                "x": 7.9982,
-                "y": 4.0268,
+                "x": 7.9962,
+                "y": 3.9977,
                 "z": 999.999
               },
               "QuaternionRotation": {
@@ -8957,11 +8938,6 @@
                 "y": 0.0,
                 "z": 0.0,
                 "w": 1.0
-              },
-              "Scale": {
-                "x": 1.0,
-                "y": 1.0,
-                "z": 1.0
               },
               "Enable": true
             },
@@ -8979,14 +8955,14 @@
         }
       },
       {
-        "id": "892a388c-aaed-482b-bd56-0d3e34b81817",
+        "id": "b8c13805-3b28-4c02-9488-c1614c5c575a",
         "path": "/maps/Map_01/Tiles/Tile_6/UIText",
         "componentNames": "MOD.Core.UITransformComponent,MOD.Core.TextGUIRendererComponent,MOD.Core.SpriteGUIRendererComponent",
         "jsonString": {
           "name": "UIText",
           "path": "/maps/Map_01/Tiles/Tile_6/UIText",
           "nameEditable": true,
-          "enable": true,
+          "enable": false,
           "visible": true,
           "localize": false,
           "displayOrder": 0,
@@ -9014,16 +8990,16 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 50.77778,
-                "y": 248.755569
+                "x": 75.77778,
+                "y": 275.4889
               },
               "OffsetMin": {
-                "x": -49.22222,
-                "y": 148.755569
+                "x": -74.22222,
+                "y": 125.488892
               },
               "RectSize": {
-                "x": 100.0,
-                "y": 100.0
+                "x": 150.0,
+                "y": 150.0
               },
               "UIMode": 2,
               "UIVersion": 2,
@@ -9037,8 +9013,9 @@
             },
             {
               "@type": "MOD.Core.TextGUIRendererComponent",
+              "MaxSize": 200.0,
+              "MinSize": 10.0,
               "OverrideSorting": false,
-              "SortingLayer": "MapLayer2",
               "Enable": true
             },
             {
@@ -9086,11 +9063,6 @@
                 "z": 0.0,
                 "w": 1.0
               },
-              "Scale": {
-                "x": 1.0,
-                "y": 1.0,
-                "z": 1.0
-              },
               "Enable": true
             },
             {
@@ -9114,7 +9086,7 @@
           "name": "UIText",
           "path": "/maps/Map_01/Tiles/Tile_7/UIText",
           "nameEditable": true,
-          "enable": true,
+          "enable": false,
           "visible": true,
           "localize": false,
           "displayOrder": 0,
@@ -9142,16 +9114,16 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 50.77778,
-                "y": 248.755569
+                "x": 75.77778,
+                "y": 275.4889
               },
               "OffsetMin": {
-                "x": -49.22222,
-                "y": 148.755569
+                "x": -74.22222,
+                "y": 125.488892
               },
               "RectSize": {
-                "x": 100.0,
-                "y": 100.0
+                "x": 150.0,
+                "y": 150.0
               },
               "UIMode": 2,
               "UIVersion": 2,
@@ -9165,8 +9137,9 @@
             },
             {
               "@type": "MOD.Core.TextGUIRendererComponent",
+              "MaxSize": 200.0,
+              "MinSize": 10.0,
               "OverrideSorting": false,
-              "SortingLayer": "MapLayer2",
               "Enable": true
             },
             {
@@ -9214,11 +9187,6 @@
                 "z": 0.0,
                 "w": 1.0
               },
-              "Scale": {
-                "x": 1.0,
-                "y": 1.0,
-                "z": 1.0
-              },
               "Enable": true
             },
             {
@@ -9242,7 +9210,7 @@
           "name": "UIText",
           "path": "/maps/Map_01/Tiles/Tile_8/UIText",
           "nameEditable": true,
-          "enable": true,
+          "enable": false,
           "visible": true,
           "localize": false,
           "displayOrder": 0,
@@ -9270,16 +9238,16 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 50.77778,
-                "y": 248.755569
+                "x": 75.77778,
+                "y": 275.4889
               },
               "OffsetMin": {
-                "x": -49.22222,
-                "y": 148.755569
+                "x": -74.22222,
+                "y": 125.488892
               },
               "RectSize": {
-                "x": 100.0,
-                "y": 100.0
+                "x": 150.0,
+                "y": 150.0
               },
               "UIMode": 2,
               "UIVersion": 2,
@@ -9293,8 +9261,9 @@
             },
             {
               "@type": "MOD.Core.TextGUIRendererComponent",
+              "MaxSize": 200.0,
+              "MinSize": 10.0,
               "OverrideSorting": false,
-              "SortingLayer": "MapLayer2",
               "Enable": true
             },
             {
@@ -9342,11 +9311,6 @@
                 "z": 0.0,
                 "w": 1.0
               },
-              "Scale": {
-                "x": 1.0,
-                "y": 1.0,
-                "z": 1.0
-              },
               "Enable": true
             },
             {
@@ -9370,7 +9334,7 @@
           "name": "UIText",
           "path": "/maps/Map_01/Tiles/Tile_9/UIText",
           "nameEditable": true,
-          "enable": true,
+          "enable": false,
           "visible": true,
           "localize": false,
           "displayOrder": 0,
@@ -9398,16 +9362,16 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 50.77778,
-                "y": 248.755569
+                "x": 75.77778,
+                "y": 275.4889
               },
               "OffsetMin": {
-                "x": -49.22222,
-                "y": 148.755569
+                "x": -74.22222,
+                "y": 125.488892
               },
               "RectSize": {
-                "x": 100.0,
-                "y": 100.0
+                "x": 150.0,
+                "y": 150.0
               },
               "UIMode": 2,
               "UIVersion": 2,
@@ -9422,7 +9386,6 @@
             {
               "@type": "MOD.Core.TextGUIRendererComponent",
               "OverrideSorting": false,
-              "SortingLayer": "MapLayer2",
               "Enable": true
             },
             {
@@ -9470,11 +9433,6 @@
                 "z": 0.0,
                 "w": 1.0
               },
-              "Scale": {
-                "x": 1.0,
-                "y": 1.0,
-                "z": 1.0
-              },
               "Enable": true
             },
             {
@@ -9498,7 +9456,7 @@
           "name": "UIText",
           "path": "/maps/Map_01/Tiles/Tile_10/UIText",
           "nameEditable": true,
-          "enable": true,
+          "enable": false,
           "visible": true,
           "localize": false,
           "displayOrder": 0,
@@ -9526,16 +9484,16 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 50.77778,
-                "y": 248.755569
+                "x": 75.77778,
+                "y": 275.4889
               },
               "OffsetMin": {
-                "x": -49.22222,
-                "y": 148.755569
+                "x": -74.22222,
+                "y": 125.488892
               },
               "RectSize": {
-                "x": 100.0,
-                "y": 100.0
+                "x": 150.0,
+                "y": 150.0
               },
               "UIMode": 2,
               "UIVersion": 2,
@@ -9550,7 +9508,6 @@
             {
               "@type": "MOD.Core.TextGUIRendererComponent",
               "OverrideSorting": false,
-              "SortingLayer": "MapLayer2",
               "Enable": true
             },
             {
@@ -9598,11 +9555,6 @@
                 "z": 0.0,
                 "w": 1.0
               },
-              "Scale": {
-                "x": 1.0,
-                "y": 1.0,
-                "z": 1.0
-              },
               "Enable": true
             },
             {
@@ -9626,7 +9578,7 @@
           "name": "UIText",
           "path": "/maps/Map_01/Tiles/Tile_11/UIText",
           "nameEditable": true,
-          "enable": true,
+          "enable": false,
           "visible": true,
           "localize": false,
           "displayOrder": 0,
@@ -9654,16 +9606,16 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 50.77778,
-                "y": 248.755569
+                "x": 75.77778,
+                "y": 275.4889
               },
               "OffsetMin": {
-                "x": -49.22222,
-                "y": 148.755569
+                "x": -74.22222,
+                "y": 125.488892
               },
               "RectSize": {
-                "x": 100.0,
-                "y": 100.0
+                "x": 150.0,
+                "y": 150.0
               },
               "UIMode": 2,
               "UIVersion": 2,
@@ -9678,7 +9630,6 @@
             {
               "@type": "MOD.Core.TextGUIRendererComponent",
               "OverrideSorting": false,
-              "SortingLayer": "MapLayer2",
               "Enable": true
             },
             {
@@ -9726,11 +9677,6 @@
                 "z": 0.0,
                 "w": 1.0
               },
-              "Scale": {
-                "x": 1.0,
-                "y": 1.0,
-                "z": 1.0
-              },
               "Enable": true
             },
             {
@@ -9754,7 +9700,7 @@
           "name": "UIText",
           "path": "/maps/Map_01/Tiles/Tile_12/UIText",
           "nameEditable": true,
-          "enable": true,
+          "enable": false,
           "visible": true,
           "localize": false,
           "displayOrder": 0,
@@ -9782,16 +9728,16 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 50.77778,
-                "y": 248.755569
+                "x": 75.77778,
+                "y": 275.4889
               },
               "OffsetMin": {
-                "x": -49.22222,
-                "y": 148.755569
+                "x": -74.22222,
+                "y": 125.488892
               },
               "RectSize": {
-                "x": 100.0,
-                "y": 100.0
+                "x": 150.0,
+                "y": 150.0
               },
               "UIMode": 2,
               "UIVersion": 2,
@@ -9806,7 +9752,6 @@
             {
               "@type": "MOD.Core.TextGUIRendererComponent",
               "OverrideSorting": false,
-              "SortingLayer": "MapLayer2",
               "Enable": true
             },
             {
@@ -9854,11 +9799,6 @@
                 "z": 0.0,
                 "w": 1.0
               },
-              "Scale": {
-                "x": 1.0,
-                "y": 1.0,
-                "z": 1.0
-              },
               "Enable": true
             },
             {
@@ -9882,7 +9822,7 @@
           "name": "UIText",
           "path": "/maps/Map_01/Tiles/Tile_13/UIText",
           "nameEditable": true,
-          "enable": true,
+          "enable": false,
           "visible": true,
           "localize": false,
           "displayOrder": 0,
@@ -9910,16 +9850,16 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 50.77778,
-                "y": 248.755569
+                "x": 75.77778,
+                "y": 275.4889
               },
               "OffsetMin": {
-                "x": -49.22222,
-                "y": 148.755569
+                "x": -74.22222,
+                "y": 125.488892
               },
               "RectSize": {
-                "x": 100.0,
-                "y": 100.0
+                "x": 150.0,
+                "y": 150.0
               },
               "UIMode": 2,
               "UIVersion": 2,
@@ -9934,7 +9874,6 @@
             {
               "@type": "MOD.Core.TextGUIRendererComponent",
               "OverrideSorting": false,
-              "SortingLayer": "MapLayer2",
               "Enable": true
             },
             {
@@ -9982,11 +9921,6 @@
                 "z": 0.0,
                 "w": 1.0
               },
-              "Scale": {
-                "x": 1.0,
-                "y": 1.0,
-                "z": 1.0
-              },
               "Enable": true
             },
             {
@@ -10010,7 +9944,7 @@
           "name": "UIText",
           "path": "/maps/Map_01/Tiles/Tile_14/UIText",
           "nameEditable": true,
-          "enable": true,
+          "enable": false,
           "visible": true,
           "localize": false,
           "displayOrder": 0,
@@ -10038,16 +9972,16 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 50.77778,
-                "y": 248.755569
+                "x": 75.77778,
+                "y": 275.4889
               },
               "OffsetMin": {
-                "x": -49.22222,
-                "y": 148.755569
+                "x": -74.22222,
+                "y": 125.488892
               },
               "RectSize": {
-                "x": 100.0,
-                "y": 100.0
+                "x": 150.0,
+                "y": 150.0
               },
               "UIMode": 2,
               "UIVersion": 2,
@@ -10062,7 +9996,6 @@
             {
               "@type": "MOD.Core.TextGUIRendererComponent",
               "OverrideSorting": false,
-              "SortingLayer": "MapLayer2",
               "Enable": true
             },
             {
@@ -10110,11 +10043,6 @@
                 "z": 0.0,
                 "w": 1.0
               },
-              "Scale": {
-                "x": 1.0,
-                "y": 1.0,
-                "z": 1.0
-              },
               "Enable": true
             },
             {
@@ -10138,7 +10066,7 @@
           "name": "UIText",
           "path": "/maps/Map_01/Tiles/Tile_15/UIText",
           "nameEditable": true,
-          "enable": true,
+          "enable": false,
           "visible": true,
           "localize": false,
           "displayOrder": 0,
@@ -10166,16 +10094,16 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 50.77778,
-                "y": 248.755569
+                "x": 75.77778,
+                "y": 275.4889
               },
               "OffsetMin": {
-                "x": -49.22222,
-                "y": 148.755569
+                "x": -74.22222,
+                "y": 125.488892
               },
               "RectSize": {
-                "x": 100.0,
-                "y": 100.0
+                "x": 150.0,
+                "y": 150.0
               },
               "UIMode": 2,
               "UIVersion": 2,
@@ -10190,7 +10118,6 @@
             {
               "@type": "MOD.Core.TextGUIRendererComponent",
               "OverrideSorting": false,
-              "SortingLayer": "MapLayer2",
               "Enable": true
             },
             {
@@ -10238,11 +10165,6 @@
                 "z": 0.0,
                 "w": 1.0
               },
-              "Scale": {
-                "x": 1.0,
-                "y": 1.0,
-                "z": 1.0
-              },
               "Enable": true
             },
             {
@@ -10266,7 +10188,7 @@
           "name": "UIText",
           "path": "/maps/Map_01/Tiles/Tile_16/UIText",
           "nameEditable": true,
-          "enable": true,
+          "enable": false,
           "visible": true,
           "localize": false,
           "displayOrder": 0,
@@ -10294,16 +10216,16 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 50.77778,
-                "y": 248.755569
+                "x": 75.77778,
+                "y": 275.4889
               },
               "OffsetMin": {
-                "x": -49.22222,
-                "y": 148.755569
+                "x": -74.22222,
+                "y": 125.488892
               },
               "RectSize": {
-                "x": 100.0,
-                "y": 100.0
+                "x": 150.0,
+                "y": 150.0
               },
               "UIMode": 2,
               "UIVersion": 2,
@@ -10318,7 +10240,6 @@
             {
               "@type": "MOD.Core.TextGUIRendererComponent",
               "OverrideSorting": false,
-              "SortingLayer": "MapLayer2",
               "Enable": true
             },
             {
@@ -10366,11 +10287,6 @@
                 "z": 0.0,
                 "w": 1.0
               },
-              "Scale": {
-                "x": 1.0,
-                "y": 1.0,
-                "z": 1.0
-              },
               "Enable": true
             },
             {
@@ -10394,7 +10310,7 @@
           "name": "UIText",
           "path": "/maps/Map_01/Tiles/Tile_17/UIText",
           "nameEditable": true,
-          "enable": true,
+          "enable": false,
           "visible": true,
           "localize": false,
           "displayOrder": 0,
@@ -10422,16 +10338,16 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 50.77778,
-                "y": 248.755569
+                "x": 75.77778,
+                "y": 275.4889
               },
               "OffsetMin": {
-                "x": -49.22222,
-                "y": 148.755569
+                "x": -74.22222,
+                "y": 125.488892
               },
               "RectSize": {
-                "x": 100.0,
-                "y": 100.0
+                "x": 150.0,
+                "y": 150.0
               },
               "UIMode": 2,
               "UIVersion": 2,
@@ -10446,7 +10362,6 @@
             {
               "@type": "MOD.Core.TextGUIRendererComponent",
               "OverrideSorting": false,
-              "SortingLayer": "MapLayer2",
               "Enable": true
             },
             {
@@ -10494,11 +10409,6 @@
                 "z": 0.0,
                 "w": 1.0
               },
-              "Scale": {
-                "x": 1.0,
-                "y": 1.0,
-                "z": 1.0
-              },
               "Enable": true
             },
             {
@@ -10522,7 +10432,7 @@
           "name": "UIText",
           "path": "/maps/Map_01/Tiles/Tile_18/UIText",
           "nameEditable": true,
-          "enable": true,
+          "enable": false,
           "visible": true,
           "localize": false,
           "displayOrder": 0,
@@ -10550,16 +10460,16 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 50.77778,
-                "y": 248.755569
+                "x": 75.77778,
+                "y": 275.4889
               },
               "OffsetMin": {
-                "x": -49.22222,
-                "y": 148.755569
+                "x": -74.22222,
+                "y": 125.488892
               },
               "RectSize": {
-                "x": 100.0,
-                "y": 100.0
+                "x": 150.0,
+                "y": 150.0
               },
               "UIMode": 2,
               "UIVersion": 2,
@@ -10574,7 +10484,6 @@
             {
               "@type": "MOD.Core.TextGUIRendererComponent",
               "OverrideSorting": false,
-              "SortingLayer": "MapLayer2",
               "Enable": true
             },
             {
@@ -10622,11 +10531,6 @@
                 "z": 0.0,
                 "w": 1.0
               },
-              "Scale": {
-                "x": 1.0,
-                "y": 1.0,
-                "z": 1.0
-              },
               "Enable": true
             },
             {
@@ -10650,7 +10554,7 @@
           "name": "UIText",
           "path": "/maps/Map_01/Tiles/Tile_19/UIText",
           "nameEditable": true,
-          "enable": true,
+          "enable": false,
           "visible": true,
           "localize": false,
           "displayOrder": 0,
@@ -10678,16 +10582,16 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 50.77778,
-                "y": 248.755569
+                "x": 75.77778,
+                "y": 275.4889
               },
               "OffsetMin": {
-                "x": -49.22222,
-                "y": 148.755569
+                "x": -74.22222,
+                "y": 125.488892
               },
               "RectSize": {
-                "x": 100.0,
-                "y": 100.0
+                "x": 150.0,
+                "y": 150.0
               },
               "UIMode": 2,
               "UIVersion": 2,
@@ -10702,7 +10606,6 @@
             {
               "@type": "MOD.Core.TextGUIRendererComponent",
               "OverrideSorting": false,
-              "SortingLayer": "MapLayer2",
               "Enable": true
             },
             {
@@ -10750,11 +10653,6 @@
                 "z": 0.0,
                 "w": 1.0
               },
-              "Scale": {
-                "x": 1.0,
-                "y": 1.0,
-                "z": 1.0
-              },
               "Enable": true
             },
             {
@@ -10778,7 +10676,7 @@
           "name": "UIText",
           "path": "/maps/Map_01/Tiles/Tile_20/UIText",
           "nameEditable": true,
-          "enable": true,
+          "enable": false,
           "visible": true,
           "localize": false,
           "displayOrder": 0,
@@ -10806,16 +10704,16 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 50.77778,
-                "y": 248.755569
+                "x": 75.77778,
+                "y": 275.4889
               },
               "OffsetMin": {
-                "x": -49.22222,
-                "y": 148.755569
+                "x": -74.22222,
+                "y": 125.488892
               },
               "RectSize": {
-                "x": 100.0,
-                "y": 100.0
+                "x": 150.0,
+                "y": 150.0
               },
               "UIMode": 2,
               "UIVersion": 2,
@@ -10830,7 +10728,6 @@
             {
               "@type": "MOD.Core.TextGUIRendererComponent",
               "OverrideSorting": false,
-              "SortingLayer": "MapLayer2",
               "Enable": true
             },
             {
@@ -10878,11 +10775,6 @@
                 "z": 0.0,
                 "w": 1.0
               },
-              "Scale": {
-                "x": 1.0,
-                "y": 1.0,
-                "z": 1.0
-              },
               "Enable": true
             },
             {
@@ -10906,7 +10798,7 @@
           "name": "UIText",
           "path": "/maps/Map_01/Tiles/Tile_21/UIText",
           "nameEditable": true,
-          "enable": true,
+          "enable": false,
           "visible": true,
           "localize": false,
           "displayOrder": 0,
@@ -10934,16 +10826,16 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 50.77778,
-                "y": 248.755569
+                "x": 75.77778,
+                "y": 275.4889
               },
               "OffsetMin": {
-                "x": -49.22222,
-                "y": 148.755569
+                "x": -74.22222,
+                "y": 125.488892
               },
               "RectSize": {
-                "x": 100.0,
-                "y": 100.0
+                "x": 150.0,
+                "y": 150.0
               },
               "UIMode": 2,
               "UIVersion": 2,
@@ -10958,7 +10850,6 @@
             {
               "@type": "MOD.Core.TextGUIRendererComponent",
               "OverrideSorting": false,
-              "SortingLayer": "MapLayer2",
               "Enable": true
             },
             {
@@ -11006,11 +10897,6 @@
                 "z": 0.0,
                 "w": 1.0
               },
-              "Scale": {
-                "x": 1.0,
-                "y": 1.0,
-                "z": 1.0
-              },
               "Enable": true
             },
             {
@@ -11034,7 +10920,7 @@
           "name": "UIText",
           "path": "/maps/Map_01/Tiles/Tile_22/UIText",
           "nameEditable": true,
-          "enable": true,
+          "enable": false,
           "visible": true,
           "localize": false,
           "displayOrder": 0,
@@ -11062,16 +10948,16 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 50.77778,
-                "y": 248.755569
+                "x": 75.77778,
+                "y": 275.4889
               },
               "OffsetMin": {
-                "x": -49.22222,
-                "y": 148.755569
+                "x": -74.22222,
+                "y": 125.488892
               },
               "RectSize": {
-                "x": 100.0,
-                "y": 100.0
+                "x": 150.0,
+                "y": 150.0
               },
               "UIMode": 2,
               "UIVersion": 2,
@@ -11086,7 +10972,6 @@
             {
               "@type": "MOD.Core.TextGUIRendererComponent",
               "OverrideSorting": false,
-              "SortingLayer": "MapLayer2",
               "Enable": true
             },
             {
@@ -11134,11 +11019,6 @@
                 "z": 0.0,
                 "w": 1.0
               },
-              "Scale": {
-                "x": 1.0,
-                "y": 1.0,
-                "z": 1.0
-              },
               "Enable": true
             },
             {
@@ -11162,7 +11042,7 @@
           "name": "UIText",
           "path": "/maps/Map_01/Tiles/Tile_23/UIText",
           "nameEditable": true,
-          "enable": true,
+          "enable": false,
           "visible": true,
           "localize": false,
           "displayOrder": 0,
@@ -11190,16 +11070,16 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 50.77778,
-                "y": 248.755569
+                "x": 75.77778,
+                "y": 275.4889
               },
               "OffsetMin": {
-                "x": -49.22222,
-                "y": 148.755569
+                "x": -74.22222,
+                "y": 125.488892
               },
               "RectSize": {
-                "x": 100.0,
-                "y": 100.0
+                "x": 150.0,
+                "y": 150.0
               },
               "UIMode": 2,
               "UIVersion": 2,
@@ -11214,7 +11094,6 @@
             {
               "@type": "MOD.Core.TextGUIRendererComponent",
               "OverrideSorting": false,
-              "SortingLayer": "MapLayer2",
               "Enable": true
             },
             {
@@ -11262,11 +11141,6 @@
                 "z": 0.0,
                 "w": 1.0
               },
-              "Scale": {
-                "x": 1.0,
-                "y": 1.0,
-                "z": 1.0
-              },
               "Enable": true
             },
             {
@@ -11290,7 +11164,7 @@
           "name": "UIText",
           "path": "/maps/Map_01/Tiles/Tile_24/UIText",
           "nameEditable": true,
-          "enable": true,
+          "enable": false,
           "visible": true,
           "localize": false,
           "displayOrder": 0,
@@ -11318,16 +11192,16 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 50.77778,
-                "y": 248.755569
+                "x": 75.77778,
+                "y": 275.4889
               },
               "OffsetMin": {
-                "x": -49.22222,
-                "y": 148.755569
+                "x": -74.22222,
+                "y": 125.488892
               },
               "RectSize": {
-                "x": 100.0,
-                "y": 100.0
+                "x": 150.0,
+                "y": 150.0
               },
               "UIMode": 2,
               "UIVersion": 2,
@@ -11342,7 +11216,6 @@
             {
               "@type": "MOD.Core.TextGUIRendererComponent",
               "OverrideSorting": false,
-              "SortingLayer": "MapLayer2",
               "Enable": true
             },
             {
@@ -11390,11 +11263,6 @@
                 "z": 0.0,
                 "w": 1.0
               },
-              "Scale": {
-                "x": 1.0,
-                "y": 1.0,
-                "z": 1.0
-              },
               "Enable": true
             },
             {
@@ -11418,7 +11286,7 @@
           "name": "UIText",
           "path": "/maps/Map_01/Tiles/Tile_25/UIText",
           "nameEditable": true,
-          "enable": true,
+          "enable": false,
           "visible": true,
           "localize": false,
           "displayOrder": 0,
@@ -11446,16 +11314,16 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 50.77778,
-                "y": 248.755569
+                "x": 75.77778,
+                "y": 275.4889
               },
               "OffsetMin": {
-                "x": -49.22222,
-                "y": 148.755569
+                "x": -74.22222,
+                "y": 125.488892
               },
               "RectSize": {
-                "x": 100.0,
-                "y": 100.0
+                "x": 150.0,
+                "y": 150.0
               },
               "UIMode": 2,
               "UIVersion": 2,
@@ -11470,7 +11338,6 @@
             {
               "@type": "MOD.Core.TextGUIRendererComponent",
               "OverrideSorting": false,
-              "SortingLayer": "MapLayer2",
               "Enable": true
             },
             {
@@ -11518,11 +11385,6 @@
                 "z": 0.0,
                 "w": 1.0
               },
-              "Scale": {
-                "x": 1.0,
-                "y": 1.0,
-                "z": 1.0
-              },
               "Enable": true
             },
             {
@@ -11546,7 +11408,7 @@
           "name": "UIText",
           "path": "/maps/Map_01/Tiles/Tile_26/UIText",
           "nameEditable": true,
-          "enable": true,
+          "enable": false,
           "visible": true,
           "localize": false,
           "displayOrder": 0,
@@ -11574,16 +11436,16 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 50.77778,
-                "y": 248.755569
+                "x": 75.77778,
+                "y": 275.4889
               },
               "OffsetMin": {
-                "x": -49.22222,
-                "y": 148.755569
+                "x": -74.22222,
+                "y": 125.488892
               },
               "RectSize": {
-                "x": 100.0,
-                "y": 100.0
+                "x": 150.0,
+                "y": 150.0
               },
               "UIMode": 2,
               "UIVersion": 2,
@@ -11598,7 +11460,6 @@
             {
               "@type": "MOD.Core.TextGUIRendererComponent",
               "OverrideSorting": false,
-              "SortingLayer": "MapLayer2",
               "Enable": true
             },
             {
@@ -11646,11 +11507,6 @@
                 "z": 0.0,
                 "w": 1.0
               },
-              "Scale": {
-                "x": 1.0,
-                "y": 1.0,
-                "z": 1.0
-              },
               "Enable": true
             },
             {
@@ -11674,7 +11530,7 @@
           "name": "UIText",
           "path": "/maps/Map_01/Tiles/Tile_27/UIText",
           "nameEditable": true,
-          "enable": true,
+          "enable": false,
           "visible": true,
           "localize": false,
           "displayOrder": 0,
@@ -11702,16 +11558,16 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 50.77778,
-                "y": 248.755569
+                "x": 75.77778,
+                "y": 275.4889
               },
               "OffsetMin": {
-                "x": -49.22222,
-                "y": 148.755569
+                "x": -74.22222,
+                "y": 125.488892
               },
               "RectSize": {
-                "x": 100.0,
-                "y": 100.0
+                "x": 150.0,
+                "y": 150.0
               },
               "UIMode": 2,
               "UIVersion": 2,
@@ -11726,7 +11582,6 @@
             {
               "@type": "MOD.Core.TextGUIRendererComponent",
               "OverrideSorting": false,
-              "SortingLayer": "MapLayer2",
               "Enable": true
             },
             {

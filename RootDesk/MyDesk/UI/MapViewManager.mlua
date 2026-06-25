@@ -1,0 +1,214 @@
+@Logic
+script MapViewManager extends Logic
+
+	property boolean _isOpen = false
+
+	property number _camMoveSpeed = 6.0
+
+	property Vector2 _origCameraOffset = Vector2(0, 0)
+
+	property number _origZoom = 100
+
+	property any _currentTween = nil
+
+	property any _scrollHandler = nil
+
+	@ExecSpace("ClientOnly")
+	method void OnBeginPlay()
+		self._scrollHandler = _InputService:ConnectEvent(MouseScrollEvent, self.OnMouseScroll)
+	end
+
+	@ExecSpace("ClientOnly")
+	method void OnEndPlay()
+		if self._scrollHandler ~= nil then
+			_InputService:DisconnectEvent(MouseScrollEvent, self._scrollHandler)
+			self._scrollHandler = nil
+		end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void OnMouseScroll(MouseScrollEvent event)
+		if not self._isOpen then return end
+		local cam = _CameraService:GetCurrentCameraComponent()
+		if not isvalid(cam) then return end
+		
+		-- 휠 위 = 확대(ZoomRatio 증가), 휠 아래 = 축소(ZoomRatio 감소)
+		local newZoom = cam.ZoomRatio + event.ScrollDelta * 50
+		newZoom = math.max(20, math.min(130, newZoom))
+		cam.ZoomRatio = newZoom
+	end
+
+	@ExecSpace("ClientOnly")
+	method void OnUpdate(number delta)
+		if not self._isOpen then return end
+		
+		local cam = _CameraService:GetCurrentCameraComponent()
+		if not isvalid(cam) then return end
+		
+		local spd = self._camMoveSpeed * delta
+		local dx = 0
+		local dy = 0
+		if _InputService:IsKeyPressed(KeyboardKey.W) then dy = dy + spd end
+		if _InputService:IsKeyPressed(KeyboardKey.S) then dy = dy - spd end
+		if _InputService:IsKeyPressed(KeyboardKey.A) then dx = dx - spd end
+		if _InputService:IsKeyPressed(KeyboardKey.D) then dx = dx + spd end
+		
+		if dx ~= 0 or dy ~= 0 then
+			cam.CameraOffset = Vector2(cam.CameraOffset.x + dx, cam.CameraOffset.y + dy)
+		end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void Toggle()
+		if self._isOpen then
+			self:CloseMapView()
+		else
+			self:OpenMapView()
+		end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void StopCurrentTween()
+		if self._currentTween ~= nil and isvalid(self._currentTween) then
+			self._currentTween:Stop()
+			self._currentTween = nil
+		end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void OpenMapView()
+		local me = _UserService.LocalPlayer
+		if not isvalid(me) then return end
+		local pm = me:GetComponent("script.PlayerMovement")
+		if not isvalid(pm) then return end
+		
+		if next(_TileManager.tileGraph) == nil then
+			_TileManager:BuildTileGraph()
+		end
+		
+		local mapName = me.CurrentMapName
+		local currentTile = pm.currentTile
+		
+		local reachable = self:ComputeReachableTiles(mapName, currentTile)
+		if #reachable == 0 then
+			log("[MapViewManager] 도달 가능 타일 없음")
+			return
+		end
+		
+		self:ShowTileNumbers(reachable, mapName)
+		
+		local cam = _CameraService:GetCurrentCameraComponent()
+		if not isvalid(cam) then
+			self._isOpen = true
+			return
+		end
+		
+		self:StopCurrentTween()
+		
+		-- 현재 상태 저장
+		self._origCameraOffset = cam.CameraOffset
+		self._origZoom = cam.ZoomRatio
+		
+		-- 카메라 줌 축소 (0.4초 트윈)
+		cam:SetZoomTo(65, 0.25)
+		
+		self._isOpen = true
+		log("[MapViewManager] 맵 뷰 열림: " .. tostring(#reachable) .. "개 타일 표시")
+	end
+
+	@ExecSpace("ClientOnly")
+	method void CloseMapView()
+		if not self._isOpen then return end
+		self._isOpen = false
+		
+		self:HideTileNumbers()
+		
+		local cam = _CameraService:GetCurrentCameraComponent()
+		if not isvalid(cam) then return end
+		
+		self:StopCurrentTween()
+		
+		-- 카메라 오프셋 원점으로 트윈 복귀
+		local fromOffset = cam.CameraOffset
+		local toOffset = self._origCameraOffset
+		
+		self._currentTween = _TweenLogic:PlayTween(
+			fromOffset, toOffset, 0.3, EaseType.QuadEaseOut,
+			function(v)
+				local c = _CameraService:GetCurrentCameraComponent()
+				if isvalid(c) then c.CameraOffset = v end
+			end
+		)
+		self._currentTween:SetOnEndCallback(function()
+			self._currentTween = nil
+		end)
+		
+		-- 줌 원래대로 복귀 (0.3초 트윈)
+		cam:SetZoomTo(self._origZoom, 0.3)
+		
+		log("[MapViewManager] 맵 뷰 닫힘")
+	end
+
+	@ExecSpace("ClientOnly")
+	method table ComputeReachableTiles(string mapName, string startTile)
+		local result = {}
+		local visited = {}
+		local queue = {}
+		local qi = 1
+		
+		table.insert(queue, {tileName=startTile, step=0})
+		visited[startTile] = true
+		
+		while qi <= #queue do
+			local entry = queue[qi]
+			qi = qi + 1
+		
+			local tile = entry.tileName
+			local step = entry.step
+		
+			if step > 12 then continue end
+		
+			if step >= 2 then
+				table.insert(result, {step=step, tileName=tile})
+			end
+		
+			local graphKey = mapName .. "_" .. tile
+			local graphEntry = _TileManager.tileGraph[graphKey]
+			if graphEntry == nil then continue end
+		
+			for _, nextTile in ipairs(graphEntry.nexts) do
+				if not visited[nextTile] then
+					visited[nextTile] = true
+					table.insert(queue, {tileName=nextTile, step=step+1})
+				end
+			end
+		end
+		
+		return result
+	end
+
+	@ExecSpace("ClientOnly")
+	method void ShowTileNumbers(table reachable, string mapName)
+		for _, entry in ipairs(reachable) do
+			local entity = _TileManager:GetTileEntity(mapName, entry.tileName)
+			if not isvalid(entity) then continue end
+			local textChild = entity:GetChildByName("UIText")
+			if not isvalid(textChild) then continue end
+			local textComp = textChild.TextGUIRendererComponent
+			if not isvalid(textComp) then continue end
+			textComp.Text = tostring(entry.step)
+			textChild.Enable = true
+		end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void HideTileNumbers()
+		for _, entity in pairs(_TileManager.tileEntities) do
+			if not isvalid(entity) then continue end
+			local textChild = entity:GetChildByName("UIText")
+			if not isvalid(textChild) then continue end
+			textChild.Enable = false
+		end
+	end
+
+end

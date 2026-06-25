@@ -90,12 +90,18 @@ script SingleTurnManager extends Logic
 	@ExecSpace("Server")
 	method void OnMove()
 		        log("[SingleTurnManager] 이동 단계, 주사위=" .. tostring(self.remainDiceTotal))
+		        self:CloseMapViewOnClient()
 		        for _, userEntity in pairs(_UserService.UserEntities) do
 		            if userEntity.PlayerMovement ~= nil then
 		                userEntity.PlayerMovement:MoveSteps(self.remainDiceTotal)
 		            end
 		            break   -- 싱글이라 플레이어는 한 명
 		        end
+	end
+
+	@ExecSpace("Client")
+	method void CloseMapViewOnClient()
+		_MapViewManager:CloseMapView()
 	end
 
 	@ExecSpace("Server")

@@ -86,6 +86,9 @@ script TileManager extends Logic
 				else
 					_TimerService:SetTimerOnce(function()
 						log("[TileManager] 클라이언트 타일 수집 지연 실행")
+						if next(self.tileGraph) == nil then
+							self:BuildTileGraph()
+						end
 						self:CollectTiles()
 					end, 0.5)
 				end
@@ -207,7 +210,6 @@ script TileManager extends Logic
 				self:CollectTiles()
 	end
 
-	@ExecSpace("ServerOnly")
 	method void BuildTileGraph()
 		local ds = _DataService:GetTable("TileEventData")
 				if not isvalid(ds) then
