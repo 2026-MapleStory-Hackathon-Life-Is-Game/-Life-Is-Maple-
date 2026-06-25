@@ -81,7 +81,6 @@ script CharacterInfoPanel extends Component
 		if isvalid(self.cpComp) == false then self.cpComp = p:GetComponent("script.CombatPowerManager") end
 
 		self:SetText(self.nameText, p.PlayerComponent.Nickname)
-		self:SetText(self.levelText, "Lv.10")
 		local buff = p:GetComponent("script.BuffManager")
 		local job  = p:GetComponent("script.JobWeaponManager")
 		local mv   = p:GetComponent("script.PlayerMovement")
@@ -92,11 +91,12 @@ script CharacterInfoPanel extends Component
 		---@type CombatPowerManager
 		local cp = self.cpComp
 		if isvalid(cp) then
+			self:SetText(self.levelText, "Lv." .. tostring(cp.Level))
 			self:SetText(self.powerText, "전투력: " .. self:FormatPower(cp.CombatPower))
-			self:SetText(self.strText, tostring(math.floor(cp.STR)))
-			self:SetText(self.dexText, tostring(math.floor(cp.DEX)))
-			self:SetText(self.intText, tostring(math.floor(cp.INT)))
-			self:SetText(self.lukText, tostring(math.floor(cp.LUK)))
+			self:SetText(self.strText, tostring(math.floor(cp:DisplayStat("STR"))))
+			self:SetText(self.dexText, tostring(math.floor(cp:DisplayStat("DEX"))))
+			self:SetText(self.intText, tostring(math.floor(cp:DisplayStat("INT"))))
+			self:SetText(self.lukText, tostring(math.floor(cp:DisplayStat("LUK"))))
 			self:SetText(self.atkText,     tostring(math.floor(cp:DisplayMainAttack())))
 			self:SetText(self.dmgText,     tostring(math.floor(cp:DisplayDamagePct())) .. "%")
 			self:SetText(self.bossDmgText, tostring(math.floor(cp:DisplayBossDamagePct())) .. "%")
