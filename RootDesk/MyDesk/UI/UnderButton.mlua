@@ -9,6 +9,10 @@ script UnderButton extends Component
 
 	property any mapHandler = nil
 
+	property any charInfoHandler = nil
+
+	property any bagHandler = nil
+
 	property ButtonComponent OpenDicePanelButton = "64eadf42-ab0c-4d9c-99f4-9da65935f7d1"
 
 	property ButtonComponent RollDiceButton = "859b1f3d-8c48-4216-b425-18e45ef436bd"
@@ -17,13 +21,23 @@ script UnderButton extends Component
 
 	property ButtonComponent MapViewButton = "f4d5b8f1-b4f3-48f2-a9d4-e113e1204abe"
 
+	property ButtonComponent CharInfoButton = "9cdcac8a-2a4d-4f0b-b128-5fa7e1c1246f"
+
+	property ButtonComponent BagButton = "620689f7-d644-4347-94c3-9a74de27cc46"
+
 	property Entity WholePanel = "f6591a77-568d-41c8-b6f0-b4721629787f"
 
 	property Entity DicePanel = "3cf2b530-e75e-4041-8925-4e4e2c4f96f1"
 
+	property any charPanel = nil
+
+	property any invPanel = nil
+
+	property string openExclusive = ""
+
 	method void OnBeginPlay()
 		if self:IsServer() then
-		
+
 		else
 			-- 클라이언트: 버튼 이벤트 구독, 반환된 핸들을 저장
 			self.openHandler = self.OpenDicePanelButton.Entity:ConnectEvent(ButtonClickEvent,self.OnDicePanelClickOpen)
@@ -32,10 +46,28 @@ script UnderButton extends Component
 			if isvalid(self.MapViewButton.Entity) then
 				self.mapHandler = self.MapViewButton.Entity:ConnectEvent(ButtonClickEvent, self.OnClickMap)
 			end
-		
+
+			-- 캐릭터 정보 / 배낭 패널 컨트롤러 바인딩
+			local charCtrlEntity = _EntityService:GetEntityByPath("/ui/InGameUIGroup/CharacterInfo_Panel/Ctrl")
+			if isvalid(charCtrlEntity) then
+				self.charPanel = charCtrlEntity:GetComponent("script.CharacterInfoPanel")
+			end
+			local invCtrlEntity = _EntityService:GetEntityByPath("/ui/InGameUIGroup/Inventory_Panel/Ctrl")
+			if isvalid(invCtrlEntity) then
+				self.invPanel = invCtrlEntity:GetComponent("script.InventoryPanel")
+			end
+			self.openExclusive = ""
+
+			if isvalid(self.CharInfoButton) and isvalid(self.CharInfoButton.Entity) then
+				self.charInfoHandler = self.CharInfoButton.Entity:ConnectEvent(ButtonClickEvent, self.OnClickCharInfo)
+			end
+			if isvalid(self.BagButton) and isvalid(self.BagButton.Entity) then
+				self.bagHandler = self.BagButton.Entity:ConnectEvent(ButtonClickEvent, self.OnClickBag)
+			end
+
 			self.DicePanel.Visible = false
 		end
-		
+
 	end
 
 	method void OnEndPlay()
@@ -51,6 +83,12 @@ script UnderButton extends Component
 					end
 					if self.mapHandler ~= nil and isvalid(self.MapViewButton.Entity) then
 						self.MapViewButton.Entity:DisconnectEvent(ButtonClickEvent, self.mapHandler)
+					end
+					if self.charInfoHandler ~= nil and isvalid(self.CharInfoButton.Entity) then
+						self.CharInfoButton.Entity:DisconnectEvent(ButtonClickEvent, self.charInfoHandler)
+					end
+					if self.bagHandler ~= nil and isvalid(self.BagButton.Entity) then
+						self.BagButton.Entity:DisconnectEvent(ButtonClickEvent, self.bagHandler)
 					end
 				end
 	end
@@ -71,7 +109,7 @@ script UnderButton extends Component
 		_SFXManager:PlayClick()
 		_SingleTurnManager:RequestRollDice()
 		_MultiTurnManager:RequestRollDice()
-		
+
 		self.DicePanel.Visible = false
 		self.WholePanel.Visible = true
 	end
@@ -88,13 +126,52 @@ script UnderButton extends Component
 		_MapViewManager:Toggle()
 	end
 
+	method void OnClickCharInfo(any event)
+		-- 캐릭터 정보 토글(배낭과 상호배타).
+		_SFXManager:PlayClick()
+		if self.openExclusive == "CHAR" then
+			self:CloseExclusive()
+		else
+			self:CloseExclusive()
+			self.openExclusive = "CHAR"
+			if isvalid(self.charPanel) then self.charPanel:Open() end
+		end
+	end
+
+	method void OnClickBag(any event)
+		-- 배낭 토글(캐릭터 정보와 상호배타).
+		_SFXManager:PlayClick()
+		if self.openExclusive == "BAG" then
+			self:CloseExclusive()
+		else
+			self:CloseExclusive()
+			self.openExclusive = "BAG"
+			if isvalid(self.invPanel) then self.invPanel:Open() end
+		end
+	end
+
+	method void CloseExclusive()
+		-- 열린 배타 패널을 닫는다.
+		if isvalid(self.charPanel) then self.charPanel:Close() end
+		if isvalid(self.invPanel) then self.invPanel:Close() end
+		self.openExclusive = ""
+	end
+
+	method boolean IsExclusiveOpen()
+		-- 캐릭터정보/배낭 중 하나라도 열려 있으면 true.
+		return self.openExclusive ~= ""
+	end
+
 	method boolean CanOpenDicePanel()
+		-- 캐릭터정보/배낭 패널이 열려 있으면 주사위 열기 차단.
+		if self:IsExclusiveOpen() then return false end
+
 		local mode = _GameModeManager._activeMode
-		
+
 				if mode == "SINGLE" then
 					-- 싱글: DICE 단계 + 굴리는 중이 아니어야 OK (연출 중 재오픈 차단)
 					return _SingleTurnManager._currentState == "DICE" and _SingleTurnManager._isRolling == false
-		
+
 				elseif mode == "MULTI" then
 					-- 멀티: DICE 단계 + 굴리는 중 아님 + 내가 현재 턴 플레이어여야 함
 					if _MultiTurnManager._currentState ~= "DICE" then
@@ -106,7 +183,7 @@ script UnderButton extends Component
 					local myUserId = _UserService.LocalPlayer.PlayerComponent.UserId
 					return myUserId == _MultiTurnManager._currentPlayerUserId
 				end
-		
+
 				-- 그 외(NONE 등): 못 엶
 				return false
 	end

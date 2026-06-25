@@ -81,38 +81,40 @@ script MapViewManager extends Logic
 		if not isvalid(me) then return end
 		local pm = me:GetComponent("script.PlayerMovement")
 		if not isvalid(pm) then return end
-		
+
 		if next(_TileManager.tileGraph) == nil then
 			_TileManager:BuildTileGraph()
 		end
-		
+
 		local mapName = me.CurrentMapName
 		local currentTile = pm.currentTile
-		
+
 		local reachable = self:ComputeReachableTiles(mapName, currentTile)
 		if #reachable == 0 then
 			log("[MapViewManager] 도달 가능 타일 없음")
 			return
 		end
-		
+
 		self:ShowTileNumbers(reachable, mapName)
-		
+
 		local cam = _CameraService:GetCurrentCameraComponent()
 		if not isvalid(cam) then
 			self._isOpen = true
+			self:SetHudHidden(true)
 			return
 		end
-		
+
 		self:StopCurrentTween()
-		
+
 		-- 현재 상태 저장
 		self._origCameraOffset = cam.CameraOffset
 		self._origZoom = cam.ZoomRatio
-		
+
 		-- 카메라 줌 축소 (0.4초 트윈)
-		cam:SetZoomTo(65, 0.25)
-		
+		cam:SetZoomTo(50, 0.25)
+
 		self._isOpen = true
+		self:SetHudHidden(true)
 		log("[MapViewManager] 맵 뷰 열림: " .. tostring(#reachable) .. "개 타일 표시")
 	end
 
@@ -120,18 +122,19 @@ script MapViewManager extends Logic
 	method void CloseMapView()
 		if not self._isOpen then return end
 		self._isOpen = false
-		
+
 		self:HideTileNumbers()
-		
+		self:SetHudHidden(false)
+
 		local cam = _CameraService:GetCurrentCameraComponent()
 		if not isvalid(cam) then return end
-		
+
 		self:StopCurrentTween()
-		
+
 		-- 카메라 오프셋 원점으로 트윈 복귀
 		local fromOffset = cam.CameraOffset
 		local toOffset = self._origCameraOffset
-		
+
 		self._currentTween = _TweenLogic:PlayTween(
 			fromOffset, toOffset, 0.3, EaseType.QuadEaseOut,
 			function(v)
@@ -142,11 +145,22 @@ script MapViewManager extends Logic
 		self._currentTween:SetOnEndCallback(function()
 			self._currentTween = nil
 		end)
-		
+
 		-- 줌 원래대로 복귀 (0.3초 트윈)
 		cam:SetZoomTo(self._origZoom, 0.3)
-		
+
 		log("[MapViewManager] 맵 뷰 닫힘")
+	end
+
+	@ExecSpace("ClientOnly")
+	method void SetHudHidden(boolean hidden)
+		-- 맵 뷰 중 좌상단 플레이어 패널 + 버프 + 주사위 버튼 숨김(맵 버튼은 유지). 캐릭터정보/배낭은 건드리지 않음.
+		local show = not hidden
+		local pip = _EntityService:GetEntityByPath("/ui/InGameUIGroup/PlayerInfo_Panel")
+		if isvalid(pip) then pip.Enable = show end
+		if _BuffPanelUI ~= nil then _BuffPanelUI:SetVisible(show) end
+		local dice = _EntityService:GetEntityByPath("/ui/InGameUIGroup/UnderButton/UnderButton_Panel_Whole/UIButton")
+		if isvalid(dice) then dice.Enable = show end
 	end
 
 	@ExecSpace("ClientOnly")

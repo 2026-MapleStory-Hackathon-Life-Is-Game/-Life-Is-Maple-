@@ -169,6 +169,17 @@ script BuffPanelUI extends Logic
 		if isvalid(self.tooltip) then self.tooltip.Enable = false end
 	end
 
+	@ExecSpace("ClientOnly")
+	method void SetVisible(boolean visible)
+		-- 버프 카드 전체 + 툴팁 표시/숨김(맵 뷰 토글용).
+		if self.cards ~= nil then
+			for i = 1, #self.cards do
+				if isvalid(self.cards[i]) then self.cards[i].Enable = visible end
+			end
+		end
+		if visible == false then self:HideTooltip() end
+	end
+
 	method void ClearCards()
 		-- 기존 카드 클론과 호버 핸들러를 모두 제거한다.
 		if self.hoverHandlers ~= nil then
