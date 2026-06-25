@@ -1,0 +1,220 @@
+@Component
+script InventoryPanel extends Component
+
+	property Entity panelRoot = "265b6a00-710c-4654-ad3f-85db1bc7685f"
+	property Entity gridEntity = "c4fadd74-2612-44e0-913c-94d38acf97f1"
+	property Entity cellPrefab = "5c958470-46b3-40e2-a250-24aaa2847a6e"
+	property boolean isOpen = false
+	property string activeTab = "Armor"
+	property any cellHandlers = nil
+	property string _lastClickName = ""
+	property number _lastClickTime = 0
+
+	method void OnBeginPlay()
+		-- 클라: 패널 숨김 + GridView 셀 프리팹 주입 + 탭 버튼 이벤트 배선.
+		if self:IsClient() == false then return end
+		self.isOpen = false
+		self.activeTab = "Armor"
+		self.cellHandlers = {}
+		self._lastClickName = ""
+		self._lastClickTime = 0
+		self._T.items = {}
+		self._T.tabH = {}
+
+		if isvalid(self.panelRoot) then
+			self.panelRoot.Enable = false
+		end
+
+		if isvalid(self.gridEntity) and isvalid(self.cellPrefab) then
+			local gvc = self.gridEntity.GridViewComponent
+			if gvc ~= nil then
+				gvc.ItemEntity = self.cellPrefab
+				gvc.OnRefresh = function(index, cell)
+					self:OnGridCellRefresh(index, cell)
+				end
+				gvc.OnClear = function(index, cell)
+					self:OnGridCellClear(index, cell)
+				end
+			end
+		end
+
+		-- 탭 버튼 이벤트 배선
+		local base = "/ui/InGameUIGroup/Inventory_Panel/Window/"
+		local tabs = {
+			{ key = "Armor", node = "TabArmor" },
+			{ key = "Weapon", node = "TabWeapon" },
+			{ key = "Accessory", node = "TabAccessory" },
+			{ key = "Item", node = "TabItem" },
+		}
+		for _, t in ipairs(tabs) do
+			local e = _EntityService:GetEntityByPath(base .. t.node)
+			if isvalid(e) then
+				local capturedKey = t.key
+				local h = e:ConnectEvent(ButtonClickEvent, function()
+					_SFXManager:PlayClick()
+					self:SelectTab(capturedKey)
+				end)
+				table.insert(self._T.tabH, { entity = e, evtH = h })
+			end
+		end
+
+		log("[InventoryPanel] OnBeginPlay OK")
+	end
+
+	method void Open()
+		-- 배낭 열기 + 현재 탭 목록 갱신.
+		if self:IsClient() == false then return end
+		self.isOpen = true
+		if isvalid(self.panelRoot) then
+			self.panelRoot.Enable = true
+		end
+		self:Rebuild()
+	end
+
+	method void Close()
+		-- 배낭 닫기.
+		if self:IsClient() == false then return end
+		self.isOpen = false
+		if isvalid(self.panelRoot) then
+			self.panelRoot.Enable = false
+		end
+	end
+
+	method void SelectTab(string tab)
+		-- 탭 전환 후 그리드 재구성.
+		self.activeTab = tab
+		self:Rebuild()
+	end
+
+	method table CurrentList()
+		-- 현재 탭 타입의 정렬된 보유 목록(Item 탭은 빈 목록).
+		if self.activeTab == "Item" then return {} end
+		local p = _UserService.LocalPlayer
+		if isvalid(p) == false then return {} end
+		local m = _EquipmentRouter:ManagerFor(p, self.activeTab)
+		if isvalid(m) == false then return {} end
+		return m:OwnedSorted()
+	end
+
+	method void Rebuild()
+		-- 보유 목록으로 GridView 재구성.
+		if self:IsClient() == false or self.isOpen == false then return end
+
+		-- 이전 셀 핸들 해제
+		if self.cellHandlers ~= nil then
+			for _, r in ipairs(self.cellHandlers) do
+				if isvalid(r.entity) then
+					r.entity:DisconnectEvent(ButtonClickEvent, r.evtH)
+				end
+			end
+		end
+		self.cellHandlers = {}
+
+		local items = self:CurrentList()
+		self._T.items = items
+		log("[InventoryPanel] Rebuild tab=" .. self.activeTab .. " count=" .. tostring(#items))
+
+		if isvalid(self.gridEntity) then
+			local gvc = self.gridEntity.GridViewComponent
+			if gvc ~= nil then
+				gvc.TotalCount = #items
+				gvc:Refresh()
+			end
+		end
+	end
+
+	method void OnGridCellRefresh(integer index, Entity cell)
+		-- GridView OnRefresh 콜백: 셀 1개를 (index+1)번째 아이템으로 채운다.
+		local items = self._T.items
+		if items == nil then return end
+		local name = items[index + 1]
+		if name == nil then return end
+
+		-- 아이콘 RUID 조회
+		local ds = _DataService:GetTable("EquipData")
+		local ruid = ""
+		if isvalid(ds) then
+			for i = 1, ds:GetRowCount() do
+				if ds:GetCell(i, "EquipName") == name then
+					ruid = ds:GetCell(i, "Icon")
+					break
+				end
+			end
+		end
+
+		-- 버튼 자신의 SpriteGUIRendererComponent에 아이콘 적용
+		local rend = cell.SpriteGUIRendererComponent
+		if isvalid(rend) then
+			if ruid ~= "" then
+				rend.ImageRUID = ruid
+			end
+			rend.Color = Color(1, 1, 1, 1)
+		end
+
+		-- 더블클릭 이벤트 배선(OnClear에서 해제)
+		local capturedName = name
+		local h = cell:ConnectEvent(ButtonClickEvent, function()
+			self:OnCellClicked(capturedName)
+		end)
+		table.insert(self.cellHandlers, { entity = cell, evtH = h })
+	end
+
+	method void OnGridCellClear(integer index, Entity cell)
+		-- GridView OnClear 콜백: 셀 이벤트 핸들 해제 + 아이콘 초기화.
+		local rend = cell.SpriteGUIRendererComponent
+		if isvalid(rend) then
+			rend.Color = Color(1, 1, 1, 0)
+		end
+		local toRemove = {}
+		for i, r in ipairs(self.cellHandlers) do
+			if r.entity == cell then
+				cell:DisconnectEvent(ButtonClickEvent, r.evtH)
+				table.insert(toRemove, i)
+			end
+		end
+		for i = #toRemove, 1, -1 do
+			table.remove(self.cellHandlers, toRemove[i])
+		end
+	end
+
+	method void OnCellClicked(string equipName)
+		-- 더블클릭(0.3초 내 같은 아이템 2회) → 장착 요청.
+		_SFXManager:PlayClick()
+		local now = _UtilLogic.ElapsedSeconds
+		if self._lastClickName == equipName and (now - self._lastClickTime) <= 0.3 then
+			self._lastClickName = ""
+			log("[InventoryPanel] 더블클릭 장착: " .. equipName)
+			local p = _UserService.LocalPlayer
+			if isvalid(p) then
+				local m = _EquipmentRouter:ManagerForItem(p, equipName)
+				if isvalid(m) then
+					m:RequestEquip(equipName)
+				end
+			end
+			self:Rebuild()
+		else
+			self._lastClickName = equipName
+			self._lastClickTime = now
+			log("[InventoryPanel] 첫 클릭: " .. equipName)
+		end
+	end
+
+	method void OnEndPlay()
+		-- 셀 핸들 + 탭 핸들 모두 해제.
+		if self.cellHandlers ~= nil then
+			for _, r in ipairs(self.cellHandlers) do
+				if isvalid(r.entity) then
+					r.entity:DisconnectEvent(ButtonClickEvent, r.evtH)
+				end
+			end
+		end
+		if self._T.tabH ~= nil then
+			for _, r in ipairs(self._T.tabH) do
+				if isvalid(r.entity) then
+					r.entity:DisconnectEvent(ButtonClickEvent, r.evtH)
+				end
+			end
+		end
+	end
+
+end
