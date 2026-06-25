@@ -26,10 +26,16 @@ script CombatPowerManager extends Component
 	property number ExtraDamage = 0
 
 	@Sync
+	property number ExtraBossDamage = 0
+
+	@Sync
 	property number CriticalDamage = 1.35
 
 	@Sync
 	property number CombatPower = 0
+
+	@Sync
+	property SyncTable<string, number> CurrentExtra
 
 	@Sync
 	property string MainStatType = ""
@@ -66,6 +72,7 @@ script CombatPowerManager extends Component
 		self.BaseStatPct = 0
 		self.BaseAttackPct = 0
 		self.ExtraDamage = 0
+		self.ExtraBossDamage = 0
 		self.CriticalDamage = 1.35
 		self.MainStatType = ""
 		self.MainAttackType = ""
@@ -113,6 +120,14 @@ script CombatPowerManager extends Component
 		self.ExtraDamage = self.ExtraDamage + value
 		self:CalculateCurrentCombatPower()
 		log("CombatPowerManager: 대미지% " .. tostring(value) .. " → ExtraDamage=" .. tostring(self.ExtraDamage))
+	end
+
+	@ExecSpace("ServerOnly")
+	method void AddBossDamage(number value)
+		-- 보스 대미지%(전투력엔 합산, 표시는 분리).
+		self.ExtraBossDamage = self.ExtraBossDamage + value
+		self:CalculateCurrentCombatPower()
+		log("CombatPowerManager: 보스대미지% " .. tostring(value) .. " → " .. tostring(self.ExtraBossDamage))
 	end
 
 	@ExecSpace("ServerOnly")
@@ -200,9 +215,9 @@ script CombatPowerManager extends Component
 	end
 
 	method number CalculateCurrentExtraDamage(table extra)
-		-- 대미지 = 1 + 추가대미지% (보스 대미지는 일반 대미지로 통합됨)
-		local totalDamage = self.ExtraDamage + extra.damagePct
-		return 1 + totalDamage / 100
+		-- 대미지 곱셈자 = 1 + (일반+보스+버프/장비 일반·보스)%. 전투력 합산, 표시만 분리.
+		local total = self.ExtraDamage + self.ExtraBossDamage + extra.damagePct + (extra.bossDamagePct or 0)
+		return 1 + total / 100
 	end
 
 	method number CalculateCurrentCriticalDamage(table extra)
@@ -227,7 +242,74 @@ script CombatPowerManager extends Component
 		local crit   = self:CalculateCurrentCriticalDamage(extra)
 		
 		self.CombatPower = stat * attack * damage * crit
+		if self:IsServer() then
+			self.CurrentExtra["statFlat"]      = extra.statFlat or 0
+			self.CurrentExtra["statPct"]       = extra.statPct or 0
+			self.CurrentExtra["allStatFlat"]   = extra.allStatFlat or 0
+			self.CurrentExtra["allStatPct"]    = extra.allStatPct or 0
+			self.CurrentExtra["attackFlat"]    = extra.attackFlat or 0
+			self.CurrentExtra["attackPct"]     = extra.attackPct or 0
+			self.CurrentExtra["damagePct"]     = extra.damagePct or 0
+			self.CurrentExtra["bossDamagePct"] = extra.bossDamagePct or 0
+			self.CurrentExtra["critPct"]       = extra.critPct or 0
+		end
 		return self.CombatPower
+	end
+
+	method table BuildExtraTable()
+		-- CurrentExtra(SyncTable) → plain table.
+		return {
+			statFlat      = self.CurrentExtra["statFlat"] or 0,
+			statPct       = self.CurrentExtra["statPct"] or 0,
+			allStatFlat   = self.CurrentExtra["allStatFlat"] or 0,
+			allStatPct    = self.CurrentExtra["allStatPct"] or 0,
+			attackFlat    = self.CurrentExtra["attackFlat"] or 0,
+			attackPct     = self.CurrentExtra["attackPct"] or 0,
+			damagePct     = self.CurrentExtra["damagePct"] or 0,
+			bossDamagePct = self.CurrentExtra["bossDamagePct"] or 0,
+			critPct       = self.CurrentExtra["critPct"] or 0,
+		}
+	end
+
+	method number PreviewPowerWithSwap(string candidate)
+		-- 후보를 해당 타입 슬롯에 끼웠을 때 전투력(상태변경 없음). 서버/클라 공용.
+		local cur    = self:BuildExtraTable()
+		local curEq  = _EquipmentRouter:TotalModifiers(self.Entity)
+		local swapEq = _EquipmentRouter:ModifiersWithSwap(self.Entity, candidate)
+		local pe = {
+			statFlat      = cur.statFlat - curEq.statFlat + swapEq.statFlat,
+			statPct       = cur.statPct,
+			allStatFlat   = cur.allStatFlat,
+			allStatPct    = cur.allStatPct,
+			attackFlat    = cur.attackFlat - curEq.attackFlat + swapEq.attackFlat,
+			attackPct     = cur.attackPct,
+			damagePct     = cur.damagePct - curEq.damagePct + swapEq.damagePct,
+			bossDamagePct = cur.bossDamagePct - curEq.bossDamagePct + swapEq.bossDamagePct,
+			critPct       = cur.critPct,
+		}
+		return self:CalculateCurrentMainStat(pe) * self:CalculateCurrentMainAttack(pe)
+			* self:CalculateCurrentExtraDamage(pe) * self:CalculateCurrentCriticalDamage(pe)
+	end
+
+	method number DisplayMainAttack()
+		-- 표시용 현재 공/마.
+		return self:CalculateCurrentMainAttack(self:BuildExtraTable())
+	end
+
+	method number DisplayDamagePct()
+		-- 표시용 일반 대미지%.
+		return self.ExtraDamage + (self.CurrentExtra["damagePct"] or 0)
+	end
+
+	method number DisplayBossDamagePct()
+		-- 표시용 보스 대미지%.
+		return self.ExtraBossDamage + (self.CurrentExtra["bossDamagePct"] or 0)
+	end
+
+	method number ItemStandalonePower(table m)
+		-- 단독 전투력 환산값(정렬용, 결정적, 장착상태 무관). 곱셈구조 근사.
+		local dmg = 1 + ((m.damagePct or 0) + (m.bossDamagePct or 0)) / 100
+		return (1 + (m.statFlat or 0)) * (1 + (m.attackFlat or 0)) * dmg
 	end
 
 end
