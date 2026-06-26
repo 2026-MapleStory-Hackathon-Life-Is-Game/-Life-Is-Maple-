@@ -65,7 +65,8 @@ script PlayerMovement extends Component
 		-- 이동을 다 썼으면 종료 + 턴 매니저에 완료 알림
 				        if self.remainingSteps <= 0 then
 				            self:ChangePlayerState("IDLE")
-				            -- 활성인 턴 매니저만 반응한다(비활성 쪽은 내부에서 무시).
+				            self:UpdateDiceBuffUI(0)   -- 이동 종료 → 남은 횟수 표시를 0으로 리셋
+					            -- 활성인 턴 매니저만 반응한다(비활성 쪽은 내부에서 무시).
 				            _SingleTurnManager:OnMoveComplete()
 				            _MultiTurnManager:OnMoveComplete()
 				            return
@@ -79,6 +80,7 @@ script PlayerMovement extends Component
 				            self.remainingSteps = 0
 				            self:ChangePlayerState("IDLE")
 				
+							self:UpdateDiceBuffUI(0)   -- 막다른 길 → 남은 횟수 표시를 0으로 리셋
 							-- 매니저 알림: 턴이 멈추지 않고 타일 이벤트로 넘어가게 함
 				    		_SingleTurnManager:OnMoveComplete()
 				    		_MultiTurnManager:OnMoveComplete()
@@ -101,8 +103,9 @@ script PlayerMovement extends Component
 				        self.currentTile = nextTileName
 				        self.remainingSteps = self.remainingSteps - 1
 				
-						-- 값이 변화했기 때문에, UI 갱신
-						self:UpdateDiceBuffUI(self.remainingSteps)
+						-- UI는 '이번 칸 이동을 포함한' 남은 횟수를 표시한다(감소 전 값 = remainingSteps+1).
+						-- 감소 후 값을 쓰면 이동 애니메이션 동안 한 칸 적게 보여 실제 이동 수와 어긋난다.
+						self:UpdateDiceBuffUI(self.remainingSteps + 1)
 				
 						-- 다음 타일로 이동
 						self:MoveToTile(nextTileName)
@@ -112,7 +115,8 @@ script PlayerMovement extends Component
 	method void OnBranchSelected(string tileName)
 		        self.currentTile = tileName
 		        self.remainingSteps = self.remainingSteps - 1
-		        self:MoveToTile(tileName)
+		        self:UpdateDiceBuffUI(self.remainingSteps + 1)
+			self:MoveToTile(tileName)
 	end
 
 	@ExecSpace("Client")
