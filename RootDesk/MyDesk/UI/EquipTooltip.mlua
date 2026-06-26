@@ -1,10 +1,24 @@
 @Logic
 script EquipTooltip extends Logic
 
-	property Entity tipRoot = "5329f5e0-0d69-4621-83f9-fa2a682c4845"
-	property Entity leftText = "7d8b95f1-7d0c-463b-8518-5e37c79569f1"
-	property Entity rightPanel = "a758f39c-16f4-4498-a6df-a1f2ce43f4ed"
-	property Entity rightText = "c3c73602-fc17-458e-85fe-8dcd34571e23"
+	property Entity tipRoot = "34d79cea-b00d-49fd-bee3-1d0bcd9ddd4e"
+	property Entity rightPanel = "2fb31e97-28d4-41df-9033-eea62e38cf05"
+
+	-- 좌측 칼럼(단일 호버=장착품 / 비교=새 아이템) 동적 필드
+	property Entity leftName = "5466215d-6662-4790-9c52-a455992ca561"
+	property SpriteGUIRendererComponent leftIcon = "4b6fa131-4706-4d6c-b59c-8303f2e3ceb8"
+	property Entity leftPower = "c644467d-8a3e-4045-b8e3-5ef45d288ab5"
+	property Entity leftStats = "3821b66e-7792-4139-8cbf-144a60a11269"
+	property Entity leftStatLabel = "a56cd49e-4f0e-4855-a1b1-f82b48935816"
+	property Entity leftPotential = "09a1cf9a-cad0-4d4b-8ef4-e10d48dab75e"
+
+	-- 우측 칼럼(비교 시 현재 장착품) 동적 필드
+	property Entity rightName = "a06ce402-8121-48dc-9700-16d4b7a9023c"
+	property SpriteGUIRendererComponent rightIcon = "87f0c0ca-820b-4b44-b6a3-6fe9cf575a28"
+	property Entity rightPower = "6bcad466-9b9c-4ef2-a504-3204421ad2a8"
+	property Entity rightStats = "07bcd686-5142-4469-a01c-3e95c9fe230b"
+	property Entity rightStatLabel = "84ceee5e-ba51-4aca-af5c-4a00f9f53ac4"
+	property Entity rightPotential = "e4cdf68f-c8b2-44df-aaa5-0ad923f5dbe4"
 
 	method void OnBeginPlay()
 		-- 클라: 툴팁 패널 숨김 + 입력 비차단 설정.
@@ -23,28 +37,97 @@ script EquipTooltip extends Logic
 		end
 	end
 
-	method string BuildSpec(string equipName, boolean equipped)
-		-- 장비 1개의 스펙 문자열(이름/스탯/공마/대미지/보스대미지). 없으면 "". equipped면 이름에 (장착중) 추가.
-		if equipName == "" then return "" end
-		local ds = _DataService:GetTable("EquipData")
-		if isvalid(ds) == false then return "" end
-		local row = -1
-		for i = 1, ds:GetRowCount() do
-			if ds:GetCell(i, "EquipName") == equipName then row = i; break end
-		end
-		if row == -1 then return "" end
-		local nameLine = ds:GetCell(row, "Name")
-		if equipped then nameLine = nameLine .. "  (장착중)" end
-		return nameLine .. "\n"
-			.. "스탯 " .. ds:GetCell(row, "Stat") .. "  공/마 " .. ds:GetCell(row, "Attack") .. "\n"
-			.. "대미지 " .. ds:GetCell(row, "Damage") .. "%  보스 " .. ds:GetCell(row, "BossDamage") .. "%"
-	end
-
 	method void SetText(Entity e, string s)
 		-- 텍스트 엔티티의 TextComponent.Text 설정.
 		if isvalid(e) == false then return end
 		local tc = e:GetComponent("MOD.Core.TextComponent")
 		if tc ~= nil then tc.Text = s end
+	end
+
+	method string FormatPower(number value)
+		-- 전투력 변화량 표기. 0이면 "0", 양수 "+N", 음수 "-N". 1만 이상은 "○만 ○○○○".
+		local n = math.floor(math.abs(value) + 0.5)
+		if n == 0 then return "0" end
+		local sign = "+"
+		if value < 0 then sign = "-" end
+		if n >= 10000 then
+			local man = math.floor(n / 10000)
+			return sign .. tostring(man) .. "만 " .. string.format("%04d", n % 10000)
+		end
+		return sign .. tostring(n)
+	end
+
+	method number GainNum(string equipName)
+		-- 그 아이템 장착 시 전투력 변화량 = PreviewPowerWithSwap - 현재 전투력.
+		-- 이미 장착중인 아이템이면 동일 스왑이라 0이 된다.
+		local p = _UserService.LocalPlayer
+		if isvalid(p) == false then return 0 end
+		local cp = p:GetComponent("script.CombatPowerManager")
+		if isvalid(cp) == false then return 0 end
+		return cp:PreviewPowerWithSwap(equipName) - cp.CombatPower
+	end
+
+	method string MainStatName()
+		-- 로컬 플레이어 직업의 주스탯명(STR/DEX/INT/LUK). 미설정/조회 실패 시 "스탯".
+		local p = _UserService.LocalPlayer
+		if isvalid(p) == false then return "스탯" end
+		local cp = p:GetComponent("script.CombatPowerManager")
+		if isvalid(cp) == false then return "스탯" end
+		return cp:MainStatField()
+	end
+
+	method void ApplyStatLabel(Entity labelE)
+		-- 스탯 라벨 첫 줄을 직업 주스탯명으로 갱신(나머지 줄 고정).
+		self:SetText(labelE, self:MainStatName() .. "\n공격력\n대미지\n보스 대미지")
+	end
+
+	method void SetPowerColor(Entity e, number gain)
+		-- 전투력 변화량 글자색: 음수=붉은색, 0/양수=흰색.
+		if isvalid(e) == false then return end
+		local tc = e:GetComponent("MOD.Core.TextComponent")
+		if tc == nil then return end
+		if gain < 0 then
+			tc.FontColor = Color(1, 0.35, 0.35, 1)
+		else
+			tc.FontColor = Color(1, 1, 1, 1)
+		end
+	end
+
+	method void FillColumn(Entity nameE, SpriteGUIRendererComponent iconC, Entity powerE, Entity statsE, Entity potE, string equipName)
+		-- 한 칼럼을 equipName의 데이터로 채운다. 전투력 변화량은 내부에서 계산해 값+색을 적용.
+		if equipName == "" then return end
+		local ds = _DataService:GetTable("EquipData")
+		if isvalid(ds) == false then return end
+		local row = -1
+		for i = 1, ds:GetRowCount() do
+			if ds:GetCell(i, "EquipName") == equipName then row = i; break end
+		end
+		if row == -1 then return end
+
+		-- 이름
+		self:SetText(nameE, ds:GetCell(row, "Name"))
+		-- 아이콘
+		if isvalid(iconC) then
+			local ruid = ds:GetCell(row, "Icon")
+			if ruid ~= "" then
+				iconC.ImageRUID = ruid
+				iconC.Color = Color(1, 1, 1, 1)
+			else
+				iconC.Color = Color(1, 1, 1, 0)
+			end
+		end
+		-- 전투력 변화량 값 + 색(음수=붉은색, 0/양수=흰색)
+		local gain = self:GainNum(equipName)
+		self:SetText(powerE, self:FormatPower(gain))
+		self:SetPowerColor(powerE, gain)
+		-- 스탯 값 칼럼(라벨은 .ui에 고정): 스탯 / 공격력 / 대미지% / 보스 대미지%
+		self:SetText(statsE,
+			ds:GetCell(row, "Stat") .. "\n"
+			.. ds:GetCell(row, "Attack") .. "\n"
+			.. ds:GetCell(row, "Damage") .. "%\n"
+			.. ds:GetCell(row, "BossDamage") .. "%")
+		-- 잠재능력(데이터 대기 → 일단 빈칸)
+		self:SetText(potE, "")
 	end
 
 	method void BringToFront()
@@ -61,31 +144,41 @@ script EquipTooltip extends Logic
 	end
 
 	method void ShowItem(string equipName)
-		-- 장비칸 호버: 그 장비 스펙만(우측 비교칼럼 숨김).
+		-- 장비칸 호버: 그 장비(=현재 장착품) 스펙만(우측 비교칼럼 숨김).
 		if self:IsClient() == false then return end
 		if equipName == "" then return end
-		-- 장비칸 호버는 현재 장착품이므로 (장착중) 표기.
-		self:SetText(self.leftText, self:BuildSpec(equipName, true))
+		self:ApplyStatLabel(self.leftStatLabel)
+		self:FillColumn(self.leftName, self.leftIcon, self.leftPower, self.leftStats, self.leftPotential,
+			equipName)
 		if isvalid(self.rightPanel) then self.rightPanel.Enable = false end
 		if isvalid(self.tipRoot) then self.tipRoot.Enable = true end
 		self:BringToFront()
+		self:FollowCursor()
 		log("[EquipTooltip] ShowItem: " .. equipName)
 	end
 
 	method void ShowCompare(string newName, string currentName)
-		-- 인벤 호버: 좌=새 장비 스펙, 우=현재 장착 장비 스펙.
+		-- 인벤 호버: 좌=새 장비(전투력 증가량), 우=현재 장착 장비("현재 장착중인 장비").
 		if self:IsClient() == false then return end
 		if newName == "" then return end
-		-- 좌=새 장비(미장착), 우=현재 장착품((장착중) 표기).
-		self:SetText(self.leftText, self:BuildSpec(newName, false))
+		self:ApplyStatLabel(self.leftStatLabel)
+		self:ApplyStatLabel(self.rightStatLabel)
+		self:FillColumn(self.leftName, self.leftIcon, self.leftPower, self.leftStats, self.leftPotential,
+			newName)
 		if isvalid(self.rightPanel) then self.rightPanel.Enable = true end
 		if currentName == "" then
-			self:SetText(self.rightText, "(미장착)")
+			self:SetText(self.rightName, "(미장착)")
+			if isvalid(self.rightIcon) then self.rightIcon.Color = Color(1, 1, 1, 0) end
+			self:SetText(self.rightPower, "")
+			self:SetText(self.rightStats, "")
+			self:SetText(self.rightPotential, "")
 		else
-			self:SetText(self.rightText, self:BuildSpec(currentName, true))
+			self:FillColumn(self.rightName, self.rightIcon, self.rightPower, self.rightStats, self.rightPotential,
+				currentName)
 		end
 		if isvalid(self.tipRoot) then self.tipRoot.Enable = true end
 		self:BringToFront()
+		self:FollowCursor()
 		log("[EquipTooltip] ShowCompare: " .. newName .. " vs " .. currentName)
 	end
 
@@ -93,6 +186,40 @@ script EquipTooltip extends Logic
 		-- 툴팁 패널 숨김.
 		if self:IsClient() then
 			if isvalid(self.tipRoot) then self.tipRoot.Enable = false end
+		end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void FollowCursor()
+		-- 핫패널을 마우스 커서의 '우측 하단'에 두고, 화면 밖으로 나가지 않게 경계에 클램프.
+		-- (메이플식: 패널이 화면 가장자리에 닿으면 더 이상 그 방향으로 넘어가지 않는다.)
+		if isvalid(self.tipRoot) == false then return end
+		local uit = self.tipRoot.UITransformComponent
+		if isvalid(uit) == false then return end
+
+		-- 커서의 UI 좌표(캔버스 중심 원점). Tip은 중심 앵커/중심 피벗이라 anchoredPosition = 패널 중심.
+		local cursorUI = _UILogic:ScreenToUIPosition(_InputService:GetCursorPosition())
+		local hw = uit.RectSize.x * 0.5
+		local hh = uit.RectSize.y * 0.5
+		local offX = 20   -- 커서 우측 여백
+		local offY = 20   -- 커서 하단 여백
+
+		-- 패널 좌상단 코너를 (커서 + 우하단 오프셋)에 두려면 중심은 +hw, -hh 만큼 이동.
+		local cx = cursorUI.x + offX + hw
+		local cy = cursorUI.y - offY - hh
+
+		-- 화면 경계 클램프 (캔버스 1920x1080 → X ±960, Y ±540). 패널 전체가 화면 안에 들어오게.
+		cx = math.max(-960 + hw, math.min(960 - hw, cx))
+		cy = math.max(-540 + hh, math.min(540 - hh, cy))
+
+		uit.anchoredPosition = Vector2(cx, cy)
+	end
+
+	@ExecSpace("ClientOnly")
+	method void OnUpdate(number delta)
+		-- 핫패널이 떠 있는 동안만 매 프레임 커서를 따라 이동.
+		if isvalid(self.tipRoot) and self.tipRoot.Enable then
+			self:FollowCursor()
 		end
 	end
 
