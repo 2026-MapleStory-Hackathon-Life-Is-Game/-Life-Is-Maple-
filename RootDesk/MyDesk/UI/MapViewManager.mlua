@@ -206,7 +206,7 @@ script MapViewManager extends Logic
 		for _, entry in ipairs(reachable) do
 			local entity = _TileManager:GetTileEntity(mapName, entry.tileName)
 			if not isvalid(entity) then continue end
-			local textChild = entity:GetChildByName("UIText")
+			local textChild = entity:GetChildByName("MapDistance_Panel")
 			if not isvalid(textChild) then continue end
 			local textComp = textChild.TextGUIRendererComponent
 			if not isvalid(textComp) then continue end
@@ -219,7 +219,7 @@ script MapViewManager extends Logic
 	method void HideTileNumbers()
 		for _, entity in pairs(_TileManager.tileEntities) do
 			if not isvalid(entity) then continue end
-			local textChild = entity:GetChildByName("UIText")
+			local textChild = entity:GetChildByName("MapDistance_Panel")
 			if not isvalid(textChild) then continue end
 			textChild.Enable = false
 		end
