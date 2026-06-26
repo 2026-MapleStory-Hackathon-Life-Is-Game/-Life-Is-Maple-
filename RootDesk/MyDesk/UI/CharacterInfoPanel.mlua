@@ -2,31 +2,55 @@
 script CharacterInfoPanel extends Component
 
 	property Entity panelRoot = "fc569ece-7a9f-4286-b8da-50fa11b0a6d4"
+
+	property Entity panelGroup = "190b4e43-2a1b-44d6-97b7-44c12dbb56f5"
+
 	property Entity nameText = "7baf66ad-7308-40c4-864d-cdafaa772d1c"
+
 	property Entity levelText = "f75bdcd8-ed97-4587-8c65-d3ba553f59d8"
+
 	property Entity campText = "24fc2a7e-3a04-442b-90b1-79230e71aeeb"
+
 	property Entity jobText = "2bd9669b-0610-48f2-8c45-222878d3171a"
+
 	property Entity branchText = "200fefa1-3379-4369-acb9-863fd726abeb"
+
 	property Entity powerText = "bfc69c66-6a1b-401d-b5da-0fd4bb00af44"
+
 	property Entity strText = "c296cf03-f785-43d4-8a08-4284ebd9c2f8"
+
 	property Entity dexText = "bbf305fb-0d0d-4376-8e47-e485d07bc4de"
+
 	property Entity intText = "d4d1578d-0765-46a0-aba8-33f1da7e8174"
+
 	property Entity lukText = "7546ab97-0c6c-4f66-944d-31e534de70f5"
+
 	property Entity atkText = "a7ea8d8b-92cd-4863-a812-cef9379922e8"
+
 	property Entity dmgText = "6c8f5231-b775-4b09-b0c6-8fc878292a71"
+
 	property Entity bossDmgText = "652ff34f-1d52-481b-a9f7-e639b3fe0a63"
+
 	property SpriteGUIRendererComponent weaponIcon = "ea3b6d0f-1b5e-440b-bd0e-0fbcb741c33e"
+
 	property SpriteGUIRendererComponent armorIcon = "ca2c2e4b-44d1-436c-957a-da2ff8943cef"
+
 	property SpriteGUIRendererComponent accessoryIcon = "eae72e91-228c-454b-bef5-6cd4f75ea994"
 
 	property any cpComp = nil
+
 	property boolean isOpen = false
 
 	property any slotHandlers = nil
+
 	property string _lastSlotCat = ""
+
 	property number _lastSlotTime = 0
+
 	property any invPanel = nil
+
 	property number _pollTimer = 0
+
 	property string _lastSlotSig = ""
 
 	method void OnBeginPlay()
@@ -38,7 +62,7 @@ script CharacterInfoPanel extends Component
 			self._lastSlotCat = ""
 			self._lastSlotTime = 0
 			self.invPanel = nil
-			if isvalid(self.panelRoot) then self.panelRoot.Enable = false end
+			self:SetPanelVisible(false)
 			self:WireSlot(self.weaponIcon, "Weapon")
 			self:WireSlot(self.armorIcon, "Armor")
 			self:WireSlot(self.accessoryIcon, "Accessory")
@@ -56,7 +80,7 @@ script CharacterInfoPanel extends Component
 		-- 캐릭터 정보 패널 열기 + 즉시 갱신.
 		if self:IsClient() == false then return end
 		self.isOpen = true
-		if isvalid(self.panelRoot) then self.panelRoot.Enable = true end
+		self:SetPanelVisible(true)
 		self:Refresh()
 	end
 
@@ -64,7 +88,18 @@ script CharacterInfoPanel extends Component
 		-- 패널 닫기.
 		if self:IsClient() == false then return end
 		self.isOpen = false
-		if isvalid(self.panelRoot) then self.panelRoot.Enable = false end
+		self:SetPanelVisible(false)
+	end
+
+	method void SetPanelVisible(boolean v)
+		-- 패널 표시/숨김을 '패널 루트의 CanvasGroup 알파'로 처리한다.
+		-- Window(내용 컨테이너)의 Enable은 절대 끄지 않으므로, 편집창에서 항상 내용이 보인다.
+		if isvalid(self.panelGroup) == false then return end
+		local cg = self.panelGroup:GetComponent("MOD.Core.CanvasGroupComponent")
+		if cg == nil then return end
+		if v then cg.GroupAlpha = 1 else cg.GroupAlpha = 0 end
+		cg.Interactable = v
+		cg.BlocksRaycasts = v
 	end
 
 	method string OrDash(string v)
@@ -79,7 +114,7 @@ script CharacterInfoPanel extends Component
 		local p = _UserService.LocalPlayer
 		if isvalid(p) == false then return end
 		if isvalid(self.cpComp) == false then self.cpComp = p:GetComponent("script.CombatPowerManager") end
-
+		
 		self:SetText(self.nameText, p.PlayerComponent.Nickname)
 		local buff = p:GetComponent("script.BuffManager")
 		local job  = p:GetComponent("script.JobWeaponManager")
@@ -87,7 +122,7 @@ script CharacterInfoPanel extends Component
 		self:SetText(self.campText,   self:OrDash(isvalid(buff) and buff.CampName or ""))
 		self:SetText(self.jobText,    self:OrDash(isvalid(job) and job.currentJob or ""))
 		self:SetText(self.branchText, self:OrDash(isvalid(mv) and mv.currentTile or ""))
-
+		
 		---@type CombatPowerManager
 		local cp = self.cpComp
 		if isvalid(cp) then
@@ -151,7 +186,6 @@ script CharacterInfoPanel extends Component
 		local tc = slotEntity:GetComponent("MOD.Core.TextComponent")
 		if tc == nil then return end
 		tc.Text = text
-		tc.FontSize = 12
 		if equipped then
 			tc.FontColor = Color(1, 1, 1, 1)
 		else
