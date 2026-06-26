@@ -7,14 +7,24 @@ script EquipTooltip extends Logic
 	property Entity rightText = "c3c73602-fc17-458e-85fe-8dcd34571e23"
 
 	method void OnBeginPlay()
-		-- 클라: 툴팁 패널 숨김.
+		-- 클라: 툴팁 패널 숨김 + 입력 비차단 설정.
 		if self:IsClient() then
 			if isvalid(self.tipRoot) then self.tipRoot.Enable = false end
+			-- 툴팁은 전체화면 그룹이라, 맨 앞으로 올렸을 때 BlocksRaycasts/Interactable이 켜져 있으면
+			-- 뒤 UI(인벤 셀 등)의 클릭/호버를 가로챈다. 수동 표시 오버레이이므로 입력을 막지 않게 한다.
+			local grp = _EntityService:GetEntityByPath("/ui/InGameUIGroup/EquipTooltip")
+			if isvalid(grp) then
+				local cg = grp:GetComponent("MOD.Core.CanvasGroupComponent")
+				if cg ~= nil then
+					cg.BlocksRaycasts = false
+					cg.Interactable = false
+				end
+			end
 		end
 	end
 
-	method string BuildSpec(string equipName)
-		-- 장비 1개의 스펙 문자열(이름/스탯/공마/대미지/보스대미지). 없으면 "".
+	method string BuildSpec(string equipName, boolean equipped)
+		-- 장비 1개의 스펙 문자열(이름/스탯/공마/대미지/보스대미지). 없으면 "". equipped면 이름에 (장착중) 추가.
 		if equipName == "" then return "" end
 		local ds = _DataService:GetTable("EquipData")
 		if isvalid(ds) == false then return "" end
@@ -23,7 +33,9 @@ script EquipTooltip extends Logic
 			if ds:GetCell(i, "EquipName") == equipName then row = i; break end
 		end
 		if row == -1 then return "" end
-		return ds:GetCell(row, "Name") .. "\n"
+		local nameLine = ds:GetCell(row, "Name")
+		if equipped then nameLine = nameLine .. "  (장착중)" end
+		return nameLine .. "\n"
 			.. "스탯 " .. ds:GetCell(row, "Stat") .. "  공/마 " .. ds:GetCell(row, "Attack") .. "\n"
 			.. "대미지 " .. ds:GetCell(row, "Damage") .. "%  보스 " .. ds:GetCell(row, "BossDamage") .. "%"
 	end
@@ -52,7 +64,8 @@ script EquipTooltip extends Logic
 		-- 장비칸 호버: 그 장비 스펙만(우측 비교칼럼 숨김).
 		if self:IsClient() == false then return end
 		if equipName == "" then return end
-		self:SetText(self.leftText, self:BuildSpec(equipName))
+		-- 장비칸 호버는 현재 장착품이므로 (장착중) 표기.
+		self:SetText(self.leftText, self:BuildSpec(equipName, true))
 		if isvalid(self.rightPanel) then self.rightPanel.Enable = false end
 		if isvalid(self.tipRoot) then self.tipRoot.Enable = true end
 		self:BringToFront()
@@ -63,12 +76,13 @@ script EquipTooltip extends Logic
 		-- 인벤 호버: 좌=새 장비 스펙, 우=현재 장착 장비 스펙.
 		if self:IsClient() == false then return end
 		if newName == "" then return end
-		self:SetText(self.leftText, self:BuildSpec(newName))
+		-- 좌=새 장비(미장착), 우=현재 장착품((장착중) 표기).
+		self:SetText(self.leftText, self:BuildSpec(newName, false))
 		if isvalid(self.rightPanel) then self.rightPanel.Enable = true end
 		if currentName == "" then
 			self:SetText(self.rightText, "(미장착)")
 		else
-			self:SetText(self.rightText, self:BuildSpec(currentName))
+			self:SetText(self.rightText, self:BuildSpec(currentName, true))
 		end
 		if isvalid(self.tipRoot) then self.tipRoot.Enable = true end
 		self:BringToFront()

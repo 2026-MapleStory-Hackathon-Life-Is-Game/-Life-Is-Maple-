@@ -31,6 +31,9 @@ script InventoryPanel extends Component
 			local gvc = self.gridEntity.GridViewComponent
 			if gvc ~= nil then
 				gvc.ItemEntity = self.cellPrefab
+				-- 스크롤은 셀의 클릭 제스처를 가로채므로 끈다(데모 아이템 수에선 스크롤 불필요).
+				-- 아이템이 화면을 넘칠 만큼 많아지면 다시 켜되 클릭은 OnCellState의 Pressed로 처리됨.
+				gvc.UseScroll = false
 				gvc.OnRefresh = function(index, cell)
 					self:OnGridCellRefresh(index, cell)
 				end
@@ -102,16 +105,9 @@ script InventoryPanel extends Component
 		-- 보유 목록으로 GridView 재구성.
 		if self:IsClient() == false or self.isOpen == false then return end
 
-		-- 이전 셀 핸들 해제
-		if self.cellHandlers ~= nil then
-			for _, r in ipairs(self.cellHandlers) do
-				if isvalid(r.entity) then
-					r.entity:DisconnectEvent(ButtonClickEvent, r.evtH)
-				end
-			end
-		end
-		self.cellHandlers = {}
-
+		-- ⚠ Rebuild에서는 셀 핸들러를 건드리지 않는다. TotalCount가 같으면 gvc:Refresh()가
+		--   OnRefresh를 다시 부르지 않아, 여기서 해제하면 핸들러가 영영 재연결되지 않는다(호버 사망).
+		--   핸들러 교체/해제는 셀 생애주기 콜백(OnGridCellRefresh/Clear)에서만 처리한다.
 		local items = self:CurrentList()
 		self._T.items = items
 		log("[InventoryPanel] Rebuild tab=" .. self.activeTab .. " count=" .. tostring(#items))
@@ -120,7 +116,9 @@ script InventoryPanel extends Component
 			local gvc = self.gridEntity.GridViewComponent
 			if gvc ~= nil then
 				gvc.TotalCount = #items
-				gvc:Refresh()
+				-- force=true: 카운트가 같아도(예: 1↔1 교체) 모든 셀을 다시 그린다.
+				-- false면 카운트 동일 시 셀 내용/핸들러가 옛 아이템으로 남는다(교체 시 핫패널 오표시).
+				gvc:Refresh(true, true)
 			end
 		end
 	end
@@ -162,42 +160,43 @@ script InventoryPanel extends Component
 			tc.FontSize = 12
 		end
 
-		-- 클릭 + 호버 이벤트 배선(OnClear에서 해제)
+		-- 이 셀의 기존 핸들러만 교체(누적 방지). Rebuild는 핸들러를 안 건드리므로 여기서 관리한다.
+		for i = #self.cellHandlers, 1, -1 do
+			local r = self.cellHandlers[i]
+			if r.entity == cell then
+				if r.stateH ~= nil then cell:DisconnectEvent(ButtonStateChangeEvent, r.stateH) end
+				table.remove(self.cellHandlers, i)
+			end
+		end
+		-- 호버/클릭 핸들러 연결. 이름은 클로저에 캡처. 클릭은 OnCellState의 Pressed로 처리.
 		local capturedName = name
-		local h = cell:ConnectEvent(ButtonClickEvent, function()
-			self:OnCellClicked(capturedName)
-		end)
 		local hs = cell:ConnectEvent(ButtonStateChangeEvent, function(ev)
 			self:OnCellState(capturedName, ev)
 		end)
-		table.insert(self.cellHandlers, { entity = cell, evtH = h, stateH = hs })
+		table.insert(self.cellHandlers, { entity = cell, stateH = hs })
 	end
 
 	method void OnGridCellClear(integer index, Entity cell)
-		-- GridView OnClear 콜백: 셀 이벤트 핸들 해제 + 아이콘/텍스트 초기화.
+		-- GridView OnClear 콜백: 이 셀의 핸들러 해제 + 아이콘/텍스트 초기화(유령 셀이 옛 아이템으로 반응하지 않게).
 		local rend = cell.SpriteGUIRendererComponent
 		if isvalid(rend) then
 			rend.Color = Color(1, 1, 1, 0)
 		end
 		local tc = cell:GetComponent("MOD.Core.TextComponent")
 		if tc ~= nil then tc.Text = "" end
-		local toRemove = {}
-		for i, r in ipairs(self.cellHandlers) do
+		for i = #self.cellHandlers, 1, -1 do
+			local r = self.cellHandlers[i]
 			if r.entity == cell then
-				cell:DisconnectEvent(ButtonClickEvent, r.evtH)
-				if r.stateH ~= nil then
-					cell:DisconnectEvent(ButtonStateChangeEvent, r.stateH)
-				end
-				table.insert(toRemove, i)
+				if r.stateH ~= nil then cell:DisconnectEvent(ButtonStateChangeEvent, r.stateH) end
+				table.remove(self.cellHandlers, i)
 			end
-		end
-		for i = #toRemove, 1, -1 do
-			table.remove(self.cellHandlers, toRemove[i])
 		end
 	end
 
 	method void OnCellState(string equipName, ButtonStateChangeEvent ev)
-		-- 인벤 셀 호버 진입 → 좌(새)/우(현재 장착) 비교 툴팁, 이탈 → 숨김.
+		-- 인벤 셀: 호버→비교 툴팁, 이탈→숨김, Pressed→클릭 처리.
+		-- ⚠ GridView(스크롤) 안의 셀은 ButtonClickEvent가 스크롤에 먹혀 안 뜬다. 작동하는
+		--    ButtonStateChangeEvent의 Pressed(=2) 상태로 클릭/더블클릭을 감지한다.
 		if ev.state == ButtonState.Hover then
 			local cur = ""
 			local p = _UserService.LocalPlayer
@@ -206,6 +205,8 @@ script InventoryPanel extends Component
 				if isvalid(m) then cur = m.Equipped end
 			end
 			_EquipTooltip:ShowCompare(equipName, cur)
+		elseif ev.state == ButtonState.Pressed then
+			self:OnCellClicked(equipName)
 		elseif ev.state == ButtonState.Normal then
 			_EquipTooltip:Hide()
 		end
@@ -240,6 +241,9 @@ script InventoryPanel extends Component
 					m:RequestEquip(equipName)
 				end
 			end
+			-- 장착되면 그 아이템 셀이 인벤에서 빠지는데, 마우스가 그 자리에 남아 Normal(=Hide)이
+			-- 안 불리는 경우가 있어 툴팁이 떠 있게 된다. 장착 시 명시적으로 숨긴다.
+			_EquipTooltip:Hide()
 			self:Rebuild()
 		else
 			self._lastClickName = equipName
@@ -252,11 +256,8 @@ script InventoryPanel extends Component
 		-- 셀 핸들(클릭+호버) + 탭 핸들 모두 해제.
 		if self.cellHandlers ~= nil then
 			for _, r in ipairs(self.cellHandlers) do
-				if isvalid(r.entity) then
-					r.entity:DisconnectEvent(ButtonClickEvent, r.evtH)
-					if r.stateH ~= nil then
-						r.entity:DisconnectEvent(ButtonStateChangeEvent, r.stateH)
-					end
+				if isvalid(r.entity) and r.stateH ~= nil then
+					r.entity:DisconnectEvent(ButtonStateChangeEvent, r.stateH)
 				end
 			end
 		end

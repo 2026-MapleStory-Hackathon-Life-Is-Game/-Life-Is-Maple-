@@ -219,6 +219,8 @@ script CharacterInfoPanel extends Component
 				local m = _EquipmentRouter:ManagerFor(p, category)
 				if isvalid(m) then m:RequestUnequip() end
 			end
+			-- 해제하면 그 슬롯이 비는데 마우스가 그 자리에 남아 호버 툴팁이 떠 있게 된다 → 숨김.
+			_EquipTooltip:Hide()
 			if isvalid(self.invPanel) == false then
 				local ie = _EntityService:GetEntityByPath("/ui/InGameUIGroup/Inventory_Panel/Ctrl")
 				if isvalid(ie) then
