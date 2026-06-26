@@ -251,7 +251,7 @@ script TileManager extends Logic
 
 	@ExecSpace("ClientOnly")
 	method void TryApplyTileMonsters()
-		if self:ApplyTileMonstersLocal() then return end
+		if self:ApplyTileArtLocal() then return end
 		self._monsterRetries += 1
 		if self._monsterRetries <= 25 then
 			_TimerService:SetTimerOnce(function() self:TryApplyTileMonsters() end, 0.2)
@@ -259,24 +259,52 @@ script TileManager extends Logic
 	end
 
 	@ExecSpace("ClientOnly")
-	method boolean ApplyTileMonstersLocal()
-		-- 각 사냥 타일의 'Monster' 자식(y+0.5)에 STAND 스프라이트 적용. 동기화 도착 전이면 false 반환(재시도).
+	method boolean ApplyTileArtLocal()
+		-- 각 타일의 'TileType_TileSprite' 자식(y+0.5)에 Type별 스프라이트 적용.
+		--   Hunt/HuntPlus → 서버가 롤한 몬스터 STAND(@Sync TileMonster) — 동기화 도착 전이면 false 반환(재시도).
+		--   그 외(Start/End/Village/Guild/Union/Tax) → TileArt.csv의 Type별 고정 스프라이트(이정표/제단/NPC, 로컬 조회).
 		if self:CountTiles() == 0 then return false end
-		local any = false
+		local hasHunt = false
 		for key, entity in pairs(self.tileEntities) do
-			local mn = self.TileMonster[key]
-			if mn ~= nil and mn ~= "" and isvalid(entity) then
-				any = true
-				local stand = self:MonsterStandRUID(mn)
-				if stand ~= "" then
-					local child = self:FindChild(entity, "Monster")
-					if isvalid(child) and isvalid(child.SpriteRendererComponent) then
-						child.SpriteRendererComponent.SpriteRUID = stand
+			if isvalid(entity) then
+				local data = self.tileGraph[key]
+				if data ~= nil then
+					local ruid = ""
+					if data.type == "Hunt" or data.type == "HuntPlus" then
+						hasHunt = true
+						local mn = self.TileMonster[key]
+						if mn ~= nil and mn ~= "" then
+							ruid = self:MonsterStandRUID(mn)
+						end
+					else
+						ruid = self:TileArtRUID(data.type)
+					end
+					if ruid ~= "" then
+						local child = self:FindChild(entity, "TileType_TileSprite")
+						if isvalid(child) and isvalid(child.SpriteRendererComponent) then
+							child.SpriteRendererComponent.SpriteRUID = ruid
+						end
 					end
 				end
 			end
 		end
-		return any
+		-- 완료 판정은 '동기화 도착' 기준. 서버는 OnBeginPlay에 전 맵 사냥타일을 한 번에 롤하므로
+		-- TileMonster가 비어있지 않으면 동기화 완료로 본다. (데이터 없는 사냥타일이 섞여도 무한 재시도 안 함.)
+		-- 사냥타일이 있는데 아직 TileMonster가 비어있으면(동기화 전) 재시도.
+		if hasHunt and next(self.TileMonster) == nil then return false end
+		return true
+	end
+
+	method string TileArtRUID(string tileType)
+		-- TileTypeSprite에서 Type 일치 행의 SpriteRUID 반환(이정표/제단/NPC 등 고정 표현). 아트가 채우기 전엔 "".
+		local ds = _DataService:GetTable("TileTypeSprite")
+		if isvalid(ds) == false then return "" end
+		for i = 1, ds:GetRowCount() do
+			if ds:GetCell(i, "Type") == tileType then
+				return ds:GetCell(i, "SpriteRUID")
+			end
+		end
+		return ""
 	end
 
 	method Entity FindChild(Entity parent, string childName)
