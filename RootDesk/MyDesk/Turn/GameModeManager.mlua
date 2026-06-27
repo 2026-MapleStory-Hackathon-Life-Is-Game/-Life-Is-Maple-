@@ -1,214 +1,256 @@
---[[
-    GameModeManager
-    ----------------------------------------------------------------------------
-    게임 모드(싱글/멀티)를 결정하고, 해당 턴 매니저를 시작·종료시키는 진입 매니저(Logic).
-
-    한 세션에는 한 모드만 활성화된다(_activeMode). 시작 시점에 모드가 갈리므로
-    이후 각 턴 매니저는 자기 _isActive로 활성 여부를 스스로 판단한다.
---]]
 @Logic
 script GameModeManager extends Logic
 
-    @Sync
-    property string _activeMode = "NONE"        -- "NONE" / "SINGLE" / "MULTI"
+	@Sync
+	property string _activeMode = "SINGLE"
 
-    @Sync
-    property boolean _isGameActive = false
+	@Sync
+	property boolean _isGameActive = false
 
-    method void OnBeginPlay()
-        log("[GameModeManager] OnBeginPlay: 모드 선택 대기 중")
-        -- 모드는 ModeSelectUI(클라)의 버튼에서 StartSinglePlayer / StartMultiPlayer 호출로 결정된다.
-    end
+	method void OnBeginPlay()
+		        log("[GameModeManager] OnBeginPlay: 모드 선택 대기 중")
+		        -- 모드는 ModeSelectUI(클라)의 버튼에서 StartSinglePlayer / StartMultiPlayer 호출로 결정된다.
+	end
 
-    method void OnEndPlay()
-        log("[GameModeManager] OnEndPlay")
-    end
+	method void OnEndPlay()
+		        log("[GameModeManager] OnEndPlay")
+	end
 
-    -- 싱글플레이 모드를 시작한다. (본인을 게임 맵으로 전환 후 시작)
-    @ExecSpace("Server")
-    method void StartSinglePlayer()
-        if self._isGameActive then
-            log_warning("[GameModeManager] 이미 게임이 진행 중입니다.")
-            return
-        end
-        log("[GameModeManager] 싱글플레이 모드 시작")
-        self._activeMode = "SINGLE"
-        self._isGameActive = true
-        -- 본인만 게임 맵으로 텔레포트 (MatchManager의 전환 로직 재사용)
-        local ids = {}
-        table.insert(ids, senderUserId)
-        _MatchManager:TeleportPlayersToGame(ids)
-        _SingleTurnManager:Start()
-    end
+	@ExecSpace("Server")
+	method void StartSinglePlayer()
+		        if self._isGameActive then
+		            log_warning("[GameModeManager] 이미 게임이 진행 중입니다.")
+		            return
+		        end
+		        log("[GameModeManager] 싱글플레이 모드 시작")
+		        self._activeMode = "SINGLE"
+		        self._isGameActive = true
+		        -- 본인만 게임 맵으로 텔레포트 (MatchManager의 전환 로직 재사용)
+		        local ids = {}
+		        table.insert(ids, senderUserId)
+		        _MatchManager:TeleportPlayersToGame(ids)
+		        _SingleTurnManager:Start()
+	end
 
-    -- 멀티플레이 모드를 시작한다. (매칭된 userId 목록을 받음)
-    @ExecSpace("Server")
-    method void StartMultiPlayer(table userIds)
-        if self._isGameActive then
-            log_warning("[GameModeManager] 이미 게임이 진행 중입니다.")
-            return
-        end
-        if #userIds < 2 then
-            log_error("[GameModeManager] 멀티플레이 인원은 2명 이상이어야 합니다: " .. tostring(#userIds))
-            return
-        end
-        log("[GameModeManager] 멀티플레이 모드 시작 (" .. tostring(#userIds) .. "명)")
-        self._activeMode = "MULTI"
-        self._isGameActive = true
-        _MultiTurnManager:Start(userIds)
-    end
+	@ExecSpace("Server")
+	method void StartMultiPlayer(table userIds)
+		        if self._isGameActive then
+		            log_warning("[GameModeManager] 이미 게임이 진행 중입니다.")
+		            return
+		        end
+		        if #userIds < 2 then
+		            log_error("[GameModeManager] 멀티플레이 인원은 2명 이상이어야 합니다: " .. tostring(#userIds))
+		            return
+		        end
+		        log("[GameModeManager] 멀티플레이 모드 시작 (" .. tostring(#userIds) .. "명)")
+		        self._activeMode = "MULTI"
+		        self._isGameActive = true
+		        _MultiTurnManager:Start(userIds)
+	end
 
-    -- 현재 게임 세션을 종료한다. (중도 종료 — 퇴장 등)
-    @ExecSpace("Server")
-    method void EndGame()
-        if not self._isGameActive then return end
-        log("[GameModeManager] 게임 종료 (모드: " .. self._activeMode .. ")")
-        if self._activeMode == "SINGLE" then
-            _SingleTurnManager:Stop()
-        elseif self._activeMode == "MULTI" then
-            _MultiTurnManager:Stop()
-        end
-        self._activeMode = "NONE"
-        self._isGameActive = false
-    end
+	@ExecSpace("Server")
+	method void EndGame()
+		        if not self._isGameActive then return end
+		        log("[GameModeManager] 게임 종료 (모드: " .. self._activeMode .. ")")
+		        if self._activeMode == "SINGLE" then
+		            _SingleTurnManager:Stop()
+		        elseif self._activeMode == "MULTI" then
+		            _MultiTurnManager:Stop()
+		        end
+		        self._activeMode = "NONE"
+		        self._isGameActive = false
+	end
 
-    -- [End 칸 도착] EndTile이 호출. 모드별 종료 라우팅.
-    @ExecSpace("Server")
-    method void OnPlayerReachedEnd(Entity piece)
-        if not self._isGameActive then return end
-        if self._activeMode == "SINGLE" then
-            self:FinishGame(piece)
-        elseif self._activeMode == "MULTI" then
-            -- 멀티: 해당 플레이어 완주 처리. 전원 완주 시 MultiTurnManager가 FinishMulti를 호출한다.
-            if isvalid(piece) and piece.PlayerComponent ~= nil then
-                _MultiTurnManager:MarkPlayerFinished(piece.PlayerComponent.UserId)
-            end
-        end
-    end
+	@ExecSpace("Server")
+	method void OnPlayerReachedEnd(Entity piece)
+		        if not self._isGameActive then return end
+		
+				-- 플레이어의 현재 맵 이름 확인
+				local currentMap = piece.CurrentMapName
+		
+				if currentMap == "Map_01" then
+					log("[GameModeManager] Map_01 완주 -> Map_02 이동")
+			
+					if self._activeMode == "SINGLE" then
+						self:MoveToNextMap(piece, "Map_02")
+					elseif self._activeMode == "MULTI" then
+						-- 멀티: 해당 플레이어 완주 처리. 전원 완주 시 MultiTurnManager가 FinishMulti를 호출한다. [cite: 69]
+						if isvalid(piece) and piece.PlayerComponent ~= nil then
+							_MultiTurnManager:MarkPlayerFinished(piece.PlayerComponent.UserId)
+						end
+					end
+			
+				elseif currentMap == "Map_02" then
+					log("[GameModeManager] Map_02 완주 -> Map_03 이동")
+					if self._activeMode == "SINGLE" then
+					self:MoveToNextMap(piece, "Map_03")
+					elseif self._activeMode == "MULTI" then
+						-- 멀티: 해당 플레이어 완주 처리. 전원 완주 시 MultiTurnManager가 FinishMulti를 호출한다. [cite: 69]
+						if isvalid(piece) and piece.PlayerComponent ~= nil then
+							_MultiTurnManager:MarkPlayerFinished(piece.PlayerComponent.UserId)
+						end
+					end
+			
+			
+				else
+					-- Map_03 도착 시 최종 완주 처리
+					if self._activeMode == "SINGLE" then
+						self:FinishGame(piece)
+					elseif self._activeMode == "MULTI" then
+						-- 멀티: 해당 플레이어 완주 처리. 전원 완주 시 MultiTurnManager가 FinishMulti를 호출한다. [cite: 69]
+						if isvalid(piece) and piece.PlayerComponent ~= nil then
+							_MultiTurnManager:MarkPlayerFinished(piece.PlayerComponent.UserId)
+						end
+					end
+				end
+	end
 
-    -- [싱글 종료] 본인 전투력 결과 → 로비 복귀 → 스탯 리셋.
-    @ExecSpace("Server")
-    method void FinishGame(Entity piece)
-        if not self._isGameActive then return end
+	@ExecSpace("Server")
+	method void FinishGame(Entity piece)
+		        if not self._isGameActive then return end
+		
+		        local finalPower = 0
+		        if isvalid(piece) then
+		            local cp = piece:GetComponent("script.CombatPowerManager")
+		            if isvalid(cp) then finalPower = cp.CombatPower end
+		        end
+		        log("[GameModeManager] 싱글 클리어 — 전투력=" .. tostring(finalPower))
+		
+		        _SingleTurnManager:Stop()
+		        self:ShowResult("게임 클리어!\n최종 전투력  " .. self:FormatPower(finalPower))
+		
+		        local ids = {}
+		        if isvalid(piece) and piece.PlayerComponent ~= nil then
+		            table.insert(ids, piece.PlayerComponent.UserId)
+		        end
+		        _MatchManager:TeleportPlayersToLobby(ids)
+		        self:ResetPlayerStats(piece)
+		
+		        self._activeMode = "NONE"
+		        self._isGameActive = false
+	end
 
-        local finalPower = 0
-        if isvalid(piece) then
-            local cp = piece:GetComponent("script.CombatPowerManager")
-            if isvalid(cp) then finalPower = cp.CombatPower end
-        end
-        log("[GameModeManager] 싱글 클리어 — 전투력=" .. tostring(finalPower))
+	@ExecSpace("Server")
+	method void FinishMulti(table userIds)
+		        if not self._isGameActive then return end
+		
+		        -- 순위표는 (1) MultiTurnManager:Stop()이 완주 순위를 비우기 전, (2) ResetPlayerStats가
+		        -- 전투력을 초기화하기 전에 만들어야 한다. 따라서 Stop보다 먼저 빌드한다.
+		        local ranking = self:BuildRankingText(userIds)
+		        log("[GameModeManager] 멀티 클리어 — 최종 순위\n" .. ranking)
+		
+		        _MultiTurnManager:Stop()
+		        self:ShowResult(ranking)
+		        _MatchManager:TeleportPlayersToLobby(userIds)
+		        for _, uid in ipairs(userIds) do
+		            local ue = _UserService:GetUserEntityByUserId(uid)
+		            if isvalid(ue) then self:ResetPlayerStats(ue) end
+		        end
+		
+		        self._activeMode = "NONE"
+		        self._isGameActive = false
+	end
 
-        _SingleTurnManager:Stop()
-        self:ShowResult("게임 클리어!\n최종 전투력  " .. self:FormatPower(finalPower))
+	@ExecSpace("ServerOnly")
+	method string BuildRankingText(table userIds)
+		        -- {name, power, finishRank} 목록 수집
+		        local rows = {}
+		        for _, uid in ipairs(userIds) do
+		            local ue = _UserService:GetUserEntityByUserId(uid)
+		            if isvalid(ue) then
+		                local power = 0
+		                local cp = ue:GetComponent("script.CombatPowerManager")
+		                if isvalid(cp) then power = cp.CombatPower end
+		                table.insert(rows, {
+		                    name = self:GetPlayerName(ue),
+		                    power = power,
+		                    finishRank = _MultiTurnManager:GetFinishRank(uid),  -- 1=가장 먼저 완주, 미완주=거대값
+		                })
+		            end
+		        end
+		
+		        -- 완주 순서 오름차순(먼저 도착이 상위) → 동점이면 전투력 내림차순
+		        table.sort(rows, function(a, b)
+		            if a.finishRank ~= b.finishRank then return a.finishRank < b.finishRank end
+		            return a.power > b.power
+		        end)
+		
+		        -- 줄 조립(1위에는 우승 표시)
+		        local lines = {}
+		        for i, r in ipairs(rows) do
+		            local line = tostring(i) .. "위   " .. r.name .. "   전투력 " .. self:FormatPower(r.power)
+		            if i == 1 then line = line .. "   우승!" end
+		            table.insert(lines, line)
+		        end
+		        return table.concat(lines, "\n")
+	end
 
-        local ids = {}
-        if isvalid(piece) and piece.PlayerComponent ~= nil then
-            table.insert(ids, piece.PlayerComponent.UserId)
-        end
-        _MatchManager:TeleportPlayersToLobby(ids)
-        self:ResetPlayerStats(piece)
+	method string FormatPower(number value)
+		        local n = math.floor(value)
+		        if n >= 10000 then
+		            local man = math.floor(n / 10000)
+		            local rest = n % 10000
+		            return tostring(man) .. "만 " .. string.format("%04d", rest)
+		        end
+		        return tostring(n)
+	end
 
-        self._activeMode = "NONE"
-        self._isGameActive = false
-    end
+	@ExecSpace("ServerOnly")
+	method void ResetPlayerStats(Entity entity)
+		        if isvalid(entity) == false then return end
+		        local buff = entity:GetComponent("script.BuffManager")
+		        if isvalid(buff) then buff:ResetAll() end
+		        for _, t in ipairs({ "script.WeaponEquipment", "script.ArmorEquipment", "script.AccessoryEquipment" }) do
+		            local m = entity:GetComponent(t)
+		            if isvalid(m) then m:ResetAll() end
+		        end
+		        local cp = entity:GetComponent("script.CombatPowerManager")
+		        if isvalid(cp) then cp:ResetAll() end
+		        -- 초기화 후 빈 장비 기준 전투력 재계산.
+		        if isvalid(cp) then cp:CalculateCurrentCombatPower() end
+	end
 
-    -- [멀티 종료] MultiTurnManager가 전원 완주 시 호출. 전투력 내림차순 순위표를 만든다.
-    @ExecSpace("Server")
-    method void FinishMulti(table userIds)
-        if not self._isGameActive then return end
+	method string GetPlayerName(Entity entity)
+		        if isvalid(entity) and entity.PlayerComponent ~= nil then
+		            local nick = entity.PlayerComponent.Nickname
+		            if nick ~= nil and nick ~= "" then return nick end
+		            return entity.PlayerComponent.UserId
+		        end
+		        return "?"
+	end
 
-        -- 순위표는 (1) MultiTurnManager:Stop()이 완주 순위를 비우기 전, (2) ResetPlayerStats가
-        -- 전투력을 초기화하기 전에 만들어야 한다. 따라서 Stop보다 먼저 빌드한다.
-        local ranking = self:BuildRankingText(userIds)
-        log("[GameModeManager] 멀티 클리어 — 최종 순위\n" .. ranking)
+	@ExecSpace("Client")
+	method void ShowResult(string message)
+		        _ResultUI:Show(message)
+	end
 
-        _MultiTurnManager:Stop()
-        self:ShowResult(ranking)
-        _MatchManager:TeleportPlayersToLobby(userIds)
-        for _, uid in ipairs(userIds) do
-            local ue = _UserService:GetUserEntityByUserId(uid)
-            if isvalid(ue) then self:ResetPlayerStats(ue) end
-        end
-
-        self._activeMode = "NONE"
-        self._isGameActive = false
-    end
-
-    -- 주어진 userId 목록의 순위표 문자열을 만든다. 1순위=완주 순서(먼저 도착=상위), 동점 시 전투력 내림차순.
-    -- (각 줄: "N위  이름  전투력 X")
-    @ExecSpace("ServerOnly")
-    method string BuildRankingText(table userIds)
-        -- {name, power, finishRank} 목록 수집
-        local rows = {}
-        for _, uid in ipairs(userIds) do
-            local ue = _UserService:GetUserEntityByUserId(uid)
-            if isvalid(ue) then
-                local power = 0
-                local cp = ue:GetComponent("script.CombatPowerManager")
-                if isvalid(cp) then power = cp.CombatPower end
-                table.insert(rows, {
-                    name = self:GetPlayerName(ue),
-                    power = power,
-                    finishRank = _MultiTurnManager:GetFinishRank(uid),  -- 1=가장 먼저 완주, 미완주=거대값
-                })
-            end
-        end
-
-        -- 완주 순서 오름차순(먼저 도착이 상위) → 동점이면 전투력 내림차순
-        table.sort(rows, function(a, b)
-            if a.finishRank ~= b.finishRank then return a.finishRank < b.finishRank end
-            return a.power > b.power
-        end)
-
-        -- 줄 조립(1위에는 우승 표시)
-        local lines = {}
-        for i, r in ipairs(rows) do
-            local line = tostring(i) .. "위   " .. r.name .. "   전투력 " .. self:FormatPower(r.power)
-            if i == 1 then line = line .. "   우승!" end
-            table.insert(lines, line)
-        end
-        return table.concat(lines, "\n")
-    end
-
-    -- 전투력을 메이플식 "○○만 ○○○○" 표기로 변환한다(1만 미만은 그대로).
-    method string FormatPower(number value)
-        local n = math.floor(value)
-        if n >= 10000 then
-            local man = math.floor(n / 10000)
-            local rest = n % 10000
-            return tostring(man) .. "만 " .. string.format("%04d", rest)
-        end
-        return tostring(n)
-    end
-
-    -- 플레이어의 전투 스탯(버프·장비·전투력)을 모두 초기화한다. (버프/장비 먼저 → 전투력 재계산이 0이 되도록)
-    @ExecSpace("ServerOnly")
-    method void ResetPlayerStats(Entity entity)
-        if isvalid(entity) == false then return end
-        local buff = entity:GetComponent("script.BuffManager")
-        if isvalid(buff) then buff:ResetAll() end
-        local equip = entity:GetComponent("script.EquipmentManager")
-        if isvalid(equip) then equip:ResetAll() end
-        local cp = entity:GetComponent("script.CombatPowerManager")
-        if isvalid(cp) then cp:ResetAll() end
-        -- 초기화 후 기본 무기/방어구를 다시 장착(전투력 재계산 포함).
-        _PlayerStatInit:EquipDefaults(entity)
-    end
-
-    -- 플레이어 표시 이름(닉네임 우선, 없으면 userId).
-    method string GetPlayerName(Entity entity)
-        if isvalid(entity) and entity.PlayerComponent ~= nil then
-            local nick = entity.PlayerComponent.Nickname
-            if nick ~= nil and nick ~= "" then return nick end
-            return entity.PlayerComponent.UserId
-        end
-        return "?"
-    end
-
-    -- [클라] 결과 화면 표시(메시지).
-    @ExecSpace("Client")
-    method void ShowResult(string message)
-        _ResultUI:Show(message)
-    end
+	@ExecSpace("Server")
+	method void MoveToNextMap(Entity piece, string nextMapName)
+		if not isvalid(piece) then return end
+		
+				-- 1. 다음 맵 엔티티 찾기
+				local nextMapEntity = _EntityService:GetEntityByPath("/maps/" .. nextMapName)
+				if not isvalid(nextMapEntity) then
+					log_error("[GameModeManager] 다음 맵을 찾을 수 없습니다: " .. nextMapName)
+					return
+				end
+		
+				-- 2. 해당 맵으로 텔레포트 
+				-- (Tile_1의 위치를 잡기 전이므로 임시 좌표(0,0)로 이동시킵니다)
+				_TeleportService:TeleportToMapPosition(piece, Vector3(0,0,0), nextMapEntity.Name)
+		
+				-- 3. 이동력 및 위치 변수 초기화
+				local pm = piece:GetComponent("script.PlayerMovement")
+				if isvalid(pm) then
+					pm.currentTile = "Tile_1"
+					pm.remainingSteps = 0
+					pm:ChangePlayerState("IDLE")
+				end
+		
+				-- 만약 바로 시작하면 TileManager의 타일 수집이 덜 끝날 수 있으므로 타이머 사용 권장
+				    _TimerService:SetTimerOnce(function()
+				        _SingleTurnManager:Start() -- 여기서 Start()가 호출되면 다시 TURN_START 단계부터 시작함
+				    end, 1.0)
+	end
 
 end

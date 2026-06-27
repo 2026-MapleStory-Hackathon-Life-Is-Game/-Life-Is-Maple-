@@ -1,0 +1,85 @@
+@Logic
+script EquipmentRouter extends Logic
+
+	method string ComponentTypeFor(string category)
+		-- 카테고리 → 스크립트 컴포넌트 타입명.
+		if category == "Weapon" then return "script.WeaponEquipment"
+		elseif category == "Armor" then return "script.ArmorEquipment"
+		elseif category == "Accessory" then return "script.AccessoryEquipment" end
+		return ""
+	end
+
+	method any ManagerFor(Entity player, string category)
+		-- 카테고리의 장비 컴포넌트.
+		local t = self:ComponentTypeFor(category)
+		if t == "" then return nil end
+		return player:GetComponent(t)
+	end
+
+	method string CategoryOfItem(string equipName)
+		-- CSV에서 equipName의 Category.
+		local ds = _DataService:GetTable("EquipData")
+		if isvalid(ds) == false then return "" end
+		for i = 1, ds:GetRowCount() do
+			if ds:GetCell(i, "EquipName") == equipName then return ds:GetCell(i, "Category") end
+		end
+		return ""
+	end
+
+	method any ManagerForItem(Entity player, string equipName)
+		-- equipName의 타입 컴포넌트.
+		return self:ManagerFor(player, self:CategoryOfItem(equipName))
+	end
+
+	method table AllManagers(Entity player)
+		-- 3 컴포넌트(존재하는 것만).
+		local out = {}
+		local cats = { "Weapon", "Armor", "Accessory" }
+		for _, c in ipairs(cats) do
+			local m = self:ManagerFor(player, c)
+			if isvalid(m) then table.insert(out, m) end
+		end
+		return out
+	end
+
+	@ExecSpace("ServerOnly")
+	method void Acquire(Entity player, string equipName)
+		-- 아이템을 올바른 타입 인벤토리에 보유시킨다.
+		local m = self:ManagerForItem(player, equipName)
+		if isvalid(m) then m:Acquire(equipName) end
+	end
+
+	method table EmptyMods()
+		-- 0 초기 modifier.
+		return { statFlat = 0, statPct = 0, attackFlat = 0, attackPct = 0, damagePct = 0, bossDamagePct = 0 }
+	end
+
+	method void Add(table acc, table m)
+		-- acc += m.
+		acc.statFlat = acc.statFlat + (m.statFlat or 0)
+		acc.attackFlat = acc.attackFlat + (m.attackFlat or 0)
+		acc.damagePct = acc.damagePct + (m.damagePct or 0)
+		acc.bossDamagePct = acc.bossDamagePct + (m.bossDamagePct or 0)
+	end
+
+	method table TotalModifiers(Entity player)
+		-- 3 컴포넌트 장착품 합산(ExtraTableManager용).
+		local acc = self:EmptyMods()
+		---@type BaseEquipment
+		for _, m in ipairs(self:AllManagers(player)) do
+			self:Add(acc, m:EquippedModifiers())
+		end
+		return acc
+	end
+
+	method table ModifiersWithSwap(Entity player, string candidate)
+		-- 후보 타입만 candidate로 스왑한 3컴포넌트 합산(미리보기용).
+		local acc = self:EmptyMods()
+		---@type BaseEquipment
+		for _, m in ipairs(self:AllManagers(player)) do
+			self:Add(acc, m:ModifiersWith(candidate))
+		end
+		return acc
+	end
+
+end

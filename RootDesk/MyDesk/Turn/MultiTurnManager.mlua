@@ -228,7 +228,7 @@ script MultiTurnManager extends Logic
         for userId, userEntity in pairs(_UserService.UserEntities) do
             if userId == self._currentPlayerUserId then
                 if userEntity.PlayerMovement ~= nil then
-                    _TileManager:TriggerArrive(userEntity.PlayerMovement.currentTile, userEntity)
+                    _TileManager:TriggerArrive(userEntity.CurrentMapName, userEntity.PlayerMovement.currentTile, userEntity)
                 end
                 break
             end

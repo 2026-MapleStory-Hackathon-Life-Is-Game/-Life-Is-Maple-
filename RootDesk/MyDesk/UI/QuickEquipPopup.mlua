@@ -1,0 +1,152 @@
+@Logic
+script QuickEquipPopup extends Logic
+
+	property Entity popupRoot = "d494a715-2469-4fa2-a9b6-f7498a787f43"
+
+	property Entity titleText = "dfd8054f-c9fc-459d-9f8f-72deb85c3408"
+
+	property Entity deltaText = "658c8724-f694-4cd1-8106-83a0c469ff7d"
+
+	property ButtonComponent equipButton = "035f8318-7d5e-4b86-bac0-aacbb33e4134"
+
+	property ButtonComponent closeButton = "f5ae8f2d-6e4e-46fd-b6c8-fcc6dae4643c"
+
+	property string pendingName = ""
+
+	property any queue = nil
+
+	property any equipHandler = nil
+
+	property any closeHandler = nil
+
+	@ExecSpace("ClientOnly")
+	method void OnBeginPlay()
+		-- 초기 숨김 + 버튼 이벤트 구독.
+		self.queue = {}
+
+		if isvalid(self.popupRoot) then
+			self.popupRoot.Enable = false
+		end
+
+		if isvalid(self.equipButton) and isvalid(self.equipButton.Entity) then
+			self.equipHandler = self.equipButton.Entity:ConnectEvent(ButtonClickEvent, self.OnClickEquip)
+		end
+
+		if isvalid(self.closeButton) and isvalid(self.closeButton.Entity) then
+			self.closeHandler = self.closeButton.Entity:ConnectEvent(ButtonClickEvent, self.OnClickClose)
+		end
+
+		log("[QuickEquip] OnBeginPlay OK")
+	end
+
+	@ExecSpace("ClientOnly")
+	method void OnEndPlay()
+		-- 이벤트 핸들 해제.
+		if self.equipHandler ~= nil and isvalid(self.equipButton) and isvalid(self.equipButton.Entity) then
+			self.equipButton.Entity:DisconnectEvent(ButtonClickEvent, self.equipHandler)
+		end
+		if self.closeHandler ~= nil and isvalid(self.closeButton) and isvalid(self.closeButton.Entity) then
+			self.closeButton.Entity:DisconnectEvent(ButtonClickEvent, self.closeHandler)
+		end
+	end
+
+	@ExecSpace("Client")
+	method void Show(string equipName)
+		-- 호출부에서 targetUserId를 마지막 인자로 넘긴다(선언에는 포함 안 함). 큐에 추가 후 팝업 미표시 상태면 ShowNext.
+		if self.queue == nil then
+			self.queue = {}
+		end
+		table.insert(self.queue, equipName)
+
+		if isvalid(self.popupRoot) and self.popupRoot.Enable == false then
+			self:ShowNext()
+		end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void ShowNext()
+		-- 큐에서 다음 아이템을 꺼내 팝업 표시. 큐가 비면 팝업 닫기.
+		if self.queue == nil or #self.queue == 0 then
+			if isvalid(self.popupRoot) then
+				self.popupRoot.Enable = false
+			end
+			self.pendingName = ""
+			return
+		end
+
+		local name = self.queue[1]
+		table.remove(self.queue, 1)
+		self.pendingName = name
+
+		-- 제목 갱신
+		if isvalid(self.titleText) then
+			local tc = self.titleText:GetComponent("MOD.Core.TextComponent")
+			if tc ~= nil then
+				tc.Text = name
+			end
+		end
+
+		-- 전투력 증감 계산 (클라이언트 Sync 값 기반)
+		local delta = 0
+		local player = _UserService.LocalPlayer
+		if isvalid(player) then
+			local cp = player:GetComponent("script.CombatPowerManager")
+			if isvalid(cp) then
+				local preview = cp:PreviewPowerWithSwap(name)
+				delta = preview - cp.CombatPower
+			end
+		end
+
+		-- 증감 텍스트 갱신
+		if isvalid(self.deltaText) then
+			local tc = self.deltaText:GetComponent("MOD.Core.TextComponent")
+			if tc ~= nil then
+				local prefix = "+"
+				if delta < 0 then prefix = "" end
+				tc.Text = "전투력 " .. prefix .. tostring(math.floor(delta))
+			end
+		end
+
+		if isvalid(self.popupRoot) then
+			self.popupRoot.Enable = true
+		end
+
+		log("[QuickEquip] show " .. name .. " delta=" .. tostring(math.floor(delta)))
+	end
+
+	@ExecSpace("ClientOnly")
+	method void OnClickEquip(any event)
+		-- 장착 버튼 클릭: 서버에 장착 요청 후 ShowNext.
+		_SFXManager:PlayClick()
+		if self.pendingName ~= "" then
+			self:RequestEquipServer(self.pendingName)
+		end
+		if isvalid(self.popupRoot) then
+			self.popupRoot.Enable = false
+		end
+		self:ShowNext()
+	end
+
+	@ExecSpace("Server")
+	method void RequestEquipServer(string equipName)
+		-- 서버에서 EquipmentRouter로 장착 처리.
+		local player = _UserService:GetUserEntityByUserId(senderUserId)
+		if not isvalid(player) then return end
+		local m = _EquipmentRouter:ManagerForItem(player, equipName)
+		if isvalid(m) then
+			m:RequestEquip(equipName)
+			log("[QuickEquip] Equip OK player=" .. tostring(senderUserId) .. " item=" .. equipName)
+		end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void OnClickClose(any event)
+		-- 닫기 버튼 클릭: 팝업 닫고 ShowNext.
+		_SFXManager:PlayClick()
+		if isvalid(self.popupRoot) then
+			self.popupRoot.Enable = false
+		end
+		self:ShowNext()
+	end
+
+end

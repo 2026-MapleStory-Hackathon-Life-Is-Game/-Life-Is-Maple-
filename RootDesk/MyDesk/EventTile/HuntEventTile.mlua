@@ -1,0 +1,97 @@
+@Component
+script HuntEventTile extends Component
+
+	-- 사냥터 이름. 이후 테이블 연동 시 SetHuntingGround 로 교체. 지금은 임시값.
+	property string HuntingGround = "헤네시스 사냥터1"
+
+	-- ATTACK 모션을 보여줄 PlayerPortrait 의 경로 (8종 이벤트가 같은 UI 그룹을 공유).
+	property string PortraitPath = "/ui/EventTileGroup/EventBack/BackgroundMap/PlayerPortrait"
+
+	-- ATTACK 모션 유지용 반복 타이머 id.
+	property integer attackTimer = 0
+
+	-- ATTACK 적용 로그를 1회만 남기기 위한 플래그.
+	property boolean portraitStarted = false
+
+	@ExecSpace("ClientOnly")
+	method void OnBeginPlay()
+		-- 사냥 이벤트 UI가 켜지면: 문구 출력 + 초상화 ATTACK 모션 시작.
+		self:RollAndDisplay()
+		self:StartPortraitAttack()
+	end
+
+	@ExecSpace("ClientOnly")
+	method void OnEndPlay()
+		-- 타이머 정리.
+		if self.attackTimer ~= 0 then
+			_TimerService:ClearTimer(self.attackTimer)
+			self.attackTimer = 0
+		end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void StartPortraitAttack()
+		-- 즉시 1회 적용 후, 아바타 로딩 타이밍을 대비해 1초마다 재적용한다.
+		self:ApplyPortraitAttack()
+		self.attackTimer = _TimerService:SetTimerRepeat(function()
+			self:ApplyPortraitAttack()
+		end, 1.0)
+	end
+
+	@ExecSpace("ClientOnly")
+	method void ApplyPortraitAttack()
+		-- PlayerPortrait 아바타가 항상 ATTACK(공격) 모션을 재생하도록 강제한다.
+		-- BodyActionStateChangeEvent 는 내부적으로 PlayType=Loop 로 변환되어 공격 모션이 반복된다.
+		local portrait = _EntityService:GetEntityByPath(self.PortraitPath)
+		if isvalid(portrait) == false then
+			return
+		end
+
+		local event = BodyActionStateChangeEvent()
+		event.ActionState = MapleAvatarBodyActionState.Attack
+		event.needResetAction = false
+		portrait:SendEvent(event)
+
+		if self.portraitStarted == false then
+			self.portraitStarted = true
+			log("HuntEventTile: PlayerPortrait ATTACK 모션 적용 완료")
+		end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void SetHuntingGround(string huntingGround)
+		-- 외부(테이블 연동)에서 사냥터 이름을 주입하고 즉시 다시 출력한다.
+		self.HuntingGround = huntingGround
+		self:RollAndDisplay()
+	end
+
+	@ExecSpace("ClientOnly")
+	method void RollAndDisplay()
+		-- {사냥터}/{시간}/{주스탯}/{상승치} 를 랜덤 생성해 부착된 UIText 에 출력한다.
+		local textComp = self.Entity.TextComponent
+		if not isvalid(textComp) then
+			log_error("HuntEventTile: TextComponent 가 없습니다. UIText 엔티티에 부착하세요.")
+			return
+		end
+
+		-- {n} 분: 10 ~ 120 (양 끝 포함)
+		local minutes = _UtilLogic:RandomIntegerRange(10, 120)
+
+		-- {주스탯}: 주스탯 / 올스탯 중 하나
+		local statName = "주스탯"
+		if _UtilLogic:RandomIntegerRange(1, 2) == 2 then
+			statName = "올스탯"
+		end
+
+		-- {n} 상승치: 1 ~ 10 (양 끝 포함)
+		local statGain = _UtilLogic:RandomIntegerRange(1, 10)
+
+		local line1 = self.HuntingGround .. "에서 " .. tostring(minutes) .. "분동안 몬스터를 사냥했다!"
+		local line2 = statName .. "이 " .. tostring(statGain) .. "만큼 올랐다!"
+		local message = line1 .. "\n" .. line2
+
+		textComp.Text = message
+		log("HuntEventTile 출력: " .. message)
+	end
+
+end

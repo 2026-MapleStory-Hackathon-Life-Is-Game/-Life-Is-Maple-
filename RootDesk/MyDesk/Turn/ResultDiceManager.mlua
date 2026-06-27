@@ -1,0 +1,140 @@
+@Logic
+script ResultDiceManager extends Logic
+
+	property string two_SFX = "bfd2e465bd1642fca3ebc675803c07bb"
+
+	property string three_SFX = "8dea906403d945dba263ec03e4c04052"
+
+	property string four_SFX = "d17ce220ee504ac49380d56ea70321ef"
+
+	property string five_SFX = "f348aeca940f435d8312c4efe0a7a5c2"
+
+	property string six_SFX = "f7ca1a848f9f4d00af731ff58989d39d"
+
+	property string seven_SFX = "1aeced3b1ae648568397fe74b5cc0988"
+
+	property string eight_SFX = "e98fb316b68a4cf0b0933009736ac446"
+
+	property string nine_SFX = "1b9337776d92414f9d34b3795af38ee0"
+
+	property string ten_SFX = "4f734032f9ee4a60b2bf14f4392661ef"
+
+	property string eleven_SFX = "7a701eb3ee254187b50752d69d64385a"
+
+	property string twelve_SFX = "919a0108f61e419d842a54566bb39b7b"
+
+	@Sync
+	property number GreatSuccessWeight = 1000
+
+	@Sync
+	property number SuccessWeight = 500
+
+	@Sync
+	property integer _dice1 = 0
+
+	@Sync
+	property integer _dice2 = 0
+
+	@Sync
+	property integer _total = 0
+
+	@Sync
+	property string GameOutcome = ""
+
+	property table _currentResultTable = {}
+
+	@ExecSpace("Server")
+	method integer Roll()
+		-- 1. 테이블 갱신
+				self:CalculateRulletResult(3500, 2000)
+				
+				-- 2. 주사위 결과 뽑기
+				local d1 = _UtilLogic:RandomIntegerRange(1, 6)
+				local d2 = _UtilLogic:RandomIntegerRange(1, 6)
+				local total = d1 + d2
+		
+				_TimerService:SetTimerOnce(function()
+				    self:PlayTotalResultDiceSFX(total)
+				end, 2.0)
+				
+				-- 3. 최종 결과 판정
+				local finalVal = self._currentResultTable[total]
+				if finalVal == 2 then self.GameOutcome = "대성공"
+				elseif finalVal == 1 then self.GameOutcome = "성공"
+				else self.GameOutcome = "실패" end
+		
+				-- 4. 프로퍼티에 일일이 저장
+				self._dice1 = d1
+				self._dice2 = d2
+				self._total = total
+		
+				log("[ResultDiceManager] 주사위: " .. tostring(d1) .. " + " .. tostring(d2) .. " = " .. tostring(total) .. " (" .. self.GameOutcome .. ")")
+				
+				-- 기존 방식대로 total 1개만 리턴
+				return total
+	end
+
+	@ExecSpace("Server")
+	method void CalculateRulletResult(number playerCombatPower, number targetCombatPower)
+		
+		-- 대성공 : 2 , 성공 : 1 , 실패 : 0
+		local resultTable = {0,0,0,0,0,0,0,0,0,0,0,0}
+		
+		
+				resultTable[12] = 2
+				
+				local powerDiff = playerCombatPower - targetCombatPower
+				local targetGreatSuccess = 12 
+				local targetSuccess = 8
+				
+				if powerDiff > 0 then
+					if self.GreatSuccessWeight > 0 then
+						targetGreatSuccess = targetGreatSuccess - math.floor(powerDiff / self.GreatSuccessWeight)
+					end
+					if self.SuccessWeight > 0 then
+						targetSuccess = targetSuccess - math.floor(powerDiff / self.SuccessWeight)
+					end
+					
+					if targetGreatSuccess < 2 then targetGreatSuccess = 2 end
+					if targetSuccess < 2 then targetSuccess = 2 end
+					if targetGreatSuccess <= targetSuccess then targetGreatSuccess = targetSuccess + 1 end
+				end
+				
+				for i = 2, 11 do
+					if i >= targetGreatSuccess then resultTable[i] = 2
+					elseif i >= targetSuccess then resultTable[i] = 1
+					else resultTable[i] = 0 end
+				end
+				
+				-- 리턴하지 않고 매니저가 자체적으로 들고 있음
+				self._currentResultTable = resultTable
+	end
+
+	@ExecSpace("Client")
+	method void PlayTotalResultDiceSFX(number total)
+		local ruid = ""
+		
+		if total == 2 then ruid = self.two_SFX
+		elseif total == 3 then ruid = self.three_SFX
+		elseif total == 4 then ruid = self.four_SFX
+		elseif total == 5 then ruid = self.five_SFX
+		elseif total == 6 then ruid = self.six_SFX
+		elseif total == 7 then ruid = self.seven_SFX
+		elseif total == 8 then ruid = self.eight_SFX
+		elseif total == 9 then ruid = self.nine_SFX
+		elseif total == 10 then ruid = self.ten_SFX
+		elseif total == 11 then ruid = self.eleven_SFX
+		elseif total == 12 then ruid = self.twelve_SFX
+		end
+		
+		--total 값에 따른 효과음 출력
+		_SoundService:PlaySound(ruid, _SFXManager.volume)
+		
+	end
+
+	@ExecSpace("Server")
+	method table GetResultTable()
+		return self._currentResultTable
+	end
+
+end

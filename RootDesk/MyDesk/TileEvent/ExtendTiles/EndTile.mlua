@@ -5,6 +5,9 @@ script EndTile extends BaseTile
 	method void OnArrive(Entity piece)
 		log("[EndTile] 종료 칸 도착 → 게임 종료 tile=" .. self.Entity.Name)
 		_GameModeManager:OnPlayerReachedEnd(piece)
+		
+		-- 2. 턴 종료 및 IDLE 상태로 정리
+		    _SingleTurnManager:Stop()
 	end
 
 end

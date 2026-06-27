@@ -28,37 +28,6 @@ script BossTile extends BaseTile
 		return -1
 	end
 
-	method string RollDrop(string name)
-		-- BossDropRate에서 해당 보스의 장신구를 Weight 가중치로 하나 뽑는다. 없으면 "".
-		local ds = _DataService:GetTable("BossDropRate")
-		if isvalid(ds) == false then
-			log_error("[BossTile] dataset 'BossDropRate' 없음")
-			return ""
-		end
-		local rows = ds:GetRowCount()
-		local total = 0
-		for i = 1, rows do
-			if ds:GetCell(i, "BossName") == name then
-				total += (tonumber(ds:GetCell(i, "Weight")) or 0)
-			end
-		end
-		if total <= 0 then
-			log_warning("[BossTile] 드롭 테이블에 보스 없음/가중치 0: " .. name)
-			return ""
-		end
-		local roll = _UtilLogic:RandomIntegerRange(1, total)
-		local acc = 0
-		for i = 1, rows do
-			if ds:GetCell(i, "BossName") == name then
-				acc += (tonumber(ds:GetCell(i, "Weight")) or 0)
-				if roll <= acc then
-					return ds:GetCell(i, "Accessory")
-				end
-			end
-		end
-		return ""
-	end
-
 	@ExecSpace("ServerOnly")
 	method void OnArrive(Entity piece)
 		-- 1) 보스 데이터 조회
@@ -78,14 +47,10 @@ script BossTile extends BaseTile
 
 		-- 3) 임시 판정 (기획 미정): 기준 이상 → 대성공, 절반 이상 → 성공, 미만 → 실패.
 		if power >= requiredPower then
-			-- 대성공: 해당 보스의 장신구를 BossDropRate 가중치로 하나 드롭한다.
-			local drop = self:RollDrop(self.bossName)
+			-- 대성공: 보스 장신구 드롭(통합 테이블, Source=보스이름, Rarity=Boss)
 			log("[BossTile] " .. displayName .. " 대성공! (전투력 " .. tostring(power)
-				.. " ≥ " .. tostring(requiredPower) .. ") → 장신구 " .. drop .. " 획득")
-			if drop ~= "" then
-				local equip = self:Equip(piece)
-				if isvalid(equip) then equip:Equip(drop) end   -- 장신구 스탯이 전투력에 반영됨
-			end
+				.. " ≥ " .. tostring(requiredPower) .. ") → AddItems 호출")
+			self:AddItems(piece, "Accessory", self.bossName, "Boss")
 		elseif power >= requiredPower / 2 then
 			-- 성공: 주스탯(직업 주스탯)을 소폭 올린다. 내부에서 전투력도 재계산된다.
 			-- ⚠️ base 직접 수정(영구): cp:AddMainStat = base. 동적 버프(self:Add~) 아님.

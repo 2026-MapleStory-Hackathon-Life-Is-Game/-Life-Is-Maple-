@@ -1,0 +1,303 @@
+@Component
+script CharacterInfoPanel extends Component
+
+	property Entity panelRoot = "fc569ece-7a9f-4286-b8da-50fa11b0a6d4"
+
+	property Entity panelGroup = "190b4e43-2a1b-44d6-97b7-44c12dbb56f5"
+
+	property Entity nameText = "7baf66ad-7308-40c4-864d-cdafaa772d1c"
+
+	property Entity levelText = "f75bdcd8-ed97-4587-8c65-d3ba553f59d8"
+
+	property Entity campText = "24fc2a7e-3a04-442b-90b1-79230e71aeeb"
+
+	property Entity jobText = "2bd9669b-0610-48f2-8c45-222878d3171a"
+
+	property Entity branchText = "200fefa1-3379-4369-acb9-863fd726abeb"
+
+	property Entity powerText = "bfc69c66-6a1b-401d-b5da-0fd4bb00af44"
+
+	property Entity strText = "c296cf03-f785-43d4-8a08-4284ebd9c2f8"
+
+	property Entity dexText = "bbf305fb-0d0d-4376-8e47-e485d07bc4de"
+
+	property Entity intText = "d4d1578d-0765-46a0-aba8-33f1da7e8174"
+
+	property Entity lukText = "7546ab97-0c6c-4f66-944d-31e534de70f5"
+
+	property Entity atkText = "a7ea8d8b-92cd-4863-a812-cef9379922e8"
+
+	property Entity dmgText = "6c8f5231-b775-4b09-b0c6-8fc878292a71"
+
+	property Entity bossDmgText = "652ff34f-1d52-481b-a9f7-e639b3fe0a63"
+
+	property SpriteGUIRendererComponent weaponIcon = "ea3b6d0f-1b5e-440b-bd0e-0fbcb741c33e"
+
+	property SpriteGUIRendererComponent armorIcon = "ca2c2e4b-44d1-436c-957a-da2ff8943cef"
+
+	property SpriteGUIRendererComponent accessoryIcon = "eae72e91-228c-454b-bef5-6cd4f75ea994"
+
+	property any cpComp = nil
+
+	property boolean isOpen = false
+
+	property any slotHandlers = nil
+
+	property string _lastSlotCat = ""
+
+	property number _lastSlotTime = 0
+
+	property any invPanel = nil
+
+	property number _pollTimer = 0
+
+	property string _lastSlotSig = ""
+
+	method void OnBeginPlay()
+		-- 클라 전용: 패널 시작은 숨김 + 슬롯 호버/더블클릭 배선.
+		if self:IsClient() then
+			self.cpComp = nil
+			self.isOpen = false
+			self.slotHandlers = {}
+			self._lastSlotCat = ""
+			self._lastSlotTime = 0
+			self.invPanel = nil
+			self:SetPanelVisible(false)
+			self:WireSlot(self.weaponIcon, "Weapon")
+			self:WireSlot(self.armorIcon, "Armor")
+			self:WireSlot(self.accessoryIcon, "Accessory")
+		end
+	end
+
+	method void SetText(Entity e, string s)
+		-- 텍스트 엔티티의 TextComponent.Text 설정.
+		if isvalid(e) == false then return end
+		local tc = e:GetComponent("MOD.Core.TextComponent")
+		if tc ~= nil then tc.Text = s end
+	end
+
+	method void Open()
+		-- 캐릭터 정보 패널 열기 + 즉시 갱신.
+		if self:IsClient() == false then return end
+		self.isOpen = true
+		self:SetPanelVisible(true)
+		self:Refresh()
+	end
+
+	method void Close()
+		-- 패널 닫기.
+		if self:IsClient() == false then return end
+		self.isOpen = false
+		self:SetPanelVisible(false)
+	end
+
+	method void SetPanelVisible(boolean v)
+		-- 패널 표시/숨김을 '패널 루트의 CanvasGroup 알파'로 처리한다.
+		-- Window(내용 컨테이너)의 Enable은 절대 끄지 않으므로, 편집창에서 항상 내용이 보인다.
+		if isvalid(self.panelGroup) == false then return end
+		local cg = self.panelGroup:GetComponent("MOD.Core.CanvasGroupComponent")
+		if cg == nil then return end
+		if v then cg.GroupAlpha = 1 else cg.GroupAlpha = 0 end
+		cg.Interactable = v
+		cg.BlocksRaycasts = v
+	end
+
+	method string OrDash(string v)
+		-- 미선택('') → '--'.
+		if v == nil or v == "" then return "--" end
+		return v
+	end
+
+	method void Refresh()
+		-- 좌측 정보 + 우측 수치 + 장비칸 아이콘 갱신.
+		if self:IsClient() == false or self.isOpen == false then return end
+		local p = _UserService.LocalPlayer
+		if isvalid(p) == false then return end
+		if isvalid(self.cpComp) == false then self.cpComp = p:GetComponent("script.CombatPowerManager") end
+		
+		self:SetText(self.nameText, p.PlayerComponent.Nickname)
+		local buff = p:GetComponent("script.BuffManager")
+		local job  = p:GetComponent("script.JobWeaponManager")
+		local mv   = p:GetComponent("script.PlayerMovement")
+		self:SetText(self.campText,   self:OrDash(isvalid(buff) and buff.CampName or ""))
+		self:SetText(self.jobText,    self:OrDash(isvalid(job) and job.currentJob or ""))
+		self:SetText(self.branchText, self:OrDash(isvalid(mv) and mv.currentTile or ""))
+		
+		---@type CombatPowerManager
+		local cp = self.cpComp
+		if isvalid(cp) then
+			self:SetText(self.levelText, "Lv." .. tostring(cp.Level))
+			self:SetText(self.powerText, "전투력: " .. self:FormatPower(cp.CombatPower))
+			self:SetText(self.strText, tostring(math.floor(cp:DisplayStat("STR"))))
+			self:SetText(self.dexText, tostring(math.floor(cp:DisplayStat("DEX"))))
+			self:SetText(self.intText, tostring(math.floor(cp:DisplayStat("INT"))))
+			self:SetText(self.lukText, tostring(math.floor(cp:DisplayStat("LUK"))))
+			self:SetText(self.atkText,     tostring(math.floor(cp:DisplayMainAttack())))
+			self:SetText(self.dmgText,     tostring(math.floor(cp:DisplayDamagePct())) .. "%")
+			self:SetText(self.bossDmgText, tostring(math.floor(cp:DisplayBossDamagePct())) .. "%")
+		end
+		self:RefreshSlots()
+	end
+
+	method void RefreshSlots()
+		-- 장비칸 3슬롯 아이콘 갱신(빈 슬롯은 투명).
+		local p = _UserService.LocalPlayer
+		if isvalid(p) == false then return end
+		local w = p:GetComponent("script.WeaponEquipment")
+		local a = p:GetComponent("script.ArmorEquipment")
+		local ac = p:GetComponent("script.AccessoryEquipment")
+		self:SetSlotIcon(self.weaponIcon, isvalid(w) and w.Equipped or "")
+		self:SetSlotIcon(self.armorIcon, isvalid(a) and a.Equipped or "")
+		self:SetSlotIcon(self.accessoryIcon, isvalid(ac) and ac.Equipped or "")
+	end
+
+	method void SetSlotIcon(SpriteGUIRendererComponent renderer, string equipName)
+		-- equipName의 Icon RUID를 슬롯에 적용 + 아이템명 텍스트 표시(아이콘 없어도 장착 확인 가능).
+		if isvalid(renderer) == false then return end
+		local e = renderer.Entity
+		if equipName == "" then
+			renderer.Color = Color(1, 1, 1, 0)
+			self:SetSlotLabel(e, "(없음)", false)
+			return
+		end
+		local ds = _DataService:GetTable("EquipData")
+		local ruid = ""
+		local dname = equipName
+		for i = 1, ds:GetRowCount() do
+			if ds:GetCell(i, "EquipName") == equipName then
+				ruid = ds:GetCell(i, "Icon")
+				dname = ds:GetCell(i, "Name")
+				break
+			end
+		end
+		if ruid ~= "" then
+			renderer.ImageRUID = ruid
+			renderer.Color = Color(1, 1, 1, 1)
+		else
+			renderer.Color = Color(1, 1, 1, 0)
+		end
+		self:SetSlotLabel(e, dname, true)
+	end
+
+	method void SetSlotLabel(Entity slotEntity, string text, boolean equipped)
+		-- 슬롯 버튼 자체의 TextComponent에 장착 아이템명(또는 "(없음)")을 작게 표시.
+		-- 아이콘 RUID가 아직 비어 있어도 무엇이 장착됐는지 글자로 확인 가능.
+		if isvalid(slotEntity) == false then return end
+		local tc = slotEntity:GetComponent("MOD.Core.TextComponent")
+		if tc == nil then return end
+		tc.Text = text
+		if equipped then
+			tc.FontColor = Color(1, 1, 1, 1)
+		else
+			tc.FontColor = Color(0.6, 0.62, 0.68, 1)
+		end
+	end
+
+	method void WireSlot(SpriteGUIRendererComponent renderer, string category)
+		-- 슬롯 버튼에 호버(툴팁)+더블클릭(해제) 이벤트 배선.
+		if isvalid(renderer) == false or isvalid(renderer.Entity) == false then return end
+		local e = renderer.Entity
+		local cat = category
+		local hc = e:ConnectEvent(ButtonClickEvent, function() self:OnSlotClicked(cat) end)
+		local hs = e:ConnectEvent(ButtonStateChangeEvent, function(ev) self:OnSlotState(cat, ev) end)
+		table.insert(self.slotHandlers, { entity = e, click = hc, state = hs })
+	end
+
+	method string EquippedOf(string category)
+		-- 카테고리 슬롯의 현재 장착 equipName 반환.
+		local p = _UserService.LocalPlayer
+		if isvalid(p) == false then return "" end
+		local m = _EquipmentRouter:ManagerFor(p, category)
+		if isvalid(m) then return m.Equipped end
+		return ""
+	end
+
+	method void OnUpdate(number delta)
+		-- 패널 열린 동안 0.2초마다 슬롯 장착 변경 감지 → 갱신.
+		if self:IsClient() == false or self.isOpen == false then return end
+		self._pollTimer = self._pollTimer + delta
+		if self._pollTimer < 0.2 then return end
+		self._pollTimer = 0
+		local p = _UserService.LocalPlayer
+		if isvalid(p) == false then return end
+		local w = p:GetComponent("script.WeaponEquipment")
+		local a = p:GetComponent("script.ArmorEquipment")
+		local ac = p:GetComponent("script.AccessoryEquipment")
+		local we = isvalid(w) and w.Equipped or ""
+		local ae = isvalid(a) and a.Equipped or ""
+		local ace = isvalid(ac) and ac.Equipped or ""
+		local sig = we .. "," .. ae .. "," .. ace
+		if sig ~= self._lastSlotSig then
+			self._lastSlotSig = sig
+			self:Refresh()
+			log("[CharacterInfoPanel] 장착 변경 감지 → Refresh: " .. sig)
+		end
+	end
+
+	method void OnSlotState(string category, ButtonStateChangeEvent ev)
+		-- 슬롯 호버 진입 → 스펙 툴팁 표시, 이탈 → 숨김.
+		if ev.state == ButtonState.Hover then
+			_EquipTooltip:ShowItem(self:EquippedOf(category))
+		elseif ev.state == ButtonState.Normal then
+			_EquipTooltip:Hide()
+		end
+	end
+
+	method void OnSlotClicked(string category)
+		-- 더블클릭(0.3초 내 같은 슬롯 2회) → 장착 해제 + 배낭 열려 있으면 탭 자동전환.
+		local now = _UtilLogic.ElapsedSeconds
+		if self._lastSlotCat == category and (now - self._lastSlotTime) <= 0.3 then
+			self._lastSlotCat = ""
+			local p = _UserService.LocalPlayer
+			if isvalid(p) then
+				local m = _EquipmentRouter:ManagerFor(p, category)
+				if isvalid(m) then m:RequestUnequip() end
+			end
+			-- 해제하면 그 슬롯이 비는데 마우스가 그 자리에 남아 호버 툴팁이 떠 있게 된다 → 숨김.
+			_EquipTooltip:Hide()
+			if isvalid(self.invPanel) == false then
+				local ie = _EntityService:GetEntityByPath("/ui/InGameUIGroup/Inventory_Panel/Ctrl")
+				if isvalid(ie) then
+					self.invPanel = ie:GetComponent("script.InventoryPanel")
+				end
+			end
+			if isvalid(self.invPanel) and self.invPanel.isOpen then
+				self.invPanel:SelectTab(category)
+			end
+			log("[CharacterInfoPanel] 더블클릭 해제: " .. category)
+		else
+			self._lastSlotCat = category
+			self._lastSlotTime = now
+		end
+	end
+
+	method void OnEndPlay()
+		-- 슬롯 이벤트 핸들 해제.
+		if self.slotHandlers ~= nil then
+			for _, r in ipairs(self.slotHandlers) do
+				if isvalid(r.entity) then
+					r.entity:DisconnectEvent(ButtonClickEvent, r.click)
+					r.entity:DisconnectEvent(ButtonStateChangeEvent, r.state)
+				end
+			end
+		end
+		self.slotHandlers = {}
+	end
+
+	method string FormatPower(number value)
+		-- 전투력 "○○만 ○○○○" 표기(1만 미만 그대로).
+		local n = math.floor(value)
+		if n >= 10000 then
+			local man = math.floor(n / 10000)
+			return tostring(man) .. "만 " .. string.format("%04d", n % 10000)
+		end
+		return tostring(n)
+	end
+
+	@ExecSpace("ClientOnly")
+	method void OnSyncProperty(string name, any value)
+		-- 전투력/장비 변경 동기화 시 패널이 열려 있으면 갱신.
+		if self.isOpen then self:Refresh() end
+	end
+
+end
