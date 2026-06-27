@@ -153,38 +153,25 @@ script TileManager extends Logic
 	method boolean TriggerArrive(string mapName, string tileName, Entity piece)
 		-- 도착 타일 효과를 실행하고 '이벤트 UI를 띄우는 타일이었는지'를 반환한다.
 		-- 반환 true면 호출측(턴 매니저)이 UI 표시 시간만큼 대기한 뒤 다음 단계로 진행한다.
-		-- [테스트] 현재는 UI 표시 확인을 위해 (End 타일 제외) 모든 타일에서 패널을 띄우고 true를 반환한다.
 		local key = mapName .. "_" .. tileName
-		local data = self.tileGraph[key]
-		local isEndTile = (data ~= nil and data.type == "End")
-				-- 레벨: 도착 타일의 (Stage,Tier)로 단조 증가 설정. 타일 효과(OnArrive)보다 먼저 → 효과가 갱신된 레벨 참조 가능.
-				self:ApplyTileLevel(key, piece)
+		-- 레벨: 도착 타일의 (Stage,Tier)로 단조 증가 설정. 타일 효과(OnArrive)보다 먼저 → 효과가 갱신된 레벨 참조 가능.
+		self:ApplyTileLevel(key, piece)
 
-				-- 도착 타일 컴포넌트 해석(진영 변형 타일이면 진영별 컴포넌트).
-				---@type BaseTile
-				local comp = nil
-				if self:IsVariantTile(key) then
-					local campKey = ""
-					local buff = piece:GetComponent("script.BuffManager")
-					if isvalid(buff) then campKey = buff.CampName end
-					comp = self.variant[key][campKey]
-				else
-					comp = self.tileComponents[key]
-				end
+		-- 도착 타일 컴포넌트 해석(진영 변형 타일이면 진영별 컴포넌트).
+		---@type BaseTile
+		local comp = nil
+		if self:IsVariantTile(key) then
+			local campKey = ""
+			local buff = piece:GetComponent("script.BuffManager")
+			if isvalid(buff) then campKey = buff.CampName end
+			comp = self.variant[key][campKey]
+		else
+			comp = self.tileComponents[key]
+		end
 
-				if comp ~= nil then
-					comp:OnArrive(piece)
-					if comp:IsEventTile() then
-						return true   -- 이벤트(사냥) 타일: 실제 UI는 OnArrive가 표시. 5초 대기.
-					end
-				end
-
-				-- 여기부터는 이벤트 타일이 아님(또는 컴포넌트 없음).
-				if isEndTile then
-					return false   -- End 타일: 테스트 패널/대기 없이 기존대로 즉시 진행.
-				end
-				self:ShowTestForOwner(piece, tileName)   -- [테스트] End 외 타일은 패널 표시.
-				return true
+		if comp == nil then return false end
+		comp:OnArrive(piece)
+		return comp:IsEventTile()
 	end
 
 	@ExecSpace("ServerOnly")
@@ -223,29 +210,6 @@ script TileManager extends Logic
 		end
 		if comp == nil then return false end
 		return comp:IsInteractiveTile()
-	end
-
-	-- ============================================================================
-	-- [테스트용] 사냥(이벤트) 타일이 아닌 칸에서도 EventTileUI 패널을 띄워 표시를 확인한다(End 타일 제외).
-	-- UI 확인이 끝나면 (1) 위 TriggerArrive의 ShowTestForOwner 호출 1곳 + isEndTile 분기 제거,
-	-- (2) 마지막 반환을 원래대로(comp 없으면 false / return comp:IsEventTile())로 되돌리고,
-	-- (3) 아래 두 메서드를 삭제하면 된다.
-	-- ============================================================================
-
-	@ExecSpace("ServerOnly")
-	method void ShowTestForOwner(Entity piece, string tileName)
-		-- [테스트] 도착 플레이어의 클라에 EventTileUI를 띄운다(이벤트 타일이 아닐 때 표시 확인용).
-		if isvalid(piece) == false then return end
-		if isvalid(piece.PlayerComponent) == false then return end
-		local uid = piece.PlayerComponent.UserId
-		if uid == nil or uid == "" then return end
-		self:ShowTestEventUI(tileName, uid)
-	end
-
-	@ExecSpace("Client")
-	method void ShowTestEventUI(string tileName)
-		-- [테스트] 도착 플레이어 클라에서 EventTileUI 표시(타깃 호출).
-		_EventTileUI:Show("Test", "타일 도착: " .. tileName .. "\n(UI 표시 테스트)")
 	end
 
 	@ExecSpace("ServerOnly")

@@ -1,66 +1,153 @@
 @Component
-script BossTile extends BaseTile
+script BossTile extends EventTileBase
 
-	-- 보스 칸: 전투력 기반 대성공/성공/실패 판정 → 대성공 시 보스 장신구 드롭.
-	-- ⚠️ 판정 확률/기준 전투력은 기획 미확정 → 아래는 전부 임시값(인스펙터/기획 확정 시 조정).
-	--    현재는 단계별 맵이 분리돼 있지 않으므로, 이 칸이 어떤 보스인지를 bossName으로 지정한다.
-	@DisplayName("보스 이름(BossData 키)")
-	@Sync
-	property string bossName = "Zakum"   -- BossData.csv의 BossName (Zakum/Horntail/Pink_Bean/Lucid)
+	-- 보스(인터랙티브) 이벤트 타일.
+	-- 흐름: 도착 → EventTileGroup 안내 문구 + BossUI 보스 선택(4종) →
+	--        카드 클릭 시 상세(난이도/적정전투력/드랍 + 뒤로가기) → 난이도 선택 시 RequestSelect →
+	--        BossUI 닫고 EventTileGroup 도전 문구(5초) → 결과 주사위 →
+	--        대성공/성공(동일): 주스탯·공격력·난이도별 보호구 보상 + 결과 문구 / 실패: 종료.
+	-- 완료 시 _GameModeManager:NotifyTileEventDone()으로 턴 진행을 신호한다.
 
-	-- 일반 '성공'(대성공 미달, 절반 이상) 시 주스탯 증가량. 보스별로 인스펙터에서 조정.
-	@DisplayName("성공 시 주스탯 증가량")
-	@Sync
-	property integer successMainStat = 5
+	-- 선택 전 EventTileGroup에 표시할 안내 문구.
+	@Sync property string introText = "신규 장비를 모아 더 강해지고 싶다! \n 어떤 보스를 처치하러 갈까?"
 
-	method integer FindBossRow(string name)
-		-- BossData에서 BossName에 해당하는 행 인덱스를 반환한다. 없으면 -1.
-		local ds = _DataService:GetTable("BossData")
-		if isvalid(ds) == false then
-			log_error("[BossTile] dataset 'BossData' not found")
-			return -1
-		end
-		for i = 1, ds:GetRowCount() do
-			if ds:GetCell(i, "BossName") == name then
-				return i
-			end
-		end
-		return -1
+	-- 보상 수치 범위(양 끝 포함).
+	@Sync property integer mainStatMin = 10
+	@Sync property integer mainStatMax = 100
+	@Sync property integer attackMin = 5
+	@Sync property integer attackMax = 20
+
+	-- 진행 중인 도착 플레이어(서버 상태). 턴제라 동시 1명.
+	property any _currentPiece = nil
+	-- 최종 선택 정보. {선택한보스이름} default = 노말 스우.
+	property string _selectedBossName = "노말스우"
+	property string _selectedBossKey = "Suu"
+	property string _selectedDiff = "Normal"
+
+	method boolean IsInteractiveTile()
+		-- 선택/연출이 완료될 때까지 턴 매니저가 대기하도록 인터랙티브로 표시.
+		return true
 	end
 
 	@ExecSpace("ServerOnly")
 	method void OnArrive(Entity piece)
-		-- 1) 보스 데이터 조회
-		local rowIdx = self:FindBossRow(self.bossName)
-		if rowIdx == -1 then
-			log_warning("[BossTile] 알 수 없는 보스: " .. self.bossName)
+		-- 보스 이벤트 시작: EventTileGroup 안내 문구 + BossUI 선택 화면 표시.
+		self._currentPiece = piece
+		local ownerId = self:OwnerUserId(piece)
+		if ownerId == "" then
+			_GameModeManager:NotifyTileEventDone()
 			return
 		end
-		local ds = _DataService:GetTable("BossData")
-		local displayName    = ds:GetCell(rowIdx, "Name")
-		local requiredPower  = tonumber(ds:GetCell(rowIdx, "RequiredPower")) or 0
+		self:OpenBossSelection(self.introText, ownerId)
+		log("[BossTile] 보스 선택 표시 tile=" .. self.Entity.Name)
+	end
 
-		-- 2) 현재 전투력 산출 (도착한 말=플레이어의 per-player 전투력)
-		local cp = self:CP(piece)
-		if isvalid(cp) == false then return end
-		local power = cp:CalculateCurrentCombatPower()
+	@ExecSpace("Client")
+	method void OpenBossSelection(string introMessage)
+		-- 도착 플레이어 클라: 보스 선택 중에는 BossUI 그룹만 사용(EventTileGroup은 꺼둔다).
+		-- 안내 문구는 BossUI 자체 UIText로 표시한다.
+		_BossUI:Show(self, introMessage)
+	end
 
-		-- 3) 임시 판정 (기획 미정): 기준 이상 → 대성공, 절반 이상 → 성공, 미만 → 실패.
-		if power >= requiredPower then
-			-- 대성공: 보스 장신구 드롭(통합 테이블, Source=보스이름, Rarity=Boss)
-			log("[BossTile] " .. displayName .. " 대성공! (전투력 " .. tostring(power)
-				.. " ≥ " .. tostring(requiredPower) .. ") → AddItems 호출")
-			self:AddItems(piece, "Accessory", self.bossName, "Boss")
-		elseif power >= requiredPower / 2 then
-			-- 성공: 주스탯(직업 주스탯)을 소폭 올린다. 내부에서 전투력도 재계산된다.
-			-- ⚠️ base 직접 수정(영구): cp:AddMainStat = base. 동적 버프(self:Add~) 아님.
-			cp:AddMainStat("flat", self.successMainStat)
-			log("[BossTile] " .. displayName .. " 성공 (전투력 " .. tostring(power)
-				.. ") → 주스탯 +" .. tostring(self.successMainStat))
+	@ExecSpace("Server")
+	method void RequestSelect(string bossKey, string diffKey)
+		-- BossUI에서 보스+난이도 최종 선택 → BossUI 닫고 도전 연출 시작.
+		local piece = self._currentPiece
+		if isvalid(piece) == false then return end
+		if senderUserId ~= self:OwnerUserId(piece) then return end
+		self._selectedBossKey = bossKey
+		self._selectedDiff = diffKey
+		self._selectedBossName = self:DiffLabel(diffKey) .. self:BossName(bossKey)
+		local ownerId = self:OwnerUserId(piece)
+		self:StartChallenge(self._selectedBossName, ownerId)
+		log("[BossTile] 선택: " .. self._selectedBossName)
+	end
+
+	@ExecSpace("Client")
+	method void StartChallenge(string bossName)
+		-- 도착 플레이어 클라: BossUI 닫고 EventTileGroup에 도전 문구 표시(공용 연출 재사용).
+		_BossUI:Hide()
+		local challengeText = bossName .. " 처치에 도전하였다! \n 각오해라!"
+		_EventTileUI:VillageQuestText(challengeText, self)
+	end
+
+	@ExecSpace("Server")
+	method void RequestQuestRoll()
+		-- 도전 문구 표시가 끝난 뒤 클라가 호출 → 지금 결과를 굴려 효과음을 패널과 맞추고 보상 적용.
+		local piece = self._currentPiece
+		if isvalid(piece) == false then return end
+		if senderUserId ~= self:OwnerUserId(piece) then return end
+
+		-- 결과 주사위(기존 ResultDiceManager 재사용) → 도전 대성공/성공/실패.
+		local total = _ResultDiceManager:Roll()
+		local d1 = _ResultDiceManager._dice1
+		local d2 = _ResultDiceManager._dice2
+		local outcome = _ResultDiceManager.GameOutcome
+		local resultTable = _ResultDiceManager:GetResultTable()
+
+		local outcomeText = ""
+		if outcome == "실패" then
+			outcomeText = self._selectedBossName .. " 처치에 실패했다..."
+			log("[BossTile] 도전 실패 — " .. self._selectedBossName)
 		else
-			log("[BossTile] " .. displayName .. " 실패 (전투력 " .. tostring(power)
-				.. " < " .. tostring(requiredPower / 2) .. ")")
+			-- 대성공/성공 동일 결과: 주스탯 + 공격력 + 난이도별 보호구.
+			local mainGain = _UtilLogic:RandomIntegerRange(self.mainStatMin, self.mainStatMax)
+			local atkGain  = _UtilLogic:RandomIntegerRange(self.attackMin, self.attackMax)
+			self:AddMainStat(piece, "flat", mainGain)
+			self:AddMainAttack(piece, "flat", atkGain)
+			-- 난이도별 보호구 (config 호출 — ItemDropTable 데이터는 추후 연동, 지금은 매칭 없으면 드롭 X).
+			self:AddItems(piece, self:ItemCategory(self._selectedDiff), self._selectedBossKey, self._selectedDiff)
+			outcomeText = self._selectedBossName .. "를(을) 처치하였다! \n 보상으로 주스탯+" .. tostring(mainGain)
+				.. ", 공격력/마력 +" .. tostring(atkGain) .. ", " .. self:DropName(self._selectedDiff) .. "를 얻었다!"
+			log("[BossTile] 도전 " .. outcome .. " — 주스탯+" .. tostring(mainGain) .. " 공격력+" .. tostring(atkGain))
 		end
+
+		local ownerId = self:OwnerUserId(piece)
+		self:ShowChallengeDice(d1, d2, total, resultTable, outcome, outcomeText, ownerId)
+	end
+
+	@ExecSpace("Client")
+	method void ShowChallengeDice(integer d1, integer d2, integer total, table resultTable, string outcome, string outcomeText)
+		-- 도착 플레이어 클라: 결과 주사위 연출 + 결과 문구 표시(공용 연출 재사용).
+		_EventTileUI:VillageDice(d1, d2, total, resultTable, outcome, outcomeText, self)
+	end
+
+	@ExecSpace("Server")
+	method void RequestFinish()
+		-- 클라가 도전 연출(결과 문구 표시까지)을 끝냈음을 알림 → 턴 진행 신호.
+		log("[BossTile] 도전 연출 종료 — 이벤트 종료")
+		self._currentPiece = nil
+		_GameModeManager:NotifyTileEventDone()
+	end
+
+	-- ===== 보스/난이도 설정 (임시값 — 추후 table 연동) =====
+
+	method string BossName(string key)
+		-- 보스 키 → 표시명.
+		if key == "Karuta" then return "카루타"
+		elseif key == "Papulatus" then return "파풀라투스"
+		elseif key == "Suu" then return "스우"
+		elseif key == "Damien" then return "데미안"
+		end
+		return key
+	end
+
+	method string DiffLabel(string diff)
+		-- 난이도 키 → 표시 라벨.
+		if diff == "Hard" then return "하드" end
+		return "노말"
+	end
+
+	method string DropName(string diff)
+		-- 난이도별 드랍 보호구 표시명(결과 문구용).
+		if diff == "Hard" then return "칠흑의 보스 장신구 세트(9)" end
+		return "앱솔랩스 보호구 세트"
+	end
+
+	method string ItemCategory(string diff)
+		-- AddItems 호출용 카테고리(placeholder — ItemDropTable 데이터 채우면 동작).
+		if diff == "Hard" then return "Accessory" end
+		return "Armor"
 	end
 
 end

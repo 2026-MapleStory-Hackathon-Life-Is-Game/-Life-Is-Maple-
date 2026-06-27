@@ -158,6 +158,20 @@ script EventTileUI extends Logic
 	end
 
 	@ExecSpace("ClientOnly")
+	method void ShowPlain(string message)
+		-- 버튼/자동닫힘 없이 EventTileGroup에 문구만 표시한다(보스 선택 안내 등).
+		self:ClearTimers()
+		if isvalid(self.EventGroup) == false then
+			log_warning("[EventTileUI] EventGroup 엔티티를 찾을 수 없습니다.")
+			return
+		end
+		self.EventGroup.Enable = true
+		self:SetButtons(false)
+		self:SetText(message)
+		self:StartPortraitAttack()
+	end
+
+	@ExecSpace("ClientOnly")
 	method void ShowVillage(string question, Component villageTile)
 		-- 마을 질문 표시: 그룹을 켜고 문구 + 수락/거절 버튼 활성. 자동닫힘 없음(버튼 선택까지 유지).
 		self._villageTile = villageTile
@@ -192,9 +206,11 @@ script EventTileUI extends Logic
 
 	@ExecSpace("ClientOnly")
 	method void VillageQuestText(string questText, Component villageTile)
-		-- 수락 1단계: 버튼 off → 퀘스트 문구를 VillageStepSeconds 동안 표시 → 서버에 결과 굴림 요청.
+		-- 수락/도전 1단계: 버튼 off → 문구를 VillageStepSeconds 동안 표시 → 서버에 결과 굴림 요청.
 		-- (굴림을 이 시점으로 미뤄야 결과주사위 효과음이 패널 표시와 맞는다.)
+		-- 보스 흐름은 선택 중 EventTileGroup을 꺼두므로, 도전 단계 진입 시 여기서 그룹을 켠다.
 		self._villageTile = villageTile
+		if isvalid(self.EventGroup) then self.EventGroup.Enable = true end
 		self:SetButtons(false)
 		self:SetText(questText)
 		self:ClearTimer("autoHideTimer")
