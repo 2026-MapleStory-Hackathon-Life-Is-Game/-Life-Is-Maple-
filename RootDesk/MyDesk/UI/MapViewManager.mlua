@@ -9,6 +9,8 @@ script MapViewManager extends Logic
 
 	property number _origZoom = 100
 
+	property boolean _origConfine = true
+
 	property any _currentTween = nil
 
 	property any _scrollHandler = nil
@@ -48,10 +50,10 @@ script MapViewManager extends Logic
 		local spd = self._camMoveSpeed * delta
 		local dx = 0
 		local dy = 0
-		if _InputService:IsKeyPressed(KeyboardKey.W) then dy = dy + spd end
-		if _InputService:IsKeyPressed(KeyboardKey.S) then dy = dy - spd end
-		if _InputService:IsKeyPressed(KeyboardKey.A) then dx = dx - spd end
-		if _InputService:IsKeyPressed(KeyboardKey.D) then dx = dx + spd end
+		if _InputService:IsKeyPressed(KeyboardKey.W) or _InputService:IsKeyPressed(KeyboardKey.UpArrow) then dy = dy + spd end
+		if _InputService:IsKeyPressed(KeyboardKey.S) or _InputService:IsKeyPressed(KeyboardKey.DownArrow) then dy = dy - spd end
+		if _InputService:IsKeyPressed(KeyboardKey.A) or _InputService:IsKeyPressed(KeyboardKey.LeftArrow) then dx = dx - spd end
+		if _InputService:IsKeyPressed(KeyboardKey.D) or _InputService:IsKeyPressed(KeyboardKey.RightArrow) then dx = dx + spd end
 		
 		if dx ~= 0 or dy ~= 0 then
 			cam.CameraOffset = Vector2(cam.CameraOffset.x + dx, cam.CameraOffset.y + dy)
@@ -109,6 +111,10 @@ script MapViewManager extends Logic
 		-- 현재 상태 저장
 		self._origCameraOffset = cam.CameraOffset
 		self._origZoom = cam.ZoomRatio
+		self._origConfine = cam.ConfineCameraArea
+
+		-- 맵 경계 클램프 해제: 줌 아웃 시 카메라가 맵 가장자리에 밀려 살짝 움직이는 현상 방지.
+		cam.ConfineCameraArea = false
 
 		-- 카메라 줌 축소 (0.4초 트윈)
 		cam:SetZoomTo(50, 0.25)
@@ -148,6 +154,9 @@ script MapViewManager extends Logic
 
 		-- 줌 원래대로 복귀 (0.3초 트윈)
 		cam:SetZoomTo(self._origZoom, 0.3)
+
+		-- 맵 경계 클램프 원복
+		cam.ConfineCameraArea = self._origConfine
 
 		log("[MapViewManager] 맵 뷰 닫힘")
 	end
