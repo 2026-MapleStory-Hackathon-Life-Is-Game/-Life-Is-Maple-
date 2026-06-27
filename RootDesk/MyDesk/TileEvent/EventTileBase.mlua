@@ -1,0 +1,58 @@
+@Component
+script EventTileBase extends BaseTile
+
+	-- 이벤트 팝업형 타일의 공통 베이스(확장용).
+	-- 흐름: 말 도착(서버) → RollEvent로 결과를 굴림
+	--        → 도착한 플레이어의 클라이언트에만 이벤트 UI를 띄움(타깃 Client RPC).
+	--        (보상 적용은 추후 추가 예정.)
+	-- 새 이벤트 타일(사냥/공격력/장비세트 등)은 이 스크립트를 extends 하고 RollEvent만 구현하면 된다.
+
+	@ExecSpace("ServerOnly")
+	method void OnArrive(Entity piece)
+		-- 서버: 결과 굴림 → 도착 플레이어 클라에 이벤트 UI 표시.
+		-- (보상 적용은 추후 추가 예정 — 지금은 롤 + UI 표시만.)
+		local ev = self:RollEvent(piece)
+		if ev == nil then
+			log_warning("[EventTileBase] RollEvent가 nil 반환 — tile=" .. self.Entity.Name)
+			return
+		end
+
+		-- 도착한 말의 소유 유저 클라에만 이벤트 UI 표시.
+		local ownerId = self:OwnerUserId(piece)
+		if ownerId ~= "" then
+			self:ShowEventUI(ev.eventType, ev.message, ownerId)
+		end
+
+		log("[EventTileBase] 이벤트 발생 tile=" .. self.Entity.Name
+			.. " type=" .. tostring(ev.eventType))
+	end
+
+	method table RollEvent(Entity piece)
+		-- 서브클래스에서 구현한다. 다음 키를 가진 table을 반환:
+		--   eventType : 표시할 이벤트 UI 종류 키(예: "Hunt")
+		--   message   : UI에 표시할 문구
+		-- nil 반환 시 표시 없음.
+		log_warning("[EventTileBase] RollEvent 미구현 — tile=" .. self.Entity.Name)
+		return nil
+	end
+
+	method string OwnerUserId(Entity piece)
+		-- 말(piece)의 소유 유저 ID를 반환한다. 플레이어 엔티티가 아니면 "".
+		if isvalid(piece.PlayerComponent) == false then
+			return ""
+		end
+		local uid = piece.PlayerComponent.UserId
+		if uid == nil then
+			return ""
+		end
+		return uid
+	end
+
+	@ExecSpace("Client")
+	method void ShowEventUI(string eventType, string message)
+		-- 도착한 플레이어의 클라에서 실행(타깃 호출). 이벤트 UI 컨트롤러(@Logic)에 표시를 위임한다.
+		-- eventType별 UI 분기는 EventTileUI 안에서 처리한다(확장 지점).
+		_EventTileUI:Show(eventType, message)
+	end
+
+end
