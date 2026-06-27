@@ -1,12 +1,28 @@
 @Component
-script HuntTile extends BaseTile
+script HuntTile extends EventTileBase
 
-	@ExecSpace("ServerOnly")
-	method void OnArrive(Entity piece)
-		-- ⚠️ base 직접 수정(영구): cp:HuntStat() → AddMainStat(base). 동적 버프(self:Add~) 아님.
-		local cp = self:CP(piece)
-		if isvalid(cp) then cp:HuntStat() end
-		log("[HuntTile] 사냥 칸 효과 적용 tile=" .. self.Entity.Name)
+	-- 사냥터 이름. 이후 테이블 연동 시 교체. 지금은 임시값.
+	@Sync
+	property string HuntingGround = "헤네시스 사냥터1"
+
+	method table RollEvent(Entity piece)
+		-- 사냥 이벤트 문구를 서버에서 굴린다.
+		--   {n}분(10~120) 동안 사냥 → 주스탯/올스탯 +{gain}(1~10). (보상 적용은 추후 추가.)
+		local minutes = _UtilLogic:RandomIntegerRange(10, 120)
+		local gain    = _UtilLogic:RandomIntegerRange(1, 10)
+
+		local statName = "주스탯"
+		if _UtilLogic:RandomIntegerRange(1, 2) == 2 then
+			statName = "올스탯"
+		end
+
+		local line1 = self.HuntingGround .. "에서 " .. tostring(minutes) .. "분동안 몬스터를 사냥했다!"
+		local line2 = statName .. "이 " .. tostring(gain) .. "만큼 올랐다!"
+
+		return {
+			eventType = "Hunt",
+			message   = line1 .. "\n" .. line2,
+		}
 	end
 
 end

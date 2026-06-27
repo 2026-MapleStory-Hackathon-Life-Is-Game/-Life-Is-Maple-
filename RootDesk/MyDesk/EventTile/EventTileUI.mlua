@@ -1,0 +1,115 @@
+@Logic
+script EventTileUI extends Logic
+
+	-- 이벤트 타일 UI(EventTileGroup) 클라 컨트롤러.
+	-- UI 그룹 바깥의 @Logic 이라 그룹을 켜고/끄는 동안 자기 자신이 비활성화되지 않는다.
+	-- 서버 타일(EventTileBase)이 도착 플레이어 클라에 Show(eventType, message)를 호출한다.
+
+	-- EventTileGroup 루트 엔티티(표시/숨김 토글 대상).
+	property Entity EventGroup = "707f4eb6-99f6-4e7d-878c-c3a90cec9a81"
+
+	-- 결과 문구를 출력할 UIText 엔티티 경로(TextComponent 보유).
+	property string TextPath = "/ui/EventTileGroup/EventBack/UISprite/UIText"
+
+	-- ATTACK 모션을 보여줄 초상화(아바타) 경로.
+	property string PortraitPath = "/ui/EventTileGroup/EventBack/BackgroundMap/PlayerPortrait"
+
+	-- 이벤트 UI 자동 닫힘까지의 시간(초).
+	property number AutoHideSeconds = 5.0
+
+	property integer attackTimer = 0
+	property integer autoHideTimer = 0
+
+	@ExecSpace("ClientOnly")
+	method void OnBeginPlay()
+		-- 평소엔 숨김. (그룹 바깥 Logic이라 안전하게 끌 수 있다.)
+		if isvalid(self.EventGroup) then
+			self.EventGroup.Enable = false
+		end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void OnEndPlay()
+		self:ClearTimers()
+	end
+
+	@ExecSpace("ClientOnly")
+	method void Show(string eventType, string message)
+		-- 도착 플레이어 클라에서 호출(EventTileBase.ShowEventUI 경유). 그룹을 켜고 문구/연출을 세팅한다.
+		-- eventType은 추후 여러 이벤트 UI로 분기하기 위한 키(현재는 "Hunt"만).
+		if isvalid(self.EventGroup) == false then
+			log_warning("[EventTileUI] EventGroup 엔티티를 찾을 수 없습니다.")
+			return
+		end
+		self.EventGroup.Enable = true
+
+		-- 결과 문구 출력.
+		local textEntity = _EntityService:GetEntityByPath(self.TextPath)
+		if isvalid(textEntity) and isvalid(textEntity.TextComponent) then
+			textEntity.TextComponent.Text = message
+		else
+			log_warning("[EventTileUI] UIText/TextComponent 를 찾을 수 없습니다: " .. self.TextPath)
+		end
+		log("[EventTileUI] 이벤트 표시(" .. tostring(eventType) .. "): " .. message)
+
+		-- 초상화 ATTACK 모션 시작 + 일정 시간 후 자동 닫힘.
+		self:StartPortraitAttack()
+		self:ClearTimer("autoHideTimer")
+		self.autoHideTimer = _TimerService:SetTimerOnce(function()
+			self:Hide()
+		end, self.AutoHideSeconds)
+	end
+
+	@ExecSpace("ClientOnly")
+	method void Hide()
+		-- 이벤트 UI 닫기: 타이머 정리 후 그룹 숨김.
+		self:ClearTimers()
+		if isvalid(self.EventGroup) then
+			self.EventGroup.Enable = false
+		end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void StartPortraitAttack()
+		-- 즉시 1회 적용 후, 아바타 로딩 타이밍을 대비해 1초마다 재적용한다.
+		self:ApplyPortraitAttack()
+		self:ClearTimer("attackTimer")
+		self.attackTimer = _TimerService:SetTimerRepeat(function()
+			self:ApplyPortraitAttack()
+		end, 1.0)
+	end
+
+	@ExecSpace("ClientOnly")
+	method void ApplyPortraitAttack()
+		-- 초상화 아바타가 ATTACK(공격) 모션을 재생하도록 강제한다.
+		local portrait = _EntityService:GetEntityByPath(self.PortraitPath)
+		if isvalid(portrait) == false then
+			return
+		end
+		local event = BodyActionStateChangeEvent()
+		event.ActionState = MapleAvatarBodyActionState.Attack
+		event.needResetAction = false
+		portrait:SendEvent(event)
+	end
+
+	method void ClearTimer(string field)
+		-- 지정한 타이머 필드를 해제하고 0으로 만든다.
+		if field == "attackTimer" then
+			if self.attackTimer ~= 0 then
+				_TimerService:ClearTimer(self.attackTimer)
+				self.attackTimer = 0
+			end
+		elseif field == "autoHideTimer" then
+			if self.autoHideTimer ~= 0 then
+				_TimerService:ClearTimer(self.autoHideTimer)
+				self.autoHideTimer = 0
+			end
+		end
+	end
+
+	method void ClearTimers()
+		self:ClearTimer("attackTimer")
+		self:ClearTimer("autoHideTimer")
+	end
+
+end
