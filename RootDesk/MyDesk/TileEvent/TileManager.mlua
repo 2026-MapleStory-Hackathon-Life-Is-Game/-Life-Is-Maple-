@@ -154,6 +154,15 @@ script TileManager extends Logic
 		-- 도착 타일 효과를 실행하고 '이벤트 UI를 띄우는 타일이었는지'를 반환한다.
 		-- 반환 true면 호출측(턴 매니저)이 UI 표시 시간만큼 대기한 뒤 다음 단계로 진행한다.
 		local key = mapName .. "_" .. tileName
+
+		-- [테스트] 강제 이벤트 오버라이드(_TileEventTester.ForceEvent). None이면 nil → 정상 동작.
+		local ov = _TileEventTester:OverrideFor(self.tileEntities[key])
+		if isvalid(ov) then
+			self:ApplyTileLevel(key, piece)
+			ov:OnArrive(piece)
+			return ov:IsEventTile()
+		end
+
 		-- 레벨: 도착 타일의 (Stage,Tier)로 단조 증가 설정. 타일 효과(OnArrive)보다 먼저 → 효과가 갱신된 레벨 참조 가능.
 		self:ApplyTileLevel(key, piece)
 
@@ -179,6 +188,8 @@ script TileManager extends Logic
 		-- 도착 타일이 이벤트(사냥 등) UI를 띄우는 타일인지 판정한다(부수효과 없음).
 		-- 변형(진영) 타일은 piece의 진영별 컴포넌트로 판정한다.
 		local key = mapName .. "_" .. tileName
+		local ovE = _TileEventTester:OverrideFor(self.tileEntities[key])   -- [테스트] 강제 이벤트
+		if isvalid(ovE) then return ovE:IsEventTile() end
 		---@type BaseTile
 		local comp = nil
 		if self:IsVariantTile(key) then
@@ -198,6 +209,8 @@ script TileManager extends Logic
 		-- 도착 타일이 인터랙티브(완료를 직접 신호하는) 타일인지 판정(부수효과 없음).
 		-- 변형(진영) 타일은 piece의 진영별 컴포넌트로 판정한다.
 		local key = mapName .. "_" .. tileName
+		local ovI = _TileEventTester:OverrideFor(self.tileEntities[key])   -- [테스트] 강제 이벤트
+		if isvalid(ovI) then return ovI:IsInteractiveTile() end
 		---@type BaseTile
 		local comp = nil
 		if self:IsVariantTile(key) then

@@ -1,0 +1,30 @@
+@Logic
+script TileEventTester extends Logic
+
+	property string ForceEvent = "None" -- "None", "Boss" / "Hunt" / "Village"
+
+	method string CompNameFor(string key)
+		-- 이벤트 키 → 부착할 타일 컴포넌트 이름. 미설정/None이면 "".
+		if key == "Hunt" then return "HuntTile"
+		elseif key == "Village" then return "VillageTile"
+		elseif key == "Boss" then return "BossTile"
+		end
+		return ""
+	end
+
+	@ExecSpace("ServerOnly")
+	method any OverrideFor(Entity tileEntity)
+		-- ForceEvent가 설정돼 있으면 tileEntity에 해당 타일 컴포넌트를 보장하고 반환한다.
+		-- 비활성(None)이거나 엔티티가 없으면 nil → TileManager는 정상 동작으로 진행.
+		local compName = self:CompNameFor(self.ForceEvent)
+		if compName == "" then return nil end
+		if isvalid(tileEntity) == false then return nil end
+		local c = tileEntity:GetComponent("script." .. compName)
+		if isvalid(c) == false then
+			tileEntity:AddComponent(compName)
+			c = tileEntity:GetComponent("script." .. compName)
+		end
+		return c
+	end
+
+end
