@@ -119,7 +119,15 @@ script InventoryPanel extends Component
 		if isvalid(p) == false then return {} end
 		local m = _EquipmentRouter:ManagerFor(p, self.activeTab)
 		if isvalid(m) == false then return {} end
-		return m:OwnedSorted()
+		local list = m:OwnedSorted()
+		-- 장착중인 아이템은 보유목록에서 빠지므로, 배낭에도 보이도록 맨 앞에 포함(있고 중복 아닐 때).
+		local eq = m.Equipped
+		if eq ~= nil and eq ~= "" then
+			local dup = false
+			for _, n in ipairs(list) do if n == eq then dup = true break end end
+			if not dup then table.insert(list, 1, eq) end
+		end
+		return list
 	end
 
 	method void Rebuild()
@@ -174,6 +182,15 @@ script InventoryPanel extends Component
 				rend.ImageRUID = ruid
 			end
 			rend.Color = Color(1, 1, 1, 1)
+		end
+
+		-- 현재 장착중인 아이템이면 이름 뒤에 (장착중) 표시
+		local p = _UserService.LocalPlayer
+		if isvalid(p) then
+			local m = _EquipmentRouter:ManagerForItem(p, name)
+			if isvalid(m) and m.Equipped == name then
+				dname = dname .. " (장착중)"
+			end
 		end
 
 		-- 아이콘이 없어도 무슨 아이템인지 보이도록 셀 버튼 텍스트에 이름 표시
