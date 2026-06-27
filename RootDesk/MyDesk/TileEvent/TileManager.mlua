@@ -96,6 +96,10 @@ script TileManager extends Logic
 							self:BuildTileGraph()
 						end
 						self:CollectTiles()
+						-- 수집 완료 후 '현재 맵' 기준으로 캠프/몬스터 비주얼을 재적용한다.
+						-- (맵 전환 시 ApplyPhysicsForMap의 즉시 호출은 이 지연 수집보다 빨라서
+						--  이전 맵 타일에 적용하고 끝나버려 새 맵 사냥타일이 빈 채로 남는 버그가 있었음.)
+						self:RequestCampVisuals()
 					end, 0.5)
 				end
 	end
@@ -264,17 +268,19 @@ script TileManager extends Logic
 		--   Hunt/HuntPlus → 서버가 롤한 몬스터 STAND(@Sync TileMonster) — 동기화 도착 전이면 false 반환(재시도).
 		--   그 외(Start/End/Village/Guild/Union/Tax) → TileArt.csv의 Type별 고정 스프라이트(이정표/제단/NPC, 로컬 조회).
 		if self:CountTiles() == 0 then return false end
-		local hasHunt = false
+		local pendingHunt = false
 		for key, entity in pairs(self.tileEntities) do
 			if isvalid(entity) then
 				local data = self.tileGraph[key]
 				if data ~= nil then
 					local ruid = ""
 					if data.type == "Hunt" or data.type == "HuntPlus" then
-						hasHunt = true
 						local mn = self.TileMonster[key]
 						if mn ~= nil and mn ~= "" then
 							ruid = self:MonsterStandRUID(mn)
+						else
+							-- 이 맵의 사냥타일 몬스터가 아직 @Sync 도착 전 → 재시도 필요.
+							pendingHunt = true
 						end
 					else
 						ruid = self:TileArtRUID(data.type)
@@ -283,15 +289,20 @@ script TileManager extends Logic
 						local child = self:FindChild(entity, "TileType_TileSprite")
 						if isvalid(child) and isvalid(child.SpriteRendererComponent) then
 							child.SpriteRendererComponent.SpriteRUID = ruid
+							-- 정렬 강제: .map에 박제된 OrderInLayer=10은 플레이어(=3)보다 위라 몬스터가 앞을 가린다.
+							-- 플레이어와 같은 SortingLayer("Default")에서 OrderInLayer=2로 낮춰 항상 플레이어 아래로.
+							child.SpriteRendererComponent.SortingLayer = "Default"
+							child.SpriteRendererComponent.OrderInLayer = 2
 						end
 					end
 				end
 			end
 		end
-		-- 완료 판정은 '동기화 도착' 기준. 서버는 OnBeginPlay에 전 맵 사냥타일을 한 번에 롤하므로
-		-- TileMonster가 비어있지 않으면 동기화 완료로 본다. (데이터 없는 사냥타일이 섞여도 무한 재시도 안 함.)
-		-- 사냥타일이 있는데 아직 TileMonster가 비어있으면(동기화 전) 재시도.
-		if hasHunt and next(self.TileMonster) == nil then return false end
+		-- 완료 판정은 '현재 맵' 기준. 전역 next(self.TileMonster)는 이전 스테이지 키 때문에
+		-- 맵 전환 직후에도 항상 non-nil이라, Map_02 몬스터가 동기화되기 전에 조기 완료로 판정돼
+		-- 재시도 루프가 멈추고 사냥타일이 빈 채 남는 버그가 있었다. → 현재 맵의 사냥타일이
+		-- 하나라도 몬스터 미동기화면 재시도(false), 전부 적용됐을 때만 완료(true).
+		if pendingHunt then return false end
 		return true
 	end
 
