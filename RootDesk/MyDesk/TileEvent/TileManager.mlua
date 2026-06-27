@@ -206,6 +206,25 @@ script TileManager extends Logic
 		return comp:IsEventTile()
 	end
 
+	@ExecSpace("ServerOnly")
+	method boolean IsInteractiveArrive(string mapName, string tileName, Entity piece)
+		-- 도착 타일이 인터랙티브(완료를 직접 신호하는) 타일인지 판정(부수효과 없음).
+		-- 변형(진영) 타일은 piece의 진영별 컴포넌트로 판정한다.
+		local key = mapName .. "_" .. tileName
+		---@type BaseTile
+		local comp = nil
+		if self:IsVariantTile(key) then
+			local campKey = ""
+			local buff = piece:GetComponent("script.BuffManager")
+			if isvalid(buff) then campKey = buff.CampName end
+			comp = self.variant[key][campKey]
+		else
+			comp = self.tileComponents[key]
+		end
+		if comp == nil then return false end
+		return comp:IsInteractiveTile()
+	end
+
 	-- ============================================================================
 	-- [테스트용] 사냥(이벤트) 타일이 아닌 칸에서도 EventTileUI 패널을 띄워 표시를 확인한다(End 타일 제외).
 	-- UI 확인이 끝나면 (1) 위 TriggerArrive의 ShowTestForOwner 호출 1곳 + isEndTile 분기 제거,

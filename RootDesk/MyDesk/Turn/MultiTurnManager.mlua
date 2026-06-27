@@ -227,16 +227,24 @@ script MultiTurnManager extends Logic
     @ExecSpace("Server")
     method void OnTile()
         local startedEvent = false
+        local interactive = false
         for userId, userEntity in pairs(_UserService.UserEntities) do
             if userId == self._currentPlayerUserId then
                 if userEntity.PlayerMovement ~= nil then
-                    startedEvent = _TileManager:TriggerArrive(userEntity.CurrentMapName, userEntity.PlayerMovement.currentTile, userEntity)
+                    local mapName = userEntity.CurrentMapName
+                    local tileName = userEntity.PlayerMovement.currentTile
+                    startedEvent = _TileManager:TriggerArrive(mapName, tileName, userEntity)
+                    interactive = _TileManager:IsInteractiveArrive(mapName, tileName, userEntity)
                 end
                 break
             end
         end
 
-        if startedEvent then
+        if startedEvent and interactive then
+            -- 인터랙티브 타일(예: 마을): 타일이 _GameModeManager:NotifyTileEventDone()으로
+            -- OnTileEventComplete를 호출할 때까지 대기(고정 타이머 없음).
+            log("[MultiTurnManager] 인터랙티브 타일 도착 — 완료 신호 대기")
+        elseif startedEvent then
             -- 이벤트 타일: TileEventUI 표시 시간만큼 기다린 뒤 TURN_END로 진행.
             local waitSec = _EventTileUI.AutoHideSeconds
             if waitSec == nil or waitSec <= 0 then waitSec = 5.0 end

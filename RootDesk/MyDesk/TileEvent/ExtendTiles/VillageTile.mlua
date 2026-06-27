@@ -1,33 +1,126 @@
 @Component
-script VillageTile extends BaseTile
+script VillageTile extends EventTileBase
 
-	@Sync
-	property number greatGain = 15
+	-- 마을(인터랙티브) 이벤트 타일.
+	-- 흐름: 도착 → 질문 UI + 수락/거절 버튼(클라) →
+	--        거절 → 결과 주사위 없이 종료 /
+	--        수락 → 퀘스트 문구 → 결과 주사위(대성공/성공/실패) → 보상 스탯 적용 + 결과 문구 → 종료.
+	-- 완료 시 _GameModeManager:NotifyTileEventDone()으로 턴 진행을 신호한다.
 
-	@Sync
-	property number successGain = 5
+	-- {교관 이름} 임시값 — 추후 table 연동으로 교체.
+	@Sync property string instructorName = "헬레나"
 
-	@Sync
-	property number failLoss = 3
+	-- {몬스터 이름} / {처치 수} 임시값 — 추후 table 연동.
+	@Sync property string monsterName = "주황버섯"
+	@Sync property integer monsterCount = 100
+
+	-- 보상 수치 범위(주스탯/공격력 상승치, 양 끝 포함).
+	@Sync property integer gainMin = 3
+	@Sync property integer gainMax = 7
+
+	-- 진행 중인 도착 플레이어(서버 상태). 턴제라 동시 1명.
+	property any _currentPiece = nil
+
+	method boolean IsInteractiveTile()
+		-- 버튼 선택으로 진행되는 인터랙티브 타일 → 턴 매니저가 5초 고정 대기 대신 완료 신호를 기다린다.
+		return true
+	end
 
 	@ExecSpace("ServerOnly")
 	method void OnArrive(Entity piece)
-		-- ⚠️ base 직접 수정(영구): 아래 cp:AddMainStat 호출은 base 주스탯을 직접 바꾼다. 동적 버프(self:Add~) 아님.
-		local cp = self:CP(piece)
-		if isvalid(cp) == false then return end
-		
-		-- 룰렛 굴리기 (분포는 VillageProbability.csv: 대성공/성공/실패)
-		local outcome = self:RollOutcome("VillageProbability")
-		if outcome == "GreatSuccess" then
-			log("[VillageTile] 마을 이벤트 대성공! 주스탯 +" .. tostring(self.greatGain))
-			cp:AddMainStat("flat", self.greatGain)
-		elseif outcome == "Success" then
-			log("[VillageTile] 마을 이벤트 성공. 주스탯 +" .. tostring(self.successGain))
-			cp:AddMainStat("flat", self.successGain)
-		else
-			log("[VillageTile] 마을 이벤트 실패. 주스탯 -" .. tostring(self.failLoss))
-			cp:AddMainStat("flat", -self.failLoss)
+		-- 마을 이벤트 시작: 도착 플레이어 클라에 질문 + 수락/거절 버튼 표시.
+		self._currentPiece = piece
+		local ownerId = self:OwnerUserId(piece)
+		if ownerId == "" then
+			-- 소유자 없는 말이면 바로 종료 신호.
+			_GameModeManager:NotifyTileEventDone()
+			return
 		end
+		local question = self.instructorName .. " 교관님의 퀘스트를 수락할까?"
+		self:ShowQuestion(question, ownerId)
+		log("[VillageTile] 마을 이벤트 질문 표시 tile=" .. self.Entity.Name)
+	end
+
+	@ExecSpace("Client")
+	method void ShowQuestion(string question)
+		-- 도착 플레이어 클라에서 실행(타깃). EventTileUI에 질문/버튼 표시 위임(콜백용으로 self 전달).
+		_EventTileUI:ShowVillage(question, self)
+	end
+
+	@ExecSpace("Server")
+	method void RequestDecline()
+		-- 클라 '거절' → 결과 주사위 없이 이벤트 종료.
+		local piece = self._currentPiece
+		if isvalid(piece) and senderUserId ~= self:OwnerUserId(piece) then return end
+		log("[VillageTile] 거절 — 이벤트 종료")
+		self._currentPiece = nil
+		_GameModeManager:NotifyTileEventDone()
+	end
+
+	@ExecSpace("Server")
+	method void RequestAccept()
+		-- 클라 '수락' → 퀘스트 문구만 먼저 표시. 결과 굴림은 문구 표시가 끝난 뒤 RequestQuestRoll에서 한다.
+		-- (Roll을 패널 직전으로 미뤄야 ResultDiceManager의 결과 효과음이 패널과 맞는다.)
+		local piece = self._currentPiece
+		if isvalid(piece) == false then return end
+		if senderUserId ~= self:OwnerUserId(piece) then return end
+
+		local questText = self.instructorName .. " 교관님이 퀘스트를 내주셨다! \n "
+			.. self.monsterName .. " " .. tostring(self.monsterCount) .. "마리를 잡아오라고 하셨다."
+		local ownerId = self:OwnerUserId(piece)
+		self:ShowQuestText(questText, ownerId)
+	end
+
+	@ExecSpace("Client")
+	method void ShowQuestText(string questText)
+		-- 도착 플레이어 클라: 퀘스트 문구 표시 + 일정 시간 후 RequestQuestRoll 콜백을 EventTileUI에 위임.
+		_EventTileUI:VillageQuestText(questText, self)
+	end
+
+	@ExecSpace("Server")
+	method void RequestQuestRoll()
+		-- 퀘스트 문구 표시가 끝난 뒤 클라가 호출 → 지금 결과를 굴려야 결과주사위 효과음이 패널과 맞는다.
+		local piece = self._currentPiece
+		if isvalid(piece) == false then return end
+		if senderUserId ~= self:OwnerUserId(piece) then return end
+
+		-- 결과 주사위(기존 ResultDiceManager 재사용) → 대성공/성공/실패.
+		local total = _ResultDiceManager:Roll()
+		local d1 = _ResultDiceManager._dice1
+		local d2 = _ResultDiceManager._dice2
+		local outcome = _ResultDiceManager.GameOutcome
+		local resultTable = _ResultDiceManager:GetResultTable()
+
+		-- 보상 수치(문구와 실제 적용을 동일하게). 대성공=공격력, 성공=주스탯, 실패=없음.
+		local gain = _UtilLogic:RandomIntegerRange(self.gainMin, self.gainMax)
+		local outcomeText = ""
+		if outcome == "대성공" then
+			self:AddMainAttack(piece, "flat", gain)
+			outcomeText = "퀘스트를 빠르게 완수하여 추가 보상을 얻었다! \n 공격력/마력이 " .. tostring(gain) .. "만큼 올랐다!"
+		elseif outcome == "성공" then
+			self:AddMainStat(piece, "flat", gain)
+			outcomeText = self.instructorName .. " 교관님이 내주신 퀘스트를 완수하였다! \n 퀘스트 보상으로 주스탯이 " .. tostring(gain) .. "만큼 올랐다."
+		else
+			outcomeText = "퀘스트에 실패하여 보상을 받지 못했다..."
+		end
+		log("[VillageTile] 수락 결과=" .. outcome .. " gain=" .. tostring(gain))
+
+		local ownerId = self:OwnerUserId(piece)
+		self:ShowQuestDice(d1, d2, total, resultTable, outcome, outcomeText, ownerId)
+	end
+
+	@ExecSpace("Client")
+	method void ShowQuestDice(integer d1, integer d2, integer total, table resultTable, string outcome, string outcomeText)
+		-- 도착 플레이어 클라: 결과 주사위 연출 + 결과 문구 표시를 EventTileUI에 위임.
+		_EventTileUI:VillageDice(d1, d2, total, resultTable, outcome, outcomeText, self)
+	end
+
+	@ExecSpace("Server")
+	method void RequestFinish()
+		-- 클라가 수락 연출(결과 문구 표시까지)을 끝냈음을 알림 → 턴 진행 신호.
+		log("[VillageTile] 수락 연출 종료 — 이벤트 종료")
+		self._currentPiece = nil
+		_GameModeManager:NotifyTileEventDone()
 	end
 
 end

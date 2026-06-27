@@ -166,6 +166,7 @@ script SingleTurnManager extends Logic
 		        -- 단, 사냥(이벤트) 타일이면 결과 주사위(RESULT_DICE)를 건너뛰고 바로 턴 종료로 간다.
 		        local startedEvent = false
 		        self._skipResultDice = false
+		        local interactive = false
 		        for _, userEntity in pairs(_UserService.UserEntities) do
 					if userEntity.PlayerMovement ~= nil then
 						local mapName  = userEntity.CurrentMapName
@@ -173,11 +174,17 @@ script SingleTurnManager extends Logic
 						startedEvent = _TileManager:TriggerArrive(mapName, tileName, userEntity)
 						-- 사냥(이벤트) 타일이면 이후 결과 주사위를 생략한다.
 						self._skipResultDice = _TileManager:IsEventArrive(mapName, tileName, userEntity)
+						-- 마을 등 인터랙티브 타일이면 5초 대기 대신 완료 신호를 기다린다.
+						interactive = _TileManager:IsInteractiveArrive(mapName, tileName, userEntity)
 					end
 					break
 				end
 
-				if startedEvent then
+				if startedEvent and interactive then
+					-- 인터랙티브 타일(예: 마을): 타일이 _GameModeManager:NotifyTileEventDone()으로
+					-- OnTileEventComplete를 호출할 때까지 대기(고정 타이머 없음).
+					log("[SingleTurnManager] 인터랙티브 타일 도착 — 완료 신호 대기 (결과주사위 생략=" .. tostring(self._skipResultDice) .. ")")
+				elseif startedEvent then
 					-- 패널 표시 타일: TileEventUI를 표시 시간만큼 보여준 뒤 OnTileEventComplete에서 다음 단계로.
 					-- (보상 스탯은 OnArrive에서 이미 서버에 즉시 적용됨 — 여기서는 UI 표시 시간만 대기.)
 					local waitSec = _EventTileUI.AutoHideSeconds

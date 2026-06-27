@@ -17,8 +17,19 @@ script EventTileUI extends Logic
 	-- 이벤트 UI 자동 닫힘까지의 시간(초).
 	property number AutoHideSeconds = 5.0
 
+	-- 마을 수락 연출에서 각 문구(퀘스트 문구 / 결과 문구)를 보여주는 시간(초).
+	property number VillageStepSeconds = 5.0
+
 	property integer attackTimer = 0
 	property integer autoHideTimer = 0
+
+	-- ===== 마을(인터랙티브) 이벤트용 — 수락/거절 버튼 =====
+	property Entity AcceptButton = "2a91f613-50ec-455f-8610-6fdc36bfeca4"
+	property Entity DeclineButton = "27c567d9-0abf-44ed-8536-a916699f3a8b"
+	property any _acceptHandler = nil
+	property any _declineHandler = nil
+	-- 진행 중인 마을 타일 컴포넌트(버튼 콜백을 서버로 보내기 위해 보관).
+	property any _villageTile = nil
 
 	@ExecSpace("ClientOnly")
 	method void OnBeginPlay()
@@ -26,11 +37,26 @@ script EventTileUI extends Logic
 		if isvalid(self.EventGroup) then
 			self.EventGroup.Enable = false
 		end
+		-- 마을 이벤트 버튼: 평소 비활성 + 클릭 핸들러 연결.
+		if isvalid(self.AcceptButton) then
+			self.AcceptButton.Enable = false
+			self._acceptHandler = self.AcceptButton:ConnectEvent(ButtonClickEvent, self.OnAcceptClicked)
+		end
+		if isvalid(self.DeclineButton) then
+			self.DeclineButton.Enable = false
+			self._declineHandler = self.DeclineButton:ConnectEvent(ButtonClickEvent, self.OnDeclineClicked)
+		end
 	end
 
 	@ExecSpace("ClientOnly")
 	method void OnEndPlay()
 		self:ClearTimers()
+		if isvalid(self.AcceptButton) and self._acceptHandler ~= nil then
+			self.AcceptButton:DisconnectEvent(ButtonClickEvent, self._acceptHandler)
+		end
+		if isvalid(self.DeclineButton) and self._declineHandler ~= nil then
+			self.DeclineButton:DisconnectEvent(ButtonClickEvent, self._declineHandler)
+		end
 	end
 
 	@ExecSpace("ClientOnly")
@@ -42,14 +68,11 @@ script EventTileUI extends Logic
 			return
 		end
 		self.EventGroup.Enable = true
+		-- 사냥 등 단순 이벤트에서는 마을 버튼이 보이지 않도록 강제로 끈다.
+		self:SetButtons(false)
 
 		-- 결과 문구 출력.
-		local textEntity = _EntityService:GetEntityByPath(self.TextPath)
-		if isvalid(textEntity) and isvalid(textEntity.TextComponent) then
-			textEntity.TextComponent.Text = message
-		else
-			log_warning("[EventTileUI] UIText/TextComponent 를 찾을 수 없습니다: " .. self.TextPath)
-		end
+		self:SetText(message)
 		log("[EventTileUI] 이벤트 표시(" .. tostring(eventType) .. "): " .. message)
 
 		-- 초상화 ATTACK 모션 시작 + 일정 시간 후 자동 닫힘.
@@ -110,6 +133,92 @@ script EventTileUI extends Logic
 	method void ClearTimers()
 		self:ClearTimer("attackTimer")
 		self:ClearTimer("autoHideTimer")
+	end
+
+	-- ============================================================================
+	-- 마을(인터랙티브) 이벤트 — 질문 + 수락/거절 버튼 + 결과 주사위 연출
+	-- ============================================================================
+
+	@ExecSpace("ClientOnly")
+	method void SetText(string message)
+		-- UIText 엔티티에 문구를 출력한다.
+		local textEntity = _EntityService:GetEntityByPath(self.TextPath)
+		if isvalid(textEntity) and isvalid(textEntity.TextComponent) then
+			textEntity.TextComponent.Text = message
+		else
+			log_warning("[EventTileUI] UIText/TextComponent 를 찾을 수 없습니다: " .. self.TextPath)
+		end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void SetButtons(boolean on)
+		-- 수락/거절 버튼 표시 토글.
+		if isvalid(self.AcceptButton) then self.AcceptButton.Enable = on end
+		if isvalid(self.DeclineButton) then self.DeclineButton.Enable = on end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void ShowVillage(string question, Component villageTile)
+		-- 마을 질문 표시: 그룹을 켜고 문구 + 수락/거절 버튼 활성. 자동닫힘 없음(버튼 선택까지 유지).
+		self._villageTile = villageTile
+		self:ClearTimers()
+		if isvalid(self.EventGroup) == false then
+			log_warning("[EventTileUI] EventGroup 엔티티를 찾을 수 없습니다.")
+			return
+		end
+		self.EventGroup.Enable = true
+		self:SetText(question)
+		self:SetButtons(true)
+		self:StartPortraitAttack()
+		log("[EventTileUI] 마을 질문 표시: " .. question)
+	end
+
+	@ExecSpace("ClientOnly")
+	method void OnAcceptClicked(ButtonClickEvent event)
+		-- 수락: 버튼 끄고 서버(VillageTile)에 수락 요청.
+		if isvalid(self._villageTile) == false then return end
+		self:SetButtons(false)
+		self._villageTile:RequestAccept()
+	end
+
+	@ExecSpace("ClientOnly")
+	method void OnDeclineClicked(ButtonClickEvent event)
+		-- 거절: 버튼/그룹 끄고 서버(VillageTile)에 거절 요청(결과 주사위 없이 종료).
+		if isvalid(self._villageTile) == false then return end
+		self:SetButtons(false)
+		if isvalid(self.EventGroup) then self.EventGroup.Enable = false end
+		self._villageTile:RequestDecline()
+	end
+
+	@ExecSpace("ClientOnly")
+	method void VillageQuestText(string questText, Component villageTile)
+		-- 수락 1단계: 버튼 off → 퀘스트 문구를 VillageStepSeconds 동안 표시 → 서버에 결과 굴림 요청.
+		-- (굴림을 이 시점으로 미뤄야 결과주사위 효과음이 패널 표시와 맞는다.)
+		self._villageTile = villageTile
+		self:SetButtons(false)
+		self:SetText(questText)
+		self:ClearTimer("autoHideTimer")
+		self.autoHideTimer = _TimerService:SetTimerOnce(function()
+			if isvalid(self._villageTile) then
+				self._villageTile:RequestQuestRoll()
+			end
+		end, self.VillageStepSeconds)
+	end
+
+	@ExecSpace("ClientOnly")
+	method void VillageDice(integer d1, integer d2, integer total, table resultTable, string outcome, string outcomeText, Component villageTile)
+		-- 수락 2단계: 결과 주사위 연출(기존 UI 재사용) → 결과 문구(VillageStepSeconds) → 서버에 종료 신호.
+		self._villageTile = villageTile
+		_RollResultDiceAnimationUI:Show(d1, d2, total, resultTable, outcome, function()
+			self:SetText(outcomeText)
+			self:ClearTimer("autoHideTimer")
+			self.autoHideTimer = _TimerService:SetTimerOnce(function()
+				if isvalid(self.EventGroup) then self.EventGroup.Enable = false end
+				if isvalid(self._villageTile) then
+					self._villageTile:RequestFinish()
+				end
+			end, self.VillageStepSeconds)
+		end)
 	end
 
 end

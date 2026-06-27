@@ -23,6 +23,12 @@ script BaseTile extends Component
 		return false
 	end
 
+	method boolean IsInteractiveTile()
+		-- 버튼 입력 등으로 완료가 '이벤트 구동'되는 인터랙티브 타일인지. 기본 false.
+		-- true면 턴 매니저가 5초 고정 대기 대신 타일의 완료 신호(_GameModeManager:NotifyTileEventDone)를 기다린다.
+		return false
+	end
+
 	method any CP(Entity piece)
 		return piece:GetComponent("script.CombatPowerManager")
 	end

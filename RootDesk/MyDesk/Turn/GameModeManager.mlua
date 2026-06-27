@@ -49,6 +49,16 @@ script GameModeManager extends Logic
 	end
 
 	@ExecSpace("Server")
+	method void NotifyTileEventDone()
+		        -- 인터랙티브 타일(예: 마을)이 이벤트 연출을 끝냈을 때 호출 → 활성 턴 매니저로 라우팅해 다음 단계 진행.
+		        if self._activeMode == "SINGLE" then
+		            _SingleTurnManager:OnTileEventComplete()
+		        elseif self._activeMode == "MULTI" then
+		            _MultiTurnManager:OnTileEventComplete()
+		        end
+	end
+
+	@ExecSpace("Server")
 	method void EndGame()
 		        if not self._isGameActive then return end
 		        log("[GameModeManager] 게임 종료 (모드: " .. self._activeMode .. ")")
