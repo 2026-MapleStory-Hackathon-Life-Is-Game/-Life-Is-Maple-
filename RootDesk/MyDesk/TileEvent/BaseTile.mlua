@@ -17,6 +17,12 @@ script BaseTile extends Component
 		log("[BaseTile] OnArrive (미구현 base) tile=" .. self.Entity.Name)
 	end
 
+	method boolean IsEventTile()
+		-- 이벤트 팝업 UI(EventTileGroup)를 띄우는 타일인지 여부. 기본 false.
+		-- EventTileBase 계열에서 true로 재정의 → 턴 매니저가 UI 표시 시간만큼 기다린 뒤 다음 단계로 진행한다.
+		return false
+	end
+
 	method any CP(Entity piece)
 		return piece:GetComponent("script.CombatPowerManager")
 	end

@@ -223,16 +223,37 @@ script MultiTurnManager extends Logic
     end
 
     -- 타일 이벤트 단계: 현재 턴 플레이어가 도착한 타일의 OnArrive 호출.
+    -- 이벤트 타일이면 TileEventUI 표시 시간만큼 기다린 뒤 턴 종료로 진행한다.
     @ExecSpace("Server")
     method void OnTile()
+        local startedEvent = false
         for userId, userEntity in pairs(_UserService.UserEntities) do
             if userId == self._currentPlayerUserId then
                 if userEntity.PlayerMovement ~= nil then
-                    _TileManager:TriggerArrive(userEntity.CurrentMapName, userEntity.PlayerMovement.currentTile, userEntity)
+                    startedEvent = _TileManager:TriggerArrive(userEntity.CurrentMapName, userEntity.PlayerMovement.currentTile, userEntity)
                 end
                 break
             end
         end
+
+        if startedEvent then
+            -- 이벤트 타일: TileEventUI 표시 시간만큼 기다린 뒤 TURN_END로 진행.
+            local waitSec = _EventTileUI.AutoHideSeconds
+            if waitSec == nil or waitSec <= 0 then waitSec = 5.0 end
+            log("[MultiTurnManager] 이벤트 타일 도착 — " .. tostring(waitSec) .. "초 후 턴 종료로 진행")
+            _TimerService:SetTimerOnce(function()
+                self:OnTileEventComplete()
+            end, waitSec)
+        else
+            self:AdvanceToState("TURN_END")
+        end
+    end
+
+    -- TileEventUI 표시가 끝난 뒤 호출. TILE → TURN_END 진행.
+    @ExecSpace("Server")
+    method void OnTileEventComplete()
+        if not self._isActive then return end
+        if self._currentState ~= "TILE" then return end
         self:AdvanceToState("TURN_END")
     end
 

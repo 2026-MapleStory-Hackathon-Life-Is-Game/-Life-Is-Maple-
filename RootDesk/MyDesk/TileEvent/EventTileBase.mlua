@@ -2,20 +2,21 @@
 script EventTileBase extends BaseTile
 
 	-- 이벤트 팝업형 타일의 공통 베이스(확장용).
-	-- 흐름: 말 도착(서버) → RollEvent로 결과를 굴림
+	-- 흐름: 말 도착(서버) → RollEvent로 결과를 굴림 → 보상을 플레이어 스탯에 적용
 	--        → 도착한 플레이어의 클라이언트에만 이벤트 UI를 띄움(타깃 Client RPC).
-	--        (보상 적용은 추후 추가 예정.)
 	-- 새 이벤트 타일(사냥/공격력/장비세트 등)은 이 스크립트를 extends 하고 RollEvent만 구현하면 된다.
 
 	@ExecSpace("ServerOnly")
 	method void OnArrive(Entity piece)
-		-- 서버: 결과 굴림 → 도착 플레이어 클라에 이벤트 UI 표시.
-		-- (보상 적용은 추후 추가 예정 — 지금은 롤 + UI 표시만.)
+		-- 서버: 결과 굴림 → 보상 적용 → 도착 플레이어 클라에 이벤트 UI 표시.
 		local ev = self:RollEvent(piece)
 		if ev == nil then
 			log_warning("[EventTileBase] RollEvent가 nil 반환 — tile=" .. self.Entity.Name)
 			return
 		end
+
+		-- 굴린 보상을 도착한 말(플레이어)의 스탯에 실제 반영.
+		self:ApplyReward(piece, ev)
 
 		-- 도착한 말의 소유 유저 클라에만 이벤트 UI 표시.
 		local ownerId = self:OwnerUserId(piece)
@@ -31,9 +32,46 @@ script EventTileBase extends BaseTile
 		-- 서브클래스에서 구현한다. 다음 키를 가진 table을 반환:
 		--   eventType : 표시할 이벤트 UI 종류 키(예: "Hunt")
 		--   message   : UI에 표시할 문구
-		-- nil 반환 시 표시 없음.
+		--   statKind  : (선택) 적용할 보상 종류 — "main"/"all"/"attack"/"damage"/"crit"
+		--   statMode  : (선택) "flat"(기본) 또는 "percent"
+		--   statValue : (선택) 증감 수치(number)
+		-- statKind가 없으면 보상 적용 없이 문구만 표시한다. nil 반환 시 표시도 없음.
 		log_warning("[EventTileBase] RollEvent 미구현 — tile=" .. self.Entity.Name)
 		return nil
+	end
+
+	@ExecSpace("ServerOnly")
+	method void ApplyReward(Entity piece, table ev)
+		-- RollEvent가 반환한 보상 정보(statKind/statMode/statValue)를 BaseTile의 스탯 증감 함수로 적용한다.
+		-- 문구에 표시된 값과 동일한 값을 적용하려면 RollEvent에서 굴린 수치를 그대로 담아 반환해야 한다.
+		local kind = ev.statKind
+		if kind == nil or kind == "" then
+			return
+		end
+		local mode  = ev.statMode or "flat"
+		local value = ev.statValue or 0
+		if value == 0 then
+			return
+		end
+
+		if kind == "main" then
+			self:AddMainStat(piece, mode, value)
+		elseif kind == "all" then
+			self:AddAllStat(piece, mode, value)
+		elseif kind == "attack" then
+			self:AddMainAttack(piece, mode, value)
+		elseif kind == "damage" then
+			self:AddDamage(piece, value)
+		elseif kind == "crit" then
+			self:AddCritical(piece, value)
+		else
+			log_warning("[EventTileBase] 알 수 없는 statKind=" .. tostring(kind))
+			return
+		end
+
+		log("[EventTileBase] 보상 적용 tile=" .. self.Entity.Name
+			.. " kind=" .. tostring(kind) .. " mode=" .. tostring(mode)
+			.. " value=" .. tostring(value))
 	end
 
 	method string OwnerUserId(Entity piece)
@@ -53,6 +91,11 @@ script EventTileBase extends BaseTile
 		-- 도착한 플레이어의 클라에서 실행(타깃 호출). 이벤트 UI 컨트롤러(@Logic)에 표시를 위임한다.
 		-- eventType별 UI 분기는 EventTileUI 안에서 처리한다(확장 지점).
 		_EventTileUI:Show(eventType, message)
+	end
+
+	method boolean IsEventTile()
+		-- 이벤트 팝업 UI를 띄우는 타일. 턴 매니저가 OnArrive 후 UI 표시 시간을 기다리도록 true를 반환한다.
+		return true
 	end
 
 end
