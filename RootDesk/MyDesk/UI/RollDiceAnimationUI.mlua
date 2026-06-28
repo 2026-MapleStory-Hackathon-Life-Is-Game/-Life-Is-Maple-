@@ -17,6 +17,11 @@ script RollDiceAnimationUI extends Logic
 
 	property Entity diceParticle = "81437709-abea-4122-a8fb-4a3311a5c881"
 
+	-- 주사위 굴릴 때 흐리게 처리할 HUD 패널(나머지 UI). CanvasGroup으로 일괄 투명/입력차단.
+	property Entity hudPlayerInfo = "d22ebf6b-d4f8-44fa-a804-2dd726ed608e"
+
+	property Entity hudUnderButton = "907c4883-c6af-4ab6-bd5d-b4601633e5f2"
+
 	@ExecSpace("ClientOnly")
 	method void OnBeginPlay()
 		-- 눈금별 RUID 등록 (실제 RUID로 교체)
@@ -34,10 +39,28 @@ script RollDiceAnimationUI extends Logic
 	end
 
 	@ExecSpace("ClientOnly")
+	method void SetHudDimmed(boolean dim)
+		-- 주사위 굴리는 동안 나머지 HUD를 투명도 50% + 입력 차단(누를 수 없음을 강조).
+		local a = 1.0
+		if dim then a = 0.5 end
+		local panels = { self.hudPlayerInfo, self.hudUnderButton }
+		for i = 1, #panels do
+			local p = panels[i]
+			if isvalid(p) and isvalid(p.CanvasGroupComponent) then
+				p.CanvasGroupComponent.GroupAlpha = a
+				p.CanvasGroupComponent.Interactable = (dim == false)
+			end
+		end
+	end
+
+	@ExecSpace("ClientOnly")
 	method void Show(integer d1, integer d2, integer total, any onComplete)
 		if isvalid(self.panel) == false then return end
 		_SFXManager:PlayDice()   -- 주사위 굴림 효과음
-		
+
+		        -- 나머지 HUD를 흐리게(50%) + 입력 차단
+		        self:SetHudDimmed(true)
+
 		        -- 패널 켜고, 주사위 눈 스프라이트 교체
 		        self.panel.Enable = true
 		        if isvalid(self.diceParticle) then self.diceParticle.Enable = true end   -- 반짝임 시작(play_on_enable)
@@ -54,6 +77,7 @@ script RollDiceAnimationUI extends Logic
 		            _TimerService:SetTimerOnce(function()
 		                self.panel.Enable = false
 		                if isvalid(self.diceParticle) then self.diceParticle.Enable = false end   -- 반짝임 종료
+                self:SetHudDimmed(false)   -- HUD 투명도/입력 원복
 		                if onComplete ~= nil then
 		                    onComplete()
 		                end
