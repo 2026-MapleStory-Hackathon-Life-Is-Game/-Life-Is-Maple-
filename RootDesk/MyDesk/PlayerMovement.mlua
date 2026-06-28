@@ -177,6 +177,7 @@ script PlayerMovement extends Component
 		fall.ActionState = MapleAvatarBodyActionState.Fall
 		fall.needResetAction = true
 		self.Entity:SendEvent(fall)
+		_SFXManager:PlayJump()   -- 점프 효과음
 
 		-- 포물선: 중간 지점에서 정점(QuadEaseOut 상승) → 도착 칸으로(QuadEaseIn 하강) → 착지 시 Stand(IDLE).
 		local peakY = math.max(curPos.y, dest2D.y) + 1.2

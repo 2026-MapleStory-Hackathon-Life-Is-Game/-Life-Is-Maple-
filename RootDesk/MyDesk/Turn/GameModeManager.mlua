@@ -273,6 +273,7 @@ script GameModeManager extends Logic
 		fall.ActionState = MapleAvatarBodyActionState.Fall
 		fall.needResetAction = true
 		piece:SendEvent(fall)
+		_SFXManager:PlayJump()   -- 점프 효과음
 
 		-- 위로 떴다(감속) → 내려오며(가속) 착지 → 착지 시 Stand 복귀
 		local up = _TweenLogic:MoveTo(piece, apex, 0.22, EaseType.QuadEaseOut)

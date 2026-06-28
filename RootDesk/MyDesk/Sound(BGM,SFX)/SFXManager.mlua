@@ -7,6 +7,8 @@ script SFXManager extends Logic
 
 	property string winRUID = "2194bc42a2b14ecd85bc62cd2ab1872f"
 
+	property string jumpRUID = "d881a73a0700404a91bcf753474274c3"
+
 	property number volume = 1.0
 
 	property string Say_Start = "04ca8c287bad49e286bc0feb17cb8824"
@@ -29,6 +31,12 @@ script SFXManager extends Logic
 	method void PlayWin()
 		        -- 결과(승리) 팡파르.
 		        self:Play(self.Say_GameOver)
+	end
+
+	@ExecSpace("ClientOnly")
+	method void PlayJump()
+		        -- 점프(도약) 효과음.
+		        self:Play(self.jumpRUID)
 	end
 
 	@ExecSpace("ClientOnly")
