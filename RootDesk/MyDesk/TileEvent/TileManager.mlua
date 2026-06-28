@@ -138,10 +138,29 @@ script TileManager extends Logic
 
 	method string GetTileBranch(string mapName, string tileName)
 		local key = mapName .. "_" .. tileName
-		    if self.tileGraph[key] then 
-		        return self.tileGraph[key].branch or "" 
+		    if self.tileGraph[key] then
+		        return self.tileGraph[key].branch or ""
 		    end
 		    return ""
+	end
+
+	method string MapDisplayName(string mapName)
+		-- 맵 내부 이름 → 분기 버튼/안내용 표시 이름.
+		if mapName == "Map_01" then return "1단계" end
+		if mapName == "Map_02" then return "2단계" end
+		if mapName == "Map_03" then return "3단계" end
+		return mapName
+	end
+
+	method string GetBranchLabel(string mapName, string tileName, integer index)
+		-- 분기 선택지 라벨: 도착 타일이 '다른 맵'이면 그 맵 이름, '같은 맵'이면 "분기점 N번길".
+		-- (3단계 길드/연애처럼 맵이 갈리는 분기가 데이터에 들어오면 targetMap으로 맵 이름이 표시됨.)
+		local key = mapName .. "_" .. tileName
+		local data = self.tileGraph[key]
+		if data ~= nil and data.targetMap ~= nil and data.targetMap ~= "" and data.targetMap ~= mapName then
+			return self:MapDisplayName(data.targetMap)
+		end
+		return "분기점 " .. tostring(index) .. "번길"
 	end
 
 	@ExecSpace("ServerOnly")

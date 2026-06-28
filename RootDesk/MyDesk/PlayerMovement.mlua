@@ -92,7 +92,7 @@ script PlayerMovement extends Component
 				            local branchTexts = {}
 				            for i = 1, #nextList do
 				                -- [수정 2] 현재 맵 이름을 같이 넘겨줍니다!
-				                branchTexts[i] = _TileManager:GetTileBranch(self.Entity.CurrentMapName, nextList[i])
+				                branchTexts[i] = _TileManager:GetBranchLabel(self.Entity.CurrentMapName, nextList[i], i)
 				            end
 				            self:ShowBranchUI(nextList, branchTexts)
 				            return   -- 선택이 올 때까지 멈춤 (OnBranchSelected에서 재개)
