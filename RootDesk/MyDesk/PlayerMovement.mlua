@@ -89,11 +89,8 @@ script PlayerMovement extends Component
 				
 				        -- 분기 타일: 갈래들의 표시 이름을 모아 선택 UI를 띄우고 대기.
 				        if #nextList >= 2 then
-				            local branchTexts = {}
-				            for i = 1, #nextList do
-				                -- [수정 2] 현재 맵 이름을 같이 넘겨줍니다!
-				                branchTexts[i] = _TileManager:GetBranchLabel(self.Entity.CurrentMapName, nextList[i], i)
-				            end
+				            -- 선택지 도착 Region이 다르면 한글 마을 이름, 같으면 BranchText("N번 분기점") 라벨.
+				            local branchTexts = _TileManager:GetBranchLabels(self.Entity.CurrentMapName, nextList)
 				            self:ShowBranchUI(nextList, branchTexts)
 				            return   -- 선택이 올 때까지 멈춤 (OnBranchSelected에서 재개)
 				        end
@@ -113,10 +110,18 @@ script PlayerMovement extends Component
 
 	@ExecSpace("Server")
 	method void OnBranchSelected(string tileName)
-		        self.currentTile = tileName
-		        self.remainingSteps = self.remainingSteps - 1
-		        self:UpdateDiceBuffUI(self.remainingSteps + 1)
+		-- 분기 선택. 도착 칸의 마을(Region)이 현재 칸과 다르면 점프(착지 IDLE)로, 같으면 일반 걷기로 이동.
+		local mapName = self.Entity.CurrentMapName
+		local prevRegion = _TileManager:GetTileRegion(mapName, self.currentTile)
+		local nextRegion = _TileManager:GetTileRegion(mapName, tileName)
+		self.currentTile = tileName
+		self.remainingSteps = self.remainingSteps - 1
+		self:UpdateDiceBuffUI(self.remainingSteps + 1)
+		if prevRegion ~= "" and nextRegion ~= "" and prevRegion ~= nextRegion then
+			self:MoveToTileJump(tileName)
+		else
 			self:MoveToTile(tileName)
+		end
 	end
 
 	@ExecSpace("Client")
@@ -146,6 +151,48 @@ script PlayerMovement extends Component
 				tween:SetOnEndCallback(function()
 					self:MoveNextStep()   -- 한 칸 도착 → 다음 칸 시도(서버에서 실행)
 				end)
+	end
+
+	@ExecSpace("Client")
+	method void MoveToTileJump(string tileName)
+		-- 다른 마을로 가는 분기 선택 시: 공중(낙하) 포즈로 포물선 점프 → 해당 칸 착지 시 IDLE → 이후 MoveNextStep은 다시 MOVE 걷기.
+		local target = _TileManager:GetTileEntity(self.Entity.CurrentMapName, tileName)
+		if target == nil then
+			log_warning("[PlayerMovement] 타일 엔티티 미발견(점프 이동 중단): " .. tostring(tileName))
+			return
+		end
+
+		local destPos = target.TransformComponent.WorldPosition
+		local dest2D  = Vector2(destPos.x, destPos.y)
+		local curPos  = self.Entity.TransformComponent.WorldPosition
+
+		if dest2D.x > curPos.x then
+			self.Entity.PlayerControllerComponent.LookDirectionX = 1
+		elseif dest2D.x < curPos.x then
+			self.Entity.PlayerControllerComponent.LookDirectionX = -1
+		end
+
+		-- 공중(낙하) 포즈
+		local fall = BodyActionStateChangeEvent()
+		fall.ActionState = MapleAvatarBodyActionState.Fall
+		fall.needResetAction = true
+		self.Entity:SendEvent(fall)
+
+		-- 포물선: 중간 지점에서 정점(QuadEaseOut 상승) → 도착 칸으로(QuadEaseIn 하강) → 착지 시 Stand(IDLE).
+		local peakY = math.max(curPos.y, dest2D.y) + 1.2
+		local apex  = Vector2((curPos.x + dest2D.x) * 0.5, peakY)
+
+		local up = _TweenLogic:MoveTo(self.Entity, apex, 0.25, EaseType.QuadEaseOut)
+		up:SetOnEndCallback(function()
+			local down = _TweenLogic:MoveTo(self.Entity, dest2D, 0.25, EaseType.QuadEaseIn)
+			down:SetOnEndCallback(function()
+				local land = BodyActionStateChangeEvent()
+				land.ActionState = MapleAvatarBodyActionState.Stand
+				land.needResetAction = true
+				self.Entity:SendEvent(land)
+				self:MoveNextStep()   -- 착지 → 다음 칸 시도(서버에서 실행)
+			end)
+		end)
 	end
 
 	@ExecSpace("Client")

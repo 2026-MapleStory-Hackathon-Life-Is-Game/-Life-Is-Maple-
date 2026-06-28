@@ -144,23 +144,76 @@ script TileManager extends Logic
 		    return ""
 	end
 
-	method string MapDisplayName(string mapName)
-		-- 맵 내부 이름 → 분기 버튼/안내용 표시 이름.
-		if mapName == "Map_01" then return "1단계" end
-		if mapName == "Map_02" then return "2단계" end
-		if mapName == "Map_03" then return "3단계" end
-		return mapName
+	method string RegionDisplayName(string region)
+		-- Region(영문 데이터값) → 분기 버튼/안내용 한글 마을 이름. 미등록이면 원문 그대로.
+		if region == "Henesys" then return "헤네시스" end
+		if region == "Perion" then return "페리온" end
+		if region == "Orbis" then return "오르비스" end
+		if region == "Sahel_Desert" then return "사헬 사막" end
+		if region == "Magatia" then return "마가티아" end
+		if region == "Ludibrium" then return "루디브리엄" end
+		if region == "Leafre" then return "리프레" end
+		if region == "Lion_Kings_Castle" then return "사자왕성" end
+		if region == "Rootabyss" then return "루타비스" end
+		if region == "Temple_of_Time" then return "시간의 신전" end
+		if region == "Ruined_Henesys" then return "폐허가 된 헤네시스" end
+		if region == "Vanishing_Journey" then return "베니싱 저니" end
+		if region == "Reverse_City" then return "리버스 시티" end
+		if region == "ChuChu_Island" then return "츄츄 아일랜드" end
+		if region == "YumYum_Island" then return "얌얌 아일랜드" end
+		if region == "Lachelein" then return "라헬른" end
+		if region == "Arcana" then return "아르카나" end
+		if region == "Morass" then return "모라스" end
+		if region == "Esfera" then return "에스페라" end
+		if region == "Sellas" then return "셀라스" end
+		if region == "Moonbridge" then return "문브릿지" end
+		if region == "Labyrinth_Of_Suffering" then return "고통의 미궁" end
+		if region == "Limina" then return "리미나" end
+		return region
 	end
 
-	method string GetBranchLabel(string mapName, string tileName, integer index)
-		-- 분기 선택지 라벨: 도착 타일이 '다른 맵'이면 그 맵 이름, '같은 맵'이면 "분기점 N번길".
-		-- (3단계 길드/연애처럼 맵이 갈리는 분기가 데이터에 들어오면 targetMap으로 맵 이름이 표시됨.)
-		local key = mapName .. "_" .. tileName
-		local data = self.tileGraph[key]
-		if data ~= nil and data.targetMap ~= nil and data.targetMap ~= "" and data.targetMap ~= mapName then
-			return self:MapDisplayName(data.targetMap)
+	method string GetTileRegion(string mapName, string tileName)
+		-- 해당 타일의 Region(영문 데이터값) 반환(없으면 "").
+		local data = self.tileGraph[mapName .. "_" .. tileName]
+		if data ~= nil and data.region ~= nil then return data.region end
+		return ""
+	end
+
+	method string GetTileBranchText(string mapName, string tileName)
+		-- 해당 타일의 BranchText(기획자 지정 분기 문자열) 반환(없으면 "").
+		local data = self.tileGraph[mapName .. "_" .. tileName]
+		if data ~= nil and data.branchText ~= nil then return data.branchText end
+		return ""
+	end
+
+	method table GetBranchLabels(string mapName, table tileNames)
+		-- 분기 선택지 라벨 묶음.
+		--   선택지들의 도착 Region이 서로 다르면 → '다른 마을'로 갈 수 있는 분기 → 각 선택지의 한글 마을 이름.
+		--   선택지들의 도착 Region이 모두 같으면 → 마을 변화 없음 → 기획자 지정 BranchText(없으면 "N번 분기점").
+		local regions = {}
+		local allSame = true
+		local first = nil
+		for i = 1, #tileNames do
+			local r = self:GetTileRegion(mapName, tileNames[i])
+			regions[i] = r
+			if first == nil then
+				first = r
+			elseif r ~= first then
+				allSame = false
+			end
 		end
-		return "분기점 " .. tostring(index) .. "번길"
+
+		local labels = {}
+		for i = 1, #tileNames do
+			if allSame then
+				local bt = self:GetTileBranchText(mapName, tileNames[i])
+				if bt == nil or bt == "" then bt = tostring(i) .. "번 분기점" end
+				labels[i] = bt
+			else
+				labels[i] = self:RegionDisplayName(regions[i])
+			end
+		end
+		return labels
 	end
 
 	@ExecSpace("ServerOnly")
@@ -447,6 +500,7 @@ script TileManager extends Logic
 					local typ    = ds:GetCell(i, "Type")
 					local tier   = tonumber(ds:GetCell(i, "Tier"))
 					local region = ds:GetCell(i, "Region")
+					local branchText = ds:GetCell(i, "BranchText")
 					if not stage or not idx then continue end
 		
 					local mapName = stageToMap[stage]
@@ -481,7 +535,7 @@ script TileManager extends Logic
 						end
 					end
 		
-					self.tileGraph[graphKey] = {nexts=nexts, type=typ, branch=branch, stage=stage, tier=tier, region=region}
+					self.tileGraph[graphKey] = {nexts=nexts, type=typ, branch=branch, stage=stage, tier=tier, region=region, branchText=branchText}
 					count += 1
 				end
 		
