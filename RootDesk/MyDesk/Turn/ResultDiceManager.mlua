@@ -23,11 +23,13 @@ script ResultDiceManager extends Logic
 
 	property string twelve_SFX = "919a0108f61e419d842a54566bb39b7b"
 
+	-- 동일 전투력(전투력 우위 0)일 때의 기준 확률(%). 합이 100이 되도록 성공은 (100-실패-대성공)으로 자동 산출.
+	-- ⚠ 밸런스 잠정값 — 기획 확정 시 인스펙터에서 조정 가능.
 	@Sync
-	property number GreatSuccessWeight = 1000
+	property number BaseFailPct = 40
 
 	@Sync
-	property number SuccessWeight = 500
+	property number BaseGreatPct = 20
 
 	@Sync
 	property integer _dice1 = 0
@@ -76,38 +78,108 @@ script ResultDiceManager extends Logic
 
 	@ExecSpace("Server")
 	method void CalculateRulletResult(number playerCombatPower, number targetCombatPower)
-		
-		-- 대성공 : 2 , 성공 : 1 , 실패 : 0
-		local resultTable = {0,0,0,0,0,0,0,0,0,0,0,0}
-		
-		
-				resultTable[12] = 2
-				
-				local powerDiff = playerCombatPower - targetCombatPower
-				local targetGreatSuccess = 12 
-				local targetSuccess = 8
-				
-				if powerDiff > 0 then
-					if self.GreatSuccessWeight > 0 then
-						targetGreatSuccess = targetGreatSuccess - math.floor(powerDiff / self.GreatSuccessWeight)
-					end
-					if self.SuccessWeight > 0 then
-						targetSuccess = targetSuccess - math.floor(powerDiff / self.SuccessWeight)
-					end
-					
-					if targetGreatSuccess < 2 then targetGreatSuccess = 2 end
-					if targetSuccess < 2 then targetSuccess = 2 end
-					if targetGreatSuccess <= targetSuccess then targetGreatSuccess = targetSuccess + 1 end
-				end
-				
-				for i = 2, 11 do
-					if i >= targetGreatSuccess then resultTable[i] = 2
-					elseif i >= targetSuccess then resultTable[i] = 1
-					else resultTable[i] = 0 end
-				end
-				
-				-- 리턴하지 않고 매니저가 자체적으로 들고 있음
-				self._currentResultTable = resultTable
+		-- 기획서(주사위 확률)대로 결과 테이블을 만든다.
+		-- ① 전투력으로 실패/성공/대성공 목표 확률(%) 산출(전투력 우위↑ → 대성공↑/실패↓)
+		-- ② 10% 단위로 반올림하고 합계 100%로 보정
+		-- ③ 주사위합 2~12를 누적 참고확률 기준으로 실패→성공→대성공 순서로 배치
+		-- (기존 '12 = 무조건 대성공' 규칙은 폐기)
+		local pct = self:DeriveOutcomePercents(playerCombatPower, targetCombatPower)
+		pct = self:NormalizePercents(pct)
+		self._currentResultTable = self:PlaceOutcomes(pct.fail, pct.success, pct.great)
+
+		log("[ResultDiceManager] 목표확률 실패=" .. tostring(pct.fail) .. "% 성공=" .. tostring(pct.success) .. "% 대성공=" .. tostring(pct.great) .. "%")
+	end
+
+	method table DeriveOutcomePercents(number playerCombatPower, number targetCombatPower)
+		-- 전투력 우위(shift)에 따라 대성공↑/실패↓. 동일 전투력이면 Base 값을 사용.
+		-- shift = (내전투력 - 상대전투력) / 상대전투력, [-1, 1]로 클램프.
+		local denom = targetCombatPower
+		if denom <= 0 then denom = 1 end
+		local shift = (playerCombatPower - targetCombatPower) / denom
+		if shift > 1 then shift = 1 elseif shift < -1 then shift = -1 end
+
+		local great = self.BaseGreatPct
+		local fail = self.BaseFailPct
+		if shift >= 0 then
+			-- 유리: 대성공 +최대 30%p, 실패 -최대 30%p
+			great = self.BaseGreatPct + 30 * shift
+			fail = self.BaseFailPct - 30 * shift
+		else
+			-- 불리: 대성공 -최대 15%p, 실패 +최대 30%p
+			great = self.BaseGreatPct + 15 * shift
+			fail = self.BaseFailPct - 30 * shift
+		end
+		if great < 0 then great = 0 end
+		if fail < 0 then fail = 0 end
+		if great + fail > 100 then great = 100 - fail end
+		local success = 100 - great - fail
+		if success < 0 then success = 0 end
+		return { fail = fail, success = success, great = great }
+	end
+
+	method integer RoundTo10(number x)
+		-- 10% 단위 반올림.
+		return math.floor(x / 10 + 0.5) * 10
+	end
+
+	method table NormalizePercents(table p)
+		-- 기획서 반올림 규칙: 각 항목 10% 단위 반올림 후 합계 100% 보정.
+		--  - 100% 미만: 부족분을 대성공 → 성공 → 실패 순으로 10%씩 추가
+		--  - 100% 초과: 가장 큰 비율 항목에서 10%씩 차감
+		local fail = self:RoundTo10(p.fail)
+		local success = self:RoundTo10(p.success)
+		local great = self:RoundTo10(p.great)
+
+		-- 부족분: 대성공 → 성공 → 실패 순으로 10%씩 추가.
+		local guard = 0
+		while fail + success + great < 100 and guard < 20 do
+			great += 10
+			if fail + success + great >= 100 then break end
+			success += 10
+			if fail + success + great >= 100 then break end
+			fail += 10
+			guard += 1
+		end
+		-- 초과분: 가장 큰 항목에서 10%씩 차감.
+		guard = 0
+		while fail + success + great > 100 and guard < 20 do
+			-- 가장 큰 항목에서 10% 차감
+			if great >= success and great >= fail then
+				great -= 10
+			elseif success >= fail then
+				success -= 10
+			else
+				fail -= 10
+			end
+			guard += 1
+		end
+		return { fail = fail, success = success, great = great }
+	end
+
+	method table PlaceOutcomes(number failPct, number successPct, number greatPct)
+		-- 주사위 두 개 합(2~12)의 '누적 참고확률'을 10% 단위로 반올림한 값.
+		-- (2d6 누적분포: 2=2.8% 3=8.3% 4=16.7% 5=27.8% 6=41.7% 7=58.3% 8=72.2% 9=83.3% 10=91.7% 11=97.2% 12=100%)
+		local cumRef = {}
+		cumRef[2] = 0;  cumRef[3] = 10; cumRef[4] = 20; cumRef[5] = 30
+		cumRef[6] = 40; cumRef[7] = 60; cumRef[8] = 70; cumRef[9] = 80
+		cumRef[10] = 90; cumRef[11] = 100; cumRef[12] = 100
+
+		local failThr = failPct
+		local successThr = failPct + successPct
+
+		-- 결과코드: 실패=0, 성공=1, 대성공=2
+		local res = {}
+		for n = 2, 12 do
+			local c = cumRef[n]
+			if failPct > 0 and c <= failThr then
+				res[n] = 0
+			elseif c <= successThr then
+				res[n] = 1
+			else
+				res[n] = 2
+			end
+		end
+		return res
 	end
 
 	@ExecSpace("Client")
