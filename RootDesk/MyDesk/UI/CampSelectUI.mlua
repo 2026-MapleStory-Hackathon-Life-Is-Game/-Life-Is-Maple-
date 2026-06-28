@@ -25,6 +25,9 @@ script CampSelectUI extends Logic
 
 	property TextGUIRendererComponent campDesc = "62f024a8-dc21-497b-b8c1-550ed9c0ae07"
 
+	-- 팝업 뒤 반투명 검정 디머(선택→결과 패널 동안 유지).
+	property Entity dimBack = "b6afee70-506d-47e3-b941-1ac8ca2b35b8"
+
 	@ExecSpace("ClientOnly")
 	method void OnBeginPlay()
 		-- 시작 시 패널은 숨겨둔다 (1단계 진입/디버그에서 ShowSelectPanel로 연다).
@@ -47,6 +50,7 @@ script CampSelectUI extends Logic
 	method void ShowSelectPanel()
 		-- 진영 선택 패널을 열고 4개 버튼 클릭 이벤트를 연결한다.
 		if isvalid(self.selectPanel) == false then return end
+		if isvalid(self.dimBack) then self.dimBack.Enable = true end
 		self.selectPanel.Enable = true
 		
 		self.handlerAdventurer = self.btnAdventurer.Entity:ConnectEvent(ButtonClickEvent, function() self:SelectRace("Adventurer") end)
@@ -128,6 +132,8 @@ script CampSelectUI extends Logic
 		if isvalid(self.resultPanel) then
 			self.resultPanel.Enable = false
 		end
+		-- 진영 선택 플로우(선택→결과) 종료 → 디머도 닫는다.
+		if isvalid(self.dimBack) then self.dimBack.Enable = false end
 	end
 
 end

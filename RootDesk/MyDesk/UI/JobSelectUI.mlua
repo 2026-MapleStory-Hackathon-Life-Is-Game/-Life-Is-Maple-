@@ -13,6 +13,9 @@ script JobSelectUI extends Logic
 
 	property ButtonComponent btnPirate = "f6fe7b29-dde2-4a1e-a396-86c8b958ff32"
 
+	-- 팝업 뒤 반투명 검정 디머(패널과 함께 토글).
+	property Entity dimBack = "e1f3aa40-5079-47ae-92d0-643835a45322"
+
 	property any handlerWarrior = nil
 
 	property any handlerArcher = nil
@@ -41,8 +44,9 @@ script JobSelectUI extends Logic
 	method void Show()
 		-- Called via Server→Client RPC from JobManager.ShowJobSelect.
 		if isvalid(self.panel) == false then return end
+		if isvalid(self.dimBack) then self.dimBack.Enable = true end
 		self.panel.Enable = true
-		
+
 		self.handlerWarrior = self.btnWarrior.Entity:ConnectEvent(ButtonClickEvent, function()
 			self:SelectJob("warrior")
 		end)
@@ -69,6 +73,7 @@ script JobSelectUI extends Logic
 		if isvalid(self.panel) then
 			self.panel.Enable = false
 		end
+		if isvalid(self.dimBack) then self.dimBack.Enable = false end
 		log("JobSelectUI: hidden")
 	end
 
