@@ -89,7 +89,12 @@ script PotentialManager extends Logic
 	end
 
 	method string RollPotential(string curGrade)
-		-- 현재 등급 기준 큐브 1회 결과(등급 승급 판정 + 줄 롤) 직렬화 반환.
+		-- 큐브 1회 결과 직렬화. 순서가 핵심:
+		--   1) 먼저 승급 여부를 결정한다(RollGrade).
+		--      - 없음        → 가중분포로 레어/에픽 부여(항상 성공)
+		--      - 등급 있음    → 다음 등급 승급 확률 판정. 실패하면 현 등급 유지.
+		--   2) 그 결과 등급의 풀에서 옵션 3줄을 뽑는다(RollLines).
+		--      - 승급 성공이면 새 등급 풀에서, 실패(유지)면 현 등급 풀에서 재추첨.
 		local grade = self:RollGrade(curGrade)
 		return self:Serialize(grade, self:RollLines(grade))
 	end
@@ -161,6 +166,15 @@ script PotentialManager extends Logic
 		if isvalid(comp) == false then return end
 		if comp.Owned[equipName] ~= true and comp.Equipped ~= equipName then return end
 
+		-- [가드] 이 장비에 미확정 후보가 이미 있으면 큐브를 더 쓰지 않고 선택을 먼저 강제한다.
+		-- (선택을 건너뛴 채 재요청해서 큐브가 증발하고 이전 후보가 소실되는 버그 방지)
+		local key = senderUserId .. ":" .. equipName
+		if self._pending[key] ~= nil then
+			log_warning("[PotentialManager] 선택 대기 중 재요청 거부: " .. key)
+			self:NotifyCubeResult(equipName, comp:GetPotential(equipName), self._pending[key], false, senderUserId)
+			return
+		end
+
 		local bag = self:BagOf(player)
 		if isvalid(bag) == false or bag.MiracleCubeCount <= 0 then
 			log_warning("[PotentialManager] 미라클 큐브 부족: " .. tostring(senderUserId))
@@ -175,7 +189,7 @@ script PotentialManager extends Logic
 			comp:Recalc()
 			self:NotifyCubeResult(equipName, "", cand, true, senderUserId)
 		else
-			self._pending[senderUserId .. ":" .. equipName] = cand
+			self._pending[key] = cand
 			self:NotifyCubeResult(equipName, cur, cand, false, senderUserId)
 		end
 	end
@@ -191,10 +205,11 @@ script PotentialManager extends Logic
 		local player = _UserService:GetUserEntityByUserId(senderUserId)
 		if isvalid(player) == false then return end
 		local comp = _EquipmentRouter:ManagerForItem(player, equipName)
-		if isvalid(comp) then
-			comp:SetPotential(equipName, cand)
-			comp:Recalc()
-		end
+		if isvalid(comp) == false then return end
+		-- 소유/장착 재검증(대기 중 아이템을 잃었거나 부정 요청 방지).
+		if comp.Owned[equipName] ~= true and comp.Equipped ~= equipName then return end
+		comp:SetPotential(equipName, cand)
+		comp:Recalc()
 	end
 
 	@ExecSpace("Client")
