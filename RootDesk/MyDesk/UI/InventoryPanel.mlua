@@ -397,11 +397,11 @@ script InventoryPanel extends Component
 		-- 일반 모드: 더블클릭(0.3초 내 같은 아이템 2회) → 장착 요청.
 		_SFXManager:PlayClick()
 		if self._cubeUseMode then
-			log("[InventoryPanel] 큐브 대상 선택: " .. equipName)
-			self:ExitCubeUseMode()
+			-- 바로 사용하지 않고 확인 패널을 먼저 띄운다(예→실제 사용 / 아니오→취소).
+			-- 모드 종료/RequestCube는 CubeConfirmPopup:OnYes에서 처리.
+			log("[InventoryPanel] 큐브 대상 선택(확인 대기): " .. equipName)
 			_EquipTooltip:Hide()
-			_PotentialManager:RequestCube(equipName)
-			self:Rebuild()
+			_CubeConfirmPopup:Open(equipName)
 			return
 		end
 		local now = _UtilLogic.ElapsedSeconds
