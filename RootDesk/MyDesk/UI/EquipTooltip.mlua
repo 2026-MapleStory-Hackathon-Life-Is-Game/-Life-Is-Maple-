@@ -110,7 +110,8 @@ script EquipTooltip extends Logic
 		if isvalid(iconC) then
 			local ruid = ds:GetCell(row, "Sprite RUID")
 			if ruid ~= "" then
-				iconC.ImageRUID = ruid
+				-- 장비 RUID는 avataritem 타입 → thumbnail:// 접두 + DataRef로 감싸야 아이콘이 렌더된다.
+				iconC.ImageRUID = DataRef("thumbnail://" .. ruid)
 				iconC.Color = Color(1, 1, 1, 1)
 			else
 				iconC.Color = Color(1, 1, 1, 0)

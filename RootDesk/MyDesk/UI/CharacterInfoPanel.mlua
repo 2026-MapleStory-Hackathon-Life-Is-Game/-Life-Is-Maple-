@@ -171,7 +171,8 @@ script CharacterInfoPanel extends Component
 			end
 		end
 		if ruid ~= "" then
-			renderer.ImageRUID = ruid
+			-- 장비 RUID는 avataritem 타입 → thumbnail:// 접두 + DataRef로 감싸야 아이콘이 렌더된다.
+			renderer.ImageRUID = DataRef("thumbnail://" .. ruid)
 			renderer.Color = Color(1, 1, 1, 1)
 		else
 			renderer.Color = Color(1, 1, 1, 0)
