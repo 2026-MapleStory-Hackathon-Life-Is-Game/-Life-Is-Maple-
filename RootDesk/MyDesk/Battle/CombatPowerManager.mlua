@@ -312,8 +312,8 @@ script CombatPowerManager extends Component
 		local pe = {
 			statFlat      = cur.statFlat - curEq.statFlat + swapEq.statFlat,
 			statPct       = cur.statPct - curEq.statPct + swapEq.statPct,
-			allStatFlat   = cur.allStatFlat,
-			allStatPct    = cur.allStatPct,
+			allStatFlat   = cur.allStatFlat - (curEq.allStatFlat or 0) + (swapEq.allStatFlat or 0),
+			allStatPct    = cur.allStatPct - (curEq.allStatPct or 0) + (swapEq.allStatPct or 0),
 			attackFlat    = cur.attackFlat - curEq.attackFlat + swapEq.attackFlat,
 			attackPct     = cur.attackPct - curEq.attackPct + swapEq.attackPct,
 			damagePct     = cur.damagePct - curEq.damagePct + swapEq.damagePct,

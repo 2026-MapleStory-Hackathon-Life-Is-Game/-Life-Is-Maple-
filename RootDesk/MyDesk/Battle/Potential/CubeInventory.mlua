@@ -1,0 +1,14 @@
+@Component
+script CubeInventory extends Component
+
+	-- 플레이어별 소비아이템(미라클 큐브) 보유 수량. 잠재 재설정에 1개씩 소모.
+	@TargetUserSync
+	property integer MiracleCubeCount = 0
+
+	@ExecSpace("ServerOnly")
+	method void AddMiracleCube(integer n)
+		-- 미라클 큐브 n개 지급(획득/디버그).
+		self.MiracleCubeCount = self.MiracleCubeCount + n
+	end
+
+end

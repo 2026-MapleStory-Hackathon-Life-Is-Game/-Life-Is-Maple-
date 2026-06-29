@@ -126,8 +126,14 @@ script EquipTooltip extends Logic
 			.. ds:GetCell(row, "MainAttack_Flat") .. "\n"
 			.. ds:GetCell(row, "Damage_Percent") .. "%\n"
 			.. ds:GetCell(row, "BossDamage_Percent") .. "%")
-		-- 잠재능력(데이터 대기 → 일단 빈칸)
-		self:SetText(potE, "")
+		-- 잠재능력: 이 아이템의 잠재 직렬화 문자열을 한글 표기로(없으면 빈칸).
+		local potStr = ""
+		local me = _UserService.LocalPlayer
+		if isvalid(me) then
+			local comp = _EquipmentRouter:ManagerForItem(me, equipName)
+			if isvalid(comp) then potStr = comp:GetPotential(equipName) end
+		end
+		self:SetText(potE, _PotentialManager:DisplayText(potStr))
 	end
 
 	method void BringToFront()

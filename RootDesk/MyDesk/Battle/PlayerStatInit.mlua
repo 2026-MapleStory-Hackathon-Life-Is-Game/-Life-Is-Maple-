@@ -44,6 +44,7 @@ script PlayerStatInit extends Logic
 		self:AddIfMissing(p, "script.AccessoryEquipment")
 		self:AddIfMissing(p, "script.ExtraTableManager")
 		self:AddIfMissing(p, "script.CombatPowerManager")
+		self:AddIfMissing(p, "script.CubeInventory")
 		log("[PlayerStatInit] 전투 컴포넌트 부착 완료: " .. event.UserId)
 
 		-- [임시/디버그] 구현된 모든 장비(EquipmentData 전체 행)를 각 타입 인벤토리에 지급. 출시 전 false 또는 블록 제거.
@@ -60,6 +61,10 @@ script PlayerStatInit extends Logic
 				end
 			end
 			log("[PlayerStatInit] (디버그) 전체 장비 지급: " .. tostring(count) .. "개")
+
+			-- [임시/디버그] 잠재 재설정 테스트용 미라클 큐브 지급. 출시 전 제거.
+			local bag = p:GetComponent("script.CubeInventory")
+			if isvalid(bag) then bag:AddMiracleCube(999) end
 		end
 
 		-- 빈 장비 기준 전투력 초기 계산.
