@@ -44,6 +44,13 @@ script EquipTooltip extends Logic
 		if tc ~= nil then tc.Text = s end
 	end
 
+	method void SetTextColor(Entity e, Color c)
+		-- 텍스트 엔티티의 TextComponent.FontColor 설정(잠재 등급색 표시용).
+		if isvalid(e) == false then return end
+		local tc = e:GetComponent("MOD.Core.TextComponent")
+		if tc ~= nil then tc.FontColor = c end
+	end
+
 	method string FormatPower(number value)
 		-- 전투력 변화량 표기. 0이면 "0", 양수 "+N", 음수 "-N". 1만 이상은 "○만 ○○○○".
 		local n = math.floor(math.abs(value) + 0.5)
@@ -135,6 +142,8 @@ script EquipTooltip extends Logic
 			if isvalid(comp) then potStr = comp:GetPotential(equipName) end
 		end
 		self:SetText(potE, _PotentialManager:DisplayText(potStr))
+		-- 잠재 글자색을 등급색으로(에픽=보라/유니크=노랑/레전드리=연두/레어=파랑/없음=회색).
+		self:SetTextColor(potE, _PotentialManager:GradeColor(_PotentialManager:GradeOf(potStr)))
 	end
 
 	method void BringToFront()

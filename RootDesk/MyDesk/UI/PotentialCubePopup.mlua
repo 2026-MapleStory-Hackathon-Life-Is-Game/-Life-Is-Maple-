@@ -86,12 +86,8 @@ script PotentialCubePopup extends Logic
 	end
 
 	method Color GradeColor(string grade)
-		-- 등급별 색: 레어=파랑, 에픽=보라, 유니크=노랑, 레전드리=연두, 없음=회색.
-		if grade == "RARE" then return Color(0.30, 0.62, 0.95, 1) end
-		if grade == "EPIC" then return Color(0.66, 0.40, 0.84, 1) end
-		if grade == "UNIQUE" then return Color(1.00, 0.84, 0.16, 1) end
-		if grade == "LEGENDARY" then return Color(0.63, 0.84, 0.20, 1) end
-		return Color(0.45, 0.47, 0.53, 1)
+		-- 등급색은 PotentialManager 단일 출처로 위임(색 변경 시 거기만 수정).
+		return _PotentialManager:GradeColor(grade)
 	end
 
 	method string FormatGain(number value)

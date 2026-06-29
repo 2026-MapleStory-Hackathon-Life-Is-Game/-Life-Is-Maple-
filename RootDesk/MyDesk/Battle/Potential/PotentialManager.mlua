@@ -127,6 +127,16 @@ script PotentialManager extends Logic
 		return "없음"
 	end
 
+	method Color GradeColor(string grade)
+		-- 등급별 색(잠재 표시 공통): 레어=파랑, 에픽=보라, 유니크=노랑, 레전드리=연두, 없음=회색.
+		-- 팝업/툴팁 등 잠재 색은 모두 이 함수를 단일 출처로 사용(색 변경 시 여기만 수정).
+		if grade == "RARE" then return Color(0.30, 0.62, 0.95, 1) end
+		if grade == "EPIC" then return Color(0.66, 0.40, 0.84, 1) end
+		if grade == "UNIQUE" then return Color(1.00, 0.84, 0.16, 1) end
+		if grade == "LEGENDARY" then return Color(0.63, 0.84, 0.20, 1) end
+		return Color(0.45, 0.47, 0.53, 1)
+	end
+
 	method string KeyKorean(string key)
 		if key == "statPct" or key == "statFlat" then return "주스탯" end
 		if key == "attackPct" or key == "attackFlat" then return "공/마" end
