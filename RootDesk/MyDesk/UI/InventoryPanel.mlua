@@ -38,9 +38,9 @@ script InventoryPanel extends Component
 			local gvc = self.gridEntity.GridViewComponent
 			if gvc ~= nil then
 				gvc.ItemEntity = self.cellPrefab
-				-- 스크롤은 셀의 클릭 제스처를 가로채므로 끈다(데모 아이템 수에선 스크롤 불필요).
-				-- 아이템이 화면을 넘칠 만큼 많아지면 다시 켜되 클릭은 OnCellState의 Pressed로 처리됨.
-				gvc.UseScroll = false
+				-- 마우스 휠/드래그로 목록을 위아래 스크롤(아이템이 많아 한 화면을 넘침).
+				-- 클릭은 ButtonClickEvent가 스크롤에 먹히므로 OnCellState의 Pressed(=2)로 감지한다.
+				gvc.UseScroll = true
 				gvc.OnRefresh = function(index, cell)
 					self:OnGridCellRefresh(index, cell)
 				end
@@ -191,6 +191,8 @@ script InventoryPanel extends Component
 		if isvalid(self.panelRoot) then
 			self.panelRoot.Enable = true
 		end
+		-- 인벤 열림 동안 마우스 휠은 카메라 줌이 아니라 인벤 스크롤에 쓰이도록 맵뷰에 통지.
+		if _MapViewManager ~= nil then _MapViewManager:SetInventoryOpen(true) end
 		self:Rebuild()
 	end
 
@@ -201,6 +203,7 @@ script InventoryPanel extends Component
 		if isvalid(self.panelRoot) then
 			self.panelRoot.Enable = false
 		end
+		if _MapViewManager ~= nil then _MapViewManager:SetInventoryOpen(false) end
 	end
 
 	method void SelectTab(string tab)

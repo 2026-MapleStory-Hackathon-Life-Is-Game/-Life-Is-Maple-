@@ -3,6 +3,9 @@ script MapViewManager extends Logic
 
 	property boolean _isOpen = false
 
+	-- 인벤토리가 열려 있으면 휠은 카메라 줌이 아니라 인벤 목록 스크롤에 쓰여야 하므로 줌을 막는다.
+	property boolean _inventoryOpen = false
+
 	property number _camMoveSpeed = 6.0
 
 	property Vector2 _origCameraOffset = Vector2(0, 0)
@@ -30,7 +33,9 @@ script MapViewManager extends Logic
 
 	@ExecSpace("ClientOnly")
 	method void OnMouseScroll(MouseScrollEvent event)
+		-- 휠 줌은 '지도(맵뷰) 열림' 상태에서만. 인벤토리가 열려 있으면 휠은 인벤 스크롤용이므로 줌하지 않는다.
 		if not self._isOpen then return end
+		if self._inventoryOpen then return end
 		local cam = _CameraService:GetCurrentCameraComponent()
 		if not isvalid(cam) then return end
 		
@@ -58,6 +63,12 @@ script MapViewManager extends Logic
 		if dx ~= 0 or dy ~= 0 then
 			cam.CameraOffset = Vector2(cam.CameraOffset.x + dx, cam.CameraOffset.y + dy)
 		end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void SetInventoryOpen(boolean open)
+		-- 인벤토리 열림 상태 통지(InventoryPanel.Open/Close에서 호출). 휠 줌 차단 판단에 사용.
+		self._inventoryOpen = open
 	end
 
 	@ExecSpace("ClientOnly")
