@@ -21,6 +21,18 @@ script MapViewManager extends Logic
 	@ExecSpace("ClientOnly")
 	method void OnBeginPlay()
 		self._scrollHandler = _InputService:ConnectEvent(MouseScrollEvent, self.OnMouseScroll)
+		-- 엔진 내장 휠 줌(IsAllowZoomInOut)은 끈다. 맵뷰 줌은 OnMouseScroll에서만 직접 처리.
+		self:DisableEngineZoom()
+	end
+
+	@ExecSpace("ClientOnly")
+	method void DisableEngineZoom()
+		-- DefaultPlayer.model의 IsAllowZoomInOut=true 때문에 맵뷰가 아닌데도 휠로 카메라가 줌됨.
+		-- 모델은 읽기전용이라 런타임에서 끈다. 끄더라도 수동 ZoomRatio/SetZoomTo는 계속 동작함(검증됨).
+		local cam = _CameraService:GetCurrentCameraComponent()
+		if isvalid(cam) and cam.IsAllowZoomInOut then
+			cam.IsAllowZoomInOut = false
+		end
 	end
 
 	@ExecSpace("ClientOnly")
@@ -47,8 +59,11 @@ script MapViewManager extends Logic
 
 	@ExecSpace("ClientOnly")
 	method void OnUpdate(number delta)
+		-- 맵 전환으로 카메라가 모델에서 재생성되면 IsAllowZoomInOut이 다시 true가 될 수 있어 매 프레임 끈다(필요할 때만 write).
+		self:DisableEngineZoom()
+
 		if not self._isOpen then return end
-		
+
 		local cam = _CameraService:GetCurrentCameraComponent()
 		if not isvalid(cam) then return end
 		
