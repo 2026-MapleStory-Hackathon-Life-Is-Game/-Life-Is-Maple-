@@ -4,6 +4,7 @@ script InventoryPanel extends Component
 	property Entity panelRoot = "265b6a00-710c-4654-ad3f-85db1bc7685f"
 	property Entity gridEntity = "c4fadd74-2612-44e0-913c-94d38acf97f1"
 	property Entity cellPrefab = "5c958470-46b3-40e2-a250-24aaa2847a6e"
+	property ButtonComponent cubeBtn = "e1e4862c-e849-48f2-9de5-22c888cf1634"
 	property boolean isOpen = false
 	property string activeTab = "Armor"
 	property any cellHandlers = nil
@@ -11,6 +12,10 @@ script InventoryPanel extends Component
 	property number _lastClickTime = 0
 	property number _pollTimer = 0
 	property string _lastListSig = ""
+	-- 잠재 재설정 대상으로 선택된 아이템(인벤 셀 단일 클릭으로 선택).
+	property string _selectedItem = ""
+	property any _cubeBtnH = nil
+	property string _lastCubeLabel = ""
 
 	method void OnBeginPlay()
 		-- 클라: 패널 숨김 + GridView 셀 프리팹 주입 + 탭 버튼 이벤트 배선.
@@ -66,7 +71,68 @@ script InventoryPanel extends Component
 		end
 		self:UpdateTabVisual()
 
+		-- 잠재 재설정(큐브) 버튼 배선.
+		self._selectedItem = ""
+		if isvalid(self.cubeBtn) then
+			self._cubeBtnH = self.cubeBtn.Entity:ConnectEvent(ButtonClickEvent, function() self:OnCubeClicked() end)
+		end
+		self:UpdateCubeLabel()
+
 		log("[InventoryPanel] OnBeginPlay OK")
+	end
+
+	method integer CubeCount()
+		-- 로컬 플레이어의 미라클 큐브 보유 수(없으면 0).
+		local p = _UserService.LocalPlayer
+		if isvalid(p) == false then return 0 end
+		local bag = p:GetComponent("script.CubeInventory")
+		if isvalid(bag) == false then return 0 end
+		return bag.MiracleCubeCount
+	end
+
+	method string DisplayName(string equipName)
+		-- equipName의 표시명(EquipmentData.Name). 없으면 equipName 그대로.
+		if equipName == "" then return "" end
+		local ds = _DataService:GetTable("EquipmentData")
+		if isvalid(ds) then
+			for i = 1, ds:GetRowCount() do
+				if ds:GetCell(i, "EquipName") == equipName then return ds:GetCell(i, "Name") end
+			end
+		end
+		return equipName
+	end
+
+	method void UpdateCubeLabel()
+		-- 큐브 버튼 텍스트: 선택 아이템 + 보유 큐브 수. 변경 없으면 스킵(깜빡임 방지).
+		if isvalid(self.cubeBtn) == false then return end
+		local n = self:CubeCount()
+		local label
+		if self._selectedItem == "" then
+			label = "잠재 재설정 (큐브 " .. tostring(n) .. ")"
+		else
+			label = "재설정: " .. self:DisplayName(self._selectedItem) .. " (큐브 " .. tostring(n) .. ")"
+		end
+		if label == self._lastCubeLabel then return end
+		self._lastCubeLabel = label
+		local tc = self.cubeBtn.Entity:GetComponent("MOD.Core.TextComponent")
+		if tc ~= nil then tc.Text = label end
+	end
+
+	method void OnCubeClicked()
+		-- 선택 아이템에 미라클 큐브 사용 요청. 결과는 PotentialCubePopup으로 표시됨.
+		_SFXManager:PlayClick()
+		if self._selectedItem == "" then
+			-- 선택 안내는 버튼 라벨("잠재 재설정 (큐브 N)")로 대체. 무시.
+			log("[InventoryPanel] 큐브: 선택된 아이템 없음")
+			return
+		end
+		if self:CubeCount() <= 0 then
+			-- 큐브 보유 수는 버튼 라벨에 표시됨. 무시.
+			log("[InventoryPanel] 큐브: 보유 0")
+			return
+		end
+		log("[InventoryPanel] 큐브 사용 요청: " .. self._selectedItem)
+		_PotentialManager:RequestCube(self._selectedItem)
 	end
 
 	method void UpdateTabVisual()
@@ -258,6 +324,7 @@ script InventoryPanel extends Component
 		self._pollTimer = self._pollTimer + delta
 		if self._pollTimer < 0.2 then return end
 		self._pollTimer = 0
+		self:UpdateCubeLabel()
 		local items = self:CurrentList()
 		local sig = table.concat(items, ",")
 		if sig ~= self._lastListSig then
@@ -268,8 +335,10 @@ script InventoryPanel extends Component
 	end
 
 	method void OnCellClicked(string equipName)
-		-- 더블클릭(0.3초 내 같은 아이템 2회) → 장착 요청.
+		-- 더블클릭(0.3초 내 같은 아이템 2회) → 장착 요청. 단일 클릭 → 잠재 재설정 대상 선택.
 		_SFXManager:PlayClick()
+		self._selectedItem = equipName
+		self:UpdateCubeLabel()
 		local now = _UtilLogic.ElapsedSeconds
 		if self._lastClickName == equipName and (now - self._lastClickTime) <= 0.3 then
 			self._lastClickName = ""
@@ -307,6 +376,9 @@ script InventoryPanel extends Component
 					r.entity:DisconnectEvent(ButtonClickEvent, r.evtH)
 				end
 			end
+		end
+		if self._cubeBtnH ~= nil and isvalid(self.cubeBtn) then
+			self.cubeBtn.Entity:DisconnectEvent(ButtonClickEvent, self._cubeBtnH)
 		end
 	end
 
