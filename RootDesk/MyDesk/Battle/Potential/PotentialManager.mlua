@@ -214,12 +214,13 @@ script PotentialManager extends Logic
 
 	@ExecSpace("Client")
 	method void NotifyCubeResult(string equipName, string before, string after, boolean autoConfirmed)
-		-- (UI 연동 예정) 큐브 결과를 클라에 통지. autoConfirmed면 즉시 확정, 아니면 Before/After 선택 팝업.
+		-- 큐브 결과를 클라 팝업으로 통지. autoConfirmed면 결과+확인, 아니면 Before/After 선택.
 		if autoConfirmed then
 			log("[PotentialManager] 큐브 결과(자동확정) " .. equipName .. " → " .. after)
 		else
 			log("[PotentialManager] 큐브 결과(선택) " .. equipName .. " | Before=" .. before .. " | After=" .. after)
 		end
+		_PotentialCubePopup:Open(equipName, before, after, autoConfirmed)
 	end
 
 end

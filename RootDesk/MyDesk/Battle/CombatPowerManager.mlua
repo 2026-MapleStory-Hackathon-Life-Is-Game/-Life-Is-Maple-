@@ -324,6 +324,27 @@ script CombatPowerManager extends Component
 			* self:CalculateCurrentExtraDamage(pe) * self:CalculateCurrentCriticalDamage(pe)
 	end
 
+	method number PreviewPowerWithPotentialSwap(string fromPot, string toPot)
+		-- 현재 적용중인 fromPot 잠재를 toPot로 바꿨을 때의 총 전투력(상태변경 없음, 잠재 비교 프리뷰용).
+		-- fromPot/toPot은 PotentialManager 직렬화 문자열("" = 없음).
+		local cur = self:BuildExtraTable()
+		local f = _PotentialManager:ModifiersOf(fromPot)
+		local t = _PotentialManager:ModifiersOf(toPot)
+		local pe = {
+			statFlat      = cur.statFlat - f.statFlat + t.statFlat,
+			statPct       = cur.statPct - f.statPct + t.statPct,
+			allStatFlat   = cur.allStatFlat - f.allStatFlat + t.allStatFlat,
+			allStatPct    = cur.allStatPct - f.allStatPct + t.allStatPct,
+			attackFlat    = cur.attackFlat - f.attackFlat + t.attackFlat,
+			attackPct     = cur.attackPct - f.attackPct + t.attackPct,
+			damagePct     = cur.damagePct - f.damagePct + t.damagePct,
+			bossDamagePct = cur.bossDamagePct - f.bossDamagePct + t.bossDamagePct,
+			critPct       = cur.critPct,
+		}
+		return self:CalculateCurrentMainStat(pe) * self:CalculateCurrentMainAttack(pe)
+			* self:CalculateCurrentExtraDamage(pe) * self:CalculateCurrentCriticalDamage(pe)
+	end
+
 	method number DisplayMainAttack()
 		-- 표시용 현재 공/마.
 		return self:CalculateCurrentMainAttack(self:BuildExtraTable())

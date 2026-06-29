@@ -1,0 +1,212 @@
+--[[
+    PotentialCubePopup
+    ----------------------------------------------------------------------------
+    미라클 큐브 잠재 재설정 결과 팝업(메이플 "재설정 결과 선택" UI 참고).
+    PotentialManager:NotifyCubeResult(서버→클라)에서 Open이 호출된다.
+
+    두 가지 모드:
+      - 선택 모드(잠재 있음): BEFORE 카드 + AFTER 카드 + [취소(BEFORE 유지)]/[적용(AFTER)]
+      - 자동확정 모드(잠재 없음): AFTER 카드 1장 + [확인] (이미 적용됨, BEFORE/취소 숨김)
+
+    전투력 증가량 = 그 잠재가 '없을 때' 대비 총 전투력 증가분(CombatPowerManager 프리뷰).
+--]]
+@Logic
+script PotentialCubePopup extends Logic
+
+	-- 그룹/공통
+	property Entity groupRoot = "26153b5b-2b6d-4d77-981e-345e09ff1db3"
+	property Entity titleText = "14c86555-2264-4c15-b492-d0bcb82ba1a3"
+
+	-- BEFORE 카드
+	property Entity beforeCard = "830aa0e4-6f93-40be-9b2f-a205368b934b"
+	property SpriteGUIRendererComponent beforeGradeBar = "be121aa5-bd20-4a9f-b217-b7e0b66557cb"
+	property Entity beforeGradeText = "82824afe-a687-4fbb-bbbb-4268797595b9"
+	property Entity beforeOptions = "25f92702-e5f9-48e0-ac93-56aed6b3a589"
+	property Entity beforePower = "c1bec1e5-922a-4a14-b217-0702f87ede50"
+
+	-- AFTER 카드
+	property Entity afterHeader = "452b1c04-c783-4af2-ab06-92486bb0df75"
+	property SpriteGUIRendererComponent afterGradeBar = "c8a8f8ff-3e8d-49c4-8b5f-48c13247c1a2"
+	property Entity afterGradeText = "0d7f424e-350b-4c7d-a834-1a50bcdbfb3d"
+	property Entity afterOptions = "cf9c40d9-7dd7-4db0-b067-f0680b1d3385"
+	property Entity afterPower = "a3ffd58f-6772-47e5-b55d-ab2de198e6b5"
+
+	-- 버튼
+	property ButtonComponent btnApply = "cacd384a-0a60-44d6-a3e9-c9c14e721774"
+	property ButtonComponent btnCancel = "dc8d10d5-34b6-4300-9a20-e6f675eb8063"
+	property ButtonComponent btnConfirm = "ebdfa9e6-912a-4be8-9af6-73d7916e945d"
+
+	-- 상태/핸들러
+	property string _equipName = ""
+	property any _applyH = nil
+	property any _cancelH = nil
+	property any _confirmH = nil
+
+	method void OnBeginPlay()
+		-- 클라: 팝업 숨김 + 버튼 이벤트 배선.
+		if self:IsClient() == false then return end
+		if isvalid(self.groupRoot) then self.groupRoot.Enable = false end
+
+		if isvalid(self.btnApply) then
+			self._applyH = self.btnApply.Entity:ConnectEvent(ButtonClickEvent, function() self:OnApply() end)
+		end
+		if isvalid(self.btnCancel) then
+			self._cancelH = self.btnCancel.Entity:ConnectEvent(ButtonClickEvent, function() self:OnCancel() end)
+		end
+		if isvalid(self.btnConfirm) then
+			self._confirmH = self.btnConfirm.Entity:ConnectEvent(ButtonClickEvent, function() self:OnConfirm() end)
+		end
+		log("[PotentialCubePopup] OnBeginPlay OK")
+	end
+
+	method void SetText(Entity e, string s)
+		-- 텍스트 엔티티의 TextComponent.Text 설정.
+		if isvalid(e) == false then return end
+		local tc = e:GetComponent("MOD.Core.TextComponent")
+		if tc ~= nil then tc.Text = s end
+	end
+
+	method Color GradeColor(string grade)
+		-- 등급별 색(메이플 표준): 레어=파랑, 에픽=보라, 유니크=주황, 레전드리=연두, 없음=회색.
+		if grade == "RARE" then return Color(0.30, 0.62, 0.95, 1) end
+		if grade == "EPIC" then return Color(0.66, 0.40, 0.84, 1) end
+		if grade == "UNIQUE" then return Color(0.96, 0.66, 0.18, 1) end
+		if grade == "LEGENDARY" then return Color(0.63, 0.84, 0.20, 1) end
+		return Color(0.45, 0.47, 0.53, 1)
+	end
+
+	method string FormatGain(number value)
+		-- 전투력 증가량 표기(0/양수 "+N", 음수 "-N", 1만 이상 "○만 ○○○○").
+		local n = math.floor(math.abs(value) + 0.5)
+		local sign = "+"
+		if value < 0 then sign = "-" end
+		if n >= 10000 then
+			local man = math.floor(n / 10000)
+			return sign .. tostring(man) .. "만 " .. string.format("%04d", n % 10000)
+		end
+		return sign .. tostring(n)
+	end
+
+	method void FillCard(SpriteGUIRendererComponent bar, Entity gradeT, Entity optsT, Entity powerT, string potStr, number gain)
+		-- 카드 1장 채우기: 등급바 색/텍스트, 옵션 줄, 전투력 증가량.
+		local grade = _PotentialManager:GradeOf(potStr)
+		if isvalid(bar) then bar.Color = self:GradeColor(grade) end
+		self:SetText(gradeT, _PotentialManager:GradeKorean(grade))
+		self:SetText(optsT, self:OptionLines(potStr))
+		self:SetText(powerT, self:FormatGain(gain))
+	end
+
+	method string OptionLines(string potStr)
+		-- 직렬화에서 옵션 줄만 한글로(등급 줄 제외). DisplayText의 옵션 부분과 동일.
+		if potStr == nil or potStr == "" then return "-" end
+		local out = {}
+		for k, v in string.gmatch(potStr, "(%a+):(%-?%d+)") do
+			local suffix = _PotentialManager:IsPctKey(k) and ("+" .. v .. "%") or ("+" .. v)
+			table.insert(out, _PotentialManager:KeyKorean(k) .. " " .. suffix)
+		end
+		if #out == 0 then return "-" end
+		return table.concat(out, "\n")
+	end
+
+	method number GainOf(string appliedPot, string targetPot, number cpNone)
+		-- 잠재 targetPot 적용 시 전투력 - 잠재 없을 때 전투력(cpNone).
+		if targetPot == "" then return 0 end
+		local p = _UserService.LocalPlayer
+		if isvalid(p) == false then return 0 end
+		local cp = p:GetComponent("script.CombatPowerManager")
+		if isvalid(cp) == false then return 0 end
+		return cp:PreviewPowerWithPotentialSwap(appliedPot, targetPot) - cpNone
+	end
+
+	@ExecSpace("ClientOnly")
+	method void Open(string equipName, string before, string after, boolean autoConfirmed)
+		-- 큐브 결과 팝업 열기. 서버 NotifyCubeResult에서 호출.
+		if self:IsClient() == false then return end
+		self._equipName = equipName
+
+		-- 전투력 증가량 계산 기준: 현재 이 장비에 적용된 잠재(applied)를 빼서 '없음' 전투력을 구하고,
+		-- 각 카드(before/after)를 그 기준 대비 증가량으로 표시.
+		local applied = ""
+		local p = _UserService.LocalPlayer
+		local cpNone = 0
+		if isvalid(p) then
+			local comp = _EquipmentRouter:ManagerForItem(p, equipName)
+			if isvalid(comp) then applied = comp:GetPotential(equipName) end
+			local cp = p:GetComponent("script.CombatPowerManager")
+			if isvalid(cp) then cpNone = cp:PreviewPowerWithPotentialSwap(applied, "") end
+		end
+
+		local afterGain = self:GainOf(applied, after, cpNone)
+		self:FillCard(self.afterGradeBar, self.afterGradeText, self.afterOptions, self.afterPower, after, afterGain)
+
+		if autoConfirmed then
+			-- 자동확정: BEFORE/취소/적용 숨김, AFTER만 + 확인.
+			self:SetText(self.titleText, "잠재능력이 부여되었습니다.")
+			self:SetText(self.afterHeader, "결과")
+			if isvalid(self.beforeCard) then self.beforeCard.Enable = false end
+			self:ShowButton(self.btnApply, false)
+			self:ShowButton(self.btnCancel, false)
+			self:ShowButton(self.btnConfirm, true)
+		else
+			-- 선택 모드: BEFORE/AFTER 비교 + 취소/적용.
+			self:SetText(self.titleText, "재설정된 잠재능력 중 적용할 옵션을 선택해 주세요.")
+			self:SetText(self.afterHeader, "AFTER")
+			if isvalid(self.beforeCard) then self.beforeCard.Enable = true end
+			local beforeGain = self:GainOf(applied, before, cpNone)
+			self:FillCard(self.beforeGradeBar, self.beforeGradeText, self.beforeOptions, self.beforePower, before, beforeGain)
+			self:ShowButton(self.btnApply, true)
+			self:ShowButton(self.btnCancel, true)
+			self:ShowButton(self.btnConfirm, false)
+		end
+
+		if isvalid(self.groupRoot) then self.groupRoot.Enable = true end
+		self:BringToFront()
+		log("[PotentialCubePopup] Open " .. equipName .. " auto=" .. tostring(autoConfirmed))
+	end
+
+	method void ShowButton(ButtonComponent btn, boolean v)
+		-- 버튼 엔티티 표시/숨김.
+		if isvalid(btn) == false or isvalid(btn.Entity) == false then return end
+		btn.Entity.Enable = v
+	end
+
+	method void BringToFront()
+		-- 팝업 그룹을 형제 중 맨 앞(최상단)으로.
+		if isvalid(self.groupRoot) == false then return end
+		local uit = self.groupRoot.UITransformComponent
+		if isvalid(uit) then _UILogic:SetSiblingIndex(uit, 1000000) end
+	end
+
+	method void OnApply()
+		-- AFTER 적용.
+		_SFXManager:PlayClick()
+		_PotentialManager:ChooseCube(self._equipName, true)
+		self:Close()
+	end
+
+	method void OnCancel()
+		-- BEFORE 유지(후보 폐기).
+		_SFXManager:PlayClick()
+		_PotentialManager:ChooseCube(self._equipName, false)
+		self:Close()
+	end
+
+	method void OnConfirm()
+		-- 자동확정 결과 닫기(이미 적용됨).
+		_SFXManager:PlayClick()
+		self:Close()
+	end
+
+	method void Close()
+		-- 팝업 닫기.
+		if isvalid(self.groupRoot) then self.groupRoot.Enable = false end
+	end
+
+	method void OnEndPlay()
+		-- 버튼 핸들러 해제.
+		if self._applyH ~= nil and isvalid(self.btnApply) then self.btnApply.Entity:DisconnectEvent(ButtonClickEvent, self._applyH) end
+		if self._cancelH ~= nil and isvalid(self.btnCancel) then self.btnCancel.Entity:DisconnectEvent(ButtonClickEvent, self._cancelH) end
+		if self._confirmH ~= nil and isvalid(self.btnConfirm) then self.btnConfirm.Entity:DisconnectEvent(ButtonClickEvent, self._confirmH) end
+	end
+
+end
