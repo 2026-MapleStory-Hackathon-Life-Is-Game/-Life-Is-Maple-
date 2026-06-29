@@ -17,7 +17,7 @@ script BaseEquipment extends Component
 
 	method integer FindRow(string equipName)
 		-- EquipData에서 equipName 행 인덱스(없으면 -1).
-		local ds = _DataService:GetTable("EquipData")
+		local ds = _DataService:GetTable("EquipmentData")
 		if isvalid(ds) == false then return -1 end
 		for i = 1, ds:GetRowCount() do
 			if ds:GetCell(i, "EquipName") == equipName then return i end
@@ -30,7 +30,7 @@ script BaseEquipment extends Component
 		if equipName == "" then return false end
 		local row = self:FindRow(equipName)
 		if row == -1 then return false end
-		return _DataService:GetTable("EquipData"):GetCell(row, "Category") == self:EquipCategory()
+		return _DataService:GetTable("EquipmentData"):GetCell(row, "Category") == self:EquipCategory()
 	end
 
 	method table ItemModifiers(string equipName)
@@ -39,11 +39,13 @@ script BaseEquipment extends Component
 		if equipName == "" then return m end
 		local row = self:FindRow(equipName)
 		if row == -1 then return m end
-		local ds = _DataService:GetTable("EquipData")
-		m.statFlat = tonumber(ds:GetCell(row, "Stat")) or 0
-		m.attackFlat = tonumber(ds:GetCell(row, "Attack")) or 0
-		m.damagePct = tonumber(ds:GetCell(row, "Damage")) or 0
-		m.bossDamagePct = tonumber(ds:GetCell(row, "BossDamage")) or 0
+		local ds = _DataService:GetTable("EquipmentData")
+		m.statFlat = tonumber(ds:GetCell(row, "MainStat_Flat")) or 0
+		m.statPct = tonumber(ds:GetCell(row, "MainStat_Percent")) or 0
+		m.attackFlat = tonumber(ds:GetCell(row, "MainAttack_Flat")) or 0
+		m.attackPct = tonumber(ds:GetCell(row, "MainAttack_Percent")) or 0
+		m.damagePct = tonumber(ds:GetCell(row, "Damage_Percent")) or 0
+		m.bossDamagePct = tonumber(ds:GetCell(row, "BossDamage_Percent")) or 0
 		return m
 	end
 

@@ -96,7 +96,7 @@ script EquipTooltip extends Logic
 	method void FillColumn(Entity nameE, SpriteGUIRendererComponent iconC, Entity powerE, Entity statsE, Entity potE, string equipName)
 		-- 한 칼럼을 equipName의 데이터로 채운다. 전투력 변화량은 내부에서 계산해 값+색을 적용.
 		if equipName == "" then return end
-		local ds = _DataService:GetTable("EquipData")
+		local ds = _DataService:GetTable("EquipmentData")
 		if isvalid(ds) == false then return end
 		local row = -1
 		for i = 1, ds:GetRowCount() do
@@ -108,7 +108,7 @@ script EquipTooltip extends Logic
 		self:SetText(nameE, ds:GetCell(row, "Name"))
 		-- 아이콘
 		if isvalid(iconC) then
-			local ruid = ds:GetCell(row, "Icon")
+			local ruid = ds:GetCell(row, "Sprite RUID")
 			if ruid ~= "" then
 				iconC.ImageRUID = ruid
 				iconC.Color = Color(1, 1, 1, 1)
@@ -122,10 +122,10 @@ script EquipTooltip extends Logic
 		self:SetPowerColor(powerE, gain)
 		-- 스탯 값 칼럼(라벨은 .ui에 고정): 스탯 / 공격력 / 대미지% / 보스 대미지%
 		self:SetText(statsE,
-			ds:GetCell(row, "Stat") .. "\n"
-			.. ds:GetCell(row, "Attack") .. "\n"
-			.. ds:GetCell(row, "Damage") .. "%\n"
-			.. ds:GetCell(row, "BossDamage") .. "%")
+			ds:GetCell(row, "MainStat_Flat") .. "\n"
+			.. ds:GetCell(row, "MainAttack_Flat") .. "\n"
+			.. ds:GetCell(row, "Damage_Percent") .. "%\n"
+			.. ds:GetCell(row, "BossDamage_Percent") .. "%")
 		-- 잠재능력(데이터 대기 → 일단 빈칸)
 		self:SetText(potE, "")
 	end

@@ -311,11 +311,11 @@ script CombatPowerManager extends Component
 		local swapEq = _EquipmentRouter:ModifiersWithSwap(self.Entity, candidate)
 		local pe = {
 			statFlat      = cur.statFlat - curEq.statFlat + swapEq.statFlat,
-			statPct       = cur.statPct,
+			statPct       = cur.statPct - curEq.statPct + swapEq.statPct,
 			allStatFlat   = cur.allStatFlat,
 			allStatPct    = cur.allStatPct,
 			attackFlat    = cur.attackFlat - curEq.attackFlat + swapEq.attackFlat,
-			attackPct     = cur.attackPct,
+			attackPct     = cur.attackPct - curEq.attackPct + swapEq.attackPct,
 			damagePct     = cur.damagePct - curEq.damagePct + swapEq.damagePct,
 			bossDamagePct = cur.bossDamagePct - curEq.bossDamagePct + swapEq.bossDamagePct,
 			critPct       = cur.critPct,
@@ -342,7 +342,9 @@ script CombatPowerManager extends Component
 	method number ItemStandalonePower(table m)
 		-- 단독 전투력 환산값(정렬용, 결정적, 장착상태 무관). 곱셈구조 근사.
 		local dmg = 1 + ((m.damagePct or 0) + (m.bossDamagePct or 0)) / 100
-		return (1 + (m.statFlat or 0)) * (1 + (m.attackFlat or 0)) * dmg
+		local stat = (1 + (m.statFlat or 0)) * (1 + (m.statPct or 0) / 100)
+		local atk = (1 + (m.attackFlat or 0)) * (1 + (m.attackPct or 0) / 100)
+		return stat * atk * dmg
 	end
 
 end

@@ -160,12 +160,12 @@ script CharacterInfoPanel extends Component
 			self:SetSlotLabel(e, "(없음)", false)
 			return
 		end
-		local ds = _DataService:GetTable("EquipData")
+		local ds = _DataService:GetTable("EquipmentData")
 		local ruid = ""
 		local dname = equipName
 		for i = 1, ds:GetRowCount() do
 			if ds:GetCell(i, "EquipName") == equipName then
-				ruid = ds:GetCell(i, "Icon")
+				ruid = ds:GetCell(i, "Sprite RUID")
 				dname = ds:GetCell(i, "Name")
 				break
 			end

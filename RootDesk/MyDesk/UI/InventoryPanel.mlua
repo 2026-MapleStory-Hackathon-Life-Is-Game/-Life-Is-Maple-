@@ -162,13 +162,13 @@ script InventoryPanel extends Component
 		if name == nil then return end
 
 		-- 아이콘 RUID + 표시명 조회
-		local ds = _DataService:GetTable("EquipData")
+		local ds = _DataService:GetTable("EquipmentData")
 		local ruid = ""
 		local dname = name
 		if isvalid(ds) then
 			for i = 1, ds:GetRowCount() do
 				if ds:GetCell(i, "EquipName") == name then
-					ruid = ds:GetCell(i, "Icon")
+					ruid = ds:GetCell(i, "Sprite RUID")
 					dname = ds:GetCell(i, "Name")
 					break
 				end
