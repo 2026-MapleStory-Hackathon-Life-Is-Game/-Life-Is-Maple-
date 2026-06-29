@@ -44,6 +44,9 @@ script PotentialCubePopup extends Logic
 	property any _beforeH = nil
 	property any _afterH = nil
 	property any _rerollH = nil
+	property any _beforeHoverH = nil
+	property any _afterHoverH = nil
+	property any _rerollHoverH = nil
 
 	method void OnBeginPlay()
 		-- 클라: 팝업 숨김 + 버튼 이벤트 배선.
@@ -60,6 +63,11 @@ script PotentialCubePopup extends Logic
 		if isvalid(self.btnReroll) then
 			self._rerollH = self.btnReroll.Entity:ConnectEvent(ButtonClickEvent, function() self:OnReroll() end)
 		end
+
+		-- 호버 강조: 카드는 흰색 오버레이가 살짝 떠오르고, 재설정 버튼은 더 밝은 파랑으로.
+		self._afterHoverH = self:WireHover(self.afterBtn, Color(1, 1, 1, 0), Color(1, 1, 1, 0.18))
+		self._beforeHoverH = self:WireHover(self.beforeBtn, Color(1, 1, 1, 0), Color(1, 1, 1, 0.18))
+		self._rerollHoverH = self:WireHover(self.btnReroll, Color(0.20, 0.45, 0.85, 1), Color(0.38, 0.62, 1.0, 1))
 		log("[PotentialCubePopup] OnBeginPlay OK")
 	end
 
@@ -165,6 +173,22 @@ script PotentialCubePopup extends Logic
 		btn.Entity.Enable = v
 	end
 
+	method any WireHover(ButtonComponent btn, Color normalC, Color hoverC)
+		-- 버튼/카드에 마우스 호버 강조. 호버=hoverC, 벗어나면 normalC. 반환=이벤트 핸들.
+		-- (PC 호버는 ButtonComponent + ButtonStateChangeEvent로 감지)
+		if isvalid(btn) == false or isvalid(btn.Entity) == false then return nil end
+		local sr = btn.Entity.SpriteGUIRendererComponent
+		if isvalid(sr) == false then return nil end
+		sr.Color = normalC
+		return btn.Entity:ConnectEvent(ButtonStateChangeEvent, function(ev)
+			if ev.state == ButtonState.Hover or ev.state == ButtonState.Pressed then
+				sr.Color = hoverC
+			elseif ev.state == ButtonState.Normal then
+				sr.Color = normalC
+			end
+		end)
+	end
+
 	method void BringToFront()
 		-- 팝업 그룹을 형제 중 맨 앞(최상단)으로.
 		if isvalid(self.groupRoot) == false then return end
@@ -202,6 +226,9 @@ script PotentialCubePopup extends Logic
 		if self._afterH ~= nil and isvalid(self.afterBtn) then self.afterBtn.Entity:DisconnectEvent(ButtonClickEvent, self._afterH) end
 		if self._beforeH ~= nil and isvalid(self.beforeBtn) then self.beforeBtn.Entity:DisconnectEvent(ButtonClickEvent, self._beforeH) end
 		if self._rerollH ~= nil and isvalid(self.btnReroll) then self.btnReroll.Entity:DisconnectEvent(ButtonClickEvent, self._rerollH) end
+		if self._afterHoverH ~= nil and isvalid(self.afterBtn) then self.afterBtn.Entity:DisconnectEvent(ButtonStateChangeEvent, self._afterHoverH) end
+		if self._beforeHoverH ~= nil and isvalid(self.beforeBtn) then self.beforeBtn.Entity:DisconnectEvent(ButtonStateChangeEvent, self._beforeHoverH) end
+		if self._rerollHoverH ~= nil and isvalid(self.btnReroll) then self.btnReroll.Entity:DisconnectEvent(ButtonStateChangeEvent, self._rerollHoverH) end
 	end
 
 end
