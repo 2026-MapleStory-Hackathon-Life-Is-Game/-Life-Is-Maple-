@@ -78,11 +78,18 @@ script PotentialCubePopup extends Logic
 		if tc ~= nil then tc.Text = s end
 	end
 
+	method void SetTextColor(Entity e, Color c)
+		-- 텍스트 엔티티의 TextComponent.FontColor 설정(등급 글자색 표시용).
+		if isvalid(e) == false then return end
+		local tc = e:GetComponent("MOD.Core.TextComponent")
+		if tc ~= nil then tc.FontColor = c end
+	end
+
 	method Color GradeColor(string grade)
-		-- 등급별 색(메이플 표준): 레어=파랑, 에픽=보라, 유니크=주황, 레전드리=연두, 없음=회색.
+		-- 등급별 색: 레어=파랑, 에픽=보라, 유니크=노랑, 레전드리=연두, 없음=회색.
 		if grade == "RARE" then return Color(0.30, 0.62, 0.95, 1) end
 		if grade == "EPIC" then return Color(0.66, 0.40, 0.84, 1) end
-		if grade == "UNIQUE" then return Color(0.96, 0.66, 0.18, 1) end
+		if grade == "UNIQUE" then return Color(1.00, 0.84, 0.16, 1) end
 		if grade == "LEGENDARY" then return Color(0.63, 0.84, 0.20, 1) end
 		return Color(0.45, 0.47, 0.53, 1)
 	end
@@ -102,8 +109,11 @@ script PotentialCubePopup extends Logic
 	method void FillCard(SpriteGUIRendererComponent bar, Entity gradeT, Entity optsT, Entity powerT, string potStr, number gain)
 		-- 카드 1장 채우기: 등급바 색/텍스트, 옵션 줄, 전투력 증가량.
 		local grade = _PotentialManager:GradeOf(potStr)
-		if isvalid(bar) then bar.Color = self:GradeColor(grade) end
+		local col = self:GradeColor(grade)
+		if isvalid(bar) then bar.Color = col end
 		self:SetText(gradeT, _PotentialManager:GradeKorean(grade))
+		-- 등급 글자색도 등급색으로(작은 등급바뿐 아니라 등급 텍스트도 색으로 구분).
+		self:SetTextColor(gradeT, col)
 		self:SetText(optsT, self:OptionLines(potStr))
 		self:SetText(powerT, self:FormatGain(gain))
 	end
