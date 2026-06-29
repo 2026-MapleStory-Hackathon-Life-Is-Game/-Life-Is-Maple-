@@ -212,6 +212,38 @@ script PotentialManager extends Logic
 		comp:Recalc()
 	end
 
+	@ExecSpace("Server")
+	method void RerollCube(string equipName)
+		-- 재설정: 선택 대기(미확정 후보)가 있는 상태에서 큐브를 한 번 더 소모해 다시 굴린다.
+		-- 재추첨 기준은 '현재 적용된 잠재(Before)' 등급 — 미적용 후보(After)를 누적해 승급시키지 않는다.
+		local player = _UserService:GetUserEntityByUserId(senderUserId)
+		if isvalid(player) == false then return end
+		local comp = _EquipmentRouter:ManagerForItem(player, equipName)
+		if isvalid(comp) == false then return end
+		if comp.Owned[equipName] ~= true and comp.Equipped ~= equipName then return end
+
+		local key = senderUserId .. ":" .. equipName
+		-- 후보가 없으면(선택 모드가 아니면) 재설정 버튼이 노출될 일이 없지만, 방어적으로 무시.
+		if self._pending[key] == nil then
+			log_warning("[PotentialManager] 재설정 거부: 대기 후보 없음 " .. key)
+			return
+		end
+
+		local bag = self:BagOf(player)
+		if isvalid(bag) == false or bag.MiracleCubeCount <= 0 then
+			-- 큐브 부족: 기존 후보를 유지한 채 팝업만 다시 띄운다(상태 손실 방지).
+			log_warning("[PotentialManager] 재설정: 미라클 큐브 부족 " .. tostring(senderUserId))
+			self:NotifyCubeResult(equipName, comp:GetPotential(equipName), self._pending[key], false, senderUserId)
+			return
+		end
+		bag.MiracleCubeCount = bag.MiracleCubeCount - 1
+
+		local cur = comp:GetPotential(equipName)
+		local cand = self:RollPotential(self:GradeOf(cur))
+		self._pending[key] = cand
+		self:NotifyCubeResult(equipName, cur, cand, false, senderUserId)
+	end
+
 	@ExecSpace("Client")
 	method void NotifyCubeResult(string equipName, string before, string after, boolean autoConfirmed)
 		-- 큐브 결과를 클라 팝업으로 통지. autoConfirmed면 결과+확인, 아니면 Before/After 선택.

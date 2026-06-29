@@ -5,8 +5,8 @@
     PotentialManager:NotifyCubeResult(서버→클라)에서 Open이 호출된다.
 
     두 가지 모드:
-      - 선택 모드(잠재 있음): BEFORE 카드 + AFTER 카드 + [취소(BEFORE 유지)]/[적용(AFTER)]
-      - 자동확정 모드(잠재 없음): AFTER 카드 1장 + [확인] (이미 적용됨, BEFORE/취소 숨김)
+      - 선택 모드(잠재 있음): BEFORE 카드 + AFTER 카드 + [적용(AFTER)]/[재설정(큐브 1개 더)]/[취소(BEFORE 유지, 오른쪽 하단)]
+      - 자동확정 모드(잠재 없음): AFTER 카드 1장 + [확인] (이미 적용됨, BEFORE/적용/재설정/취소 숨김)
 
     전투력 증가량 = 그 잠재가 '없을 때' 대비 총 전투력 증가분(CombatPowerManager 프리뷰).
 --]]
@@ -33,12 +33,14 @@ script PotentialCubePopup extends Logic
 
 	-- 버튼
 	property ButtonComponent btnApply = "cacd384a-0a60-44d6-a3e9-c9c14e721774"
+	property ButtonComponent btnReroll = "ba54cbfc-6d1b-4abe-8c47-3e492936d47a"
 	property ButtonComponent btnCancel = "dc8d10d5-34b6-4300-9a20-e6f675eb8063"
 	property ButtonComponent btnConfirm = "ebdfa9e6-912a-4be8-9af6-73d7916e945d"
 
 	-- 상태/핸들러
 	property string _equipName = ""
 	property any _applyH = nil
+	property any _rerollH = nil
 	property any _cancelH = nil
 	property any _confirmH = nil
 
@@ -49,6 +51,9 @@ script PotentialCubePopup extends Logic
 
 		if isvalid(self.btnApply) then
 			self._applyH = self.btnApply.Entity:ConnectEvent(ButtonClickEvent, function() self:OnApply() end)
+		end
+		if isvalid(self.btnReroll) then
+			self._rerollH = self.btnReroll.Entity:ConnectEvent(ButtonClickEvent, function() self:OnReroll() end)
 		end
 		if isvalid(self.btnCancel) then
 			self._cancelH = self.btnCancel.Entity:ConnectEvent(ButtonClickEvent, function() self:OnCancel() end)
@@ -145,16 +150,18 @@ script PotentialCubePopup extends Logic
 			self:SetText(self.afterHeader, "결과")
 			if isvalid(self.beforeCard) then self.beforeCard.Enable = false end
 			self:ShowButton(self.btnApply, false)
+			self:ShowButton(self.btnReroll, false)
 			self:ShowButton(self.btnCancel, false)
 			self:ShowButton(self.btnConfirm, true)
 		else
-			-- 선택 모드: BEFORE/AFTER 비교 + 취소/적용.
+			-- 선택 모드: BEFORE/AFTER 비교 + 적용/재설정/취소.
 			self:SetText(self.titleText, "재설정된 잠재능력 중 적용할 옵션을 선택해 주세요.")
 			self:SetText(self.afterHeader, "AFTER")
 			if isvalid(self.beforeCard) then self.beforeCard.Enable = true end
 			local beforeGain = self:GainOf(applied, before, cpNone)
 			self:FillCard(self.beforeGradeBar, self.beforeGradeText, self.beforeOptions, self.beforePower, before, beforeGain)
 			self:ShowButton(self.btnApply, true)
+			self:ShowButton(self.btnReroll, true)
 			self:ShowButton(self.btnCancel, true)
 			self:ShowButton(self.btnConfirm, false)
 		end
@@ -184,6 +191,12 @@ script PotentialCubePopup extends Logic
 		self:Close()
 	end
 
+	method void OnReroll()
+		-- 재설정: 큐브를 한 번 더 소모해 다시 굴린다. 서버가 새 후보로 팝업을 다시 열어주므로 닫지 않는다.
+		_SFXManager:PlayClick()
+		_PotentialManager:RerollCube(self._equipName)
+	end
+
 	method void OnCancel()
 		-- BEFORE 유지(후보 폐기).
 		_SFXManager:PlayClick()
@@ -205,6 +218,7 @@ script PotentialCubePopup extends Logic
 	method void OnEndPlay()
 		-- 버튼 핸들러 해제.
 		if self._applyH ~= nil and isvalid(self.btnApply) then self.btnApply.Entity:DisconnectEvent(ButtonClickEvent, self._applyH) end
+		if self._rerollH ~= nil and isvalid(self.btnReroll) then self.btnReroll.Entity:DisconnectEvent(ButtonClickEvent, self._rerollH) end
 		if self._cancelH ~= nil and isvalid(self.btnCancel) then self.btnCancel.Entity:DisconnectEvent(ButtonClickEvent, self._cancelH) end
 		if self._confirmH ~= nil and isvalid(self.btnConfirm) then self.btnConfirm.Entity:DisconnectEvent(ButtonClickEvent, self._confirmH) end
 	end
