@@ -2,33 +2,45 @@
 script InventoryPanel extends Component
 
 	property Entity panelRoot = "265b6a00-710c-4654-ad3f-85db1bc7685f"
+
 	property Entity gridEntity = "c4fadd74-2612-44e0-913c-94d38acf97f1"
+
 	property Entity cellPrefab = "5c958470-46b3-40e2-a250-24aaa2847a6e"
-	-- 큐브 사용 모드 안내 배너(Item 탭에서 큐브 클릭 시 표시).
-	-- 기존 '잠재 재설정' 버튼(BtnCube) 엔티티를 재활용 — 이제 클릭 트리거가 아니라 안내 라벨로만 쓴다.
+
 	property Entity cubeBanner = "e1e4862c-e849-48f2-9de5-22c888cf1634"
+
 	property boolean isOpen = false
+
 	property string activeTab = "Armor"
+
 	property any cellHandlers = nil
+
 	property string _lastClickName = ""
+
 	property number _lastClickTime = 0
+
 	property number _pollTimer = 0
+
 	property string _lastListSig = ""
-	-- 큐브 사용 모드: Item 탭에서 미라클 큐브를 누르면 켜지고, 그리드가 '재설정 대상 장비'로 전환된다.
+
 	property boolean _cubeUseMode = false
+
 	property string _lastBannerSig = ""
 
-	-- 우클릭 컨텍스트 메뉴(장비 셀 우클릭 시 옆에 뜨는 3버튼 패널).
 	property Entity ctxMenu = "246bd7cf-bcce-4d32-a8ec-6e04e25642a1"
+
 	property ButtonComponent ctxBtnEquip = "db28172c-7b0d-4809-bfad-8b3f2221f029"
+
 	property ButtonComponent ctxBtnCube = "ff23db32-c729-487d-bf5e-a806008f0ade"
+
 	property ButtonComponent ctxBtnClose = "160a192d-b859-4ac9-9fa3-9ae0bd99a0d8"
-	-- 현재 호버 중인 장비명(셀 Hover에서 갱신). 우클릭 시 이 장비로 메뉴를 연다.
+
 	property string _hoverEquip = ""
-	-- 우클릭(Mouse1) 눌림 엣지 감지용 직전 상태.
+
 	property boolean _lastMouse1 = false
-	-- 컨텍스트 메뉴가 작업 대상으로 잡은 장비명.
+
 	property string _ctxTarget = ""
+
 	property any _ctxHandlers = nil
 
 	method void OnBeginPlay()
@@ -42,11 +54,11 @@ script InventoryPanel extends Component
 		self._T.items = {}
 		self._T.tabH = {}
 		self._T.tabEnts = {}
-
+		
 		if isvalid(self.panelRoot) then
 			self.panelRoot.Enable = false
 		end
-
+		
 		if isvalid(self.gridEntity) and isvalid(self.cellPrefab) then
 			local gvc = self.gridEntity.GridViewComponent
 			if gvc ~= nil then
@@ -62,7 +74,7 @@ script InventoryPanel extends Component
 				end
 			end
 		end
-
+		
 		-- 탭 버튼 이벤트 배선
 		local base = "/ui/InGameUIGroup/Inventory_Panel/Window/"
 		local tabs = {
@@ -84,7 +96,7 @@ script InventoryPanel extends Component
 			end
 		end
 		self:UpdateTabVisual()
-
+		
 		-- 하단 푸터의 닫기 버튼 → 인벤 닫기. 탭과 동일하게 _T.tabH에 넣어 OnEndPlay에서 함께 해제.
 		local closeBtn = _EntityService:GetEntityByPath(base .. "Footer/BtnClose")
 		if isvalid(closeBtn) then
@@ -94,12 +106,12 @@ script InventoryPanel extends Component
 			end)
 			table.insert(self._T.tabH, { entity = closeBtn, evtH = ch })
 		end
-
+		
 		-- 큐브 사용 모드 배너는 기본 숨김(미라클 큐브 셀을 누르면 켜진다).
 		self._cubeUseMode = false
 		self._lastBannerSig = ""
 		if isvalid(self.cubeBanner) then self.cubeBanner.Enable = false end
-
+		
 		-- 우클릭 컨텍스트 메뉴: 기본 숨김 + 3버튼 클릭 배선.
 		self._ctxHandlers = {}
 		self._hoverEquip = ""
@@ -118,7 +130,7 @@ script InventoryPanel extends Component
 			local hx = self.ctxBtnClose.Entity:ConnectEvent(ButtonClickEvent, function() self:OnCtxClose() end)
 			table.insert(self._ctxHandlers, { entity = self.ctxBtnClose.Entity, evtH = hx })
 		end
-
+		
 		log("[InventoryPanel] OnBeginPlay OK")
 	end
 
@@ -284,7 +296,7 @@ script InventoryPanel extends Component
 	method void Rebuild()
 		-- 보유 목록으로 GridView 재구성.
 		if self:IsClient() == false or self.isOpen == false then return end
-
+		
 		-- ⚠ Rebuild에서는 셀 핸들러를 건드리지 않는다. TotalCount가 같으면 gvc:Refresh()가
 		--   OnRefresh를 다시 부르지 않아, 여기서 해제하면 핸들러가 영영 재연결되지 않는다(호버 사망).
 		--   핸들러 교체/해제는 셀 생애주기 콜백(OnGridCellRefresh/Clear)에서만 처리한다.
@@ -293,7 +305,7 @@ script InventoryPanel extends Component
 		-- 깜빡임 방지: 시그니처를 여기서 동기화해 OnUpdate 폴러가 중복 Rebuild를 또 트리거하지 않게 한다.
 		self._lastListSig = self:ListSig(items)
 		log("[InventoryPanel] Rebuild tab=" .. self.activeTab .. " count=" .. tostring(#items))
-
+		
 		if isvalid(self.gridEntity) then
 			local gvc = self.gridEntity.GridViewComponent
 			if gvc ~= nil then
@@ -311,10 +323,10 @@ script InventoryPanel extends Component
 		if items == nil then return end
 		local name = items[index + 1]
 		if name == nil then return end
-
+		
 		local rend = cell.SpriteGUIRendererComponent
 		local tc = cell:GetComponent("MOD.Core.TextComponent")
-
+		
 		if name == "__MIRACLE_CUBE__" then
 			-- 미라클 큐브 셀: 아이콘 RUID가 없으므로 보라색 틴트 + 보유 수 텍스트로 표현.
 			if isvalid(rend) then
@@ -361,7 +373,7 @@ script InventoryPanel extends Component
 				tc.FontSize = 12
 			end
 		end
-
+		
 		-- 이 셀의 기존 핸들러만 교체(누적 방지). Rebuild는 핸들러를 안 건드리므로 여기서 관리한다.
 		for i = #self.cellHandlers, 1, -1 do
 			local r = self.cellHandlers[i]
@@ -418,7 +430,13 @@ script InventoryPanel extends Component
 			end
 			_EquipTooltip:ShowCompare(equipName, cur)
 		elseif ev.state == ButtonState.Pressed then
-			self:OnCellClicked(equipName)
+			-- 우클릭이면 컨텍스트 메뉴(좌클릭 장착 로직은 타지 않음 → 메뉴 즉시 닫힘 경합 방지).
+			if _InputService:IsKeyPressed(KeyboardKey.Mouse1) then
+				self._hoverEquip = equipName
+				self:OpenContextMenu(equipName)
+			else
+				self:OnCellClicked(equipName)
+			end
 		elseif ev.state == ButtonState.Normal then
 			-- 이 셀에서 마우스가 빠지면 호버 추적 해제(다른 셀이 이미 잡았으면 건드리지 않음).
 			if self._hoverEquip == equipName then self._hoverEquip = "" end
@@ -429,10 +447,10 @@ script InventoryPanel extends Component
 	method void OnUpdate(number delta)
 		-- 인벤 열린 동안 0.2초마다 목록 변경 감지 → Rebuild.
 		if self:IsClient() == false or self.isOpen == false then return end
-
-		-- 우클릭 엣지 감지(매 프레임): 장비 셀 위 우클릭 → 컨텍스트 메뉴 열기/닫기.
+		
+		-- 우클릭 엣지 감지(매 프레임): 장비 셀 위 우클릭 → 컨텍스트 메뉴 열기(폴백 경로).
 		self:UpdateRightClick()
-
+		
 		self._pollTimer = self._pollTimer + delta
 		if self._pollTimer < 0.2 then return end
 		self._pollTimer = 0
@@ -486,11 +504,11 @@ script InventoryPanel extends Component
 		-- 매 프레임 호출. 우클릭 눌림 엣지에서, 호버 중인 장비가 있으면 컨텍스트 메뉴를 띄운다.
 		local down = _InputService:IsKeyPressed(KeyboardKey.Mouse1)
 		if down and self._lastMouse1 == false then
-			-- 큐브 사용 모드에서는 좌클릭으로 대상 선택을 하므로 우클릭 메뉴는 띄우지 않는다.
+			-- 우클릭 눌림 엣지. 큐브 사용 모드가 아니고 호버 중인 장비가 있으면 메뉴를 연다.
+			-- (셀 Pressed 이벤트가 우클릭을 직접 처리하지 못하는 경우의 폴백 경로.)
+			-- 빈 곳 우클릭 시 자동 닫기는 이벤트 경로와의 경합을 막기 위해 하지 않는다(닫기는 닫기 버튼/좌클릭으로).
 			if self._cubeUseMode == false and self._hoverEquip ~= "" then
 				self:OpenContextMenu(self._hoverEquip)
-			else
-				self:CloseContextMenu()
 			end
 		end
 		self._lastMouse1 = down
