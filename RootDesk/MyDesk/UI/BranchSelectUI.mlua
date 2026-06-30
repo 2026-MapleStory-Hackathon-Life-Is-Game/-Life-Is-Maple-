@@ -30,6 +30,7 @@ script BranchSelectUI extends Logic
 	@ExecSpace("ClientOnly")
 	method void Show(table tileNames, table branchTexts)
 		log("BranchUI Show 진입! panel valid=" .. tostring(isvalid(self.panel)))   -- ← 추가
+		self:DisconnectAll()   -- 재오픈 시 중복 구독 방지: 기존 핸들러를 먼저 끊는다.
 				if isvalid(self.panel) == false then return end
 				if isvalid(self.dimBack) then self.dimBack.Enable = true end
 				self.panel.Enable = true
@@ -75,6 +76,12 @@ script BranchSelectUI extends Logic
 				player.PlayerMovement:OnBranchSelected(tileName)
 		
 				self:Hide()   -- 선택했으니 UI 닫기
+	end
+
+	@ExecSpace("ClientOnly")
+	method void OnEndPlay()
+		-- 월드 종료 시 핸들러 누수 방지(Hide 경로를 안 타고 끝나는 경우 대비).
+		self:DisconnectAll()
 	end
 
 	method void DisconnectAll()
