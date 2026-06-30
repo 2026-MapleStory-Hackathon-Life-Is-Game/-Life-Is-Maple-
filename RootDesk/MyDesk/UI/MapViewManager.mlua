@@ -18,6 +18,12 @@ script MapViewManager extends Logic
 
 	property any _scrollHandler = nil
 
+	-- 우클릭 드래그 패닝 상태.
+	property boolean _dragging = false
+	property Vector2 _lastCursor = Vector2(0, 0)
+	-- 드래그 1px당 카메라 오프셋(월드) 이동량. 줌 비례 보정과 함께 사용.
+	property number _dragScale = 0.012
+
 	@ExecSpace("ClientOnly")
 	method void OnBeginPlay()
 		self._scrollHandler = _InputService:ConnectEvent(MouseScrollEvent, self.OnMouseScroll)
@@ -66,7 +72,7 @@ script MapViewManager extends Logic
 
 		local cam = _CameraService:GetCurrentCameraComponent()
 		if not isvalid(cam) then return end
-		
+
 		local spd = self._camMoveSpeed * delta
 		local dx = 0
 		local dy = 0
@@ -74,10 +80,37 @@ script MapViewManager extends Logic
 		if _InputService:IsKeyPressed(KeyboardKey.S) or _InputService:IsKeyPressed(KeyboardKey.DownArrow) then dy = dy - spd end
 		if _InputService:IsKeyPressed(KeyboardKey.A) or _InputService:IsKeyPressed(KeyboardKey.LeftArrow) then dx = dx - spd end
 		if _InputService:IsKeyPressed(KeyboardKey.D) or _InputService:IsKeyPressed(KeyboardKey.RightArrow) then dx = dx + spd end
-		
+
 		if dx ~= 0 or dy ~= 0 then
 			cam.CameraOffset = Vector2(cam.CameraOffset.x + dx, cam.CameraOffset.y + dy)
 		end
+
+		-- 우클릭 드래그 패닝(맵뷰 한정). 맵을 '잡아끌기': 커서 이동 방향으로 맵이 따라온다.
+		self:UpdateDragPan(cam)
+	end
+
+	@ExecSpace("ClientOnly")
+	method void UpdateDragPan(any cam)
+		-- 우클릭(Mouse1)을 누른 채 마우스를 움직이면 카메라 오프셋을 이동(맵을 상하좌우로 끌기).
+		if _InputService:IsKeyPressed(KeyboardKey.Mouse1) == false then
+			self._dragging = false
+			return
+		end
+		local cur = _InputService:GetCursorPosition()
+		if self._dragging == false then
+			-- 드래그 시작 프레임: 기준 커서만 저장하고 이동은 다음 프레임부터(튐 방지).
+			self._dragging = true
+			self._lastCursor = cur
+			return
+		end
+		local ddx = cur.x - self._lastCursor.x
+		local ddy = cur.y - self._lastCursor.y
+		self._lastCursor = cur
+		if ddx == 0 and ddy == 0 then return end
+		-- 줌 비례 보정: 줌아웃(작은 ZoomRatio)일수록 1px가 더 넓은 월드에 대응.
+		local k = self._dragScale * (100 / math.max(1, cam.ZoomRatio))
+		-- 잡아끌기 방식: 커서가 오른쪽으로 가면 맵도 오른쪽으로(=카메라는 왼쪽). 세로는 화면 y축(아래로 증가) 보정.
+		cam.CameraOffset = Vector2(cam.CameraOffset.x - ddx * k, cam.CameraOffset.y + ddy * k)
 	end
 
 	@ExecSpace("ClientOnly")
@@ -154,6 +187,7 @@ script MapViewManager extends Logic
 	method void CloseMapView()
 		if not self._isOpen then return end
 		self._isOpen = false
+		self._dragging = false
 
 		self:HideTileNumbers()
 		self:SetHudHidden(false)
