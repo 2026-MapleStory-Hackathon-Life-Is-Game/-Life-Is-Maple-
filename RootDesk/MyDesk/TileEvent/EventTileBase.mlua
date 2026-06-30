@@ -35,7 +35,8 @@ script EventTileBase extends BaseTile
 			self:FinishEventTile()
 			return
 		end
-		self:ShowEventUI(ev.message, ownerId)
+		local monsterRUID = ev.monsterRUID or ""
+		self:ShowEventUI(ev.message, monsterRUID, ownerId)
 
 		log("[EventTileBase] 이벤트 발생 tile=" .. self.Entity.Name
 			.. " type=" .. tostring(ev.eventType))
@@ -135,10 +136,10 @@ script EventTileBase extends BaseTile
 	end
 
 	@ExecSpace("Client")
-	method void ShowEventUI(string message)
-		-- 도착한 플레이어의 클라에서 실행(타깃 호출). 텍스트 + '다음' 버튼 표시를 EventTileUI에 위임한다.
+	method void ShowEventUI(string message, string monsterRUID)
+		-- 도착한 플레이어의 클라에서 실행(타깃 호출). 텍스트 + 몬스터 이미지 + '다음' 버튼 표시를 위임.
 		-- (콜백용으로 self 전달 → '다음' 클릭 시 self:RequestDone() 으로 종료 신호)
-		_EventTileUI:ShowEventText(message, self)
+		_EventTileUI:ShowEventText(message, monsterRUID, self)
 	end
 
 	method boolean IsEventTile()

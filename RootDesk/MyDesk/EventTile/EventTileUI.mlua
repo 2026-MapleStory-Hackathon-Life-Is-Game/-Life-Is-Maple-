@@ -29,6 +29,11 @@ script EventTileUI extends Logic
 	property Entity Select4 = "8f602fd0-5463-4623-b668-5679886ede36"
 	property Entity MultipleChoiceGroup = "9018a713-b23b-47c7-ad4a-88528a2c739d"
 	property Entity BinaryChoiceGroup = "ca641946-c4e3-4c21-8cae-82ae38baef34"
+	-- 사냥 이벤트 몬스터 이미지(Monsters 하위 3개, 모두 같은 RUID 적용).
+	property Entity MonstersGroup = "afb70a6e-4248-43fb-a58f-d1e88f00cbef"
+	property Entity MonsterImage1 = "eb5c3997-2c03-4c8c-bd2f-e817bd2ca486"
+	property Entity MonsterImage2 = "419c949d-bc4a-4821-801a-89b796cd6053"
+	property Entity MonsterImage3 = "f3c7cd32-8ab8-4fd4-859c-6c3513ea8853"
 
 	-- 진행 중인 타일 컴포넌트(진행/선택을 서버로 되돌릴 콜백 대상).
 	property any _activeTile = nil
@@ -75,8 +80,26 @@ script EventTileUI extends Logic
 
 	@ExecSpace("ClientOnly")
 	method void ShowGroup()
-		-- 이벤트 그룹을 켠다.
+		-- 이벤트 그룹을 켠다. (몬스터 이미지는 기본 숨김 — 사냥 이벤트에서만 켠다.)
 		if isvalid(self.EventGroup) then self.EventGroup.Enable = true end
+		self:SetMonsterImages("")
+	end
+
+	@ExecSpace("ClientOnly")
+	method void SetMonsterImages(string ruid)
+		-- 사냥 몬스터 RUID를 Monsters 하위 3개 이미지에 동일하게 적용. 빈 값이면 Monsters 숨김.
+		if ruid == nil or ruid == "" then
+			if isvalid(self.MonstersGroup) then self.MonstersGroup.Enable = false end
+			return
+		end
+		if isvalid(self.MonstersGroup) then self.MonstersGroup.Enable = true end
+		local imgs = { self.MonsterImage1, self.MonsterImage2, self.MonsterImage3 }
+		for i = 1, #imgs do
+			local e = imgs[i]
+			if isvalid(e) and isvalid(e.SpriteGUIRendererComponent) then
+				e.SpriteGUIRendererComponent.ImageRUID = DataRef(ruid)
+			end
+		end
 	end
 
 	@ExecSpace("ClientOnly")
@@ -223,10 +246,11 @@ script EventTileUI extends Logic
 	-- ===== 사냥 등 단순 이벤트(텍스트 1장 + 다음) =====
 
 	@ExecSpace("ClientOnly")
-	method void ShowEventText(string message, Component tile)
-		-- EventTileBase(사냥 등): 텍스트(페이지 단위) + 공격 초상화. 마지막 장에서 '다음' → 종료 신호.
+	method void ShowEventText(string message, string monsterRUID, Component tile)
+		-- EventTileBase(사냥 등): 텍스트(페이지 단위) + 공격 초상화 + 몬스터 이미지. 마지막 장 '다음' → 종료.
 		self._activeTile = tile
 		self:ShowGroup()
+		self:SetMonsterImages(monsterRUID)
 		self:SetPortrait("attack")
 		self:ShowPagedText(message, self.OnEventDone)
 	end

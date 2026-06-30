@@ -1,38 +1,44 @@
 @Component
 script HuntTile extends EventTileBase
 
-	-- 사냥터 이름. 이후 테이블 연동 시 교체. 지금은 임시값.
-	@Sync
-	property string HuntingGround = "헤네시스 사냥터1"
-
 	method table RollEvent(Entity piece)
 		-- 사냥 이벤트를 서버에서 굴린다.
-		--   {n}분(10~120) 동안 사냥 → 주스탯/올스탯 +{gain}(1~10).
+		--   사냥 시간은 1시간 / 2시간 중 하나 → 각각 스탯 +15 / +30.
+		--   스테이지1 = 올스탯만, 그 외 스테이지 = 주스탯만.
 		-- 문구에 쓴 gain/statName을 그대로 보상 필드로 반환해, 화면 문구와 실제 적용 스탯이 일치하게 한다.
-		local minutes = _UtilLogic:RandomIntegerRange(10, 120)
-		local gain    = _UtilLogic:RandomIntegerRange(1, 10)
 
-		-- 올스탯(true) / 주스탯(false) 중 하나.
-		local isAllStat = (_UtilLogic:RandomIntegerRange(1, 2) == 2)
-		local statName  = "주스탯"
-		if isAllStat then
+		-- 사냥터 이름 = 현재 타일 지역(테마)의 한글명 + " 사냥터" (예: 헤네시스 사냥터 / 페리온 사냥터).
+		local map = self.Entity.CurrentMapName
+		local tile = self.Entity.Name
+		local region = _TileManager:GetTileRegion(map, tile)
+		local huntingGround = _TileManager:RegionDisplayName(region) .. " 사냥터"
+
+		-- 스테이지1만 올스탯, 나머지는 주스탯.
+		local stage = _TileManager:GetTileStage(map, tile)
+		local statKind = "main"
+		local statName = "주스탯"
+		if stage == 1 then
+			statKind = "all"
 			statName = "올스탯"
 		end
 
-		local line1 = self.HuntingGround .. "에서 " .. tostring(minutes) .. "분동안 몬스터를 사냥했다!"
+		-- 사냥 시간: 1시간(+15) 또는 2시간(+30).
+		local hours = _UtilLogic:RandomIntegerRange(1, 2)
+		local gain = hours * 15
+
+		local line1 = huntingGround .. "에서 " .. tostring(hours) .. "시간 동안 몬스터를 사냥했다!"
 		local line2 = statName .. "이 " .. tostring(gain) .. "만큼 올랐다!"
 
-		local statKind = "main"
-		if isAllStat then
-			statKind = "all"
-		end
+		-- 이 타일에 정해진(지역 가중 추첨) 몬스터의 RUID → 이벤트 팝업 Monsters 이미지에 표시.
+		local monsterRUID = _TileManager:GetTileMonsterRUID(map, tile)
 
 		return {
-			eventType = "Hunt",
-			message   = line1 .. "\n" .. line2,
-			statKind  = statKind,   -- "main"=주스탯 / "all"=올스탯
-			statMode  = "flat",     -- 고정 수치 증가
-			statValue = gain,       -- 문구에 표시한 상승치와 동일
+			eventType   = "Hunt",
+			message     = line1 .. "\n" .. line2,
+			statKind    = statKind,   -- "main"=주스탯 / "all"=올스탯
+			statMode    = "flat",     -- 고정 수치 증가
+			statValue   = gain,       -- 문구에 표시한 상승치와 동일
+			monsterRUID = monsterRUID, -- 사냥 몬스터 STAND RUID(없으면 "")
 		}
 	end
 
