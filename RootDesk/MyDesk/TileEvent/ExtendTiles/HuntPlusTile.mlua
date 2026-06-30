@@ -1,0 +1,12 @@
+@Component
+script HuntPlusTile extends BaseTile
+
+	@ExecSpace("ServerOnly")
+	method void OnArrive(Entity piece)
+		-- ⚠️ base 직접 수정(영구): cp:HuntPlusStat() → AddMainStat(base). 동적 버프(self:Add~) 아님.
+		local cp = self:CP(piece)
+		if isvalid(cp) then cp:HuntPlusStat() end
+		log("[HuntPlusTile] 사냥+ 칸 효과 적용 tile=" .. self.Entity.Name)
+	end
+
+end

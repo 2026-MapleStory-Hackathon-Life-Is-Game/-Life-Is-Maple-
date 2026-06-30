@@ -1,0 +1,106 @@
+@Logic
+script JobSelectUI extends Logic
+
+	property Entity panel = "e443565f-8fd0-4c78-9173-ceba78635bd5"
+
+	property ButtonComponent btnWarrior = "1894c0b6-5e8b-40b4-a106-89b48d746379"
+
+	property ButtonComponent btnArcher = "b0597270-1f81-45be-b1db-241d0bbd36fd"
+
+	property ButtonComponent btnMage = "8e751a35-dd1a-4836-9079-945f5a7e909d"
+
+	property ButtonComponent btnThief = "8d6f95a2-905b-4daf-9a65-5c896d1e3364"
+
+	property ButtonComponent btnPirate = "f6fe7b29-dde2-4a1e-a396-86c8b958ff32"
+
+	property any handlerWarrior = nil
+
+	property any handlerArcher = nil
+
+	property any handlerMage = nil
+
+	property any handlerThief = nil
+
+	property any handlerPirate = nil
+
+	@ExecSpace("ClientOnly")
+	method void OnBeginPlay()
+		-- Root UIGroup stays visible so this Logic fires; hide the visual Panel on start.
+		if isvalid(self.panel) then
+			self.panel.Enable = false
+		end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void OnEndPlay()
+		-- Release all event handlers to prevent leaks.
+		self:DisconnectAll()
+	end
+
+	@ExecSpace("ClientOnly")
+	method void Show()
+		-- Called via Server→Client RPC from JobManager.ShowJobSelect.
+		if isvalid(self.panel) == false then return end
+		self.panel.Enable = true
+		
+		self.handlerWarrior = self.btnWarrior.Entity:ConnectEvent(ButtonClickEvent, function()
+			self:SelectJob("warrior")
+		end)
+		self.handlerArcher = self.btnArcher.Entity:ConnectEvent(ButtonClickEvent, function()
+			self:SelectJob("archer")
+		end)
+		self.handlerMage = self.btnMage.Entity:ConnectEvent(ButtonClickEvent, function()
+			self:SelectJob("mage")
+		end)
+		self.handlerThief = self.btnThief.Entity:ConnectEvent(ButtonClickEvent, function()
+			self:SelectJob("thief")
+		end)
+		self.handlerPirate = self.btnPirate.Entity:ConnectEvent(ButtonClickEvent, function()
+			self:SelectJob("pirate")
+		end)
+		log("JobSelectUI: shown")
+		
+	end
+
+	@ExecSpace("ClientOnly")
+	method void Hide()
+		-- Called via Server→Client RPC from JobManager.HideJobSelectUI.
+		self:DisconnectAll()
+		if isvalid(self.panel) then
+			self.panel.Enable = false
+		end
+		log("JobSelectUI: hidden")
+	end
+
+	@ExecSpace("ClientOnly")
+	method void SelectJob(string jobName)
+		-- Client→Server RPC: send selected job to server (all UI jobs are advancement 1).
+		_SFXManager:PlayClick()
+		_JobWeaponManager:OnJobSelected(jobName, 1)
+	end
+
+	method void DisconnectAll()
+		-- Disconnect all button handlers. Safe to call when handlers are nil.
+		if self.handlerWarrior ~= nil then
+			self.btnWarrior.Entity:DisconnectEvent(ButtonClickEvent, self.handlerWarrior)
+			self.handlerWarrior = nil
+		end
+		if self.handlerArcher ~= nil then
+			self.btnArcher.Entity:DisconnectEvent(ButtonClickEvent, self.handlerArcher)
+			self.handlerArcher = nil
+		end
+		if self.handlerMage ~= nil then
+			self.btnMage.Entity:DisconnectEvent(ButtonClickEvent, self.handlerMage)
+			self.handlerMage = nil
+		end
+		if self.handlerThief ~= nil then
+			self.btnThief.Entity:DisconnectEvent(ButtonClickEvent, self.handlerThief)
+			self.handlerThief = nil
+		end
+		if self.handlerPirate ~= nil then
+			self.btnPirate.Entity:DisconnectEvent(ButtonClickEvent, self.handlerPirate)
+			self.handlerPirate = nil
+		end
+	end
+
+end

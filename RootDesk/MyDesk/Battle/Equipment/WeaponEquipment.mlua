@@ -1,0 +1,7 @@
+@Component
+script WeaponEquipment extends BaseEquipment
+	method string EquipCategory()
+		-- 무기 타입.
+		return "Weapon"
+	end
+end

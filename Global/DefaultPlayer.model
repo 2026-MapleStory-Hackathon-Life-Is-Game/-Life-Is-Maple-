@@ -18,7 +18,11 @@
       "BaseModelId": "player",
       "Id": "defaultplayer",
       "Components": [
-        "script.PlayerMovement"
+        "script.PlayerMovement",
+        "MOD.Core.RigidbodyComponent",
+        "MOD.Core.PlayerControllerComponent",
+        "MOD.Core.MovementComponent",
+        "MOD.Core.KinematicbodyComponent"
       ],
       "Properties": [],
       "Values": [
@@ -224,72 +228,6 @@
             "z": 0.0,
             "w": 1.0
           }
-        },
-        {
-          "TargetType": "MOD.Core.MovementComponent",
-          "Name": "Enable",
-          "ValueType": {
-            "$type": "MODNativeType",
-            "type": "System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089"
-          },
-          "Value": true
-        },
-        {
-          "TargetType": "MOD.Core.RigidbodyComponent",
-          "Name": "MoveVelocity",
-          "ValueType": {
-            "$type": "MODNativeType",
-            "type": "MOD.Core.MODVector2, MOD.Core, Version=26.5.0.0, Culture=neutral, PublicKeyToken=null"
-          },
-          "Value": {
-            "$type": "MOD.Core.MODVector2, MOD.Core",
-            "x": 0.0,
-            "y": 0.0
-          }
-        },
-        {
-          "TargetType": "MOD.Core.RigidbodyComponent",
-          "Name": "RealMoveVelocity",
-          "ValueType": {
-            "$type": "MODNativeType",
-            "type": "MOD.Core.MODVector2, MOD.Core, Version=26.5.0.0, Culture=neutral, PublicKeyToken=null"
-          },
-          "Value": {
-            "$type": "MOD.Core.MODVector2, MOD.Core",
-            "x": 0.0,
-            "y": 0.0
-          }
-        },
-        {
-          "TargetType": "MOD.Core.RigidbodyComponent",
-          "Name": "Enable",
-          "ValueType": {
-            "$type": "MODNativeType",
-            "type": "System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089"
-          },
-          "Value": true
-        },
-        {
-          "TargetType": "MOD.Core.KinematicbodyComponent",
-          "Name": "MoveVelocity",
-          "ValueType": {
-            "$type": "MODNativeType",
-            "type": "MOD.Core.MODVector2, MOD.Core, Version=26.5.0.0, Culture=neutral, PublicKeyToken=null"
-          },
-          "Value": {
-            "$type": "MOD.Core.MODVector2, MOD.Core",
-            "x": 0.0,
-            "y": 0.0
-          }
-        },
-        {
-          "TargetType": "MOD.Core.KinematicbodyComponent",
-          "Name": "Enable",
-          "ValueType": {
-            "$type": "MODNativeType",
-            "type": "System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089"
-          },
-          "Value": true
         },
         {
           "TargetType": "MOD.Core.SideviewbodyComponent",
@@ -645,7 +583,7 @@
             "$type": "MODNativeType",
             "type": "System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089"
           },
-          "Value": "ce073997978f4248b03c628dad9bbe11"
+          "Value": "05671bf1e35f4057a74f4cd84505c248"
         },
         {
           "TargetType": "MOD.Core.CostumeManagerComponent",
@@ -753,6 +691,90 @@
             "type": "System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089"
           },
           "Value": false
+        },
+        {
+          "TargetType": "script.PlayerMovement",
+          "Name": "Enable",
+          "ValueType": {
+            "$type": "MODNativeType",
+            "type": "System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089"
+          },
+          "Value": true
+        },
+        {
+          "TargetType": "MOD.Core.RigidbodyComponent",
+          "Name": "MoveVelocity",
+          "ValueType": {
+            "$type": "MODNativeType",
+            "type": "MOD.Core.MODVector2, MOD.Core, Version=26.5.0.0, Culture=neutral, PublicKeyToken=null"
+          },
+          "Value": {
+            "$type": "MOD.Core.MODVector2, MOD.Core",
+            "x": 0.0,
+            "y": 0.0
+          }
+        },
+        {
+          "TargetType": "MOD.Core.RigidbodyComponent",
+          "Name": "RealMoveVelocity",
+          "ValueType": {
+            "$type": "MODNativeType",
+            "type": "MOD.Core.MODVector2, MOD.Core, Version=26.5.0.0, Culture=neutral, PublicKeyToken=null"
+          },
+          "Value": {
+            "$type": "MOD.Core.MODVector2, MOD.Core",
+            "x": 0.0,
+            "y": 0.0
+          }
+        },
+        {
+          "TargetType": "MOD.Core.RigidbodyComponent",
+          "Name": "Enable",
+          "ValueType": {
+            "$type": "MODNativeType",
+            "type": "System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089"
+          },
+          "Value": true
+        },
+        {
+          "TargetType": "MOD.Core.MovementComponent",
+          "Name": "Enable",
+          "ValueType": {
+            "$type": "MODNativeType",
+            "type": "System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089"
+          },
+          "Value": true
+        },
+        {
+          "TargetType": "MOD.Core.KinematicbodyComponent",
+          "Name": "MoveVelocity",
+          "ValueType": {
+            "$type": "MODNativeType",
+            "type": "MOD.Core.MODVector2, MOD.Core, Version=26.5.0.0, Culture=neutral, PublicKeyToken=null"
+          },
+          "Value": {
+            "$type": "MOD.Core.MODVector2, MOD.Core",
+            "x": 0.0,
+            "y": 0.0
+          }
+        },
+        {
+          "TargetType": "MOD.Core.KinematicbodyComponent",
+          "Name": "Enable",
+          "ValueType": {
+            "$type": "MODNativeType",
+            "type": "System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089"
+          },
+          "Value": true
+        },
+        {
+          "TargetType": "MOD.Core.CameraComponent",
+          "Name": "IsAllowZoomInOut",
+          "ValueType": {
+            "$type": "MODNativeType",
+            "type": "System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089"
+          },
+          "Value": true
         }
       ],
       "EventLinks": [],

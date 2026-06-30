@@ -1,0 +1,133 @@
+@Logic
+script CampSelectUI extends Logic
+
+	property Entity selectPanel = "06b688c1-a999-4b90-a80c-64485595379a"
+
+	property ButtonComponent btnAdventurer = "949c9013-829f-4425-a70f-91c41156f9b1"
+
+	property ButtonComponent btnCygnus = "54c33214-6fcd-4dc2-a19f-8b10c7dabe80"
+
+	property ButtonComponent btnResistance = "d4caad9a-84b0-4970-90ae-061b74fe313b"
+
+	property ButtonComponent btnNova = "8e930aba-6e79-423a-8a1b-98e9a2e647a9"
+
+	property any handlerAdventurer = nil
+
+	property any handlerCygnus = nil
+
+	property any handlerResistance = nil
+
+	property any handlerNova = nil
+
+	property Entity resultPanel = "386456fc-4386-413e-a61d-fbb3f36841a2"
+
+	property SpriteGUIRendererComponent campSprite = "cdef9860-a04d-4f9d-9849-fc43f0e8d480"
+
+	property TextGUIRendererComponent campDesc = "62f024a8-dc21-497b-b8c1-550ed9c0ae07"
+
+	@ExecSpace("ClientOnly")
+	method void OnBeginPlay()
+		-- 시작 시 패널은 숨겨둔다 (1단계 진입/디버그에서 ShowSelectPanel로 연다).
+		if isvalid(self.selectPanel) then
+			self.selectPanel.Enable = false
+		end
+		if isvalid(self.resultPanel) then
+			self.resultPanel.Enable = false
+		end
+		
+	end
+
+	@ExecSpace("ClientOnly")
+	method void OnEndPlay()
+		-- 연결한 버튼 핸들러를 모두 해제한다.
+		self:DisconnectAll()
+	end
+
+	@ExecSpace("Client")
+	method void ShowSelectPanel()
+		-- 진영 선택 패널을 열고 4개 버튼 클릭 이벤트를 연결한다.
+		if isvalid(self.selectPanel) == false then return end
+		self.selectPanel.Enable = true
+		
+		self.handlerAdventurer = self.btnAdventurer.Entity:ConnectEvent(ButtonClickEvent, function() self:SelectRace("Adventurer") end)
+		self.handlerCygnus     = self.btnCygnus.Entity:ConnectEvent(ButtonClickEvent, function() self:SelectRace("Cygnus") end)
+		self.handlerResistance = self.btnResistance.Entity:ConnectEvent(ButtonClickEvent, function() self:SelectRace("Resistance") end)
+		self.handlerNova       = self.btnNova.Entity:ConnectEvent(ButtonClickEvent, function() self:SelectRace("Nova") end)
+	end
+
+	@ExecSpace("Client")
+	method void HideSelectPanel()
+		-- 진영 선택 패널을 닫고 핸들러를 해제한다.
+		self:DisconnectAll()
+		
+		if isvalid(self.selectPanel) then
+			log("패널을 닫습니다")
+			self.selectPanel.Enable = false
+		end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void SelectRace(string campName)
+		-- 선택한 진영을 서버로 보낸다.
+		self:OnRaceSelected(campName)
+		
+		self:ShowResultPanel(campName)
+		
+		-- 비동기로 N초 뒤에 결과 패널을 비활성화시킵니다.
+		_TimerService:SetTimerOnce(function()
+			
+			self:HideResultPanel()
+			
+			end,3.0)
+	end
+
+	@ExecSpace("Server")
+	method void OnRaceSelected(string campName)
+		-- 요청 플레이어의 BuffManager에 진영 버프 적용(Camp 슬롯이라 재선택 시 교체) + 패널 닫기.
+		local p = _UserService:GetUserEntityByUserId(senderUserId)
+		if isvalid(p) then
+			local buff = p:GetComponent("script.BuffManager")
+			if isvalid(buff) then buff:SetBuff(campName) end
+		end
+		self:HideSelectPanel(senderUserId)
+	end
+
+	method void DisconnectAll()
+		-- 모든 버튼 핸들러 해제 (nil이어도 안전).
+		if self.handlerAdventurer ~= nil then self.btnAdventurer.Entity:DisconnectEvent(ButtonClickEvent, self.handlerAdventurer) self.handlerAdventurer = nil end
+		if self.handlerCygnus ~= nil then self.btnCygnus.Entity:DisconnectEvent(ButtonClickEvent, self.handlerCygnus) self.handlerCygnus = nil end
+		if self.handlerResistance ~= nil then self.btnResistance.Entity:DisconnectEvent(ButtonClickEvent, self.handlerResistance) self.handlerResistance = nil end
+		if self.handlerNova ~= nil then self.btnNova.Entity:DisconnectEvent(ButtonClickEvent, self.handlerNova) self.handlerNova = nil end
+	end
+
+	@ExecSpace("Client")
+	method void ShowResultPanel(string campName)
+		if isvalid(self.resultPanel) then
+			self.resultPanel.Enable = true
+		end
+		
+		-- 일단 하드코딩 상태인데, 추후 csv 파일로 바꿔야 함
+		if campName == "Adventurer" then
+			self.campSprite.ImageRUID = ""
+			self.campDesc.Text = "모험가의 의지가 차오릅니다!"	
+		elseif campName == "Cygnus" then
+			self.campSprite.ImageRUID = ""
+			self.campDesc.Text = "기사단의 맹세가 반짝입니다!"
+		elseif campName == "Resistance" then
+			self.campSprite.ImageRUID = ""
+			self.campDesc.Text = "혁명의 불꽃이 타오릅니다!"
+		elseif campName == "Nova" then
+			self.campSprite.ImageRUID = ""
+			self.campDesc.Text = "용의 힘이 깨어납니다!"	
+		end
+		
+	end
+
+	@ExecSpace("Client")
+	method void HideResultPanel()
+		if isvalid(self.resultPanel) then
+			self.resultPanel.Enable = false
+		end
+	end
+
+end

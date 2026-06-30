@@ -1,0 +1,211 @@
+@Logic
+script MatchManager extends Logic
+
+	@Sync
+	property integer _matchedCount = 0
+
+	@Sync
+	property boolean _isMatching = false
+
+	property table _matchPool = {}
+
+	property number _countdown = 0
+
+	property any _userLeaveHandler = nil
+
+	property integer MAX_PLAYERS = 4
+
+	property integer MIN_PLAYERS = 2
+
+	property number MATCH_TIMEOUT = 30
+
+	property Vector3 lobbySpawnPos = Vector3(0, 0, 0)
+
+	method void OnBeginPlay()
+		        -- 서버에서 매칭 풀을 초기화한다. (멀티 매칭 진입점은 JoinMatch)
+		        if self:IsServer() then
+		            self._matchPool = {}
+		            self._countdown = 0
+		        end
+	end
+
+	method void OnEndPlay()
+		        -- 서버: 퇴장 이벤트 핸들러 해제.
+		        if self._userLeaveHandler ~= nil then
+		            self:DisconnectEvent(UserLeaveEvent, self._userLeaveHandler)
+		            self._userLeaveHandler = nil
+		        end
+	end
+
+	method void OnUpdate(number delta)
+		        -- 서버에서만 매칭 타이머를 감소시킨다.
+		        if not self:IsServer() then return end
+		        if not self._isMatching then return end
+		        if #self._matchPool == 0 then return end
+		
+		        self._countdown -= delta
+		        if self._countdown <= 0 then
+		            if #self._matchPool >= self.MIN_PLAYERS then
+		                self:StartMatch()
+		            else
+		                -- 1명뿐 → 시작하지 않고 타이머 리셋, 계속 대기
+		                self._countdown = self.MATCH_TIMEOUT
+		                log("[MatchManager] 30초 경과했지만 1명뿐 → 계속 대기")
+		            end
+		        end
+	end
+
+	@ExecSpace("Server")
+	method void JoinMatch()
+		        if _GameModeManager._isGameActive then
+		            log("[MatchManager] 이미 게임이 진행 중입니다. 매칭 무시")
+		            return
+		        end
+		        -- 중복 입장 방지
+		        for _, uid in ipairs(self._matchPool) do
+		            if uid == senderUserId then
+		                log("[MatchManager] 이미 매칭 대기 중: " .. senderUserId)
+		                return
+		            end
+		        end
+		
+		        if #self._matchPool == 0 then
+		            -- 첫 입장자 → 카운트다운 시작 + 퇴장 감지 구독
+		            self._countdown = self.MATCH_TIMEOUT
+		            self._isMatching = true
+		            self._userLeaveHandler = self:ConnectEvent(UserLeaveEvent, self.OnUserLeave)
+		            log("[MatchManager] 매칭 시작 (30초 카운트다운)")
+		        end
+		
+		        table.insert(self._matchPool, senderUserId)
+		        self._matchedCount = #self._matchPool
+		        log("[MatchManager] 매칭 입장: " .. senderUserId .. " (" .. tostring(self._matchedCount) .. "/" .. tostring(self.MAX_PLAYERS) .. ")")
+		        self:BroadcastMatchUI()
+		
+		        if #self._matchPool >= self.MAX_PLAYERS then
+		            self:StartMatch()
+		        end
+	end
+
+	@ExecSpace("Server")
+	method void CancelMatch()
+		        self:RemoveFromPool(senderUserId)
+	end
+
+	@ExecSpace("Server")
+	method void RemoveFromPool(string userId)
+		        local removed = false
+		        for i = 1, #self._matchPool do
+		            if self._matchPool[i] == userId then
+		                table.remove(self._matchPool, i)
+		                removed = true
+		                break
+		            end
+		        end
+		        if not removed then return end
+		
+		        self._matchedCount = #self._matchPool
+		        if #self._matchPool == 0 then
+		            -- 아무도 없으면 매칭 중단
+		            self._isMatching = false
+		            self._countdown = 0
+		            if self._userLeaveHandler ~= nil then
+		                self:DisconnectEvent(UserLeaveEvent, self._userLeaveHandler)
+		                self._userLeaveHandler = nil
+		            end
+		            log("[MatchManager] 매칭 풀 비어 매칭 중단")
+		        else
+		            self:BroadcastMatchUI()
+		        end
+	end
+
+	@ExecSpace("Server")
+	method void OnUserLeave(UserLeaveEvent event)
+		        -- 퇴장한 유저를 풀에서 제거.
+		        self:RemoveFromPool(event.UserId)
+	end
+
+	@ExecSpace("Server")
+	method void StartMatch()
+		        -- 1) 풀 스냅샷
+		        local userIds = {}
+		        for _, uid in ipairs(self._matchPool) do
+		            table.insert(userIds, uid)
+		        end
+		
+		        -- 2) 상태/타이머 초기화
+		        self._matchPool = {}
+		        self._matchedCount = 0
+		        self._isMatching = false
+		        self._countdown = 0
+		        if self._userLeaveHandler ~= nil then
+		            self:DisconnectEvent(UserLeaveEvent, self._userLeaveHandler)
+		            self._userLeaveHandler = nil
+		        end
+		
+		        log("[MatchManager] 매칭 성립: " .. tostring(#userIds) .. "명 → 게임 시작")
+		
+		        -- 3) 게임 맵 전환 + 로비 UI 닫기 + 멀티 시작
+		        self:TeleportPlayersToGame(userIds)
+		        for _, uid in ipairs(userIds) do
+		            self:NotifyMatchStart(uid)
+		        end
+		        _GameModeManager:StartMultiPlayer(userIds)
+	end
+
+	@ExecSpace("ServerOnly")
+	method void TeleportPlayersToGame(table userIds)
+		        local destPos = self:GetGameSpawnPosition()
+		        for _, uid in ipairs(userIds) do
+		            local userEntity = _UserService:GetUserEntityByUserId(uid)
+		            if isvalid(userEntity) then
+		                _TeleportService:TeleportToMapPosition(userEntity, destPos, "Map_01")
+		                -- 보드 시작 칸으로 상태 리셋
+		                if userEntity.PlayerMovement ~= nil then
+		                    userEntity.PlayerMovement.currentTile = "Tile_1"
+		                end
+		                log("[MatchManager] 게임 맵 전환: " .. uid)
+		            else
+		                log_warning("[MatchManager] 텔레포트 대상 무효: " .. tostring(uid))
+		            end
+		        end
+	end
+
+	@ExecSpace("ServerOnly")
+	method void TeleportPlayersToLobby(table userIds)
+		        for _, uid in ipairs(userIds) do
+		            local userEntity = _UserService:GetUserEntityByUserId(uid)
+		            if isvalid(userEntity) then
+		                _TeleportService:TeleportToMapPosition(userEntity, self.lobbySpawnPos, "Lobby")
+		                log("[MatchManager] 로비 복귀: " .. uid)
+		            end
+		        end
+	end
+
+	method Vector3 GetGameSpawnPosition()
+		local startTile = _TileManager:GetTileEntity("Map_01", "Tile_01")
+		        
+		        if isvalid(startTile) then
+		            return startTile.TransformComponent.WorldPosition
+		        end
+		        log_warning("[MatchManager] 시작 타일(Tile_1) 미발견 → 폴백 좌표 사용")
+		        return Vector3(0, 0, 0)
+	end
+
+	method void BroadcastMatchUI()
+		        for _, uid in ipairs(self._matchPool) do
+		            self:NotifyMatchUI(self._matchedCount, self.MAX_PLAYERS, uid)
+		        end
+	end
+
+	@ExecSpace("Client")
+	method void NotifyMatchUI(integer count, integer maxCount)
+		        _ModeSelectUI:ShowMatching(count, maxCount)
+	end
+
+	@ExecSpace("Client")
+	method void NotifyMatchStart()
+		        _ModeSelectUI:HidePanel()
+	end
+
+end

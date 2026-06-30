@@ -1,0 +1,22 @@
+@Component
+script LobbyMapManagement extends Component
+
+	property Entity lobbyGroup = "1b439576-8c6f-4a2a-bbfe-7538a59c5a8a"
+
+	property Entity inGameGroup = "a322b09a-023e-427d-9c6c-19724156dab7"
+
+	@ExecSpace("ClientOnly")
+	method void OnBeginPlay()
+		-- 로비가 시작 맵일 때(월드 입장 시점) 초기 UI 세팅.
+		-- (맵 간 전환 시 UI 전환은 PlayerMovement.OnMapEnter가 담당)
+		self:ApplyUI()
+	end
+
+	@ExecSpace("ClientOnly")
+	method void ApplyUI()
+		if isvalid(self.lobbyGroup) then self.lobbyGroup.Enable = true end
+		if isvalid(self.inGameGroup) then self.inGameGroup.Enable = false end
+		log("[LobbyMapManagement] 로비 UI 활성 / 인게임 UI 비활성")
+	end
+
+end

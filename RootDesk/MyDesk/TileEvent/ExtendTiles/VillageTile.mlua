@@ -1,0 +1,33 @@
+@Component
+script VillageTile extends BaseTile
+
+	@Sync
+	property number greatGain = 15
+
+	@Sync
+	property number successGain = 5
+
+	@Sync
+	property number failLoss = 3
+
+	@ExecSpace("ServerOnly")
+	method void OnArrive(Entity piece)
+		-- ⚠️ base 직접 수정(영구): 아래 cp:AddMainStat 호출은 base 주스탯을 직접 바꾼다. 동적 버프(self:Add~) 아님.
+		local cp = self:CP(piece)
+		if isvalid(cp) == false then return end
+		
+		-- 룰렛 굴리기 (분포는 VillageProbability.csv: 대성공/성공/실패)
+		local outcome = self:RollOutcome("VillageProbability")
+		if outcome == "GreatSuccess" then
+			log("[VillageTile] 마을 이벤트 대성공! 주스탯 +" .. tostring(self.greatGain))
+			cp:AddMainStat("flat", self.greatGain)
+		elseif outcome == "Success" then
+			log("[VillageTile] 마을 이벤트 성공. 주스탯 +" .. tostring(self.successGain))
+			cp:AddMainStat("flat", self.successGain)
+		else
+			log("[VillageTile] 마을 이벤트 실패. 주스탯 -" .. tostring(self.failLoss))
+			cp:AddMainStat("flat", -self.failLoss)
+		end
+	end
+
+end

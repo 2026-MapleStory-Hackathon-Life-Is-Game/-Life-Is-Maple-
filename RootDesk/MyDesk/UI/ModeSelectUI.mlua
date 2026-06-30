@@ -1,0 +1,142 @@
+@Logic
+script ModeSelectUI extends Logic
+
+	property ButtonComponent gameStartButton = "15121e65-7f2b-42ca-93ce-4d1f0fa21881"
+
+	property Entity modeSelectPanel = "c28487fc-e609-4474-9267-ae6bbf2aa0db"
+
+	property Entity matchingPanel = "432ae0fb-2ada-44e5-8fbe-2a9b92106068"
+
+	property Entity matchingText = "d6c932fc-9398-44cc-805c-b73d9e7a583f"
+
+	property ButtonComponent btnSingle = "168213e7-e567-4669-8e42-1a8d1a9dd211"
+
+	property ButtonComponent btnMulti = "0ee56ff4-4262-421a-a497-400f91098768"
+
+	property ButtonComponent cancelButton = "5ab36da3-841c-4da8-9879-01139d170acf"
+
+	property ButtonComponent closeButton = "b3b8632b-b16e-428a-8388-13194031e098"
+
+	property any hGameStart = nil
+
+	property any hSingle = nil
+
+	property any hMulti = nil
+
+	property any hCancel = nil
+
+	property any hClose = nil
+
+	@ExecSpace("ClientOnly")
+	method void OnBeginPlay()
+		-- 로비 진입: 두 패널 모두 닫고 버튼 이벤트를 연결한다.
+		self:SetPanelEnable(self.modeSelectPanel, false)
+		self:SetPanelEnable(self.matchingPanel, false)
+		
+		if isvalid(self.gameStartButton) then
+			self.hGameStart = self.gameStartButton.Entity:ConnectEvent(ButtonClickEvent, function() self:OnClickGameStart() end)
+		end
+		if isvalid(self.btnSingle) then
+			self.hSingle = self.btnSingle.Entity:ConnectEvent(ButtonClickEvent, function() self:OnClickSingle() end)
+		end
+		if isvalid(self.btnMulti) then
+			self.hMulti = self.btnMulti.Entity:ConnectEvent(ButtonClickEvent, function() self:OnClickMulti() end)
+		end
+		if isvalid(self.cancelButton) then
+			self.hCancel = self.cancelButton.Entity:ConnectEvent(ButtonClickEvent, function() self:OnClickCancel() end)
+		end
+		if isvalid(self.closeButton) then
+			self.hClose = self.closeButton.Entity:ConnectEvent(ButtonClickEvent, function() self:OnClickClose() end)
+		end
+		log("[ModeSelectUI] 로비 버튼 연결 완료")
+	end
+
+	@ExecSpace("ClientOnly")
+	method void OnEndPlay()
+		-- 모든 버튼 이벤트 핸들러 해제.
+		self:Disconnect(self.gameStartButton, self.hGameStart) self.hGameStart = nil
+		self:Disconnect(self.btnSingle, self.hSingle)          self.hSingle = nil
+		self:Disconnect(self.btnMulti, self.hMulti)            self.hMulti = nil
+		self:Disconnect(self.cancelButton, self.hCancel)       self.hCancel = nil
+		self:Disconnect(self.closeButton, self.hClose)         self.hClose = nil
+	end
+
+	@ExecSpace("ClientOnly")
+	method void OnClickGameStart()
+		_SFXManager:PlayClick()
+		self:SetPanelEnable(self.matchingPanel, false)
+		self:SetPanelEnable(self.modeSelectPanel, true)
+		log("[ModeSelectUI] 모드 선택 패널 열림")
+	end
+
+	@ExecSpace("ClientOnly")
+	method void OnClickClose()
+		_SFXManager:PlayClick()
+		self:SetPanelEnable(self.modeSelectPanel, false)
+		log("[ModeSelectUI] 모드 선택 패널 닫힘")
+	end
+
+	@ExecSpace("ClientOnly")
+	method void OnClickSingle()
+		_SFXManager:PlayClick()
+		_GameModeManager:StartSinglePlayer()
+		self:SetPanelEnable(self.modeSelectPanel, false)
+		self:SetPanelEnable(self.matchingPanel, false)
+	end
+
+	@ExecSpace("ClientOnly")
+	method void OnClickMulti()
+		_SFXManager:PlayClick()
+		_MatchManager:JoinMatch()
+		self:SetPanelEnable(self.modeSelectPanel, false)
+		self:SetPanelEnable(self.matchingPanel, true)
+		self:UpdateMatchingText(0, 4)
+	end
+
+	@ExecSpace("ClientOnly")
+	method void OnClickCancel()
+		_SFXManager:PlayClick()
+		_MatchManager:CancelMatch()
+		self:SetPanelEnable(self.matchingPanel, false)
+		self:SetPanelEnable(self.modeSelectPanel, true)
+		log("[ModeSelectUI] 매칭 취소 → 모드 선택")
+	end
+
+	@ExecSpace("ClientOnly")
+	method void ShowMatching(integer count, integer maxCount)
+		self:SetPanelEnable(self.modeSelectPanel, false)
+		self:SetPanelEnable(self.matchingPanel, true)
+		self:UpdateMatchingText(count, maxCount)
+	end
+
+	@ExecSpace("ClientOnly")
+	method void HidePanel()
+		self:SetPanelEnable(self.modeSelectPanel, false)
+		self:SetPanelEnable(self.matchingPanel, false)
+		log("[ModeSelectUI] 패널 모두 닫힘")
+	end
+
+	@ExecSpace("ClientOnly")
+	method void UpdateMatchingText(integer count, integer maxCount)
+		-- 매칭 인원 텍스트 갱신.
+		if isvalid(self.matchingText) then
+			self.matchingText.TextComponent.Text = "매칭 중...  " .. tostring(count) .. "/" .. tostring(maxCount)
+		end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void SetPanelEnable(Entity panel, boolean on)
+		-- 패널 엔티티 활성/비활성 (nil 안전).
+		if isvalid(panel) then
+			panel.Enable = on
+		end
+	end
+
+	method void Disconnect(ButtonComponent btn, any eventHandler)
+		-- 버튼 이벤트 핸들러 해제 (nil 안전).
+		if eventHandler ~= nil and isvalid(btn) then
+			btn.Entity:DisconnectEvent(ButtonClickEvent, eventHandler)
+		end
+	end
+
+end

@@ -1,0 +1,66 @@
+@Component
+script BossTile extends BaseTile
+
+	-- 보스 칸: 전투력 기반 대성공/성공/실패 판정 → 대성공 시 보스 장신구 드롭.
+	-- ⚠️ 판정 확률/기준 전투력은 기획 미확정 → 아래는 전부 임시값(인스펙터/기획 확정 시 조정).
+	--    현재는 단계별 맵이 분리돼 있지 않으므로, 이 칸이 어떤 보스인지를 bossName으로 지정한다.
+	@DisplayName("보스 이름(BossData 키)")
+	@Sync
+	property string bossName = "Zakum"   -- BossData.csv의 BossName (Zakum/Horntail/Pink_Bean/Lucid)
+
+	-- 일반 '성공'(대성공 미달, 절반 이상) 시 주스탯 증가량. 보스별로 인스펙터에서 조정.
+	@DisplayName("성공 시 주스탯 증가량")
+	@Sync
+	property integer successMainStat = 5
+
+	method integer FindBossRow(string name)
+		-- BossData에서 BossName에 해당하는 행 인덱스를 반환한다. 없으면 -1.
+		local ds = _DataService:GetTable("BossData")
+		if isvalid(ds) == false then
+			log_error("[BossTile] dataset 'BossData' not found")
+			return -1
+		end
+		for i = 1, ds:GetRowCount() do
+			if ds:GetCell(i, "BossName") == name then
+				return i
+			end
+		end
+		return -1
+	end
+
+	@ExecSpace("ServerOnly")
+	method void OnArrive(Entity piece)
+		-- 1) 보스 데이터 조회
+		local rowIdx = self:FindBossRow(self.bossName)
+		if rowIdx == -1 then
+			log_warning("[BossTile] 알 수 없는 보스: " .. self.bossName)
+			return
+		end
+		local ds = _DataService:GetTable("BossData")
+		local displayName    = ds:GetCell(rowIdx, "Name")
+		local requiredPower  = tonumber(ds:GetCell(rowIdx, "RequiredPower")) or 0
+
+		-- 2) 현재 전투력 산출 (도착한 말=플레이어의 per-player 전투력)
+		local cp = self:CP(piece)
+		if isvalid(cp) == false then return end
+		local power = cp:CalculateCurrentCombatPower()
+
+		-- 3) 임시 판정 (기획 미정): 기준 이상 → 대성공, 절반 이상 → 성공, 미만 → 실패.
+		if power >= requiredPower then
+			-- 대성공: 보스 장신구 드롭(통합 테이블, Source=보스이름, Rarity=Boss)
+			log("[BossTile] " .. displayName .. " 대성공! (전투력 " .. tostring(power)
+				.. " ≥ " .. tostring(requiredPower) .. ") → AddItems 호출")
+			self:AddItems(piece, "Accessory", self.bossName, "Boss")
+		elseif power >= requiredPower / 2 then
+			-- 성공: 주스탯(직업 주스탯)을 소폭 올린다. 내부에서 전투력도 재계산된다.
+			-- ⚠️ base 직접 수정(영구): cp:AddMainStat = base. 동적 버프(self:Add~) 아님.
+			cp:AddMainStat("flat", self.successMainStat)
+			log("[BossTile] " .. displayName .. " 성공 (전투력 " .. tostring(power)
+				.. ") → 주스탯 +" .. tostring(self.successMainStat))
+		else
+			log("[BossTile] " .. displayName .. " 실패 (전투력 " .. tostring(power)
+				.. " < " .. tostring(requiredPower / 2) .. ")")
+		end
+	end
+
+end

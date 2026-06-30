@@ -1,0 +1,47 @@
+@Logic
+script ResultUI extends Logic
+
+	property Entity panel = "c6781735-28fb-4baa-976a-b90e6bf5819e"
+
+	property Entity resultText = "3b182062-1996-4f72-b189-4a0c2f5af47e"
+
+	property ButtonComponent confirmButton = "dbcde8a3-2755-42bb-bf2e-b99f3db2deb4"
+
+	property any hConfirm = nil
+
+	@ExecSpace("ClientOnly")
+	method void OnBeginPlay()
+		-- 시작 시 결과 패널은 숨김. 확인 버튼 연결.
+		if isvalid(self.panel) then self.panel.Enable = false end
+		if isvalid(self.confirmButton) then
+			self.hConfirm = self.confirmButton.Entity:ConnectEvent(ButtonClickEvent, function() self:Hide() end)
+		end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void OnEndPlay()
+		if self.hConfirm ~= nil and isvalid(self.confirmButton) then
+			self.confirmButton.Entity:DisconnectEvent(ButtonClickEvent, self.hConfirm)
+			self.hConfirm = nil
+		end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void Show(string message)
+		_SFXManager:PlayWin()   -- 결과(승리) 팡파르
+		if isvalid(self.panel) then self.panel.Enable = true end
+		if isvalid(self.resultText) then
+			self.resultText.TextComponent.Text = message
+		end
+		log("[ResultUI] 결과 표시: " .. message)
+	end
+
+	@ExecSpace("ClientOnly")
+	method void Hide()
+		-- 확인 → 결과 패널 닫기 (이미 로비로 복귀된 상태).
+		_SFXManager:PlayClick()
+		if isvalid(self.panel) then self.panel.Enable = false end
+		log("[ResultUI] 결과 닫힘")
+	end
+
+end

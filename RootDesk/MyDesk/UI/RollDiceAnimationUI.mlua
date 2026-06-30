@@ -15,6 +15,8 @@ script RollDiceAnimationUI extends Logic
 
 	property TextGUIRendererComponent diceBuffText = "5050589f-ca63-47e5-8201-ab05bdb14c1e"
 
+	property Entity diceParticle = "81437709-abea-4122-a8fb-4a3311a5c881"
+
 	@ExecSpace("ClientOnly")
 	method void OnBeginPlay()
 		-- 눈금별 RUID 등록 (실제 RUID로 교체)
@@ -34,9 +36,11 @@ script RollDiceAnimationUI extends Logic
 	@ExecSpace("ClientOnly")
 	method void Show(integer d1, integer d2, integer total, any onComplete)
 		if isvalid(self.panel) == false then return end
+		_SFXManager:PlayDice()   -- 주사위 굴림 효과음
 		
 		        -- 패널 켜고, 주사위 눈 스프라이트 교체
 		        self.panel.Enable = true
+		        if isvalid(self.diceParticle) then self.diceParticle.Enable = true end   -- 반짝임 시작(play_on_enable)
 		        self.leftDice.ImageRUID  = self.diceSprites[d1]
 		        self.rightDice.ImageRUID = self.diceSprites[d2]
 		
@@ -49,6 +53,7 @@ script RollDiceAnimationUI extends Logic
 		        _TimerService:SetTimerOnce(function()
 		            _TimerService:SetTimerOnce(function()
 		                self.panel.Enable = false
+		                if isvalid(self.diceParticle) then self.diceParticle.Enable = false end   -- 반짝임 종료
 		                if onComplete ~= nil then
 		                    onComplete()
 		                end

@@ -1,0 +1,17 @@
+@Component
+script UnionTile extends BaseTile
+
+	@ExecSpace("ServerOnly")
+	method void OnArrive(Entity piece)
+		-- 확률 판정 후 성공 시에만 다음 Tier로 승급.
+		if self:RollOutcome("UnionProbability") ~= "Success" then
+			log("[UnionTile] 유니온 이벤트 실패")
+			return
+		end
+		
+		local buff = self:Buff(piece)
+		if isvalid(buff) == false then return end
+		buff:UpgradeSlot("Union")
+	end
+
+end

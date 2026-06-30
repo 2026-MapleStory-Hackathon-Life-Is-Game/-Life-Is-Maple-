@@ -1,0 +1,36 @@
+@Component
+script ExampleTile extends BaseTile
+
+	@Sync
+	property number allStatGain = 10
+
+	@Sync
+	property number bonusAttackPct = 10
+
+	@ExecSpace("ServerOnly")
+	method void OnArrive(Entity piece)
+		-- 말(piece)이 이 칸에 도착하면 호출된다.
+		
+		-- 1) 고정 효과 — 도착하면 무조건 지급.
+		--    올스탯 +10, 추가 대미지 +5%
+		self:AddAllStat(piece, "flat", self.allStatGain)
+		self:AddDamage(piece, 5)
+		
+		-- 2) 확률 분기 효과 — 확률 테이블(CSV)에서 결과를 뽑아 분기.
+		--    (테이블 컬럼: Outcome, Weight — VillageProbability.csv 와 동일한 형식)
+		local outcome = self:RollOutcome("ExampleProbability")
+		if outcome == "GreatSuccess" then
+			-- 대성공: 공/마 +10%
+			self:AddMainAttack(piece, "percent", self.bonusAttackPct)
+			log("[ExampleTile] 대성공 — 공/마 +" .. tostring(self.bonusAttackPct) .. "%")
+		elseif outcome == "Fail" then
+			-- 실패: 올스탯 -5 (음수 = 감소)
+			self:AddAllStat(piece, "flat", -5)
+			log("[ExampleTile] 실패 — 올스탯 -5")
+		else
+			-- 성공/그 외: 추가 효과 없음.
+			log("[ExampleTile] 성공 — 기본 효과만 적용")
+		end
+	end
+
+end
