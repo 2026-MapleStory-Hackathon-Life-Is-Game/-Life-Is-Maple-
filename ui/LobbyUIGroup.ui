@@ -1021,7 +1021,7 @@
           "name": "ModeSelectPanel",
           "path": "/ui/LobbyUIGroup/ModeSelectPanel",
           "nameEditable": true,
-          "enable": false,
+          "enable": true,
           "visible": true,
           "localize": true,
           "displayOrder": 4,
@@ -1219,20 +1219,20 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 684.9076,
-                "y": 449.9999
+                "x": 583.0,
+                "y": 437.0
               },
               "OffsetMin": {
-                "x": -715.0924,
-                "y": -550.0001
+                "x": -583.0,
+                "y": -437.0
               },
               "Pivot": {
                 "x": 0.5,
                 "y": 0.5
               },
               "RectSize": {
-                "x": 1400.0,
-                "y": 1000.0
+                "x": 1166.0,
+                "y": 874.0
               },
               "UIMode": 1,
               "UIScale": {
@@ -1242,8 +1242,8 @@
               },
               "UIVersion": 2,
               "anchoredPosition": {
-                "x": -15.0924,
-                "y": -50.0001
+                "x": 0.0,
+                "y": 0.0
               },
               "Rotation": {
                 "x": 0.0,
@@ -1251,8 +1251,8 @@
                 "z": 0.0
               },
               "Position": {
-                "x": -15.0924,
-                "y": -50.0001,
+                "x": 0.0,
+                "y": 0.0,
                 "z": 0.0
               },
               "QuaternionRotation": {
@@ -1275,7 +1275,7 @@
               "EndFrameIndex": 2147483647,
               "IgnoreMapLayerCheck": false,
               "ImageRUID": {
-                "DataId": "4fea64a3307cda641809ad8be0d4890b"
+                "DataId": "6b582c40f3c64664bf8f1a1e7a62ceb3"
               },
               "LocalPosition": {
                 "x": 0.0,
@@ -1289,13 +1289,13 @@
               "OrderInLayer": 0,
               "OverrideSorting": false,
               "PlayRate": 1.0,
-              "PreserveSprite": 0,
+              "PreserveSprite": 2,
               "SortingLayer": "UI",
               "StartFrameIndex": 0,
               "Color": {
-                "r": 0.1,
-                "g": 0.1,
-                "b": 0.14,
+                "r": 1.0,
+                "g": 1.0,
+                "b": 1.0,
                 "a": 0.96
               },
               "DropShadow": false,
@@ -1398,7 +1398,7 @@
               },
               "Position": {
                 "x": 1.1322,
-                "y": 462.6619,
+                "y": 399.6619,
                 "z": 0.0
               },
               "QuaternionRotation": {
@@ -1536,31 +1536,30 @@
         }
       },
       {
-        "id": "168213e7-e567-4669-8e42-1a8d1a9dd211",
-        "path": "/ui/LobbyUIGroup/ModeSelectPanel/Panel/BtnSingle",
-        "componentNames": "MOD.Core.UITransformComponent,MOD.Core.SpriteGUIRendererComponent,MOD.Core.ButtonComponent,MOD.Core.TextComponent",
+        "id": "caace820-aa14-418d-9e53-ed83cd2858e2",
+        "path": "/ui/LobbyUIGroup/ModeSelectPanel/Panel/Content",
+        "componentNames": "MOD.Core.UITransformComponent,MOD.Core.ScrollLayoutGroupComponent",
         "jsonString": {
-          "name": "BtnSingle",
-          "path": "/ui/LobbyUIGroup/ModeSelectPanel/Panel/BtnSingle",
+          "name": "Content",
+          "path": "/ui/LobbyUIGroup/ModeSelectPanel/Panel/Content",
           "nameEditable": true,
           "enable": true,
           "visible": true,
           "localize": true,
           "displayOrder": 1,
           "pathConstraints": "/////",
-          "revision": 0,
+          "revision": 1,
           "origin": {
             "type": "Model",
-            "entry_id": "UIButton",
+            "entry_id": "uiempty",
             "sub_entity_id": null,
-            "root_entity_id": null,
+            "root_entity_id": "caace820-aa14-418d-9e53-ed83cd2858e2",
             "replaced_model_id": null
           },
-          "modelId": "uibutton",
+          "modelId": "uiempty",
           "@components": [
             {
               "@type": "MOD.Core.UITransformComponent",
-              "ActivePlatform": 255,
               "AlignmentOption": 0,
               "AnchorsMax": {
                 "x": 0.5,
@@ -1572,20 +1571,20 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": -40.2088,
-                "y": 374.913483
+                "x": 566.6968,
+                "y": 316.8123
               },
               "OffsetMin": {
-                "x": -664.108,
-                "y": -448.2543
+                "x": -561.936035,
+                "y": -419.7933
               },
               "Pivot": {
                 "x": 0.5,
                 "y": 0.5
               },
               "RectSize": {
-                "x": 623.8992,
-                "y": 823.1678
+                "x": 1128.63281,
+                "y": 736.6056
               },
               "UIMode": 1,
               "UIScale": {
@@ -1595,12 +1594,12 @@
               },
               "UIVersion": 2,
               "anchoredPosition": {
-                "x": -352.1584,
-                "y": -36.6704
+                "x": 2.3804,
+                "y": -51.4905
               },
               "Position": {
-                "x": -352.1584,
-                "y": -36.6704,
+                "x": 2.3804,
+                "y": -51.4905,
                 "z": 0.0
               },
               "QuaternionRotation": {
@@ -1617,12 +1616,111 @@
               "Enable": true
             },
             {
+              "@type": "MOD.Core.ScrollLayoutGroupComponent",
+              "ChildAlignment": 4,
+              "OverrideSorting": false,
+              "Spacing": 20.0,
+              "UseScroll": false,
+              "Enable": true
+            }
+          ],
+          "@version": 1
+        }
+      },
+      {
+        "id": "168213e7-e567-4669-8e42-1a8d1a9dd211",
+        "path": "/ui/LobbyUIGroup/ModeSelectPanel/Panel/Content/BtnSingle",
+        "componentNames": "MOD.Core.UITransformComponent,MOD.Core.SpriteGUIRendererComponent,MOD.Core.ButtonComponent,MOD.Core.TextComponent",
+        "jsonString": {
+          "name": "BtnSingle",
+          "path": "/ui/LobbyUIGroup/ModeSelectPanel/Panel/Content/BtnSingle",
+          "nameEditable": true,
+          "enable": true,
+          "visible": true,
+          "localize": true,
+          "displayOrder": 0,
+          "pathConstraints": "//////",
+          "revision": 0,
+          "origin": {
+            "type": "Model",
+            "entry_id": "UIButton",
+            "sub_entity_id": null,
+            "root_entity_id": null,
+            "replaced_model_id": null
+          },
+          "modelId": "uibutton",
+          "@components": [
+            {
+              "@type": "MOD.Core.UITransformComponent",
+              "ActivePlatform": 255,
+              "AlignmentOption": 4,
+              "AnchorsMax": {
+                "x": 0.0,
+                "y": 1.0
+              },
+              "AnchorsMin": {
+                "x": 0.0,
+                "y": 1.0
+              },
+              "MobileOnly": false,
+              "OffsetMax": {
+                "x": 554.0,
+                "y": -53.0
+              },
+              "OffsetMin": {
+                "x": 54.0,
+                "y": -683.0
+              },
+              "Pivot": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "RectSize": {
+                "x": 500.0,
+                "y": 630.0
+              },
+              "UIMode": 1,
+              "UIScale": {
+                "x": 1.0,
+                "y": 1.0,
+                "z": 1.0
+              },
+              "UIVersion": 2,
+              "anchoredPosition": {
+                "x": 304.0,
+                "y": -368.0
+              },
+              "Rotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+              },
+              "Position": {
+                "x": 304.0,
+                "y": -368.0,
+                "z": 0.0
+              },
+              "QuaternionRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": -1.0
+              },
+              "Scale": {
+                "x": 1.0,
+                "y": 1.0,
+                "z": 1.0
+              },
+              "ZRotation": 0.0,
+              "Enable": true
+            },
+            {
               "@type": "MOD.Core.SpriteGUIRendererComponent",
               "AnimClipPlayType": 0,
               "EndFrameIndex": 2147483647,
               "IgnoreMapLayerCheck": false,
               "ImageRUID": {
-                "DataId": "4fea64a3307cda641809ad8be0d4890b"
+                "DataId": "4bdf1abaddc8497088b1a51ab226812d"
               },
               "LocalPosition": {
                 "x": 0.0,
@@ -1636,13 +1734,13 @@
               "OrderInLayer": 0,
               "OverrideSorting": false,
               "PlayRate": 1.0,
-              "PreserveSprite": 0,
+              "PreserveSprite": 2,
               "SortingLayer": "UI",
               "StartFrameIndex": 0,
               "Color": {
-                "r": 0.16,
-                "g": 0.5,
-                "b": 0.28,
+                "r": 1.0,
+                "g": 1.0,
+                "b": 1.0,
                 "a": 1.0
               },
               "DropShadow": false,
@@ -1789,17 +1887,17 @@
       },
       {
         "id": "0ee56ff4-4262-421a-a497-400f91098768",
-        "path": "/ui/LobbyUIGroup/ModeSelectPanel/Panel/BtnMulti",
+        "path": "/ui/LobbyUIGroup/ModeSelectPanel/Panel/Content/BtnMulti",
         "componentNames": "MOD.Core.UITransformComponent,MOD.Core.SpriteGUIRendererComponent,MOD.Core.ButtonComponent,MOD.Core.TextComponent",
         "jsonString": {
           "name": "BtnMulti",
-          "path": "/ui/LobbyUIGroup/ModeSelectPanel/Panel/BtnMulti",
+          "path": "/ui/LobbyUIGroup/ModeSelectPanel/Panel/Content/BtnMulti",
           "nameEditable": true,
           "enable": true,
           "visible": true,
           "localize": true,
-          "displayOrder": 2,
-          "pathConstraints": "/////",
+          "displayOrder": 1,
+          "pathConstraints": "//////",
           "revision": 0,
           "origin": {
             "type": "Model",
@@ -1813,31 +1911,31 @@
             {
               "@type": "MOD.Core.UITransformComponent",
               "ActivePlatform": 255,
-              "AlignmentOption": 0,
+              "AlignmentOption": 4,
               "AnchorsMax": {
-                "x": 0.5,
-                "y": 0.5
+                "x": 0.0,
+                "y": 1.0
               },
               "AnchorsMin": {
-                "x": 0.5,
-                "y": 0.5
+                "x": 0.0,
+                "y": 1.0
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 663.742065,
-                "y": 374.913269
+                "x": 1074.0,
+                "y": -53.0
               },
               "OffsetMin": {
-                "x": 27.0367126,
-                "y": -433.452881
+                "x": 574.0,
+                "y": -683.0
               },
               "Pivot": {
                 "x": 0.5,
                 "y": 0.5
               },
               "RectSize": {
-                "x": 636.7054,
-                "y": 808.36615
+                "x": 500.0,
+                "y": 630.0
               },
               "UIMode": 1,
               "UIScale": {
@@ -1847,25 +1945,31 @@
               },
               "UIVersion": 2,
               "anchoredPosition": {
-                "x": 345.3894,
-                "y": -29.2698
+                "x": 824.0,
+                "y": -368.0
+              },
+              "Rotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
               },
               "Position": {
-                "x": 345.3894,
-                "y": -29.2698,
+                "x": 824.0,
+                "y": -368.0,
                 "z": 0.0
               },
               "QuaternionRotation": {
                 "x": 0.0,
                 "y": 0.0,
                 "z": 0.0,
-                "w": 1.0
+                "w": -1.0
               },
               "Scale": {
                 "x": 1.0,
                 "y": 1.0,
                 "z": 1.0
               },
+              "ZRotation": 0.0,
               "Enable": true
             },
             {
@@ -1874,7 +1978,7 @@
               "EndFrameIndex": 2147483647,
               "IgnoreMapLayerCheck": false,
               "ImageRUID": {
-                "DataId": "4fea64a3307cda641809ad8be0d4890b"
+                "DataId": "f5713ca26337427f9f6d0f085f53d847"
               },
               "LocalPosition": {
                 "x": 0.0,
@@ -1888,13 +1992,13 @@
               "OrderInLayer": 0,
               "OverrideSorting": false,
               "PlayRate": 1.0,
-              "PreserveSprite": 0,
+              "PreserveSprite": 2,
               "SortingLayer": "UI",
               "StartFrameIndex": 0,
               "Color": {
-                "r": 0.16,
-                "g": 0.32,
-                "b": 0.6,
+                "r": 1.0,
+                "g": 1.0,
+                "b": 1.0,
                 "a": 1.0
               },
               "DropShadow": false,
@@ -2050,7 +2154,7 @@
           "enable": true,
           "visible": true,
           "localize": true,
-          "displayOrder": 3,
+          "displayOrder": 2,
           "pathConstraints": "/////",
           "revision": 1,
           "origin": {
@@ -2075,12 +2179,12 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 662.4388,
-                "y": 476.0314
+                "x": 548.9258,
+                "y": 402.3064
               },
               "OffsetMin": {
-                "x": 587.4388,
-                "y": 401.0314
+                "x": 473.9258,
+                "y": 327.3064
               },
               "Pivot": {
                 "x": 0.5,
@@ -2098,12 +2202,12 @@
               },
               "UIVersion": 2,
               "anchoredPosition": {
-                "x": 624.9388,
-                "y": 438.5314
+                "x": 511.4258,
+                "y": 364.8064
               },
               "Position": {
-                "x": 624.9388,
-                "y": 438.5314,
+                "x": 511.4258,
+                "y": 364.8064,
                 "z": 0.0
               },
               "QuaternionRotation": {
@@ -2122,9 +2226,10 @@
             {
               "@type": "MOD.Core.SpriteGUIRendererComponent",
               "ImageRUID": {
-                "DataId": "0964c9ee946641c4aaf80addaa2acb69"
+                "DataId": "1acd9049c7104cfe8dbe6682706a7ce8"
               },
               "OverrideSorting": false,
+              "PreserveSprite": 2,
               "Enable": true
             },
             {
