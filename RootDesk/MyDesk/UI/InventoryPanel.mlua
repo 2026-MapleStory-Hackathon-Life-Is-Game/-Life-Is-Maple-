@@ -72,6 +72,16 @@ script InventoryPanel extends Component
 		end
 		self:UpdateTabVisual()
 
+		-- 하단 푸터의 닫기 버튼 → 인벤 닫기. 탭과 동일하게 _T.tabH에 넣어 OnEndPlay에서 함께 해제.
+		local closeBtn = _EntityService:GetEntityByPath(base .. "Footer/BtnClose")
+		if isvalid(closeBtn) then
+			local ch = closeBtn:ConnectEvent(ButtonClickEvent, function()
+				_SFXManager:PlayClick()
+				self:Close()
+			end)
+			table.insert(self._T.tabH, { entity = closeBtn, evtH = ch })
+		end
+
 		-- 큐브 사용 모드 배너는 기본 숨김(미라클 큐브 셀을 누르면 켜진다).
 		self._cubeUseMode = false
 		self._lastBannerSig = ""
