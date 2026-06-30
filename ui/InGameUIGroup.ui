@@ -6519,11 +6519,11 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 155.3434,
-                "y": -392.08
+                "x": 155.343292,
+                "y": -255.163
               },
               "OffsetMin": {
-                "x": -144.6566,
+                "x": -144.656708,
                 "y": -492.08
               },
               "Pivot": {
@@ -6532,7 +6532,7 @@
               },
               "RectSize": {
                 "x": 300.0,
-                "y": 100.0
+                "y": 236.917
               },
               "UIMode": 1,
               "UIScale": {
@@ -6542,8 +6542,8 @@
               },
               "UIVersion": 2,
               "anchoredPosition": {
-                "x": 5.3434,
-                "y": -442.08
+                "x": 5.3433,
+                "y": -373.6215
               },
               "Rotation": {
                 "x": 0.0,
@@ -6551,8 +6551,8 @@
                 "z": 0.0
               },
               "Position": {
-                "x": 5.3434,
-                "y": -442.08,
+                "x": 5.3433,
+                "y": -373.6215,
                 "z": 0.0
               },
               "QuaternionRotation": {
@@ -6571,7 +6571,17 @@
             },
             {
               "@type": "MOD.Core.SpriteGUIRendererComponent",
+              "ImageRUID": {
+                "DataId": "34cce642fcfc4522991c14bdacdfba1a"
+              },
               "OverrideSorting": false,
+              "PreserveSprite": 2,
+              "Color": {
+                "r": 1.0,
+                "g": 1.0,
+                "b": 1.0,
+                "a": 1.0
+              },
               "Enable": true
             },
             {
@@ -6584,9 +6594,9 @@
                   "a": 1.0
                 },
                 "HighlightedColor": {
-                  "r": 0.9607843,
-                  "g": 0.9607843,
-                  "b": 0.9607843,
+                  "r": 0.88,
+                  "g": 0.88,
+                  "b": 0.88,
                   "a": 1.0
                 },
                 "PressedColor": {
@@ -6659,12 +6669,12 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 150.0,
-                "y": 50.0
+                "x": 146.6564,
+                "y": -14.3780975
               },
               "OffsetMin": {
-                "x": -150.0,
-                "y": -50.0
+                "x": -153.3436,
+                "y": -114.3781
               },
               "Pivot": {
                 "x": 0.5,
@@ -6677,12 +6687,12 @@
               "UIMode": 1,
               "UIVersion": 2,
               "anchoredPosition": {
-                "x": 0.0,
-                "y": 0.0
+                "x": -3.3436,
+                "y": -64.3781
               },
               "Position": {
-                "x": 0.0,
-                "y": 0.0,
+                "x": -3.3436,
+                "y": -64.3781,
                 "z": 0.0
               },
               "QuaternionRotation": {
@@ -6696,6 +6706,7 @@
             {
               "@type": "MOD.Core.TextGUIRendererComponent",
               "BestFit": true,
+              "FaceDilate": 1.0,
               "Font": "Maple",
               "FontColor": {
                 "r": 1.0,
@@ -6703,8 +6714,27 @@
                 "b": 1.0,
                 "a": 1.0
               },
+              "FontStyle": 1,
+              "MaxSize": 41.0,
+              "OutlineColor": {
+                "r": 0.168627456,
+                "g": 0.254901975,
+                "b": 0.784313738,
+                "a": 1.0
+              },
+              "OutlineWidth": 1.0,
               "OverrideSorting": false,
               "Text": "주사위",
+              "Underlay": false,
+              "UnderlayColor": {
+                "r": 0.168627456,
+                "g": 0.254901975,
+                "b": 0.784313738,
+                "a": 1.0
+              },
+              "UnderlayDilate": 1.0,
+              "UnderlayOffsetX": -1.0,
+              "UnderlayOffsetY": -1.0,
               "Enable": true
             }
           ],
@@ -7285,12 +7315,12 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 247.9779,
-                "y": 219.0
+                "x": 290.0,
+                "y": 224.7441
               },
               "OffsetMin": {
-                "x": -252.0221,
-                "y": -181.0
+                "x": -210.0,
+                "y": -175.2559
               },
               "Pivot": {
                 "x": 0.5,
@@ -7308,12 +7338,12 @@
               },
               "UIVersion": 2,
               "anchoredPosition": {
-                "x": -2.0221,
-                "y": 19.0
+                "x": 40.0,
+                "y": 24.7441
               },
               "Position": {
-                "x": -2.0221,
-                "y": 19.0,
+                "x": 40.0,
+                "y": 24.7441,
                 "z": 0.0
               },
               "QuaternionRotation": {
