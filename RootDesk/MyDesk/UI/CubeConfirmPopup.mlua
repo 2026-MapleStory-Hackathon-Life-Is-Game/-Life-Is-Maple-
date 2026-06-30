@@ -1,0 +1,105 @@
+--[[
+    CubeConfirmPopup
+    ----------------------------------------------------------------------------
+    미라클 큐브 사용 확인 패널.
+    인벤에서 미라클 큐브 사용 모드 → 대상 장비 클릭 시, 바로 사용하지 않고
+    "'아이템명'에 미라클 큐브를 사용하시겠습니까?  예 / 아니오" 를 먼저 묻는다.
+      - 예   → 인벤 큐브 사용 모드 종료 + PotentialManager:RequestCube(대상)
+      - 아니오 → 닫기만(큐브 사용 모드 유지 → 다른 장비 재선택 가능)
+--]]
+@Logic
+script CubeConfirmPopup extends Logic
+
+	property Entity groupRoot = "b6fa7d4a-f3d7-4554-9a7d-8795150bf241"
+	property Entity msgText = "117d423e-8d9f-4c79-908f-f03f003dba3a"
+	property ButtonComponent btnYes = "cf9edd90-431d-435b-a166-e90fdcd9a92a"
+	property ButtonComponent btnNo = "94583ade-fd2f-4b93-9a07-5b0cddc4f4a6"
+
+	property string _equipName = ""
+	property any _yesH = nil
+	property any _noH = nil
+
+	method void OnBeginPlay()
+		-- 클라: 패널 숨김 + 예/아니오 버튼 배선.
+		if self:IsClient() == false then return end
+		if isvalid(self.groupRoot) then self.groupRoot.Enable = false end
+		if isvalid(self.btnYes) then
+			self._yesH = self.btnYes.Entity:ConnectEvent(ButtonClickEvent, function() self:OnYes() end)
+		end
+		if isvalid(self.btnNo) then
+			self._noH = self.btnNo.Entity:ConnectEvent(ButtonClickEvent, function() self:OnNo() end)
+		end
+		log("[CubeConfirmPopup] OnBeginPlay OK")
+	end
+
+	method void SetText(Entity e, string s)
+		-- 텍스트 엔티티의 TextComponent.Text 설정.
+		if isvalid(e) == false then return end
+		local tc = e:GetComponent("MOD.Core.TextComponent")
+		if tc ~= nil then tc.Text = s end
+	end
+
+	method string DisplayName(string equipName)
+		-- equipName의 표시명(EquipmentData.Name). 없으면 equipName 그대로.
+		if equipName == "" then return "" end
+		local ds = _DataService:GetTable("EquipmentData")
+		if isvalid(ds) then
+			for i = 1, ds:GetRowCount() do
+				if ds:GetCell(i, "EquipName") == equipName then return ds:GetCell(i, "Name") end
+			end
+		end
+		return equipName
+	end
+
+	@ExecSpace("ClientOnly")
+	method void Open(string equipName)
+		-- 확인 패널 열기. 인벤 OnCellClicked(큐브모드)에서 호출.
+		if self:IsClient() == false then return end
+		self._equipName = equipName
+		self:SetText(self.msgText, "'" .. self:DisplayName(equipName) .. "'에\n미라클 큐브를 사용하시겠습니까?")
+		if isvalid(self.groupRoot) then self.groupRoot.Enable = true end
+		self:BringToFront()
+		log("[CubeConfirmPopup] Open " .. equipName)
+	end
+
+	method void BringToFront()
+		-- 확인 패널을 형제 중 맨 앞으로(인벤/큐브결과 위에).
+		if isvalid(self.groupRoot) == false then return end
+		local uit = self.groupRoot.UITransformComponent
+		if isvalid(uit) then _UILogic:SetSiblingIndex(uit, 1000000) end
+	end
+
+	method void Close()
+		-- 확인 패널 닫기.
+		if isvalid(self.groupRoot) then self.groupRoot.Enable = false end
+	end
+
+	method void OnYes()
+		-- 예: 인벤 큐브 사용 모드 종료 후 실제 큐브 사용 요청.
+		_SFXManager:PlayCube()
+		local eq = self._equipName
+		self:Close()
+		local ie = _EntityService:GetEntityByPath("/ui/InGameUIGroup/Inventory_Panel/Ctrl")
+		if isvalid(ie) then
+			local inv = ie:GetComponent("script.InventoryPanel")
+			if isvalid(inv) then
+				inv:ExitCubeUseMode()
+				inv:Rebuild()
+			end
+		end
+		_PotentialManager:RequestCube(eq)
+	end
+
+	method void OnNo()
+		-- 아니오: 닫기만. 큐브 사용 모드는 유지(다른 장비 재선택 가능).
+		_SFXManager:PlayClick()
+		self:Close()
+	end
+
+	method void OnEndPlay()
+		-- 버튼 핸들 해제.
+		if self._yesH ~= nil and isvalid(self.btnYes) then self.btnYes.Entity:DisconnectEvent(ButtonClickEvent, self._yesH) end
+		if self._noH ~= nil and isvalid(self.btnNo) then self.btnNo.Entity:DisconnectEvent(ButtonClickEvent, self._noH) end
+	end
+
+end

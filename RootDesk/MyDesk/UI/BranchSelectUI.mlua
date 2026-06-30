@@ -13,6 +13,9 @@ script BranchSelectUI extends Logic
 
 	property ButtonComponent Btn_5 = "bfb77a28-b8f8-426c-a83f-50cdca47fa4b"
 
+	-- 팝업 뒤 반투명 검정 디머(패널과 함께 토글).
+	property Entity dimBack = "2c4d55ed-32eb-4b7d-9d33-94f4b9a680a8"
+
 	property table choiceTiles = {}
 
 	property table handlers = {}
@@ -28,6 +31,7 @@ script BranchSelectUI extends Logic
 	method void Show(table tileNames, table branchTexts)
 		log("BranchUI Show 진입! panel valid=" .. tostring(isvalid(self.panel)))   -- ← 추가
 				if isvalid(self.panel) == false then return end
+				if isvalid(self.dimBack) then self.dimBack.Enable = true end
 				self.panel.Enable = true
 				log("패널 켜짐, count=" .. #tileNames)   -- ← 추가
 		
@@ -58,6 +62,7 @@ script BranchSelectUI extends Logic
 				if isvalid(self.panel) then
 					self.panel.Enable = false
 				end
+				if isvalid(self.dimBack) then self.dimBack.Enable = false end
 	end
 
 	@ExecSpace("ClientOnly")

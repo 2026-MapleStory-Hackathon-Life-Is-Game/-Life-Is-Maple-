@@ -44,6 +44,13 @@ script EquipTooltip extends Logic
 		if tc ~= nil then tc.Text = s end
 	end
 
+	method void SetTextColor(Entity e, Color c)
+		-- 텍스트 엔티티의 TextComponent.FontColor 설정(잠재 등급색 표시용).
+		if isvalid(e) == false then return end
+		local tc = e:GetComponent("MOD.Core.TextComponent")
+		if tc ~= nil then tc.FontColor = c end
+	end
+
 	method string FormatPower(number value)
 		-- 전투력 변화량 표기. 0이면 "0", 양수 "+N", 음수 "-N". 1만 이상은 "○만 ○○○○".
 		local n = math.floor(math.abs(value) + 0.5)
@@ -96,7 +103,7 @@ script EquipTooltip extends Logic
 	method void FillColumn(Entity nameE, SpriteGUIRendererComponent iconC, Entity powerE, Entity statsE, Entity potE, string equipName)
 		-- 한 칼럼을 equipName의 데이터로 채운다. 전투력 변화량은 내부에서 계산해 값+색을 적용.
 		if equipName == "" then return end
-		local ds = _DataService:GetTable("EquipData")
+		local ds = _DataService:GetTable("EquipmentData")
 		if isvalid(ds) == false then return end
 		local row = -1
 		for i = 1, ds:GetRowCount() do
@@ -108,9 +115,10 @@ script EquipTooltip extends Logic
 		self:SetText(nameE, ds:GetCell(row, "Name"))
 		-- 아이콘
 		if isvalid(iconC) then
-			local ruid = ds:GetCell(row, "Icon")
+			local ruid = ds:GetCell(row, "Sprite RUID")
 			if ruid ~= "" then
-				iconC.ImageRUID = ruid
+				-- 장비 RUID는 avataritem 타입 → thumbnail:// 접두 + DataRef로 감싸야 아이콘이 렌더된다.
+				iconC.ImageRUID = DataRef("thumbnail://" .. ruid)
 				iconC.Color = Color(1, 1, 1, 1)
 			else
 				iconC.Color = Color(1, 1, 1, 0)
@@ -122,12 +130,20 @@ script EquipTooltip extends Logic
 		self:SetPowerColor(powerE, gain)
 		-- 스탯 값 칼럼(라벨은 .ui에 고정): 스탯 / 공격력 / 대미지% / 보스 대미지%
 		self:SetText(statsE,
-			ds:GetCell(row, "Stat") .. "\n"
-			.. ds:GetCell(row, "Attack") .. "\n"
-			.. ds:GetCell(row, "Damage") .. "%\n"
-			.. ds:GetCell(row, "BossDamage") .. "%")
-		-- 잠재능력(데이터 대기 → 일단 빈칸)
-		self:SetText(potE, "")
+			ds:GetCell(row, "MainStat_Flat") .. "\n"
+			.. ds:GetCell(row, "MainAttack_Flat") .. "\n"
+			.. ds:GetCell(row, "Damage_Percent") .. "%\n"
+			.. ds:GetCell(row, "BossDamage_Percent") .. "%")
+		-- 잠재능력: 이 아이템의 잠재 직렬화 문자열을 한글 표기로(없으면 빈칸).
+		local potStr = ""
+		local me = _UserService.LocalPlayer
+		if isvalid(me) then
+			local comp = _EquipmentRouter:ManagerForItem(me, equipName)
+			if isvalid(comp) then potStr = comp:GetPotential(equipName) end
+		end
+		self:SetText(potE, _PotentialManager:DisplayText(potStr))
+		-- 잠재 글자색을 등급색으로(에픽=보라/유니크=노랑/레전드리=연두/레어=파랑/없음=회색).
+		self:SetTextColor(potE, _PotentialManager:GradeColor(_PotentialManager:GradeOf(potStr)))
 	end
 
 	method void BringToFront()

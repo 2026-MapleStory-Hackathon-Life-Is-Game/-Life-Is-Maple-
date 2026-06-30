@@ -7,6 +7,9 @@ script ResultUI extends Logic
 
 	property ButtonComponent confirmButton = "dbcde8a3-2755-42bb-bf2e-b99f3db2deb4"
 
+	-- 팝업 뒤 반투명 검정 디머(패널과 함께 토글).
+	property Entity dimBack = "9379a292-313a-4e73-83f7-e36112f8e358"
+
 	property any hConfirm = nil
 
 	@ExecSpace("ClientOnly")
@@ -29,6 +32,7 @@ script ResultUI extends Logic
 	@ExecSpace("ClientOnly")
 	method void Show(string message)
 		_SFXManager:PlayWin()   -- 결과(승리) 팡파르
+		if isvalid(self.dimBack) then self.dimBack.Enable = true end
 		if isvalid(self.panel) then self.panel.Enable = true end
 		if isvalid(self.resultText) then
 			self.resultText.TextComponent.Text = message
@@ -41,6 +45,7 @@ script ResultUI extends Logic
 		-- 확인 → 결과 패널 닫기 (이미 로비로 복귀된 상태).
 		_SFXManager:PlayClick()
 		if isvalid(self.panel) then self.panel.Enable = false end
+		if isvalid(self.dimBack) then self.dimBack.Enable = false end
 		log("[ResultUI] 결과 닫힘")
 	end
 

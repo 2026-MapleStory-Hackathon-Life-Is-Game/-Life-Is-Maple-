@@ -245,9 +245,16 @@ script GameModeManager extends Logic
 					return
 				end
 		
-				-- 2. 해당 맵으로 텔레포트 
+				-- 2. 해당 맵으로 텔레포트
 				-- (Tile_1의 위치를 잡기 전이므로 임시 좌표(0,0)로 이동시킵니다)
 				_TeleportService:TeleportToMapPosition(piece, Vector3(0,0,0), nextMapEntity.Name)
+
+				-- 다른 맵 도착 연출: '점프'하는 느낌(공중 포즈 + 수직 홉). 텔레포트 동기화 여유로 약간 지연.
+				local jumpUid = ""
+				if piece.PlayerComponent ~= nil then jumpUid = piece.PlayerComponent.UserId end
+				_TimerService:SetTimerOnce(function()
+					self:PlayMapJumpFor(piece, jumpUid)
+				end, 0.3)
 		
 				-- 3. 이동력 및 위치 변수 초기화
 				local pm = piece:GetComponent("script.PlayerMovement")
@@ -261,6 +268,35 @@ script GameModeManager extends Logic
 				    _TimerService:SetTimerOnce(function()
 				        _SingleTurnManager:Start() -- 여기서 Start()가 호출되면 다시 TURN_START 단계부터 시작함
 				    end, 1.0)
+	end
+
+	@ExecSpace("Client")
+	method void PlayMapJumpFor(Entity piece)
+		-- 다른 맵으로 이동 시 '점프' 느낌: 공중 포즈 + 위로 떴다 착지하는 홉.
+		if isvalid(piece) == false then return end
+		local pos = piece.TransformComponent.WorldPosition
+		local ground = Vector2(pos.x, pos.y)
+		local apex = Vector2(pos.x, pos.y + 1.2)
+
+		-- 공중(낙하) 포즈
+		local fall = BodyActionStateChangeEvent()
+		fall.ActionState = MapleAvatarBodyActionState.Fall
+		fall.needResetAction = true
+		piece:SendEvent(fall)
+		_SFXManager:PlayJump()   -- 점프 효과음
+
+		-- 위로 떴다(감속) → 내려오며(가속) 착지 → 착지 시 Stand 복귀
+		local up = _TweenLogic:MoveTo(piece, apex, 0.22, EaseType.QuadEaseOut)
+		up:SetOnEndCallback(function()
+			local down = _TweenLogic:MoveTo(piece, ground, 0.22, EaseType.QuadEaseIn)
+			down:SetOnEndCallback(function()
+				local land = BodyActionStateChangeEvent()
+				land.ActionState = MapleAvatarBodyActionState.Stand
+				land.needResetAction = true
+				piece:SendEvent(land)
+			end)
+		end)
+		log("[GameModeManager] 맵 이동 점프 연출 재생")
 	end
 
 end

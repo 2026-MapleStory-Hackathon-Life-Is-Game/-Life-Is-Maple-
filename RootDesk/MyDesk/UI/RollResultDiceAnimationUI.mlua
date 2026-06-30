@@ -87,15 +87,12 @@ script RollResultDiceAnimationUI extends Logic
 					local comp = panels[i]
 					if comp ~= nil then
 						local diceNum = i + 1 -- 배열 1번 인덱스가 주사위 2눈금이므로 +1
-						
-						if diceNum == 12 then 
-							comp.Text = "대성공"
-						else
-							local res = resultTable[diceNum]
-							if res == 2 then comp.Text = "대성공"
-							elseif res == 1 then comp.Text = "성공"
-							else comp.Text = "실패" end
-						end
+
+						-- 기획서: '12 = 무조건 대성공' 규칙 폐기. 결과 테이블 값만 사용.
+						local res = resultTable[diceNum]
+						if res == 2 then comp.Text = "대성공"
+						elseif res == 1 then comp.Text = "성공"
+						else comp.Text = "실패" end
 					end
 				end
 	end
