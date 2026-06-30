@@ -123,23 +123,23 @@
           "@components": [
             {
               "@type": "MOD.Core.UITransformComponent",
-              "AlignmentOption": 0,
+              "AlignmentOption": 4,
               "AnchorsMax": {
-                "x": 0.5,
-                "y": 0.5
+                "x": 0.0,
+                "y": 1.0
               },
               "AnchorsMin": {
-                "x": 0.5,
-                "y": 0.5
+                "x": 0.0,
+                "y": 1.0
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": -438.7707,
-                "y": 528.329
+                "x": 541.0001,
+                "y": -35.9871979
               },
               "OffsetMin": {
-                "x": -938.7707,
-                "y": 378.316
+                "x": 41.00009,
+                "y": -186.0002
               },
               "Pivot": {
                 "x": 0.5,
@@ -157,12 +157,12 @@
               },
               "UIVersion": 2,
               "anchoredPosition": {
-                "x": -688.7707,
-                "y": 453.3225
+                "x": 291.0001,
+                "y": -110.9937
               },
               "Position": {
-                "x": -688.7707,
-                "y": 453.3225,
+                "x": -668.9999,
+                "y": 429.0063,
                 "z": 0.0
               },
               "QuaternionRotation": {
@@ -181,9 +181,10 @@
             {
               "@type": "MOD.Core.SpriteGUIRendererComponent",
               "ImageRUID": {
-                "DataId": "cc3457b8e97b3e14f9d5c39ccdd640bf"
+                "DataId": "c4968486fc094a8ebb7bab95eb102087"
               },
               "OverrideSorting": false,
+              "PreserveSprite": 2,
               "Enable": true
             },
             {
@@ -200,12 +201,12 @@
         }
       },
       {
-        "id": "226e650b-a9ab-4336-9864-c876e18b077b",
-        "path": "/ui/InGameUIGroup/PlayerInfo_Panel/UIText_2",
-        "componentNames": "MOD.Core.UITransformComponent,MOD.Core.TextGUIRendererComponent",
+        "id": "b6f3c56f-8373-44e4-aebd-70e859010e67",
+        "path": "/ui/InGameUIGroup/PlayerInfo_Panel/content",
+        "componentNames": "MOD.Core.UITransformComponent",
         "jsonString": {
-          "name": "UIText_2",
-          "path": "/ui/InGameUIGroup/PlayerInfo_Panel/UIText_2",
+          "name": "content",
+          "path": "/ui/InGameUIGroup/PlayerInfo_Panel/content",
           "nameEditable": true,
           "enable": true,
           "visible": true,
@@ -215,77 +216,74 @@
           "revision": 1,
           "origin": {
             "type": "Model",
-            "entry_id": "uitextguirenderer",
+            "entry_id": "uiempty",
             "sub_entity_id": null,
-            "root_entity_id": "b38deec1-0973-4ad3-9ab8-f3bff963349d",
+            "root_entity_id": "b6f3c56f-8373-44e4-aebd-70e859010e67",
             "replaced_model_id": null
           },
-          "modelId": "uitextguirenderer",
+          "modelId": "uiempty",
           "@components": [
             {
               "@type": "MOD.Core.UITransformComponent",
-              "AlignmentOption": 0,
+              "AlignmentOption": 1,
               "AnchorsMax": {
-                "x": 0.5,
+                "x": 0.0,
                 "y": 0.5
               },
               "AnchorsMin": {
-                "x": 0.5,
+                "x": 0.0,
                 "y": 0.5
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 85.1776,
-                "y": 57.1532974
+                "x": 462.5001,
+                "y": 51.1702
               },
               "OffsetMin": {
-                "x": -114.8224,
-                "y": 7.15329742
+                "x": 149.500092,
+                "y": -48.8298
               },
               "Pivot": {
                 "x": 0.5,
                 "y": 0.5
               },
               "RectSize": {
-                "x": 200.0,
-                "y": 50.0
+                "x": 313.0,
+                "y": 100.0
               },
               "UIMode": 1,
+              "UIScale": {
+                "x": 1.0,
+                "y": 1.0,
+                "z": 1.0
+              },
               "UIVersion": 2,
               "anchoredPosition": {
-                "x": -14.822401,
-                "y": 32.1532974
+                "x": 306.0001,
+                "y": 1.1702
+              },
+              "Rotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
               },
               "Position": {
-                "x": -14.822401,
-                "y": 32.1532974,
+                "x": 56.0001,
+                "y": 1.1702,
                 "z": 0.0
               },
               "QuaternionRotation": {
                 "x": 0.0,
                 "y": 0.0,
                 "z": 0.0,
-                "w": 1.0
+                "w": -1.0
               },
-              "Enable": true
-            },
-            {
-              "@type": "MOD.Core.TextGUIRendererComponent",
-              "BestFit": false,
-              "Font": "Maple",
-              "FontColor": {
-                "r": 1.0,
-                "g": 1.0,
-                "b": 1.0,
-                "a": 1.0
+              "Scale": {
+                "x": 1.0,
+                "y": 1.0,
+                "z": 1.0
               },
-              "FontSize": 25.0,
-              "HorizontalAlignment": 1,
-              "MaxSize": 50.0,
-              "MinSize": 10.0,
-              "OverrideSorting": false,
-              "SortingLayer": "MapLayer0",
-              "Text": "플레이어 이름",
+              "ZRotation": 0.0,
               "Enable": true
             }
           ],
@@ -293,18 +291,18 @@
         }
       },
       {
-        "id": "b38deec1-0973-4ad3-9ab8-f3bff963349d",
-        "path": "/ui/InGameUIGroup/PlayerInfo_Panel/UIText",
+        "id": "226e650b-a9ab-4336-9864-c876e18b077b",
+        "path": "/ui/InGameUIGroup/PlayerInfo_Panel/content/UIText_2",
         "componentNames": "MOD.Core.UITransformComponent,MOD.Core.TextGUIRendererComponent",
         "jsonString": {
-          "name": "UIText",
-          "path": "/ui/InGameUIGroup/PlayerInfo_Panel/UIText",
+          "name": "UIText_2",
+          "path": "/ui/InGameUIGroup/PlayerInfo_Panel/content/UIText_2",
           "nameEditable": true,
           "enable": true,
           "visible": true,
           "localize": true,
-          "displayOrder": 1,
-          "pathConstraints": "////",
+          "displayOrder": 0,
+          "pathConstraints": "/////",
           "revision": 1,
           "origin": {
             "type": "Model",
@@ -317,23 +315,144 @@
           "@components": [
             {
               "@type": "MOD.Core.UITransformComponent",
-              "AlignmentOption": 0,
+              "AlignmentOption": 4,
               "AnchorsMax": {
-                "x": 0.5,
-                "y": 0.5
+                "x": 0.0,
+                "y": 1.0
               },
               "AnchorsMin": {
-                "x": 0.5,
-                "y": 0.5
+                "x": 0.0,
+                "y": 1.0
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 220.5774,
-                "y": 69.6789
+                "x": 124.295,
+                "y": -11.2899008
               },
               "OffsetMin": {
-                "x": 20.5774,
-                "y": -5.32109833
+                "x": 1.70500183,
+                "y": -34.7099
+              },
+              "Pivot": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "RectSize": {
+                "x": 122.59,
+                "y": 23.42
+              },
+              "UIMode": 1,
+              "UIScale": {
+                "x": 1.0,
+                "y": 1.0,
+                "z": 1.0
+              },
+              "UIVersion": 2,
+              "anchoredPosition": {
+                "x": 63.0,
+                "y": -22.9999
+              },
+              "Rotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+              },
+              "Position": {
+                "x": -93.5,
+                "y": 27.0001,
+                "z": 0.0
+              },
+              "QuaternionRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": -1.0
+              },
+              "Scale": {
+                "x": 1.0,
+                "y": 1.0,
+                "z": 1.0
+              },
+              "ZRotation": 0.0,
+              "Enable": true
+            },
+            {
+              "@type": "MOD.Core.TextGUIRendererComponent",
+              "BestFit": false,
+              "FaceDilate": 1.0,
+              "FaceSoftness": 0.0,
+              "Font": "Maple",
+              "FontColor": {
+                "r": 1.0,
+                "g": 1.0,
+                "b": 1.0,
+                "a": 1.0
+              },
+              "FontSize": 21.0,
+              "FontStyle": 1,
+              "HorizontalAlignment": 1,
+              "MaxSize": 50.0,
+              "MinSize": 10.0,
+              "OutlineColor": {
+                "r": 0.168627456,
+                "g": 0.329411775,
+                "b": 0.784313738,
+                "a": 1.0
+              },
+              "OutlineWidth": 1.0,
+              "OverrideSorting": false,
+              "SizeFit": true,
+              "SortingLayer": "MapLayer0",
+              "Text": "플레이어 이름",
+              "Underlay": false,
+              "Enable": true
+            }
+          ],
+          "@version": 1
+        }
+      },
+      {
+        "id": "b38deec1-0973-4ad3-9ab8-f3bff963349d",
+        "path": "/ui/InGameUIGroup/PlayerInfo_Panel/content/UIText",
+        "componentNames": "MOD.Core.UITransformComponent,MOD.Core.TextGUIRendererComponent",
+        "jsonString": {
+          "name": "UIText",
+          "path": "/ui/InGameUIGroup/PlayerInfo_Panel/content/UIText",
+          "nameEditable": true,
+          "enable": true,
+          "visible": true,
+          "localize": true,
+          "displayOrder": 1,
+          "pathConstraints": "/////",
+          "revision": 1,
+          "origin": {
+            "type": "Model",
+            "entry_id": "uitextguirenderer",
+            "sub_entity_id": null,
+            "root_entity_id": "b38deec1-0973-4ad3-9ab8-f3bff963349d",
+            "replaced_model_id": null
+          },
+          "modelId": "uitextguirenderer",
+          "@components": [
+            {
+              "@type": "MOD.Core.UITransformComponent",
+              "AlignmentOption": 5,
+              "AnchorsMax": {
+                "x": 1.0,
+                "y": 1.0
+              },
+              "AnchorsMin": {
+                "x": 1.0,
+                "y": 1.0
+              },
+              "MobileOnly": false,
+              "OffsetMax": {
+                "x": -93.99991,
+                "y": -36.3363037
+              },
+              "OffsetMin": {
+                "x": -293.9999,
+                "y": -111.3363
               },
               "Pivot": {
                 "x": 0.5,
@@ -344,14 +463,19 @@
                 "y": 75.0
               },
               "UIMode": 1,
+              "UIScale": {
+                "x": 1.0,
+                "y": 1.0,
+                "z": 1.0
+              },
               "UIVersion": 2,
               "anchoredPosition": {
-                "x": 120.5774,
-                "y": 32.1789
+                "x": -193.999908,
+                "y": -73.8363
               },
               "Position": {
-                "x": 120.5774,
-                "y": 32.1789,
+                "x": -37.49991,
+                "y": -23.8363037,
                 "z": 0.0
               },
               "QuaternionRotation": {
@@ -360,24 +484,37 @@
                 "z": 0.0,
                 "w": 1.0
               },
+              "Scale": {
+                "x": 1.0,
+                "y": 1.0,
+                "z": 1.0
+              },
               "Enable": true
             },
             {
               "@type": "MOD.Core.TextGUIRendererComponent",
+              "AllowAutomaticTranslation": true,
               "BestFit": false,
+              "ColorGradient": false,
               "Font": "Maple",
               "FontColor": {
-                "r": 1.0,
-                "g": 1.0,
-                "b": 1.0,
+                "r": 0.7714844,
+                "g": 0.0,
+                "b": 0.0,
                 "a": 1.0
               },
               "FontSize": 25.0,
               "HorizontalAlignment": 4,
+              "IsLocalizationKey": false,
+              "IsRichText": false,
               "MaxSize": 50.0,
               "MinSize": 10.0,
+              "OutlineWidth": 1.0,
               "OverrideSorting": false,
+              "SizeFit": true,
               "Text": "모험가/해적",
+              "UseConstraintX": false,
+              "UseConstraintY": false,
               "Enable": true
             }
           ],
@@ -385,24 +522,24 @@
         }
       },
       {
-        "id": "1a50cd7d-07df-4c54-98f7-a68f80713e67",
-        "path": "/ui/InGameUIGroup/PlayerInfo_Panel/UISprite",
-        "componentNames": "MOD.Core.UITransformComponent,MOD.Core.SpriteGUIRendererComponent,MOD.Core.MaskComponent",
+        "id": "2d8cafe4-d7e3-4212-b6cd-0869afc0470d",
+        "path": "/ui/InGameUIGroup/PlayerInfo_Panel/content/UISprite_1",
+        "componentNames": "MOD.Core.UITransformComponent,MOD.Core.SpriteGUIRendererComponent",
         "jsonString": {
-          "name": "UISprite",
-          "path": "/ui/InGameUIGroup/PlayerInfo_Panel/UISprite",
+          "name": "UISprite_1",
+          "path": "/ui/InGameUIGroup/PlayerInfo_Panel/content/UISprite_1",
           "nameEditable": true,
           "enable": true,
           "visible": true,
           "localize": true,
           "displayOrder": 2,
-          "pathConstraints": "////",
+          "pathConstraints": "/////",
           "revision": 1,
           "origin": {
             "type": "Model",
             "entry_id": "uisprite",
             "sub_entity_id": null,
-            "root_entity_id": "1a50cd7d-07df-4c54-98f7-a68f80713e67",
+            "root_entity_id": "2d8cafe4-d7e3-4212-b6cd-0869afc0470d",
             "replaced_model_id": null
           },
           "modelId": "uisprite",
@@ -420,30 +557,35 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": -130.1433,
-                "y": 50.7065
+                "x": 162.5,
+                "y": 15.0
               },
               "OffsetMin": {
-                "x": -230.1433,
-                "y": -49.2935
+                "x": -162.5,
+                "y": -15.0
               },
               "Pivot": {
                 "x": 0.5,
                 "y": 0.5
               },
               "RectSize": {
-                "x": 100.0,
-                "y": 100.0
+                "x": 325.0,
+                "y": 30.0
               },
               "UIMode": 1,
+              "UIScale": {
+                "x": 1.0,
+                "y": 1.0,
+                "z": 1.0
+              },
               "UIVersion": 2,
               "anchoredPosition": {
-                "x": -180.1433,
-                "y": 0.7065
+                "x": 0.0,
+                "y": 0.0
               },
               "Position": {
-                "x": -180.1433,
-                "y": 0.7065,
+                "x": 0.0,
+                "y": 0.0,
                 "z": 0.0
               },
               "QuaternionRotation": {
@@ -452,15 +594,341 @@
                 "z": 0.0,
                 "w": 1.0
               },
+              "Scale": {
+                "x": 1.0,
+                "y": 1.0,
+                "z": 1.0
+              },
+              "Enable": true
+            },
+            {
+              "@type": "MOD.Core.SpriteGUIRendererComponent",
+              "ImageRUID": {
+                "DataId": "3e9d52ed52d64794bbd6f72bab8ee3d9"
+              },
+              "OverrideSorting": false,
+              "Color": {
+                "r": 0.9511719,
+                "g": 0.0,
+                "b": 0.0,
+                "a": 1.0
+              },
+              "FillCenter": true,
+              "Outline": false,
+              "Enable": true
+            }
+          ],
+          "@version": 1
+        }
+      },
+      {
+        "id": "05b6f041-e1ba-4f09-a677-e21e0429fe46",
+        "path": "/ui/InGameUIGroup/PlayerInfo_Panel/content/UIText_1",
+        "componentNames": "MOD.Core.UITransformComponent,MOD.Core.TextGUIRendererComponent",
+        "jsonString": {
+          "name": "UIText_1",
+          "path": "/ui/InGameUIGroup/PlayerInfo_Panel/content/UIText_1",
+          "nameEditable": true,
+          "enable": true,
+          "visible": true,
+          "localize": true,
+          "displayOrder": 3,
+          "pathConstraints": "/////",
+          "revision": 1,
+          "origin": {
+            "type": "Model",
+            "entry_id": "uitextguirenderer",
+            "sub_entity_id": null,
+            "root_entity_id": "b38deec1-0973-4ad3-9ab8-f3bff963349d",
+            "replaced_model_id": null
+          },
+          "modelId": "uitextguirenderer",
+          "@components": [
+            {
+              "@type": "MOD.Core.UITransformComponent",
+              "AlignmentOption": 0,
+              "AnchorsMax": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "AnchorsMin": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "MobileOnly": false,
+              "OffsetMax": {
+                "x": 137.5,
+                "y": 25.0
+              },
+              "OffsetMin": {
+                "x": -137.5,
+                "y": -25.0
+              },
+              "Pivot": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "RectSize": {
+                "x": 275.0,
+                "y": 50.0
+              },
+              "UIMode": 1,
+              "UIScale": {
+                "x": 1.0,
+                "y": 1.0,
+                "z": 1.0
+              },
+              "UIVersion": 2,
+              "anchoredPosition": {
+                "x": 0.0,
+                "y": 0.0
+              },
+              "Position": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+              },
+              "QuaternionRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 1.0
+              },
+              "Scale": {
+                "x": 1.0,
+                "y": 1.0,
+                "z": 1.0
+              },
+              "Enable": true
+            },
+            {
+              "@type": "MOD.Core.TextGUIRendererComponent",
+              "BestFit": false,
+              "Font": "Maple",
+              "FontColor": {
+                "r": 0.0,
+                "g": 0.0189590454,
+                "b": 0.6933594,
+                "a": 1.0
+              },
+              "FontSize": 25.0,
+              "HorizontalAlignment": 1,
+              "MaxSize": 50.0,
+              "MinSize": 10.0,
+              "OverrideSorting": false,
+              "SortingLayer": "MapLayer0",
+              "Text": "전투력: 1765만 2354",
+              "Enable": true
+            }
+          ],
+          "@version": 1
+        }
+      },
+      {
+        "id": "1a50cd7d-07df-4c54-98f7-a68f80713e67",
+        "path": "/ui/InGameUIGroup/PlayerInfo_Panel/UISprite",
+        "componentNames": "MOD.Core.UITransformComponent,MOD.Core.SpriteGUIRendererComponent,MOD.Core.MaskComponent",
+        "jsonString": {
+          "name": "UISprite",
+          "path": "/ui/InGameUIGroup/PlayerInfo_Panel/UISprite",
+          "nameEditable": true,
+          "enable": true,
+          "visible": true,
+          "localize": true,
+          "displayOrder": 1,
+          "pathConstraints": "////",
+          "revision": 1,
+          "origin": {
+            "type": "Model",
+            "entry_id": "uisprite",
+            "sub_entity_id": null,
+            "root_entity_id": "1a50cd7d-07df-4c54-98f7-a68f80713e67",
+            "replaced_model_id": null
+          },
+          "modelId": "uisprite",
+          "@components": [
+            {
+              "@type": "MOD.Core.UITransformComponent",
+              "AlignmentOption": 1,
+              "AnchorsMax": {
+                "x": 0.0,
+                "y": 0.5
+              },
+              "AnchorsMin": {
+                "x": 0.0,
+                "y": 0.5
+              },
+              "MobileOnly": false,
+              "OffsetMax": {
+                "x": 126.800095,
+                "y": 50.67
+              },
+              "OffsetMin": {
+                "x": 19.8000946,
+                "y": -51.33
+              },
+              "Pivot": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "RectSize": {
+                "x": 107.0,
+                "y": 102.0
+              },
+              "UIMode": 1,
+              "UIScale": {
+                "x": 1.0,
+                "y": 1.0,
+                "z": 1.0
+              },
+              "UIVersion": 2,
+              "anchoredPosition": {
+                "x": 73.3000946,
+                "y": -0.33
+              },
+              "Position": {
+                "x": -176.6999,
+                "y": -0.33,
+                "z": 0.0
+              },
+              "QuaternionRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 1.0
+              },
+              "Scale": {
+                "x": 1.0,
+                "y": 1.0,
+                "z": 1.0
+              },
+              "Enable": true
+            },
+            {
+              "@type": "MOD.Core.SpriteGUIRendererComponent",
+              "ImageRUID": {
+                "DataId": "1d2a974b860247ca85a1439825e08cc0"
+              },
+              "OverrideSorting": false,
+              "PreserveSprite": 2,
+              "DropShadow": false,
+              "DropShadowColor": {
+                "r": 0.0,
+                "g": 0.0,
+                "b": 0.0,
+                "a": 0.72
+              },
+              "Enable": true
+            },
+            {
+              "@type": "MOD.Core.MaskComponent",
+              "Padding": {
+                "left": 0,
+                "right": 0,
+                "top": 0,
+                "bottom": 0
+              },
+              "Enable": true
+            }
+          ],
+          "@version": 1
+        }
+      },
+      {
+        "id": "7bd31a36-6c54-4a7f-92ac-99e9e9a92bd7",
+        "path": "/ui/InGameUIGroup/PlayerInfo_Panel/UISprite/BG",
+        "componentNames": "MOD.Core.UITransformComponent,MOD.Core.SpriteGUIRendererComponent",
+        "jsonString": {
+          "name": "BG",
+          "path": "/ui/InGameUIGroup/PlayerInfo_Panel/UISprite/BG",
+          "nameEditable": true,
+          "enable": true,
+          "visible": true,
+          "localize": true,
+          "displayOrder": 0,
+          "pathConstraints": "/////",
+          "revision": 1,
+          "origin": {
+            "type": "Model",
+            "entry_id": "uisprite",
+            "sub_entity_id": null,
+            "root_entity_id": "7bd31a36-6c54-4a7f-92ac-99e9e9a92bd7",
+            "replaced_model_id": null
+          },
+          "modelId": "uisprite",
+          "@components": [
+            {
+              "@type": "MOD.Core.UITransformComponent",
+              "AlignmentOption": 0,
+              "AnchorsMax": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "AnchorsMin": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "MobileOnly": false,
+              "OffsetMax": {
+                "x": 53.4998,
+                "y": 50.0
+              },
+              "OffsetMin": {
+                "x": -53.5002,
+                "y": -50.0
+              },
+              "Pivot": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "RectSize": {
+                "x": 107.0,
+                "y": 100.0
+              },
+              "UIMode": 1,
+              "UIScale": {
+                "x": 1.0,
+                "y": 1.0,
+                "z": 1.0
+              },
+              "UIVersion": 2,
+              "anchoredPosition": {
+                "x": -0.0002002716,
+                "y": 0.0
+              },
+              "Rotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+              },
+              "Position": {
+                "x": -0.0002002716,
+                "y": 0.0,
+                "z": 0.0
+              },
+              "QuaternionRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": -1.0
+              },
+              "Scale": {
+                "x": 1.0,
+                "y": 1.0,
+                "z": 1.0
+              },
+              "ZRotation": 0.0,
               "Enable": true
             },
             {
               "@type": "MOD.Core.SpriteGUIRendererComponent",
               "OverrideSorting": false,
-              "Enable": true
-            },
-            {
-              "@type": "MOD.Core.MaskComponent",
+              "Color": {
+                "r": 0.324146271,
+                "g": 0.8339844,
+                "b": 0.8339844,
+                "a": 1.0
+              },
               "Enable": true
             }
           ],
@@ -478,7 +946,7 @@
           "enable": true,
           "visible": true,
           "localize": true,
-          "displayOrder": 0,
+          "displayOrder": 1,
           "pathConstraints": "/////",
           "revision": 1,
           "origin": {
@@ -503,12 +971,12 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 49.9996,
-                "y": 49.2869
+                "x": 57.91,
+                "y": 55.61
               },
               "OffsetMin": {
-                "x": -75.0004,
-                "y": -75.7131042
+                "x": -67.09,
+                "y": -69.39
               },
               "Pivot": {
                 "x": 0.5,
@@ -526,12 +994,12 @@
               },
               "UIVersion": 2,
               "anchoredPosition": {
-                "x": -12.5004,
-                "y": -13.2131
+                "x": -4.59,
+                "y": -6.89
               },
               "Position": {
-                "x": -12.5004,
-                "y": -13.2131,
+                "x": -4.59,
+                "y": -6.89,
                 "z": 0.0
               },
               "QuaternionRotation": {
@@ -552,6 +1020,7 @@
               "FlipX": true,
               "FlipY": false,
               "PlayRate": 0.0,
+              "PreserveAvatar": 1,
               "Enable": true
             },
             {
@@ -565,24 +1034,24 @@
         }
       },
       {
-        "id": "2d8cafe4-d7e3-4212-b6cd-0869afc0470d",
-        "path": "/ui/InGameUIGroup/PlayerInfo_Panel/UISprite_1",
+        "id": "7bf16511-3bc9-49ab-ad07-a41692aa903b",
+        "path": "/ui/InGameUIGroup/PlayerInfo_Panel/PlaterPortrait_Frame",
         "componentNames": "MOD.Core.UITransformComponent,MOD.Core.SpriteGUIRendererComponent",
         "jsonString": {
-          "name": "UISprite_1",
-          "path": "/ui/InGameUIGroup/PlayerInfo_Panel/UISprite_1",
+          "name": "PlaterPortrait_Frame",
+          "path": "/ui/InGameUIGroup/PlayerInfo_Panel/PlaterPortrait_Frame",
           "nameEditable": true,
           "enable": true,
           "visible": true,
           "localize": true,
-          "displayOrder": 3,
+          "displayOrder": 2,
           "pathConstraints": "////",
           "revision": 1,
           "origin": {
             "type": "Model",
             "entry_id": "uisprite",
             "sub_entity_id": null,
-            "root_entity_id": "2d8cafe4-d7e3-4212-b6cd-0869afc0470d",
+            "root_entity_id": "7bf16511-3bc9-49ab-ad07-a41692aa903b",
             "replaced_model_id": null
           },
           "modelId": "uisprite",
@@ -600,30 +1069,30 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 210.1771,
-                "y": 6.599298
+                "x": -122.7,
+                "y": 49.1685
               },
               "OffsetMin": {
-                "x": -114.8229,
-                "y": 1.599298
+                "x": -229.7,
+                "y": -50.8315
               },
               "Pivot": {
                 "x": 0.5,
                 "y": 0.5
               },
               "RectSize": {
-                "x": 325.0,
-                "y": 5.0
+                "x": 107.0,
+                "y": 100.0
               },
               "UIMode": 1,
               "UIVersion": 2,
               "anchoredPosition": {
-                "x": 47.6771,
-                "y": 4.099298
+                "x": -176.2,
+                "y": -0.8315
               },
               "Position": {
-                "x": 47.6771,
-                "y": 4.099298,
+                "x": -176.2,
+                "y": -0.8315,
                 "z": 0.0
               },
               "QuaternionRotation": {
@@ -636,100 +1105,18 @@
             },
             {
               "@type": "MOD.Core.SpriteGUIRendererComponent",
+              "ImageRUID": {
+                "DataId": "1d2a974b860247ca85a1439825e08cc0"
+              },
               "OverrideSorting": false,
-              "Enable": true
-            }
-          ],
-          "@version": 1
-        }
-      },
-      {
-        "id": "05b6f041-e1ba-4f09-a677-e21e0429fe46",
-        "path": "/ui/InGameUIGroup/PlayerInfo_Panel/UIText_1",
-        "componentNames": "MOD.Core.UITransformComponent,MOD.Core.TextGUIRendererComponent",
-        "jsonString": {
-          "name": "UIText_1",
-          "path": "/ui/InGameUIGroup/PlayerInfo_Panel/UIText_1",
-          "nameEditable": true,
-          "enable": true,
-          "visible": true,
-          "localize": true,
-          "displayOrder": 4,
-          "pathConstraints": "////",
-          "revision": 1,
-          "origin": {
-            "type": "Model",
-            "entry_id": "uitextguirenderer",
-            "sub_entity_id": null,
-            "root_entity_id": "b38deec1-0973-4ad3-9ab8-f3bff963349d",
-            "replaced_model_id": null
-          },
-          "modelId": "uitextguirenderer",
-          "@components": [
-            {
-              "@type": "MOD.Core.UITransformComponent",
-              "AlignmentOption": 0,
-              "AnchorsMax": {
-                "x": 0.5,
-                "y": 0.5
-              },
-              "AnchorsMin": {
-                "x": 0.5,
-                "y": 0.5
-              },
-              "MobileOnly": false,
-              "OffsetMax": {
-                "x": 160.177292,
-                "y": -7.04460144
-              },
-              "OffsetMin": {
-                "x": -114.8227,
-                "y": -57.0446
-              },
-              "Pivot": {
-                "x": 0.5,
-                "y": 0.5
-              },
-              "RectSize": {
-                "x": 275.0,
-                "y": 50.0
-              },
-              "UIMode": 1,
-              "UIVersion": 2,
-              "anchoredPosition": {
-                "x": 22.6772976,
-                "y": -32.0446
-              },
-              "Position": {
-                "x": 22.6772976,
-                "y": -32.0446,
-                "z": 0.0
-              },
-              "QuaternionRotation": {
-                "x": 0.0,
-                "y": 0.0,
-                "z": 0.0,
-                "w": 1.0
-              },
-              "Enable": true
-            },
-            {
-              "@type": "MOD.Core.TextGUIRendererComponent",
-              "BestFit": false,
-              "Font": "Maple",
-              "FontColor": {
+              "PreserveSprite": 2,
+              "Color": {
                 "r": 1.0,
                 "g": 1.0,
                 "b": 1.0,
                 "a": 1.0
               },
-              "FontSize": 25.0,
-              "HorizontalAlignment": 1,
-              "MaxSize": 50.0,
-              "MinSize": 10.0,
-              "OverrideSorting": false,
-              "SortingLayer": "MapLayer0",
-              "Text": "전투력: 1765만 2354",
+              "Type": 0,
               "Enable": true
             }
           ],
@@ -7436,12 +7823,12 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": -580.0,
-                "y": 335.0
+                "x": -546.1879,
+                "y": 280.6763
               },
               "OffsetMin": {
-                "x": -940.0,
-                "y": 185.0
+                "x": -906.1879,
+                "y": 130.6763
               },
               "Pivot": {
                 "x": 0.5,
@@ -7459,12 +7846,12 @@
               },
               "UIVersion": 2,
               "anchoredPosition": {
-                "x": -760.0,
-                "y": 260.0
+                "x": -726.1879,
+                "y": 205.6763
               },
               "Position": {
-                "x": -760.0,
-                "y": 260.0,
+                "x": -726.1879,
+                "y": 205.6763,
                 "z": 0.0
               },
               "QuaternionRotation": {
