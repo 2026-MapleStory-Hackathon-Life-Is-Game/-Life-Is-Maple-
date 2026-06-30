@@ -235,7 +235,8 @@ script PotentialCubePopup extends Logic
 
 	method void OnReroll()
 		-- 재설정: 큐브를 한 번 더 소모해 다시 굴린다. 서버가 새 후보로 팝업을 다시 열어주므로 닫지 않는다.
-		_SFXManager:PlayClick()
+		-- 재설정도 큐브 1개를 소모하므로 큐브 사용 효과음을 재생한다.
+		_SFXManager:PlayCube()
 		_PotentialManager:RerollCube(self._equipName)
 	end
 
