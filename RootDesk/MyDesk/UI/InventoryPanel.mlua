@@ -43,6 +43,8 @@ script InventoryPanel extends Component
 
 	property any _ctxHandlers = nil
 
+	property string _ctxEquipLabel = "장착 / 교체"
+
 	method void OnBeginPlay()
 		-- 클라: 패널 숨김 + GridView 셀 프리팹 주입 + 탭 버튼 이벤트 배선.
 		if self:IsClient() == false then return end
@@ -130,7 +132,12 @@ script InventoryPanel extends Component
 			local hx = self.ctxBtnClose.Entity:ConnectEvent(ButtonClickEvent, function() self:OnCtxClose() end)
 			table.insert(self._ctxHandlers, { entity = self.ctxBtnClose.Entity, evtH = hx })
 		end
-		
+		-- 컨텍스트 메뉴 'Equip' 버튼의 원래 라벨을 기억(큐브 모드에서 '미라클 큐브 사용'으로 바꿨다 복원).
+		if isvalid(self.ctxBtnEquip) then
+			local etc = self.ctxBtnEquip.Entity:GetComponent("MOD.Core.TextComponent")
+			if etc ~= nil and etc.Text ~= nil and etc.Text ~= "" then self._ctxEquipLabel = etc.Text end
+		end
+
 		log("[InventoryPanel] OnBeginPlay OK")
 	end
 
@@ -282,15 +289,9 @@ script InventoryPanel extends Component
 		end
 		local m = _EquipmentRouter:ManagerFor(p, self.activeTab)
 		if isvalid(m) == false then return {} end
-		local list = m:OwnedSorted()
-		-- 장착중인 아이템은 보유목록에서 빠지므로, 배낭에도 보이도록 맨 앞에 포함(있고 중복 아닐 때).
-		local eq = m.Equipped
-		if eq ~= nil and eq ~= "" then
-			local dup = false
-			for _, n in ipairs(list) do if n == eq then dup = true break end end
-			if not dup then table.insert(list, 1, eq) end
-		end
-		return list
+		-- 장착중인 아이템은 인벤토리에 표시하지 않는다(캐릭터 정보 패널에서만 보임).
+		-- OwnedSorted()는 이미 장착품(Equipped)을 제외한 보유목록이므로 그대로 반환.
+		return m:OwnedSorted()
 	end
 
 	method void Rebuild()
@@ -335,19 +336,19 @@ script InventoryPanel extends Component
 				rend.Color = Color(1, 1, 1, 1)
 			end
 			if tc ~= nil then
-				tc.Text = "미라클 큐브\nx " .. tostring(self:CubeCount())
-				tc.FontSize = 13
+				-- TextComponent는 '아이템'일 때만 보유 수량 숫자를 나타낸다(이름 표시 없음). 셀 오른쪽 하단 배치.
+				tc.Text = tostring(self:CubeCount())
+				tc.FontSize = 18
+				tc.Alignment = TextAlignmentType.LowerRight
 			end
 		else
-			-- 장비 셀: 아이콘 RUID + 표시명 조회.
+			-- 장비 셀: 아이콘만 표시(이름 텍스트 없음). RUID만 조회.
 			local ds = _DataService:GetTable("EquipmentData")
 			local ruid = ""
-			local dname = name
 			if isvalid(ds) then
 				for i = 1, ds:GetRowCount() do
 					if ds:GetCell(i, "EquipName") == name then
 						ruid = ds:GetCell(i, "Sprite RUID")
-						dname = ds:GetCell(i, "Name")
 						break
 					end
 				end
@@ -359,19 +360,8 @@ script InventoryPanel extends Component
 				end
 				rend.Color = Color(1, 1, 1, 1)
 			end
-			-- 현재 장착중인 아이템이면 이름 뒤에 (장착중) 표시
-			local p = _UserService.LocalPlayer
-			if isvalid(p) then
-				local m = _EquipmentRouter:ManagerForItem(p, name)
-				if isvalid(m) and m.Equipped == name then
-					dname = dname .. " (장착중)"
-				end
-			end
-			-- 아이콘이 없어도 무슨 아이템인지 보이도록 셀 버튼 텍스트에 이름 표시
-			if tc ~= nil then
-				tc.Text = dname
-				tc.FontSize = 12
-			end
+			-- 장비/방어구/장신구 셀에는 이름 텍스트를 표시하지 않는다(이름 표시 로직 제거).
+			if tc ~= nil then tc.Text = "" end
 		end
 		
 		-- 이 셀의 기존 핸들러만 교체(누적 방지). Rebuild는 핸들러를 안 건드리므로 여기서 관리한다.
@@ -412,10 +402,20 @@ script InventoryPanel extends Component
 		-- ⚠ GridView(스크롤) 안의 셀은 ButtonClickEvent가 스크롤에 먹혀 안 뜬다. 작동하는
 		--    ButtonStateChangeEvent의 Pressed(=2) 상태로 클릭/더블클릭을 감지한다.
 		if equipName == "__MIRACLE_CUBE__" then
-			-- 미라클 큐브 셀: 호버 툴팁 없음. 누르면 큐브 사용(대상 선택) 모드 진입.
-			if ev.state == ButtonState.Pressed then
-				_SFXManager:PlayClick()
-				self:EnterCubeUseMode()
+			-- 미라클 큐브 셀(장비 셀과 동일한 상호작용):
+			--   호버 → 우클릭 폴백용 추적 / 우클릭 → 컨텍스트 메뉴 / 더블클릭 → 큐브 사용.
+			--   단일 좌클릭으로 바로 사용되지 않게(오작동 방지) OnCellClicked의 더블클릭 판정을 탄다.
+			if ev.state == ButtonState.Hover then
+				self._hoverEquip = "__MIRACLE_CUBE__"
+			elseif ev.state == ButtonState.Pressed then
+				if _InputService:IsKeyPressed(KeyboardKey.Mouse1) then
+					self._hoverEquip = "__MIRACLE_CUBE__"
+					self:OpenContextMenu("__MIRACLE_CUBE__")
+				else
+					self:OnCellClicked("__MIRACLE_CUBE__")
+				end
+			elseif ev.state == ButtonState.Normal then
+				if self._hoverEquip == "__MIRACLE_CUBE__" then self._hoverEquip = "" end
 			end
 			return
 		end
@@ -481,6 +481,12 @@ script InventoryPanel extends Component
 		local now = _UtilLogic.ElapsedSeconds
 		if self._lastClickName == equipName and (now - self._lastClickTime) <= 0.3 then
 			self._lastClickName = ""
+			-- 미라클 큐브 셀: 더블클릭 시 장비 선택 패널 열기.
+			if equipName == "__MIRACLE_CUBE__" then
+				log("[InventoryPanel] 큐브 더블클릭 → 선택 패널")
+				_CubeTargetSelect:Open()
+				return
+			end
 			log("[InventoryPanel] 더블클릭 장착: " .. equipName)
 			local p = _UserService.LocalPlayer
 			if isvalid(p) then
@@ -520,13 +526,13 @@ script InventoryPanel extends Component
 		self._ctxTarget = equipName
 		local cur = _InputService:GetCursorPosition()
 		local uiPos = _UILogic:ScreenToUIPosition(cur)
+		-- 대상에 맞춰 메뉴 버튼 구성(큐브 셀: 2행 '미라클 큐브 사용/닫기', 장비: 3행).
+		self:ConfigureCtxMenu(equipName == "__MIRACLE_CUBE__")
 		local ut = self.ctxMenu.UITransformComponent
 		if isvalid(ut) then
 			-- 메뉴 중심을 커서 오른쪽으로 약 110px(메뉴폭 절반+여백) 이동 → 왼쪽 변이 커서 옆에 붙는다.
 			ut.anchoredPosition = Vector2(uiPos.x + 110, uiPos.y - 30)
 		end
-		-- 미라클 큐브 보유 여부로 '재설정' 버튼 활성/반투명 갱신.
-		self:UpdateCtxCubeButton()
 		self.ctxMenu.Enable = true
 		-- 같은 부모(인벤 패널) 형제 중 맨 앞으로(그리드/창 위에 표시).
 		if isvalid(ut) then _UILogic:SetSiblingIndex(ut, 1000000) end
@@ -558,12 +564,56 @@ script InventoryPanel extends Component
 		end
 	end
 
+	method void SetBtnLabel(ButtonComponent btn, string text)
+		-- 컨텍스트 메뉴 버튼의 라벨(TextComponent.Text) 설정.
+		if isvalid(btn) == false then return end
+		local tc = btn.Entity:GetComponent("MOD.Core.TextComponent")
+		if tc ~= nil then tc.Text = text end
+	end
+
+	method void SetBtnPos(ButtonComponent btn, number y)
+		-- 컨텍스트 메뉴 버튼의 세로 위치(anchoredPosition.y) 설정.
+		if isvalid(btn) == false then return end
+		local ut = btn.Entity.UITransformComponent
+		if isvalid(ut) then ut.anchoredPosition = Vector2(0, y) end
+	end
+
+	method void ConfigureCtxMenu(boolean isCube)
+		-- 컨텍스트 메뉴 버튼 구성.
+		--   큐브 셀: 2행('미라클 큐브 사용' / '닫기') — 가운데 '잠재 재설정' 숨김 + 배경 축소.
+		--   장비   : 3행('장착/교체' / '잠재능력 재설정' / '닫기') — 원래 레이아웃 복원.
+		local menuUt = self.ctxMenu.UITransformComponent
+		if isCube then
+			self:SetBtnLabel(self.ctxBtnEquip, "사용한다")
+			self:SetBtnPos(self.ctxBtnEquip, 27)
+			if isvalid(self.ctxBtnCube) then self.ctxBtnCube.Entity.Enable = false end
+			self:SetBtnPos(self.ctxBtnClose, -27)
+			if isvalid(menuUt) then menuUt.RectSize = Vector2(188, 130) end
+		else
+			self:SetBtnLabel(self.ctxBtnEquip, self._ctxEquipLabel)
+			self:SetBtnPos(self.ctxBtnEquip, 54)
+			if isvalid(self.ctxBtnCube) then
+				self.ctxBtnCube.Entity.Enable = true
+				self:SetBtnPos(self.ctxBtnCube, 0)
+			end
+			self:SetBtnPos(self.ctxBtnClose, -54)
+			if isvalid(menuUt) then menuUt.RectSize = Vector2(188, 184) end
+			-- 장비 메뉴는 큐브 보유 여부로 '재설정' 버튼 활성/반투명 갱신.
+			self:UpdateCtxCubeButton()
+		end
+	end
+
 	method void OnCtxEquip()
-		-- '장착/교체': 대상 장비를 장착 요청.
+		-- 장비: '장착/교체' → 장착 요청. 큐브 셀: '미라클 큐브 사용' → 사용(장비 선택) 모드 진입.
 		_SFXManager:PlayClick()
 		local eq = self._ctxTarget
 		self:CloseContextMenu()
 		if eq == "" then return end
+		if eq == "__MIRACLE_CUBE__" then
+			-- '사용한다' → 장비 선택 패널 열기(무기/방어구/장신구 탭에서 대상 선택).
+			_CubeTargetSelect:Open()
+			return
+		end
 		local p = _UserService.LocalPlayer
 		if isvalid(p) then
 			local m = _EquipmentRouter:ManagerForItem(p, eq)
