@@ -273,8 +273,9 @@ script InventoryPanel extends Component
 		if name == "__MIRACLE_CUBE__" then
 			-- 미라클 큐브 셀: 아이콘 RUID가 없으므로 보라색 틴트 + 보유 수 텍스트로 표현.
 			if isvalid(rend) then
-				rend.ImageRUID = DataRef("")
-				rend.Color = Color(0.55, 0.35, 0.85, 1)
+				-- 미라클 큐브 아이콘(sprite RUID → thumbnail:// 없이 직접). 흰색으로 제 색 표시.
+				rend.ImageRUID = DataRef("07b0f309e17d4b4ca5564b0c038d889d")
+				rend.Color = Color(1, 1, 1, 1)
 			end
 			if tc ~= nil then
 				tc.Text = "미라클 큐브\nx " .. tostring(self:CubeCount())
