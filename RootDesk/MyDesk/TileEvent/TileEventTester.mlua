@@ -1,13 +1,14 @@
 @Logic
 script TileEventTester extends Logic
 
-	property string ForceEvent = "None" -- "None", "Boss" / "Hunt" / "Village"
+	property string ForceEvent = "None"
 
 	method string CompNameFor(string key)
 		-- 이벤트 키 → 부착할 타일 컴포넌트 이름. 미설정/None이면 "".
 		if key == "Hunt" then return "HuntTile"
 		elseif key == "Village" then return "VillageTile"
 		elseif key == "Boss" then return "BossTile"
+		elseif key == "Tax" then return "TaxTile"
 		end
 		return ""
 	end

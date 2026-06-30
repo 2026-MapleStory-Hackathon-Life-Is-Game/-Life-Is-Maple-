@@ -251,12 +251,13 @@ script EventTileUI extends Logic
 	-- ===== 사냥 등 단순 이벤트(텍스트 1장 + 다음) =====
 
 	@ExecSpace("ClientOnly")
-	method void ShowEventText(string message, string monsterRUID, Component tile)
-		-- EventTileBase(사냥 등): 텍스트(페이지 단위) + 공격 초상화 + 몬스터 이미지. 마지막 장 '다음' → 종료.
+	method void ShowEventText(string message, string anim, string monsterRUID, Component tile)
+		-- EventTileBase(사냥/세금 등): 텍스트(페이지 단위) + 초상화(타일 지정 anim) + 몬스터 이미지.
+		-- anim은 칸의 기본값(사냥=attack / 그 외=idle). 마지막 장 '다음' → 종료.
 		self._activeTile = tile
 		self:ShowGroup()
 		self:SetMonsterImages(monsterRUID)
-		self:SetPortrait("attack")
+		self:SetPortrait(anim)
 		self:ShowPagedText(message, self.OnEventDone)
 	end
 

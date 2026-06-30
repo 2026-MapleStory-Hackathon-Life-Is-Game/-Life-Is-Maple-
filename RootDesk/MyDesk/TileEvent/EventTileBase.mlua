@@ -36,7 +36,9 @@ script EventTileBase extends BaseTile
 			return
 		end
 		local monsterRUID = ev.monsterRUID or ""
-		self:ShowEventUI(ev.message, monsterRUID, ownerId)
+		-- 초상화 애니메이션 = 칸의 기본값(없으면 idle). 사냥 칸만 RollEvent에서 attack을 지정한다.
+		local anim = ev.anim or "idle"
+		self:ShowEventUI(ev.message, anim, monsterRUID, ownerId)
 
 		log("[EventTileBase] 이벤트 발생 tile=" .. self.Entity.Name
 			.. " type=" .. tostring(ev.eventType))
@@ -45,6 +47,9 @@ script EventTileBase extends BaseTile
 	@ExecSpace("Server")
 	method void RequestDone()
 		-- 클라가 '다음'을 눌러 이벤트 종료를 요청. 도착 플레이어만 허용.
+		-- ⚠ 이 RPC는 '실제로 사용하는 서브클래스(HuntTile/TaxTile)에 동일하게 재정의'해야 한다.
+		--   mlua에서 베이스에만 둔 @ExecSpace("Server") RPC는 서브클래스 인스턴스에서 라우팅되지 않아
+		--   클라의 self._activeTile:RequestDone() 호출이 서버에 닿지 않는다(턴이 TILE에 멈춤).
 		local piece = self._eventPiece
 		if isvalid(piece) and senderUserId ~= self:OwnerUserId(piece) then return end
 		self:FinishEventTile()
@@ -136,10 +141,10 @@ script EventTileBase extends BaseTile
 	end
 
 	@ExecSpace("Client")
-	method void ShowEventUI(string message, string monsterRUID)
-		-- 도착한 플레이어의 클라에서 실행(타깃 호출). 텍스트 + 몬스터 이미지 + '다음' 버튼 표시를 위임.
+	method void ShowEventUI(string message, string anim, string monsterRUID)
+		-- 도착한 플레이어의 클라에서 실행(타깃 호출). 텍스트 + 초상화(anim) + 몬스터 이미지 + '다음' 표시를 위임.
 		-- (콜백용으로 self 전달 → '다음' 클릭 시 self:RequestDone() 으로 종료 신호)
-		_EventTileUI:ShowEventText(message, monsterRUID, self)
+		_EventTileUI:ShowEventText(message, anim, monsterRUID, self)
 	end
 
 	method boolean IsEventTile()

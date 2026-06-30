@@ -39,7 +39,16 @@ script HuntTile extends EventTileBase
 			statMode    = "flat",     -- 고정 수치 증가
 			statValue   = gain,       -- 문구에 표시한 상승치와 동일
 			monsterRUID = monsterRUID, -- 사냥 몬스터 STAND RUID(없으면 "")
+			anim        = "attack",   -- 사냥 칸 init 애니메이션: 공격
 		}
+	end
+
+	@ExecSpace("Server")
+	method void RequestDone()
+		-- '다음' 클릭 시 이벤트 종료 RPC. (베이스 상속 RPC가 서브클래스에서 라우팅 안 되므로 리프에 재정의)
+		local piece = self._eventPiece
+		if isvalid(piece) and senderUserId ~= self:OwnerUserId(piece) then return end
+		self:FinishEventTile()
 	end
 
 end
