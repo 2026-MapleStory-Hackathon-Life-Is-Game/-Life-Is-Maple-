@@ -109,8 +109,8 @@ script MapViewManager extends Logic
 		if ddx == 0 and ddy == 0 then return end
 		-- 줌 비례 보정: 줌아웃(작은 ZoomRatio)일수록 1px가 더 넓은 월드에 대응.
 		local k = self._dragScale * (100 / math.max(1, cam.ZoomRatio))
-		-- 방향: 커서 이동 방향으로 카메라를 함께 이동(드래그한 쪽 영역이 화면에 들어온다).
-		cam.CameraOffset = Vector2(cam.CameraOffset.x + ddx * k, cam.CameraOffset.y - ddy * k)
+		-- 방향: 커서 이동 반대 방향으로 카메라를 이동(맵을 손으로 잡아 끄는 느낌 — 드래그한 만큼 맵이 따라온다).
+		cam.CameraOffset = Vector2(cam.CameraOffset.x - ddx * k, cam.CameraOffset.y - ddy * k)
 	end
 
 	@ExecSpace("ClientOnly")
