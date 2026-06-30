@@ -156,7 +156,10 @@ script CharacterInfoPanel extends Component
 		if isvalid(renderer) == false then return end
 		local e = renderer.Entity
 		if equipName == "" then
-			renderer.Color = Color(1, 1, 1, 0)
+			-- 빈 슬롯: 기본 '네모 슬롯'(어두운 사각) 모양으로 복원.
+			-- 이전 장착품 썸네일 ImageRUID가 남아 실루엣처럼 보이는 문제 방지 → 기본 사각 스프라이트/색으로 되돌린다.
+			renderer.ImageRUID = DataRef("4fea64a3307cda641809ad8be0d4890b")
+			renderer.Color = Color(0.2, 0.22, 0.29, 1)
 			self:SetSlotLabel(e, "(없음)", false)
 			return
 		end
