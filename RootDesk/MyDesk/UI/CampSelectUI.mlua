@@ -52,7 +52,9 @@ script CampSelectUI extends Logic
 		if isvalid(self.selectPanel) == false then return end
 		if isvalid(self.dimBack) then self.dimBack.Enable = true end
 		self.selectPanel.Enable = true
-		
+
+		-- 재오픈 시 중복 구독 방지: 기존 핸들러를 먼저 끊고 다시 연결한다.
+		self:DisconnectAll()
 		self.handlerAdventurer = self.btnAdventurer.Entity:ConnectEvent(ButtonClickEvent, function() self:SelectRace("Adventurer") end)
 		self.handlerCygnus     = self.btnCygnus.Entity:ConnectEvent(ButtonClickEvent, function() self:SelectRace("Cygnus") end)
 		self.handlerResistance = self.btnResistance.Entity:ConnectEvent(ButtonClickEvent, function() self:SelectRace("Resistance") end)

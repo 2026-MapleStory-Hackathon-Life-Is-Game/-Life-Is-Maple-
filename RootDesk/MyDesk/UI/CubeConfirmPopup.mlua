@@ -79,6 +79,8 @@ script CubeConfirmPopup extends Logic
 		_SFXManager:PlayCube()
 		local eq = self._equipName
 		self:Close()
+		-- 큐브 대상 선택 패널이 열려 있었다면 닫는다(결과 카드가 깔끔히 보이도록).
+		if _CubeTargetSelect ~= nil then _CubeTargetSelect:Close() end
 		local ie = _EntityService:GetEntityByPath("/ui/InGameUIGroup/Inventory_Panel/Ctrl")
 		if isvalid(ie) then
 			local inv = ie:GetComponent("script.InventoryPanel")

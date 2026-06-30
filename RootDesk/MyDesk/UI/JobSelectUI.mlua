@@ -47,6 +47,8 @@ script JobSelectUI extends Logic
 		if isvalid(self.dimBack) then self.dimBack.Enable = true end
 		self.panel.Enable = true
 
+		-- 재오픈 시 중복 구독 방지: 기존 핸들러를 먼저 끊고 다시 연결한다.
+		self:DisconnectAll()
 		self.handlerWarrior = self.btnWarrior.Entity:ConnectEvent(ButtonClickEvent, function()
 			self:SelectJob("warrior")
 		end)

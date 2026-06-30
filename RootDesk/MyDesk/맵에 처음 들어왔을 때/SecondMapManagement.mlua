@@ -1,4 +1,10 @@
 @Component
 script SecondMapManagement extends Component
 
+	@ExecSpace("ClientOnly")
+	method void OnMapEnter(Entity enteredMap)
+		-- 맵뷰가 열린 채로 이 맵에 진입한 경우의 잔존 상태(카메라/HUD/타일숫자)를 정리한다.
+		if _MapViewManager ~= nil then _MapViewManager:CloseMapView() end
+	end
+
 end
