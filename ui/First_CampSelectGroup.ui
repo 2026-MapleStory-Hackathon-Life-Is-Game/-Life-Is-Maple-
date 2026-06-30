@@ -468,7 +468,7 @@
               "EndFrameIndex": 2147483647,
               "IgnoreMapLayerCheck": false,
               "ImageRUID": {
-                "DataId": "4fea64a3307cda641809ad8be0d4890b"
+                "DataId": "3e9d52ed52d64794bbd6f72bab8ee3d9"
               },
               "LocalPosition": {
                 "x": 0.0,
@@ -482,7 +482,7 @@
               "OrderInLayer": 0,
               "OverrideSorting": false,
               "PlayRate": 1.0,
-              "PreserveSprite": 0,
+              "PreserveSprite": 2,
               "SortingLayer": "UI",
               "StartFrameIndex": 0,
               "Color": {
@@ -527,6 +527,206 @@
         }
       },
       {
+        "id": "13e5ca5a-d1a8-4d89-bb1e-d84d5463d617",
+        "path": "/ui/First_CampSelectGroup/SelectPanel/Dim",
+        "componentNames": "MOD.Core.UITransformComponent,MOD.Core.SpriteGUIRendererComponent",
+        "jsonString": {
+          "name": "Dim",
+          "path": "/ui/First_CampSelectGroup/SelectPanel/Dim",
+          "nameEditable": true,
+          "enable": true,
+          "visible": true,
+          "localize": true,
+          "displayOrder": 0,
+          "pathConstraints": "////",
+          "revision": 1,
+          "origin": {
+            "type": "Model",
+            "entry_id": "uisprite",
+            "sub_entity_id": null,
+            "root_entity_id": "13e5ca5a-d1a8-4d89-bb1e-d84d5463d617",
+            "replaced_model_id": null
+          },
+          "modelId": "uisprite",
+          "@components": [
+            {
+              "@type": "MOD.Core.UITransformComponent",
+              "AlignmentOption": 0,
+              "AnchorsMax": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "AnchorsMin": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "MobileOnly": false,
+              "OffsetMax": {
+                "x": 960.0002,
+                "y": 539.9998
+              },
+              "OffsetMin": {
+                "x": -959.9998,
+                "y": -540.0002
+              },
+              "Pivot": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "RectSize": {
+                "x": 1920.0,
+                "y": 1080.0
+              },
+              "UIMode": 1,
+              "UIScale": {
+                "x": 1.0,
+                "y": 1.0,
+                "z": 1.0
+              },
+              "UIVersion": 2,
+              "anchoredPosition": {
+                "x": 0.0002,
+                "y": -0.0002
+              },
+              "Rotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+              },
+              "Position": {
+                "x": 0.0002,
+                "y": -0.0002,
+                "z": 0.0
+              },
+              "QuaternionRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": -1.0
+              },
+              "Scale": {
+                "x": 1.0,
+                "y": 1.0,
+                "z": 1.0
+              },
+              "ZRotation": 0.0,
+              "Enable": true
+            },
+            {
+              "@type": "MOD.Core.SpriteGUIRendererComponent",
+              "OverrideSorting": false,
+              "Color": {
+                "r": 0.0,
+                "g": 0.0,
+                "b": 0.0,
+                "a": 0.5
+              },
+              "Enable": true
+            }
+          ],
+          "@version": 1
+        }
+      },
+      {
+        "id": "3f966a6b-b19e-4bb2-b480-a9a9074fbfef",
+        "path": "/ui/First_CampSelectGroup/SelectPanel/PopupBG",
+        "componentNames": "MOD.Core.UITransformComponent,MOD.Core.SpriteGUIRendererComponent",
+        "jsonString": {
+          "name": "PopupBG",
+          "path": "/ui/First_CampSelectGroup/SelectPanel/PopupBG",
+          "nameEditable": true,
+          "enable": true,
+          "visible": true,
+          "localize": true,
+          "displayOrder": 1,
+          "pathConstraints": "////",
+          "revision": 1,
+          "origin": {
+            "type": "Model",
+            "entry_id": "uisprite",
+            "sub_entity_id": null,
+            "root_entity_id": "3f966a6b-b19e-4bb2-b480-a9a9074fbfef",
+            "replaced_model_id": null
+          },
+          "modelId": "uisprite",
+          "@components": [
+            {
+              "@type": "MOD.Core.UITransformComponent",
+              "AlignmentOption": 0,
+              "AnchorsMax": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "AnchorsMin": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "MobileOnly": false,
+              "OffsetMax": {
+                "x": 50.0001,
+                "y": 49.9999
+              },
+              "OffsetMin": {
+                "x": -49.9999,
+                "y": -50.0001
+              },
+              "Pivot": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "RectSize": {
+                "x": 100.0,
+                "y": 100.0
+              },
+              "UIMode": 1,
+              "UIScale": {
+                "x": 1.0,
+                "y": 1.0,
+                "z": 1.0
+              },
+              "UIVersion": 2,
+              "anchoredPosition": {
+                "x": 0.0001,
+                "y": -0.0001
+              },
+              "Rotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+              },
+              "Position": {
+                "x": 0.0001,
+                "y": -0.0001,
+                "z": 0.0
+              },
+              "QuaternionRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": -1.0
+              },
+              "Scale": {
+                "x": 1.0,
+                "y": 1.0,
+                "z": 1.0
+              },
+              "ZRotation": 0.0,
+              "Enable": true
+            },
+            {
+              "@type": "MOD.Core.SpriteGUIRendererComponent",
+              "ImageRUID": {
+                "DataId": "0587d0dd754e4c85a36136aa68ac1057"
+              },
+              "OverrideSorting": false,
+              "PreserveSprite": 2,
+              "Enable": true
+            }
+          ],
+          "@version": 1
+        }
+      },
+      {
         "id": "e601746d-5db5-49f3-ba84-356a38b964bb",
         "path": "/ui/First_CampSelectGroup/SelectPanel/Title",
         "componentNames": "MOD.Core.UITransformComponent,MOD.Core.SpriteGUIRendererComponent,MOD.Core.TextComponent",
@@ -534,10 +734,10 @@
           "name": "Title",
           "path": "/ui/First_CampSelectGroup/SelectPanel/Title",
           "nameEditable": true,
-          "enable": true,
+          "enable": false,
           "visible": true,
           "localize": true,
-          "displayOrder": 0,
+          "displayOrder": 2,
           "pathConstraints": "////",
           "revision": 0,
           "origin": {
@@ -729,18 +929,115 @@
         }
       },
       {
-        "id": "949c9013-829f-4425-a70f-91c41156f9b1",
-        "path": "/ui/First_CampSelectGroup/SelectPanel/BtnAdventurer",
-        "componentNames": "MOD.Core.UITransformComponent,MOD.Core.SpriteGUIRendererComponent,MOD.Core.ButtonComponent,script.ButtonSound",
+        "id": "25998f63-df9e-406e-8711-16d24752f694",
+        "path": "/ui/First_CampSelectGroup/SelectPanel/Content",
+        "componentNames": "MOD.Core.UITransformComponent,MOD.Core.ScrollLayoutGroupComponent",
         "jsonString": {
-          "name": "BtnAdventurer",
-          "path": "/ui/First_CampSelectGroup/SelectPanel/BtnAdventurer",
+          "name": "Content",
+          "path": "/ui/First_CampSelectGroup/SelectPanel/Content",
           "nameEditable": true,
           "enable": true,
           "visible": true,
           "localize": true,
-          "displayOrder": 1,
+          "displayOrder": 3,
           "pathConstraints": "////",
+          "revision": 1,
+          "origin": {
+            "type": "Model",
+            "entry_id": "uiempty",
+            "sub_entity_id": null,
+            "root_entity_id": "25998f63-df9e-406e-8711-16d24752f694",
+            "replaced_model_id": null
+          },
+          "modelId": "uiempty",
+          "@components": [
+            {
+              "@type": "MOD.Core.UITransformComponent",
+              "AlignmentOption": 0,
+              "AnchorsMax": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "AnchorsMin": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "MobileOnly": false,
+              "OffsetMax": {
+                "x": 810.0651,
+                "y": 312.131531
+              },
+              "OffsetMin": {
+                "x": -810.0649,
+                "y": -419.793152
+              },
+              "Pivot": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "RectSize": {
+                "x": 1620.13,
+                "y": 731.9247
+              },
+              "UIMode": 1,
+              "UIScale": {
+                "x": 1.0,
+                "y": 1.0,
+                "z": 1.0
+              },
+              "UIVersion": 2,
+              "anchoredPosition": {
+                "x": 0.0001,
+                "y": -53.8308
+              },
+              "Rotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+              },
+              "Position": {
+                "x": 0.0001,
+                "y": -53.8308,
+                "z": 0.0
+              },
+              "QuaternionRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": -1.0
+              },
+              "Scale": {
+                "x": 1.0,
+                "y": 1.0,
+                "z": 1.0
+              },
+              "ZRotation": 0.0,
+              "Enable": true
+            },
+            {
+              "@type": "MOD.Core.ScrollLayoutGroupComponent",
+              "ChildAlignment": 4,
+              "OverrideSorting": false,
+              "UseScroll": false,
+              "Enable": true
+            }
+          ],
+          "@version": 1
+        }
+      },
+      {
+        "id": "949c9013-829f-4425-a70f-91c41156f9b1",
+        "path": "/ui/First_CampSelectGroup/SelectPanel/Content/BtnAdventurer",
+        "componentNames": "MOD.Core.UITransformComponent,MOD.Core.SpriteGUIRendererComponent,MOD.Core.ButtonComponent,script.ButtonSound",
+        "jsonString": {
+          "name": "BtnAdventurer",
+          "path": "/ui/First_CampSelectGroup/SelectPanel/Content/BtnAdventurer",
+          "nameEditable": true,
+          "enable": true,
+          "visible": true,
+          "localize": true,
+          "displayOrder": 0,
+          "pathConstraints": "/////",
           "revision": 0,
           "origin": {
             "type": "Model",
@@ -754,30 +1051,30 @@
             {
               "@type": "MOD.Core.UITransformComponent",
               "ActivePlatform": 255,
-              "AlignmentOption": 0,
+              "AlignmentOption": 4,
               "AnchorsMax": {
-                "x": 0.5,
-                "y": 0.5
+                "x": 0.0,
+                "y": 1.0
               },
               "AnchorsMin": {
-                "x": 0.5,
-                "y": 0.5
+                "x": 0.0,
+                "y": 1.0
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": -394.909515,
-                "y": 291.1642
+                "x": 425.0,
+                "y": -41.0
               },
               "OffsetMin": {
-                "x": -754.8705,
-                "y": -357.801
+                "x": 40.0,
+                "y": -689.9652
               },
               "Pivot": {
                 "x": 0.5,
                 "y": 0.5
               },
               "RectSize": {
-                "x": 359.961,
+                "x": 385.0,
                 "y": 648.9652
               },
               "UIMode": 1,
@@ -788,12 +1085,12 @@
               },
               "UIVersion": 2,
               "anchoredPosition": {
-                "x": -574.89,
-                "y": -33.3184
+                "x": 232.5,
+                "y": -365.4826
               },
               "Position": {
-                "x": -574.89,
-                "y": -33.3184,
+                "x": 232.5,
+                "y": -365.4826,
                 "z": 0.0
               },
               "QuaternionRotation": {
@@ -815,7 +1112,7 @@
               "EndFrameIndex": 2147483647,
               "IgnoreMapLayerCheck": false,
               "ImageRUID": {
-                "DataId": "4fea64a3307cda641809ad8be0d4890b"
+                "DataId": "28977100c1af447c8dd2a33541db1cf8"
               },
               "LocalPosition": {
                 "x": 0.0,
@@ -829,7 +1126,7 @@
               "OrderInLayer": 0,
               "OverrideSorting": false,
               "PlayRate": 1.0,
-              "PreserveSprite": 0,
+              "PreserveSprite": 2,
               "SortingLayer": "UI",
               "StartFrameIndex": 0,
               "Color": {
@@ -857,7 +1154,7 @@
               "FrameColumn": 1,
               "FrameRate": 0,
               "FrameRow": 1,
-              "Outline": true,
+              "Outline": false,
               "OutlineColor": {
                 "r": 0.0,
                 "g": 0.0,
@@ -879,9 +1176,9 @@
                   "a": 1.0
                 },
                 "HighlightedColor": {
-                  "r": 0.9607843,
-                  "g": 0.9607843,
-                  "b": 0.9607843,
+                  "r": 0.88,
+                  "g": 0.88,
+                  "b": 0.88,
                   "a": 1.0
                 },
                 "PressedColor": {
@@ -929,17 +1226,17 @@
       },
       {
         "id": "2c7d5dd9-a93d-42ab-a3fa-0a9ffe3f95b7",
-        "path": "/ui/First_CampSelectGroup/SelectPanel/BtnAdventurer/UISprite",
+        "path": "/ui/First_CampSelectGroup/SelectPanel/Content/BtnAdventurer/UISprite",
         "componentNames": "MOD.Core.UITransformComponent,MOD.Core.SpriteGUIRendererComponent,MOD.Core.TextGUIRendererComponent",
         "jsonString": {
           "name": "UISprite",
-          "path": "/ui/First_CampSelectGroup/SelectPanel/BtnAdventurer/UISprite",
+          "path": "/ui/First_CampSelectGroup/SelectPanel/Content/BtnAdventurer/UISprite",
           "nameEditable": true,
-          "enable": true,
+          "enable": false,
           "visible": true,
           "localize": true,
           "displayOrder": 0,
-          "pathConstraints": "/////",
+          "pathConstraints": "//////",
           "revision": 1,
           "origin": {
             "type": "Model",
@@ -1015,17 +1312,17 @@
       },
       {
         "id": "54c33214-6fcd-4dc2-a19f-8b10c7dabe80",
-        "path": "/ui/First_CampSelectGroup/SelectPanel/BtnCygnus",
+        "path": "/ui/First_CampSelectGroup/SelectPanel/Content/BtnCygnus",
         "componentNames": "MOD.Core.UITransformComponent,MOD.Core.SpriteGUIRendererComponent,MOD.Core.ButtonComponent,script.ButtonSound",
         "jsonString": {
           "name": "BtnCygnus",
-          "path": "/ui/First_CampSelectGroup/SelectPanel/BtnCygnus",
+          "path": "/ui/First_CampSelectGroup/SelectPanel/Content/BtnCygnus",
           "nameEditable": true,
           "enable": true,
           "visible": true,
           "localize": true,
-          "displayOrder": 2,
-          "pathConstraints": "////",
+          "displayOrder": 1,
+          "pathConstraints": "/////",
           "revision": 0,
           "origin": {
             "type": "Model",
@@ -1039,30 +1336,30 @@
             {
               "@type": "MOD.Core.UITransformComponent",
               "ActivePlatform": 255,
-              "AlignmentOption": 0,
+              "AlignmentOption": 4,
               "AnchorsMax": {
-                "x": 0.5,
-                "y": 0.5
+                "x": 0.0,
+                "y": 1.0
               },
               "AnchorsMin": {
-                "x": 0.5,
-                "y": 0.5
+                "x": 0.0,
+                "y": 1.0
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": -36.0411835,
-                "y": 287.832245
+                "x": 810.0,
+                "y": -44.33246
               },
               "OffsetMin": {
-                "x": -368.231628,
-                "y": -354.468048
+                "x": 425.0,
+                "y": -686.632751
               },
               "Pivot": {
                 "x": 0.5,
                 "y": 0.5
               },
               "RectSize": {
-                "x": 332.19043,
+                "x": 385.0,
                 "y": 642.3003
               },
               "UIMode": 1,
@@ -1073,12 +1370,12 @@
               },
               "UIVersion": 2,
               "anchoredPosition": {
-                "x": -202.1364,
-                "y": -33.3179
+                "x": 617.5,
+                "y": -365.4826
               },
               "Position": {
-                "x": -202.1364,
-                "y": -33.3179,
+                "x": 617.5,
+                "y": -365.4826,
                 "z": 0.0
               },
               "QuaternionRotation": {
@@ -1100,7 +1397,7 @@
               "EndFrameIndex": 2147483647,
               "IgnoreMapLayerCheck": false,
               "ImageRUID": {
-                "DataId": "4fea64a3307cda641809ad8be0d4890b"
+                "DataId": "59c43373e6694aa1b0afd6ac71f306e4"
               },
               "LocalPosition": {
                 "x": 0.0,
@@ -1114,7 +1411,7 @@
               "OrderInLayer": 0,
               "OverrideSorting": false,
               "PlayRate": 1.0,
-              "PreserveSprite": 0,
+              "PreserveSprite": 2,
               "SortingLayer": "UI",
               "StartFrameIndex": 0,
               "Color": {
@@ -1142,7 +1439,7 @@
               "FrameColumn": 1,
               "FrameRate": 0,
               "FrameRow": 1,
-              "Outline": true,
+              "Outline": false,
               "OutlineColor": {
                 "r": 0.0,
                 "g": 0.0,
@@ -1164,9 +1461,9 @@
                   "a": 1.0
                 },
                 "HighlightedColor": {
-                  "r": 0.9607843,
-                  "g": 0.9607843,
-                  "b": 0.9607843,
+                  "r": 0.88,
+                  "g": 0.88,
+                  "b": 0.88,
                   "a": 1.0
                 },
                 "PressedColor": {
@@ -1214,17 +1511,17 @@
       },
       {
         "id": "7b1b3399-fa9a-4426-bec5-78c22fddfb3c",
-        "path": "/ui/First_CampSelectGroup/SelectPanel/BtnCygnus/UISprite",
+        "path": "/ui/First_CampSelectGroup/SelectPanel/Content/BtnCygnus/UISprite",
         "componentNames": "MOD.Core.UITransformComponent,MOD.Core.SpriteGUIRendererComponent,MOD.Core.TextGUIRendererComponent",
         "jsonString": {
           "name": "UISprite",
-          "path": "/ui/First_CampSelectGroup/SelectPanel/BtnCygnus/UISprite",
+          "path": "/ui/First_CampSelectGroup/SelectPanel/Content/BtnCygnus/UISprite",
           "nameEditable": true,
-          "enable": true,
+          "enable": false,
           "visible": true,
           "localize": true,
           "displayOrder": 0,
-          "pathConstraints": "/////",
+          "pathConstraints": "//////",
           "revision": 1,
           "origin": {
             "type": "Model",
@@ -1290,6 +1587,7 @@
             },
             {
               "@type": "MOD.Core.TextGUIRendererComponent",
+              "AllowAutomaticTranslation": true,
               "OverrideSorting": false,
               "Text": "시그너스 기사단",
               "Enable": true
@@ -1300,17 +1598,17 @@
       },
       {
         "id": "d4caad9a-84b0-4970-90ae-061b74fe313b",
-        "path": "/ui/First_CampSelectGroup/SelectPanel/BtnResistance",
+        "path": "/ui/First_CampSelectGroup/SelectPanel/Content/BtnResistance",
         "componentNames": "MOD.Core.UITransformComponent,MOD.Core.SpriteGUIRendererComponent,MOD.Core.ButtonComponent,script.ButtonSound",
         "jsonString": {
           "name": "BtnResistance",
-          "path": "/ui/First_CampSelectGroup/SelectPanel/BtnResistance",
+          "path": "/ui/First_CampSelectGroup/SelectPanel/Content/BtnResistance",
           "nameEditable": true,
           "enable": true,
           "visible": true,
           "localize": true,
-          "displayOrder": 3,
-          "pathConstraints": "////",
+          "displayOrder": 2,
+          "pathConstraints": "/////",
           "revision": 0,
           "origin": {
             "type": "Model",
@@ -1324,30 +1622,30 @@
             {
               "@type": "MOD.Core.UITransformComponent",
               "ActivePlatform": 255,
-              "AlignmentOption": 0,
+              "AlignmentOption": 4,
               "AnchorsMax": {
-                "x": 0.5,
-                "y": 0.5
+                "x": 0.0,
+                "y": 1.0
               },
               "AnchorsMin": {
-                "x": 0.5,
-                "y": 0.5
+                "x": 0.0,
+                "y": 1.0
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 351.568817,
-                "y": 283.388519
+                "x": 1195.0,
+                "y": -45.9986877
               },
               "OffsetMin": {
-                "x": -0.616424561,
-                "y": -355.5793
+                "x": 810.0,
+                "y": -684.966553
               },
               "Pivot": {
                 "x": 0.5,
                 "y": 0.5
               },
               "RectSize": {
-                "x": 352.185242,
+                "x": 385.0,
                 "y": 638.967834
               },
               "UIMode": 1,
@@ -1358,12 +1656,12 @@
               },
               "UIVersion": 2,
               "anchoredPosition": {
-                "x": 175.4762,
-                "y": -36.0954
+                "x": 1002.5,
+                "y": -365.4826
               },
               "Position": {
-                "x": 175.4762,
-                "y": -36.0954,
+                "x": 1002.5,
+                "y": -365.4826,
                 "z": 0.0
               },
               "QuaternionRotation": {
@@ -1385,7 +1683,7 @@
               "EndFrameIndex": 2147483647,
               "IgnoreMapLayerCheck": false,
               "ImageRUID": {
-                "DataId": "4fea64a3307cda641809ad8be0d4890b"
+                "DataId": "1d3e460f992348feb662862a1f685aba"
               },
               "LocalPosition": {
                 "x": 0.0,
@@ -1399,7 +1697,7 @@
               "OrderInLayer": 0,
               "OverrideSorting": false,
               "PlayRate": 1.0,
-              "PreserveSprite": 0,
+              "PreserveSprite": 2,
               "SortingLayer": "UI",
               "StartFrameIndex": 0,
               "Color": {
@@ -1427,7 +1725,7 @@
               "FrameColumn": 1,
               "FrameRate": 0,
               "FrameRow": 1,
-              "Outline": true,
+              "Outline": false,
               "OutlineColor": {
                 "r": 0.0,
                 "g": 0.0,
@@ -1449,9 +1747,9 @@
                   "a": 1.0
                 },
                 "HighlightedColor": {
-                  "r": 0.9607843,
-                  "g": 0.9607843,
-                  "b": 0.9607843,
+                  "r": 0.88,
+                  "g": 0.88,
+                  "b": 0.88,
                   "a": 1.0
                 },
                 "PressedColor": {
@@ -1499,17 +1797,17 @@
       },
       {
         "id": "764c259c-be26-4b3c-a10a-85b6aa9f2842",
-        "path": "/ui/First_CampSelectGroup/SelectPanel/BtnResistance/UISprite",
+        "path": "/ui/First_CampSelectGroup/SelectPanel/Content/BtnResistance/UISprite",
         "componentNames": "MOD.Core.UITransformComponent,MOD.Core.SpriteGUIRendererComponent,MOD.Core.TextGUIRendererComponent",
         "jsonString": {
           "name": "UISprite",
-          "path": "/ui/First_CampSelectGroup/SelectPanel/BtnResistance/UISprite",
+          "path": "/ui/First_CampSelectGroup/SelectPanel/Content/BtnResistance/UISprite",
           "nameEditable": true,
-          "enable": true,
+          "enable": false,
           "visible": true,
           "localize": true,
           "displayOrder": 0,
-          "pathConstraints": "/////",
+          "pathConstraints": "//////",
           "revision": 1,
           "origin": {
             "type": "Model",
@@ -1575,6 +1873,7 @@
             },
             {
               "@type": "MOD.Core.TextGUIRendererComponent",
+              "AllowAutomaticTranslation": true,
               "OverrideSorting": false,
               "Text": "레지스탕스",
               "Enable": true
@@ -1585,17 +1884,17 @@
       },
       {
         "id": "8e930aba-6e79-423a-8a1b-98e9a2e647a9",
-        "path": "/ui/First_CampSelectGroup/SelectPanel/BtnNova",
+        "path": "/ui/First_CampSelectGroup/SelectPanel/Content/BtnNova",
         "componentNames": "MOD.Core.UITransformComponent,MOD.Core.SpriteGUIRendererComponent,MOD.Core.ButtonComponent,script.ButtonSound",
         "jsonString": {
           "name": "BtnNova",
-          "path": "/ui/First_CampSelectGroup/SelectPanel/BtnNova",
+          "path": "/ui/First_CampSelectGroup/SelectPanel/Content/BtnNova",
           "nameEditable": true,
           "enable": true,
           "visible": true,
           "localize": true,
-          "displayOrder": 4,
-          "pathConstraints": "////",
+          "displayOrder": 3,
+          "pathConstraints": "/////",
           "revision": 0,
           "origin": {
             "type": "Model",
@@ -1609,30 +1908,30 @@
             {
               "@type": "MOD.Core.UITransformComponent",
               "ActivePlatform": 255,
-              "AlignmentOption": 0,
+              "AlignmentOption": 4,
               "AnchorsMax": {
-                "x": 0.5,
-                "y": 0.5
+                "x": 0.0,
+                "y": 1.0
               },
               "AnchorsMin": {
-                "x": 0.5,
-                "y": 0.5
+                "x": 0.0,
+                "y": 1.0
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 767.0844,
-                "y": 283.388428
+                "x": 1580.0,
+                "y": -45.4432678
               },
               "OffsetMin": {
-                "x": 396.0152,
-                "y": -356.690247
+                "x": 1195.0,
+                "y": -685.522
               },
               "Pivot": {
                 "x": 0.5,
                 "y": 0.5
               },
               "RectSize": {
-                "x": 371.0692,
+                "x": 385.0,
                 "y": 640.0787
               },
               "UIMode": 1,
@@ -1643,12 +1942,12 @@
               },
               "UIVersion": 2,
               "anchoredPosition": {
-                "x": 581.5498,
-                "y": -36.6509
+                "x": 1387.5,
+                "y": -365.4826
               },
               "Position": {
-                "x": 581.5498,
-                "y": -36.6509,
+                "x": 1387.5,
+                "y": -365.4826,
                 "z": 0.0
               },
               "QuaternionRotation": {
@@ -1670,7 +1969,7 @@
               "EndFrameIndex": 2147483647,
               "IgnoreMapLayerCheck": false,
               "ImageRUID": {
-                "DataId": "4fea64a3307cda641809ad8be0d4890b"
+                "DataId": "310a82c2d1e84e2a90c8977593fc9fda"
               },
               "LocalPosition": {
                 "x": 0.0,
@@ -1684,7 +1983,7 @@
               "OrderInLayer": 0,
               "OverrideSorting": false,
               "PlayRate": 1.0,
-              "PreserveSprite": 0,
+              "PreserveSprite": 2,
               "SortingLayer": "UI",
               "StartFrameIndex": 0,
               "Color": {
@@ -1712,7 +2011,7 @@
               "FrameColumn": 1,
               "FrameRate": 0,
               "FrameRow": 1,
-              "Outline": true,
+              "Outline": false,
               "OutlineColor": {
                 "r": 0.0,
                 "g": 0.0,
@@ -1734,9 +2033,9 @@
                   "a": 1.0
                 },
                 "HighlightedColor": {
-                  "r": 0.9607843,
-                  "g": 0.9607843,
-                  "b": 0.9607843,
+                  "r": 0.88,
+                  "g": 0.88,
+                  "b": 0.88,
                   "a": 1.0
                 },
                 "PressedColor": {
@@ -1784,17 +2083,17 @@
       },
       {
         "id": "5bfcd8cc-359b-4b28-96cf-4852a44a5ac9",
-        "path": "/ui/First_CampSelectGroup/SelectPanel/BtnNova/UISprite",
+        "path": "/ui/First_CampSelectGroup/SelectPanel/Content/BtnNova/UISprite",
         "componentNames": "MOD.Core.UITransformComponent,MOD.Core.SpriteGUIRendererComponent,MOD.Core.TextGUIRendererComponent",
         "jsonString": {
           "name": "UISprite",
-          "path": "/ui/First_CampSelectGroup/SelectPanel/BtnNova/UISprite",
+          "path": "/ui/First_CampSelectGroup/SelectPanel/Content/BtnNova/UISprite",
           "nameEditable": true,
-          "enable": true,
+          "enable": false,
           "visible": true,
           "localize": true,
           "displayOrder": 0,
-          "pathConstraints": "/////",
+          "pathConstraints": "//////",
           "revision": 1,
           "origin": {
             "type": "Model",
