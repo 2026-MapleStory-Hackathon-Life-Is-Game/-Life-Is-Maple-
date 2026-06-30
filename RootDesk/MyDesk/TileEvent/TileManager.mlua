@@ -179,6 +179,13 @@ script TileManager extends Logic
 		return ""
 	end
 
+	method integer GetTileStage(string mapName, string tileName)
+		-- 해당 타일의 Stage(맵 단계, 1/2/3) 반환(없으면 0).
+		local data = self.tileGraph[mapName .. "_" .. tileName]
+		if data ~= nil and data.stage ~= nil then return data.stage end
+		return 0
+	end
+
 	method string GetTileBranchText(string mapName, string tileName)
 		-- 해당 타일의 BranchText(기획자 지정 분기 문자열) 반환(없으면 "").
 		local data = self.tileGraph[mapName .. "_" .. tileName]

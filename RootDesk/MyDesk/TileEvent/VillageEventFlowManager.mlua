@@ -1,0 +1,204 @@
+@Logic
+script VillageEventFlowManager extends Logic
+
+	-- 스테이지1의 '첫' 마을 이벤트를 1번 플로우로 강제하기 위한 1회성 잠금(서버 전용).
+	-- 게임 시작(GameModeManager.StartSinglePlayer/StartMultiPlayer) 시 ResetStage1Lock()으로 해제된다.
+	property boolean _stage1FirstDone = false
+
+	-- 마을 이벤트 플로우 데이터(VillageEventFlow / VillageEventFlowScene / VillageEventFlowBranch)
+	-- 접근·추첨·파싱 전담 레이어. 데이터셋은 serveronly=false 라 서버/클라 양쪽에서 읽기 가능하다.
+	--   - 추첨(RollEvent/RollBranch)은 권위가 필요하므로 서버에서 호출 → 결과 키(EventId/BranchKey)만 클라에 전달.
+	--   - 텍스트/씬 조회(GetScene/GetBranch)는 키만 있으면 클라가 로컬에서 읽어 출력.
+	-- 보상 키(main/all/attack/damage/crit)는 EventTileBase/BaseTile의 스탯 증감 함수와 동일하게 맞춰져 있다.
+
+	method string DecodeText(string raw)
+		-- CSV에 '\n' 리터럴로 저장한 줄바꿈을 실제 개행으로 복원한다(셀을 한 물리 행으로 유지하기 위함).
+		if raw == nil then return "" end
+		local s = raw
+		-- CSV 라운드트립으로 셀 양끝에 따옴표가 남는 경우가 있어, 통째로 감싼 따옴표 1쌍만 제거한다.
+		if #s >= 2 and string.sub(s, 1, 1) == "\"" and string.sub(s, #s, #s) == "\"" then
+			s = string.sub(s, 2, #s - 1)
+		end
+		local out, _cnt = string.gsub(s, "\\n", "\n")
+		return out
+	end
+
+	method string RollEvent(integer stage, string region)
+		-- VillageEventFlow에서 (Stage,Region) 일치 행을 Weight 가중치로 1개 추첨 → EventId. 없으면 "".
+		-- 같은 (Stage,Region) 이벤트가 여러 개면 가중치에 따라 그중 하나가 랜덤 선택된다.
+		local ds = _DataService:GetTable("VillageEventFlow")
+		if isvalid(ds) == false then return "" end
+		local rows = ds:GetRowCount()
+		local function match(i)
+			return (tonumber(ds:GetCell(i, "Stage")) or 0) == stage
+				and ds:GetCell(i, "Region") == region
+		end
+		local total = 0
+		for i = 1, rows do
+			if match(i) then total += (tonumber(ds:GetCell(i, "Weight")) or 0) end
+		end
+		if total <= 0 then return "" end
+		local roll = _UtilLogic:RandomIntegerRange(1, total)
+		local acc = 0
+		for i = 1, rows do
+			if match(i) then
+				acc += (tonumber(ds:GetCell(i, "Weight")) or 0)
+				if roll <= acc then return ds:GetCell(i, "EventId") end
+			end
+		end
+		return ""
+	end
+
+	@ExecSpace("ServerOnly")
+	method void ResetStage1Lock()
+		-- 새 게임 시작 시 호출 → 스테이지1 첫 마을 이벤트 강제 잠금을 푼다.
+		self._stage1FirstDone = false
+	end
+
+	method string FirstFlowEvent(integer stage, string region)
+		-- VillageEventFlow에서 (Stage,Region) 일치 '첫 행'의 EventId(표 순서상 1번 플로우). 없으면 "".
+		local ds = _DataService:GetTable("VillageEventFlow")
+		if isvalid(ds) == false then return "" end
+		for i = 1, ds:GetRowCount() do
+			if (tonumber(ds:GetCell(i, "Stage")) or 0) == stage and ds:GetCell(i, "Region") == region then
+				return ds:GetCell(i, "EventId")
+			end
+		end
+		return ""
+	end
+
+	@ExecSpace("ServerOnly")
+	method string RollEventForArrival(integer stage, string region)
+		-- 마을 타일 도착 시 호출. 스테이지1의 '첫' 마을 이벤트는 1번 플로우로 고정, 그 외엔 가중치 추첨.
+		if stage == 1 and self._stage1FirstDone == false then
+			local forced = self:FirstFlowEvent(1, region)
+			if forced ~= "" then
+				self._stage1FirstDone = true
+				log("[VillageEventFlow] 스테이지1 첫 마을 이벤트 고정 → " .. forced)
+				return forced
+			end
+		end
+		return self:RollEvent(stage, region)
+	end
+
+	method integer FirstScene(string eventId)
+		-- 해당 이벤트의 시작 씬 Seq. 없으면 0.
+		local ds = _DataService:GetTable("VillageEventFlow")
+		if isvalid(ds) == false then return 0 end
+		for i = 1, ds:GetRowCount() do
+			if ds:GetCell(i, "EventId") == eventId then
+				return tonumber(ds:GetCell(i, "FirstScene")) or 0
+			end
+		end
+		return 0
+	end
+
+	method string EventNPC(string eventId)
+		-- 해당 이벤트의 등장 NPC 키. 없으면 "".
+		local ds = _DataService:GetTable("VillageEventFlow")
+		if isvalid(ds) == false then return "" end
+		for i = 1, ds:GetRowCount() do
+			if ds:GetCell(i, "EventId") == eventId then
+				return ds:GetCell(i, "NPC")
+			end
+		end
+		return ""
+	end
+
+	method table GetScene(string eventId, integer seq)
+		-- 씬 1행을 table로 반환. 없으면 nil.
+		--   { anim, nodeType("text"/"choice"/"roll"), nextSeq, branchGroup, reward, text }
+		local ds = _DataService:GetTable("VillageEventFlowScene")
+		if isvalid(ds) == false then return nil end
+		for i = 1, ds:GetRowCount() do
+			if ds:GetCell(i, "EventId") == eventId and (tonumber(ds:GetCell(i, "Seq")) or -1) == seq then
+				return {
+					anim        = ds:GetCell(i, "PlayerAnim"),
+					nodeType    = ds:GetCell(i, "NodeType"),
+					nextSeq     = ds:GetCell(i, "Next"),
+					branchGroup = ds:GetCell(i, "BranchGroup"),
+					reward      = ds:GetCell(i, "Reward"),
+					text        = self:DecodeText(ds:GetCell(i, "Text")),
+				}
+			end
+		end
+		return nil
+	end
+
+	method string RollBranch(string branchGroup)
+		-- VillageEventFlowBranch에서 BranchGroup 일치 행을 Weight 가중치로 추첨 → BranchKey.
+		-- (선택지 행은 Weight=0 으로 두어 확률 추첨에서 제외된다.) 없으면 "".
+		local ds = _DataService:GetTable("VillageEventFlowBranch")
+		if isvalid(ds) == false then return "" end
+		local rows = ds:GetRowCount()
+		local total = 0
+		for i = 1, rows do
+			if ds:GetCell(i, "BranchGroup") == branchGroup then
+				total += (tonumber(ds:GetCell(i, "Weight")) or 0)
+			end
+		end
+		if total <= 0 then return "" end
+		local roll = _UtilLogic:RandomIntegerRange(1, total)
+		local acc = 0
+		for i = 1, rows do
+			if ds:GetCell(i, "BranchGroup") == branchGroup then
+				acc += (tonumber(ds:GetCell(i, "Weight")) or 0)
+				if roll <= acc then return ds:GetCell(i, "BranchKey") end
+			end
+		end
+		return ""
+	end
+
+	method table GetBranch(string branchGroup, string branchKey)
+		-- 분기 1행을 table로 반환. 없으면 nil.
+		--   { weight, label, nextScene, reward, resultText }
+		local ds = _DataService:GetTable("VillageEventFlowBranch")
+		if isvalid(ds) == false then return nil end
+		for i = 1, ds:GetRowCount() do
+			if ds:GetCell(i, "BranchGroup") == branchGroup and ds:GetCell(i, "BranchKey") == branchKey then
+				return {
+					weight     = tonumber(ds:GetCell(i, "Weight")) or 0,
+					label      = self:DecodeText(ds:GetCell(i, "Label")),
+					nextScene  = ds:GetCell(i, "NextScene"),
+					reward     = ds:GetCell(i, "Reward"),
+					resultText = self:DecodeText(ds:GetCell(i, "ResultText")),
+				}
+			end
+		end
+		return nil
+	end
+
+	method table GetChoices(string branchGroup)
+		-- 선택지(choice) 노드용: BranchGroup 일치 행 전체를 { key, label, nextScene } 목록으로 반환.
+		local list = {}
+		local ds = _DataService:GetTable("VillageEventFlowBranch")
+		if isvalid(ds) == false then return list end
+		for i = 1, ds:GetRowCount() do
+			if ds:GetCell(i, "BranchGroup") == branchGroup then
+				table.insert(list, {
+					key       = ds:GetCell(i, "BranchKey"),
+					label     = self:DecodeText(ds:GetCell(i, "Label")),
+					nextScene = ds:GetCell(i, "NextScene"),
+				})
+			end
+		end
+		return list
+	end
+
+	method table ParseReward(string rewardStr)
+		-- 보상 인코딩 "all:10;attack:10" → { {kind="all", value=10}, {kind="attack", value=10} }.
+		-- 빈 문자열이면 빈 목록. kind 는 main/all/attack/damage/crit (EventTileBase.ApplyReward 와 동일).
+		local list = {}
+		if rewardStr == nil or rewardStr == "" then return list end
+		for pair in string.gmatch(rewardStr, "[^;]+") do
+			local sep, _e = string.find(pair, ":")
+			if sep ~= nil then
+				local kind = string.sub(pair, 1, sep - 1)
+				local val = string.sub(pair, sep + 1)
+				table.insert(list, { kind = kind, value = tonumber(val) or 0 })
+			end
+		end
+		return list
+	end
+
+end

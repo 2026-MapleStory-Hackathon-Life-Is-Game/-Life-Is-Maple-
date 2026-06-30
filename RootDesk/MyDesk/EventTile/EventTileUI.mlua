@@ -3,141 +3,64 @@ script EventTileUI extends Logic
 
 	-- 이벤트 타일 UI(EventTileGroup) 클라 컨트롤러.
 	-- UI 그룹 바깥의 @Logic 이라 그룹을 켜고/끄는 동안 자기 자신이 비활성화되지 않는다.
-	-- 서버 타일(EventTileBase)이 도착 플레이어 클라에 Show(eventType, message)를 호출한다.
+	-- 모든 텍스트 진행은 NextButton 클릭으로만 넘어간다(자동 5초 타이머 없음).
+	-- 선택지: 2개 이하 → 수락/거절(BinaryChoice) 양쪽 버튼 / 3~4개 → MultipleChoice(Select_1~4).
 
-	-- EventTileGroup 루트 엔티티(표시/숨김 토글 대상).
+	-- EventTileGroup 루트(표시/숨김 토글 대상).
 	property Entity EventGroup = "707f4eb6-99f6-4e7d-878c-c3a90cec9a81"
-
-	-- 결과 문구를 출력할 UIText 엔티티 경로(TextComponent 보유).
+	-- 문구 출력 UIText 경로(TextComponent).
 	property string TextPath = "/ui/EventTileGroup/EventBack/UISprite/UIText"
-
-	-- ATTACK 모션을 보여줄 초상화(아바타) 경로.
+	-- 초상화(아바타) 경로.
 	property string PortraitPath = "/ui/EventTileGroup/EventBack/BackgroundMap/PlayerPortrait"
 
-	-- 이벤트 UI 자동 닫힘까지의 시간(초).
+	-- 턴 매니저가 비인터랙티브 이벤트 대기시간으로 읽는 값(현재는 모두 NextButton이라 직접 쓰이진 않음). 유지.
 	property number AutoHideSeconds = 5.0
-
-	-- 마을 수락 연출에서 각 문구(퀘스트 문구 / 결과 문구)를 보여주는 시간(초).
 	property number VillageStepSeconds = 5.0
 
-	property integer attackTimer = 0
-	property integer autoHideTimer = 0
-
-	-- ===== 마을(인터랙티브) 이벤트용 — 수락/거절 버튼 =====
+	-- 진행(다음) 버튼.
+	property Entity NextButton = "838ae8b4-920f-4448-bc4b-b551594cba6d"
+	-- 바이너리 선택(수락/거절) 버튼.
 	property Entity AcceptButton = "2a91f613-50ec-455f-8610-6fdc36bfeca4"
 	property Entity DeclineButton = "27c567d9-0abf-44ed-8536-a916699f3a8b"
-	property any _acceptHandler = nil
-	property any _declineHandler = nil
-	-- 진행 중인 마을 타일 컴포넌트(버튼 콜백을 서버로 보내기 위해 보관).
-	property any _villageTile = nil
+	-- 다지선다(3~4개) 버튼.
+	property Entity Select1 = "1133513f-3c5f-4ef4-9337-e9f58927f966"
+	property Entity Select2 = "bdb47787-7623-4726-a035-5afa3988538a"
+	property Entity Select3 = "ac376b97-7fd7-43e1-a21b-479b07b556d0"
+	property Entity Select4 = "8f602fd0-5463-4623-b668-5679886ede36"
+	property Entity MultipleChoiceGroup = "9018a713-b23b-47c7-ad4a-88528a2c739d"
+	property Entity BinaryChoiceGroup = "ca641946-c4e3-4c21-8cae-82ae38baef34"
+
+	-- 진행 중인 타일 컴포넌트(진행/선택을 서버로 되돌릴 콜백 대상).
+	property any _activeTile = nil
+	-- 초상화 재적용 반복 타이머 + 현재 상태.
+	property integer _portraitTimer = 0
+	property string _portraitState = "idle"
+	-- 진행 버튼 핸들러 + 선택 버튼 핸들러 목록.
+	property any _nextHandler = nil
+	property table _choiceHandlers = {}
+	-- roll 씬: 결과 문구 보관.
+	property string _rollResult = ""
+	-- 텍스트의 '\n\n'(빈 줄)을 '다음'으로 한 페이지씩 끊어 출력하기 위한 상태.
+	property table _pages = {}
+	property integer _pageIdx = 0
+	property any _pageDone = nil
+	-- 선택지 프롬프트가 여러 페이지일 때 마지막 페이지에서 노출할 선택지 라벨.
+	property table _choiceLabels = {}
 
 	@ExecSpace("ClientOnly")
 	method void OnBeginPlay()
-		-- 평소엔 숨김. (그룹 바깥 Logic이라 안전하게 끌 수 있다.)
-		if isvalid(self.EventGroup) then
-			self.EventGroup.Enable = false
-		end
-		-- 마을 이벤트 버튼: 평소 비활성 + 클릭 핸들러 연결.
-		if isvalid(self.AcceptButton) then
-			self.AcceptButton.Enable = false
-			self._acceptHandler = self.AcceptButton:ConnectEvent(ButtonClickEvent, self.OnAcceptClicked)
-		end
-		if isvalid(self.DeclineButton) then
-			self.DeclineButton.Enable = false
-			self._declineHandler = self.DeclineButton:ConnectEvent(ButtonClickEvent, self.OnDeclineClicked)
-		end
+		-- 평소엔 그룹 숨김 + 모든 버튼 비활성.
+		if isvalid(self.EventGroup) then self.EventGroup.Enable = false end
+		self:HideAllButtons()
 	end
 
 	@ExecSpace("ClientOnly")
 	method void OnEndPlay()
-		self:ClearTimers()
-		if isvalid(self.AcceptButton) and self._acceptHandler ~= nil then
-			self.AcceptButton:DisconnectEvent(ButtonClickEvent, self._acceptHandler)
-		end
-		if isvalid(self.DeclineButton) and self._declineHandler ~= nil then
-			self.DeclineButton:DisconnectEvent(ButtonClickEvent, self._declineHandler)
-		end
+		self:ClearPortrait()
+		self:HideAllButtons()
 	end
 
-	@ExecSpace("ClientOnly")
-	method void Show(string eventType, string message)
-		-- 도착 플레이어 클라에서 호출(EventTileBase.ShowEventUI 경유). 그룹을 켜고 문구/연출을 세팅한다.
-		-- eventType은 추후 여러 이벤트 UI로 분기하기 위한 키(현재는 "Hunt"만).
-		if isvalid(self.EventGroup) == false then
-			log_warning("[EventTileUI] EventGroup 엔티티를 찾을 수 없습니다.")
-			return
-		end
-		self.EventGroup.Enable = true
-		-- 사냥 등 단순 이벤트에서는 마을 버튼이 보이지 않도록 강제로 끈다.
-		self:SetButtons(false)
-
-		-- 결과 문구 출력.
-		self:SetText(message)
-		log("[EventTileUI] 이벤트 표시(" .. tostring(eventType) .. "): " .. message)
-
-		-- 초상화 ATTACK 모션 시작 + 일정 시간 후 자동 닫힘.
-		self:StartPortraitAttack()
-		self:ClearTimer("autoHideTimer")
-		self.autoHideTimer = _TimerService:SetTimerOnce(function()
-			self:Hide()
-		end, self.AutoHideSeconds)
-	end
-
-	@ExecSpace("ClientOnly")
-	method void Hide()
-		-- 이벤트 UI 닫기: 타이머 정리 후 그룹 숨김.
-		self:ClearTimers()
-		if isvalid(self.EventGroup) then
-			self.EventGroup.Enable = false
-		end
-	end
-
-	@ExecSpace("ClientOnly")
-	method void StartPortraitAttack()
-		-- 즉시 1회 적용 후, 아바타 로딩 타이밍을 대비해 1초마다 재적용한다.
-		self:ApplyPortraitAttack()
-		self:ClearTimer("attackTimer")
-		self.attackTimer = _TimerService:SetTimerRepeat(function()
-			self:ApplyPortraitAttack()
-		end, 1.0)
-	end
-
-	@ExecSpace("ClientOnly")
-	method void ApplyPortraitAttack()
-		-- 초상화 아바타가 ATTACK(공격) 모션을 재생하도록 강제한다.
-		local portrait = _EntityService:GetEntityByPath(self.PortraitPath)
-		if isvalid(portrait) == false then
-			return
-		end
-		local event = BodyActionStateChangeEvent()
-		event.ActionState = MapleAvatarBodyActionState.Attack
-		event.needResetAction = false
-		portrait:SendEvent(event)
-	end
-
-	method void ClearTimer(string field)
-		-- 지정한 타이머 필드를 해제하고 0으로 만든다.
-		if field == "attackTimer" then
-			if self.attackTimer ~= 0 then
-				_TimerService:ClearTimer(self.attackTimer)
-				self.attackTimer = 0
-			end
-		elseif field == "autoHideTimer" then
-			if self.autoHideTimer ~= 0 then
-				_TimerService:ClearTimer(self.autoHideTimer)
-				self.autoHideTimer = 0
-			end
-		end
-	end
-
-	method void ClearTimers()
-		self:ClearTimer("attackTimer")
-		self:ClearTimer("autoHideTimer")
-	end
-
-	-- ============================================================================
-	-- 마을(인터랙티브) 이벤트 — 질문 + 수락/거절 버튼 + 결과 주사위 연출
-	-- ============================================================================
+	-- ===== 공통 표시 헬퍼 =====
 
 	@ExecSpace("ClientOnly")
 	method void SetText(string message)
@@ -151,90 +74,305 @@ script EventTileUI extends Logic
 	end
 
 	@ExecSpace("ClientOnly")
-	method void SetButtons(boolean on)
-		-- 수락/거절 버튼 표시 토글.
-		if isvalid(self.AcceptButton) then self.AcceptButton.Enable = on end
-		if isvalid(self.DeclineButton) then self.DeclineButton.Enable = on end
+	method void ShowGroup()
+		-- 이벤트 그룹을 켠다.
+		if isvalid(self.EventGroup) then self.EventGroup.Enable = true end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void SetPortrait(string anim)
+		-- 초상화 애니(idle→Stand / attack→Attack) 적용 + 로딩 타이밍 대비 1초마다 재적용.
+		self._portraitState = anim
+		self:ApplyPortrait()
+		self:ClearPortrait()
+		self._portraitTimer = _TimerService:SetTimerRepeat(function() self:ApplyPortrait() end, 1.0)
+	end
+
+	@ExecSpace("ClientOnly")
+	method void ApplyPortrait()
+		-- 현재 _portraitState 를 초상화 아바타에 1회 적용한다.
+		local portrait = _EntityService:GetEntityByPath(self.PortraitPath)
+		if isvalid(portrait) == false then return end
+		local state = MapleAvatarBodyActionState.Stand
+		if self._portraitState == "attack" then state = MapleAvatarBodyActionState.Attack end
+		local event = BodyActionStateChangeEvent()
+		event.ActionState = state
+		event.needResetAction = false
+		portrait:SendEvent(event)
+	end
+
+	@ExecSpace("ClientOnly")
+	method void ClearPortrait()
+		-- 초상화 재적용 타이머 해제.
+		if self._portraitTimer ~= 0 then
+			_TimerService:ClearTimer(self._portraitTimer)
+			self._portraitTimer = 0
+		end
+	end
+
+	-- ===== 버튼 표시 / 해제 =====
+
+	@ExecSpace("ClientOnly")
+	method void ClearNext()
+		-- 진행(NextButton) 핸들러 해제 + 숨김.
+		if isvalid(self.NextButton) and self._nextHandler ~= nil then
+			self.NextButton:DisconnectEvent(ButtonClickEvent, self._nextHandler)
+		end
+		self._nextHandler = nil
+		if isvalid(self.NextButton) then self.NextButton.Enable = false end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void HideAllButtons()
+		-- NextButton + 수락/거절 + Select_1~4 핸들러 해제 + 전부 숨김.
+		self:ClearNext()
+		for i = 1, #self._choiceHandlers do
+			local rec = self._choiceHandlers[i]
+			if isvalid(rec.entity) then rec.entity:DisconnectEvent(ButtonClickEvent, rec.hd) end
+		end
+		self._choiceHandlers = {}
+		local btns = { self.AcceptButton, self.DeclineButton, self.Select1, self.Select2, self.Select3, self.Select4 }
+		for i = 1, #btns do
+			if isvalid(btns[i]) then btns[i].Enable = false end
+		end
+		if isvalid(self.BinaryChoiceGroup) then self.BinaryChoiceGroup.Enable = false end
+		if isvalid(self.MultipleChoiceGroup) then self.MultipleChoiceGroup.Enable = false end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void ShowNext(any onClick)
+		-- 진행(NextButton)만 표시하고 클릭 시 onClick(self) 실행.
+		self:HideAllButtons()
+		if isvalid(self.NextButton) then
+			self.NextButton.Enable = true
+			self._nextHandler = self.NextButton:ConnectEvent(ButtonClickEvent, function() onClick(self) end)
+		end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void WireChoiceButton(Entity btn, string label, integer index)
+		-- 버튼 1개에 라벨/클릭(→ index 선택 전달) 연결 후 활성화.
+		if isvalid(btn) == false then return end
+		btn.Enable = true
+		if isvalid(btn.TextComponent) then btn.TextComponent.Text = label end
+		local idx = index
+		local hd = btn:ConnectEvent(ButtonClickEvent, function() self:OnChoicePick(idx) end)
+		table.insert(self._choiceHandlers, { entity = btn, hd = hd })
+	end
+
+	-- ===== 텍스트 페이지 처리(\n\n = 페이지 경계, '다음'으로 한 장씩) =====
+
+	@ExecSpace("ClientOnly")
+	method string TrimText(string s)
+		-- 앞뒤 개행/공백 제거(페이지 내부의 단일 줄바꿈은 유지).
+		local a, _n1 = string.gsub(s, "^%s+", "")
+		local b, _n2 = string.gsub(a, "%s+$", "")
+		return b
+	end
+
+	@ExecSpace("ClientOnly")
+	method table SplitPages(string s)
+		-- '\n\n'(빈 줄) 기준으로 페이지를 나눈다. 빈 페이지 제외, 경계 없으면 통째로 1페이지.
+		local pages = {}
+		local start = 1
+		while true do
+			local i, _e = string.find(s, "\n\n", start, true)
+			if i == nil then
+				local seg = self:TrimText(string.sub(s, start))
+				if seg ~= "" then table.insert(pages, seg) end
+				break
+			end
+			local seg = self:TrimText(string.sub(s, start, i - 1))
+			if seg ~= "" then table.insert(pages, seg) end
+			start = i + 2
+		end
+		if #pages == 0 then table.insert(pages, self:TrimText(s)) end
+		return pages
+	end
+
+	@ExecSpace("ClientOnly")
+	method void ShowPagedText(string fullText, any onComplete)
+		-- 텍스트를 페이지로 나눠 첫 장 표시 + '다음'. 마지막 장에서 '다음' → onComplete(self).
+		self._pages = self:SplitPages(fullText)
+		self._pageIdx = 1
+		self._pageDone = onComplete
+		self:SetText(self._pages[1] or "")
+		self:ShowNext(self.OnPageNext)
+	end
+
+	@ExecSpace("ClientOnly")
+	method void OnPageNext()
+		-- '다음' 클릭: 다음 페이지가 있으면 그 장을 출력, 없으면 완료 콜백 실행.
+		if self._pageIdx < #self._pages then
+			self._pageIdx = self._pageIdx + 1
+			self:SetText(self._pages[self._pageIdx])
+		else
+			local cb = self._pageDone
+			if cb ~= nil then cb(self) end
+		end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void Hide()
+		-- 이벤트 UI 닫기: 버튼/타이머 정리 후 그룹 숨김.
+		self:HideAllButtons()
+		self:ClearPortrait()
+		if isvalid(self.EventGroup) then self.EventGroup.Enable = false end
+	end
+
+	-- ===== 사냥 등 단순 이벤트(텍스트 1장 + 다음) =====
+
+	@ExecSpace("ClientOnly")
+	method void ShowEventText(string message, Component tile)
+		-- EventTileBase(사냥 등): 텍스트(페이지 단위) + 공격 초상화. 마지막 장에서 '다음' → 종료 신호.
+		self._activeTile = tile
+		self:ShowGroup()
+		self:SetPortrait("attack")
+		self:ShowPagedText(message, self.OnEventDone)
+	end
+
+	@ExecSpace("ClientOnly")
+	method void OnEventDone()
+		-- 사냥 등 단순 이벤트 '다음' → UI 닫고 서버에 종료 신호.
+		self:Hide()
+		if isvalid(self._activeTile) then self._activeTile:RequestDone() end
 	end
 
 	@ExecSpace("ClientOnly")
 	method void ShowPlain(string message)
-		-- 버튼/자동닫힘 없이 EventTileGroup에 문구만 표시한다(보스 선택 안내 등).
-		self:ClearTimers()
-		if isvalid(self.EventGroup) == false then
-			log_warning("[EventTileUI] EventGroup 엔티티를 찾을 수 없습니다.")
-			return
-		end
-		self.EventGroup.Enable = true
-		self:SetButtons(false)
+		-- 버튼 없이 문구만 표시(보스 선택 안내 등).
+		self:HideAllButtons()
+		self:ShowGroup()
 		self:SetText(message)
-		self:StartPortraitAttack()
+		self:SetPortrait("attack")
+	end
+
+	-- ===== 마을 씬 재생(VillageTile 연동) =====
+
+	@ExecSpace("ClientOnly")
+	method void SceneText(string text, string anim, Component tile)
+		-- 텍스트 씬: 그룹/초상화/텍스트(페이지 단위). 마지막 장에서 '다음' → 서버에 진행 요청.
+		self._activeTile = tile
+		self:ShowGroup()
+		self:SetPortrait(anim)
+		self:ShowPagedText(text, self.OnTextAdvance)
 	end
 
 	@ExecSpace("ClientOnly")
-	method void ShowVillage(string question, Component villageTile)
-		-- 마을 질문 표시: 그룹을 켜고 문구 + 수락/거절 버튼 활성. 자동닫힘 없음(버튼 선택까지 유지).
-		self._villageTile = villageTile
-		self:ClearTimers()
-		if isvalid(self.EventGroup) == false then
-			log_warning("[EventTileUI] EventGroup 엔티티를 찾을 수 없습니다.")
-			return
+	method void OnTextAdvance()
+		-- 텍스트 씬 '다음' → 서버에 진행 요청.
+		if isvalid(self._activeTile) then self._activeTile:RequestAdvance() end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void SceneRoll(string leadText, string anim, string resultText, Component tile)
+		-- roll 씬: 리드 텍스트(페이지) → 결과 문구(페이지) → 마지막 장에서 '다음' → 서버 진행.
+		self._activeTile = tile
+		self._rollResult = resultText
+		self:ShowGroup()
+		self:SetPortrait(anim)
+		self:ShowPagedText(leadText, self.OnRollLeadDone)
+	end
+
+	@ExecSpace("ClientOnly")
+	method void OnRollLeadDone()
+		-- 리드 텍스트 끝 → 결과 문구를 페이지로 표시, 그 마지막에서 진행 요청.
+		self:ShowPagedText(self._rollResult, self.OnTextAdvance)
+	end
+
+	@ExecSpace("ClientOnly")
+	method void SceneChoices(string text, string anim, table labels, Component tile)
+		-- 선택지 씬: 프롬프트를 페이지 단위로 보여주고, 마지막 장에서 선택 버튼을 노출한다.
+		self._activeTile = tile
+		self._choiceLabels = labels
+		self:ShowGroup()
+		self:SetPortrait(anim)
+		self._pages = self:SplitPages(text)
+		self._pageIdx = 1
+		self:ShowChoicePage()
+	end
+
+	@ExecSpace("ClientOnly")
+	method void ShowChoicePage()
+		-- 현재 프롬프트 페이지 출력. 마지막 장이면 선택 버튼, 아니면 '다음' 버튼.
+		self:SetText(self._pages[self._pageIdx] or "")
+		if self._pageIdx < #self._pages then
+			self:ShowNext(self.OnChoicePageNext)
+		else
+			self:RevealChoices(self._choiceLabels)
 		end
-		self.EventGroup.Enable = true
-		self:SetText(question)
-		self:SetButtons(true)
-		self:StartPortraitAttack()
-		log("[EventTileUI] 마을 질문 표시: " .. question)
 	end
 
 	@ExecSpace("ClientOnly")
-	method void OnAcceptClicked(ButtonClickEvent event)
-		-- 수락: 버튼 끄고 서버(VillageTile)에 수락 요청.
-		if isvalid(self._villageTile) == false then return end
-		self:SetButtons(false)
-		self._villageTile:RequestAccept()
+	method void OnChoicePageNext()
+		self._pageIdx = self._pageIdx + 1
+		self:ShowChoicePage()
 	end
 
 	@ExecSpace("ClientOnly")
-	method void OnDeclineClicked(ButtonClickEvent event)
-		-- 거절: 버튼/그룹 끄고 서버(VillageTile)에 거절 요청(결과 주사위 없이 종료).
-		if isvalid(self._villageTile) == false then return end
-		self:SetButtons(false)
-		if isvalid(self.EventGroup) then self.EventGroup.Enable = false end
-		self._villageTile:RequestDecline()
+	method void RevealChoices(table labels)
+		-- 선택 버튼 노출: 2개 이하 → 수락/거절(BinaryChoice) 양쪽 / 3개 이상 → MultipleChoice.
+		self:HideAllButtons()
+		local n = #labels
+		if n <= 2 then
+			if isvalid(self.BinaryChoiceGroup) then self.BinaryChoiceGroup.Enable = true end
+			local bbtns = { self.AcceptButton, self.DeclineButton }
+			for i = 1, n do
+				self:WireChoiceButton(bbtns[i], labels[i], i)
+			end
+		else
+			if isvalid(self.MultipleChoiceGroup) then self.MultipleChoiceGroup.Enable = true end
+			local sbtns = { self.Select1, self.Select2, self.Select3, self.Select4 }
+			if n > 4 then n = 4 end
+			for i = 1, n do
+				self:WireChoiceButton(sbtns[i], labels[i], i)
+			end
+		end
 	end
+
+	@ExecSpace("ClientOnly")
+	method void OnChoicePick(integer index)
+		-- 선택지 클릭 → 서버에 선택 인덱스 전달.
+		if isvalid(self._activeTile) then self._activeTile:RequestChoice(index) end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void SceneHide()
+		-- 마을 이벤트 UI 닫기.
+		self:Hide()
+		self._activeTile = nil
+	end
+
+	-- ===== 보스 도전 연출(BossTile 연동) — 5초 자동 → NextButton =====
 
 	@ExecSpace("ClientOnly")
 	method void VillageQuestText(string questText, Component villageTile)
-		-- 수락/도전 1단계: 버튼 off → 문구를 VillageStepSeconds 동안 표시 → 서버에 결과 굴림 요청.
-		-- (굴림을 이 시점으로 미뤄야 결과주사위 효과음이 패널 표시와 맞는다.)
-		-- 보스 흐름은 선택 중 EventTileGroup을 꺼두므로, 도전 단계 진입 시 여기서 그룹을 켠다.
-		self._villageTile = villageTile
-		if isvalid(self.EventGroup) then self.EventGroup.Enable = true end
-		self:SetButtons(false)
-		self:SetText(questText)
-		self:ClearTimer("autoHideTimer")
-		self.autoHideTimer = _TimerService:SetTimerOnce(function()
-			if isvalid(self._villageTile) then
-				self._villageTile:RequestQuestRoll()
-			end
-		end, self.VillageStepSeconds)
+		-- 도전 문구(페이지 단위) 표시 → 마지막 장에서 '다음' → 서버에 결과 굴림 요청.
+		self._activeTile = villageTile
+		self:ShowGroup()
+		self:SetPortrait("attack")
+		self:ShowPagedText(questText, self.OnQuestNext)
+	end
+
+	@ExecSpace("ClientOnly")
+	method void OnQuestNext()
+		if isvalid(self._activeTile) then self._activeTile:RequestQuestRoll() end
 	end
 
 	@ExecSpace("ClientOnly")
 	method void VillageDice(integer d1, integer d2, integer total, table resultTable, string outcome, string outcomeText, Component villageTile)
-		-- 수락 2단계: 결과 주사위 연출(기존 UI 재사용) → 결과 문구(VillageStepSeconds) → 서버에 종료 신호.
-		self._villageTile = villageTile
+		-- 결과 주사위 연출 → 결과 문구 + '다음' 클릭 시 종료 신호.
+		self._activeTile = villageTile
 		_RollResultDiceAnimationUI:Show(d1, d2, total, resultTable, outcome, function()
-			self:SetText(outcomeText)
-			self:ClearTimer("autoHideTimer")
-			self.autoHideTimer = _TimerService:SetTimerOnce(function()
-				if isvalid(self.EventGroup) then self.EventGroup.Enable = false end
-				if isvalid(self._villageTile) then
-					self._villageTile:RequestFinish()
-				end
-			end, self.VillageStepSeconds)
+			self:ShowPagedText(outcomeText, self.OnDiceNext)
 		end)
+	end
+
+	@ExecSpace("ClientOnly")
+	method void OnDiceNext()
+		-- 결과 문구 '다음' → UI 닫고 종료 신호.
+		self:Hide()
+		if isvalid(self._activeTile) then self._activeTile:RequestFinish() end
 	end
 
 end

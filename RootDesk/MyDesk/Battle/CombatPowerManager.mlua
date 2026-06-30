@@ -126,6 +126,17 @@ script CombatPowerManager extends Component
 	end
 
 	@ExecSpace("ServerOnly")
+	method void AddSpecificStat(string statName, number value)
+		-- 특정 스탯(STR/DEX/INT/LUK)을 직접 증감하고 전투력을 재계산한다.
+		-- (마을 이벤트의 직업별 스탯 보상 등, 주스탯/올스탯이 아닌 '지정 스탯' 보상용)
+		self:AddToStat(statName, value)
+		self:CalculateCurrentCombatPower()
+		log("CombatPowerManager: 개별스탯 " .. statName .. " " .. tostring(value)
+			.. " → 값=" .. tostring(self:GetStat(statName))
+			.. " 전투력=" .. tostring(self.CombatPower))
+	end
+
+	@ExecSpace("ServerOnly")
 	method void AddMainAttack(string kind, number value)
 		-- 공/마: flat → MainAttack(0 미만 방지), percent → BaseAttackPct.
 		if kind == "percent" then

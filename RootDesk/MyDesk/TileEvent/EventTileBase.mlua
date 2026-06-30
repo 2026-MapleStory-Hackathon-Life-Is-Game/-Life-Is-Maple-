@@ -5,13 +5,24 @@ script EventTileBase extends BaseTile
 	-- 흐름: 말 도착(서버) → RollEvent로 결과를 굴림 → 보상을 플레이어 스탯에 적용
 	--        → 도착한 플레이어의 클라이언트에만 이벤트 UI를 띄움(타깃 Client RPC).
 	-- 새 이벤트 타일(사냥/공격력/장비세트 등)은 이 스크립트를 extends 하고 RollEvent만 구현하면 된다.
+	-- 진행은 자동 5초가 아니라 도착 플레이어의 NextButton 클릭 → RequestDone 으로만 종료된다(인터랙티브).
+
+	-- 진행 중인 도착 플레이어(서버 상태). 턴제라 동시 1명. (서브클래스의 _currentPiece와 충돌 방지용 별도 이름)
+	property any _eventPiece = nil
+
+	method boolean IsInteractiveTile()
+		-- NextButton 클릭으로 완료되는 인터랙티브 타일 → 턴 매니저가 5초 대기 대신 완료 신호를 기다린다.
+		return true
+	end
 
 	@ExecSpace("ServerOnly")
 	method void OnArrive(Entity piece)
-		-- 서버: 결과 굴림 → 보상 적용 → 도착 플레이어 클라에 이벤트 UI 표시.
+		-- 서버: 결과 굴림 → 보상 적용 → 도착 플레이어 클라에 텍스트 표시('다음' 버튼으로 종료).
+		self._eventPiece = piece
 		local ev = self:RollEvent(piece)
 		if ev == nil then
 			log_warning("[EventTileBase] RollEvent가 nil 반환 — tile=" .. self.Entity.Name)
+			self:FinishEventTile()
 			return
 		end
 
@@ -20,12 +31,29 @@ script EventTileBase extends BaseTile
 
 		-- 도착한 말의 소유 유저 클라에만 이벤트 UI 표시.
 		local ownerId = self:OwnerUserId(piece)
-		if ownerId ~= "" then
-			self:ShowEventUI(ev.eventType, ev.message, ownerId)
+		if ownerId == "" then
+			self:FinishEventTile()
+			return
 		end
+		self:ShowEventUI(ev.message, ownerId)
 
 		log("[EventTileBase] 이벤트 발생 tile=" .. self.Entity.Name
 			.. " type=" .. tostring(ev.eventType))
+	end
+
+	@ExecSpace("Server")
+	method void RequestDone()
+		-- 클라가 '다음'을 눌러 이벤트 종료를 요청. 도착 플레이어만 허용.
+		local piece = self._eventPiece
+		if isvalid(piece) and senderUserId ~= self:OwnerUserId(piece) then return end
+		self:FinishEventTile()
+	end
+
+	@ExecSpace("ServerOnly")
+	method void FinishEventTile()
+		-- 이벤트 종료: 상태 초기화 + 턴 진행 신호.
+		self._eventPiece = nil
+		_GameModeManager:NotifyTileEventDone()
 	end
 
 	method table RollEvent(Entity piece)
@@ -64,6 +92,8 @@ script EventTileBase extends BaseTile
 			self:AddDamage(piece, value)
 		elseif kind == "crit" then
 			self:AddCritical(piece, value)
+		elseif kind == "str" or kind == "dex" or kind == "int" or kind == "luk" then
+			self:AddSpecificStat(piece, kind, value)
 		else
 			log_warning("[EventTileBase] 알 수 없는 statKind=" .. tostring(kind))
 			return
@@ -72,6 +102,24 @@ script EventTileBase extends BaseTile
 		log("[EventTileBase] 보상 적용 tile=" .. self.Entity.Name
 			.. " kind=" .. tostring(kind) .. " mode=" .. tostring(mode)
 			.. " value=" .. tostring(value))
+	end
+
+	@ExecSpace("ServerOnly")
+	method void ApplyRewardString(Entity piece, string rewardStr)
+		-- VillageEventFlow 계열 테이블의 보상 인코딩("all:10;attack:10")을 파싱해 각 스탯에 적용한다.
+		-- 대성공처럼 보상이 복수일 때도 전부 반영(기존 ApplyReward를 항목마다 재사용).
+		local rewards = _VillageEventFlowManager:ParseReward(rewardStr)
+		for i = 1, #rewards do
+			self:ApplyReward(piece, { statKind = rewards[i].kind, statMode = "flat", statValue = rewards[i].value })
+		end
+	end
+
+	@ExecSpace("ServerOnly")
+	method void AddSpecificStat(Entity piece, string statName, number value)
+		-- 지정 스탯(str/dex/int/luk) 보상 → CombatPowerManager의 해당 스탯 필드에 직접 가산.
+		local cp = self:CP(piece)
+		if isvalid(cp) == false then return end
+		cp:AddSpecificStat(string.upper(statName), value)
 	end
 
 	method string OwnerUserId(Entity piece)
@@ -87,10 +135,10 @@ script EventTileBase extends BaseTile
 	end
 
 	@ExecSpace("Client")
-	method void ShowEventUI(string eventType, string message)
-		-- 도착한 플레이어의 클라에서 실행(타깃 호출). 이벤트 UI 컨트롤러(@Logic)에 표시를 위임한다.
-		-- eventType별 UI 분기는 EventTileUI 안에서 처리한다(확장 지점).
-		_EventTileUI:Show(eventType, message)
+	method void ShowEventUI(string message)
+		-- 도착한 플레이어의 클라에서 실행(타깃 호출). 텍스트 + '다음' 버튼 표시를 EventTileUI에 위임한다.
+		-- (콜백용으로 self 전달 → '다음' 클릭 시 self:RequestDone() 으로 종료 신호)
+		_EventTileUI:ShowEventText(message, self)
 	end
 
 	method boolean IsEventTile()

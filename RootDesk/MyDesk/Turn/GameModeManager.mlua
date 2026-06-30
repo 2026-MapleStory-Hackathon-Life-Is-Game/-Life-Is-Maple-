@@ -29,6 +29,7 @@ script GameModeManager extends Logic
 		        local ids = {}
 		        table.insert(ids, senderUserId)
 		        _MatchManager:TeleportPlayersToGame(ids)
+		        _VillageEventFlowManager:ResetStage1Lock()
 		        _SingleTurnManager:Start()
 	end
 
@@ -45,6 +46,7 @@ script GameModeManager extends Logic
 		        log("[GameModeManager] 멀티플레이 모드 시작 (" .. tostring(#userIds) .. "명)")
 		        self._activeMode = "MULTI"
 		        self._isGameActive = true
+		        _VillageEventFlowManager:ResetStage1Lock()
 		        _MultiTurnManager:Start(userIds)
 	end
 
