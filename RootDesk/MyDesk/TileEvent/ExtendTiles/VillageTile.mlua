@@ -77,20 +77,44 @@ script VillageTile extends EventTileBase
 			self:ClientShowChoices(scene.text, scene.anim, labels, ownerId)
 
 		elseif scene.nodeType == "roll" then
-			local bk = _VillageEventFlowManager:RollBranch(scene.branchGroup)
-			local branch = _VillageEventFlowManager:GetBranch(scene.branchGroup, bk)
+			-- 확률게임: 분기 Weight로 주사위 결과판을 구성(첫 분기=성공, 둘째=대성공, 실패 없음) →
+			-- 2d6를 굴려 나온 합으로 분기를 정한다. 확률은 테이블의 Weight 그대로 반영.
+			local branches = _VillageEventFlowManager:GetRollBranches(scene.branchGroup)
+			local totalW = 0
+			for i = 1, #branches do totalW += branches[i].weight end
+			local successPct = 0
+			local greatPct = 0
+			if totalW > 0 then
+				if #branches >= 1 then successPct = branches[1].weight / totalW * 100 end
+				if #branches >= 2 then greatPct = branches[2].weight / totalW * 100 end
+			end
+			-- 결과판(주사위합 2~12 → 0실패/1성공/2대성공). 실패는 0%.
+			local board = _ResultDiceManager:PlaceOutcomes(0, successPct, greatPct)
+
+			local d1 = _UtilLogic:RandomIntegerRange(1, 6)
+			local d2 = _UtilLogic:RandomIntegerRange(1, 6)
+			local sum = d1 + d2
+			local tier = board[sum] or 1
+			local idx = 1
+			if tier == 2 then idx = 2 end
+			if idx > #branches then idx = #branches end
+			local chosen = branches[idx]
+			local outcomeLabel = "성공"
+			if tier == 2 then outcomeLabel = "대성공" end
+
 			local resultText = ""
-			if branch ~= nil then
-				if branch.reward ~= nil and branch.reward ~= "" then
-					self:ApplyRewardString(piece, branch.reward)
+			if chosen ~= nil then
+				if chosen.reward ~= nil and chosen.reward ~= "" then
+					self:ApplyRewardString(piece, chosen.reward)
 				end
-				resultText = branch.resultText
-				self._pendingNext = tonumber(branch.nextScene) or 0
+				resultText = chosen.resultText
+				self._pendingNext = tonumber(chosen.nextScene) or 0
 			else
 				self._pendingNext = 0
 			end
-			log("[VillageTile] roll group=" .. scene.branchGroup .. " => " .. tostring(bk))
-			self:ClientShowRoll(scene.text, scene.anim, resultText, ownerId)
+			log("[VillageTile] 확률게임 group=" .. scene.branchGroup .. " 주사위=" .. tostring(d1) .. "+" .. tostring(d2)
+				.. "=" .. tostring(sum) .. " → " .. outcomeLabel)
+			self:ClientShowRoll(scene.text, scene.anim, resultText, d1, d2, sum, board, outcomeLabel, ownerId)
 
 		else
 			-- text
@@ -152,9 +176,9 @@ script VillageTile extends EventTileBase
 	end
 
 	@ExecSpace("Client")
-	method void ClientShowRoll(string leadText, string anim, string resultText)
-		-- 도착 플레이어 클라: roll 씬(리드 텍스트 → 결과 문구) 표시.
-		_EventTileUI:SceneRoll(leadText, anim, resultText, self)
+	method void ClientShowRoll(string leadText, string anim, string resultText, integer d1, integer d2, integer diceTotal, table board, string outcomeLabel)
+		-- 도착 플레이어 클라: roll 씬(리드 텍스트 → 주사위 연출 → 결과 문구) 표시.
+		_EventTileUI:SceneRoll(leadText, anim, resultText, d1, d2, diceTotal, board, outcomeLabel, self)
 	end
 
 	@ExecSpace("Client")

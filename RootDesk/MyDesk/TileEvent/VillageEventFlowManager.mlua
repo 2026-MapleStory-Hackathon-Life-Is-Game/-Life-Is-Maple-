@@ -185,6 +185,26 @@ script VillageEventFlowManager extends Logic
 		return list
 	end
 
+	method table GetRollBranches(string branchGroup)
+		-- 확률게임(roll) 분기들을 '표 순서대로' 전체 반환: { {key, weight, nextScene, reward, resultText}, ... }
+		-- 표 순서가 곧 결과 등급(첫 분기=성공, 둘째=대성공). 확률은 Weight에서 파생한다.
+		local list = {}
+		local ds = _DataService:GetTable("VillageEventFlowBranch")
+		if isvalid(ds) == false then return list end
+		for i = 1, ds:GetRowCount() do
+			if ds:GetCell(i, "BranchGroup") == branchGroup then
+				table.insert(list, {
+					key        = ds:GetCell(i, "BranchKey"),
+					weight     = tonumber(ds:GetCell(i, "Weight")) or 0,
+					nextScene  = ds:GetCell(i, "NextScene"),
+					reward     = ds:GetCell(i, "Reward"),
+					resultText = self:DecodeText(ds:GetCell(i, "ResultText")),
+				})
+			end
+		end
+		return list
+	end
+
 	method table ParseReward(string rewardStr)
 		-- 보상 인코딩 "all:10;attack:10" → { {kind="all", value=10}, {kind="attack", value=10} }.
 		-- 빈 문자열이면 빈 목록. kind 는 main/all/attack/damage/crit (EventTileBase.ApplyReward 와 동일).
