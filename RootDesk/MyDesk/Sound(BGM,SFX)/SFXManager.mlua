@@ -15,6 +15,14 @@ script SFXManager extends Logic
 
 	property string Say_GameOver = "415afeeaf4714b78bfd66b92d4ff056a"
 
+	property string cubeRUID = "91da72d06c414d8084147eede7f96170"
+
+	@ExecSpace("ClientOnly")
+	method void PlayCube()
+		        -- 미라클 큐브 사용 효과음.
+		        self:Play(self.cubeRUID)
+	end
+
 	@ExecSpace("ClientOnly")
 	method void PlayClick()
 		        -- 버튼 클릭 효과음.

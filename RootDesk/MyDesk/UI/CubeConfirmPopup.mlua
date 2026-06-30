@@ -76,7 +76,7 @@ script CubeConfirmPopup extends Logic
 
 	method void OnYes()
 		-- 예: 인벤 큐브 사용 모드 종료 후 실제 큐브 사용 요청.
-		_SFXManager:PlayClick()
+		_SFXManager:PlayCube()
 		local eq = self._equipName
 		self:Close()
 		local ie = _EntityService:GetEntityByPath("/ui/InGameUIGroup/Inventory_Panel/Ctrl")
