@@ -1,46 +1,132 @@
 @Component
 script HuntTile extends EventTileBase
 
-	method table RollEvent(Entity piece)
-		-- 사냥 이벤트를 서버에서 굴린다.
-		--   사냥 시간은 1시간 / 2시간 중 하나 → 각각 스탯 +15 / +30.
-		--   스테이지1 = 올스탯만, 그 외 스테이지 = 주스탯만.
-		-- 문구에 쓴 gain/statName을 그대로 보상 필드로 반환해, 화면 문구와 실제 적용 스탯이 일치하게 한다.
+	-- 일반 사냥 이벤트 타일.
+	-- 이벤트 값(사냥터 이름/등장 몬스터/시간·수치 티어/보상 스탯)은 스크립트 밖 데이터셋 'HuntEvent'
+	--   (HuntEvent.userdataset + .csv)에서 관리한다. 도착 타일의 (Stage,Region)과 일치하는 행 중
+	--   Weight 가중치로 1개를 뽑고, 그 행의 시간/수치 티어를 다시 하나 골라 보상과 문구에 반영한다.
+	--   (Stage,Region) 일치 행이 없으면 기존 로직(지역명+사냥터, 1~2시간, +15/티어)으로 폴백한다.
+	--   CSV 컬럼: Stage / Region / HuntingGround / Monster / MonsterRUID / Weight / StatKind / Times / Values
+	--     · HuntingGround : 문구에 넣을 사냥터 이름(예: "헤네시스 사냥터1"). 기존 {지역명+사냥터} 대신 사용.
+	--     · Monster       : 등장 적 이름(참고/향후 RUID 연동용)
+	--     · MonsterRUID   : 팝업에 띄울 몬스터 STAND 스프라이트 RUID(비면 타일 배정 몬스터로 폴백)
+	--     · StatKind      : 보상 스탯 — "all"(올스탯) / "main"(주스탯) 등 (EventTileBase.ApplyReward 키와 동일)
+	--     · Times / Values: '|' 구분 티어. 서로 1:1 대응(예: 30분|1시간|2시간 ↔ 5|10|20). 시간=표시, 수치=적용
 
-		-- 사냥터 이름 = 현재 타일 지역(테마)의 한글명 + " 사냥터" (예: 헤네시스 사냥터 / 페리온 사냥터).
+	method table RollEvent(Entity piece)
+		-- 서버에서 HuntEvent 데이터셋 기반으로 사냥 이벤트를 굴린다(없으면 폴백).
 		local map = self.Entity.CurrentMapName
 		local tile = self.Entity.Name
 		local region = _TileManager:GetTileRegion(map, tile)
-		local huntingGround = _TileManager:RegionDisplayName(region) .. " 사냥터"
-
-		-- 스테이지1만 올스탯, 나머지는 주스탯.
 		local stage = _TileManager:GetTileStage(map, tile)
+
+		local ds = _DataService:GetTable("HuntEvent")
+		if isvalid(ds) == false then
+			return self:FallbackEvent(map, tile, region, stage)
+		end
+		local rows = ds:GetRowCount()
+		local function match(i)
+			return (tonumber(ds:GetCell(i, "Stage")) or 0) == stage
+				and ds:GetCell(i, "Region") == region
+		end
+
+		-- (Stage,Region) 일치 행 가중 추첨.
+		local total = 0
+		for i = 1, rows do
+			if match(i) then total += (tonumber(ds:GetCell(i, "Weight")) or 0) end
+		end
+		if total <= 0 then
+			return self:FallbackEvent(map, tile, region, stage)
+		end
+		local roll = _UtilLogic:RandomIntegerRange(1, total)
+		local acc = 0
+		local pick = 0
+		for i = 1, rows do
+			if match(i) then
+				acc += (tonumber(ds:GetCell(i, "Weight")) or 0)
+				if roll <= acc then
+					pick = i
+					break
+				end
+			end
+		end
+		if pick == 0 then return self:FallbackEvent(map, tile, region, stage) end
+
+		-- 시간/수치 티어(1:1)에서 하나를 고른다.
+		local times = self:SplitPipe(ds:GetCell(pick, "Times"))
+		local values = self:SplitPipe(ds:GetCell(pick, "Values"))
+		local n = #times
+		if #values < n then n = #values end
+		if n <= 0 then return self:FallbackEvent(map, tile, region, stage) end
+		local ti = _UtilLogic:RandomIntegerRange(1, n)
+		local timeLabel = times[ti]
+		local gain = tonumber(values[ti]) or 0
+
+		local statKind = ds:GetCell(pick, "StatKind")
+		local statName = self:StatDisplayName(statKind)
+		local huntingGround = ds:GetCell(pick, "HuntingGround")
+		local message = huntingGround .. "에서 " .. timeLabel .. "동안 몬스터를 사냥했다!\n"
+			.. statName .. "이 " .. tostring(gain) .. "만큼 올랐다."
+
+		-- 몬스터 이미지: 행의 RUID가 있으면 사용, 없으면 타일 배정 몬스터(TileMonster)로 폴백.
+		local monsterRUID = ds:GetCell(pick, "MonsterRUID")
+		if monsterRUID == "" then monsterRUID = _TileManager:GetTileMonsterRUID(map, tile) end
+
+		return {
+			eventType   = "Hunt",
+			message     = message,
+			statKind    = statKind,       -- "all"=올스탯 / "main"=주스탯
+			statMode    = "flat",         -- 고정 수치 증가
+			statValue   = gain,           -- 문구에 표시한 상승치와 동일
+			monsterRUID = monsterRUID,    -- 사냥 몬스터 STAND RUID(없으면 "")
+			imageKind   = "monster",      -- 사냥: 몬스터 이미지 표시
+			anim        = "attack",       -- 사냥 칸 init 애니메이션: 공격
+		}
+	end
+
+	method table FallbackEvent(string map, string tile, string region, integer stage)
+		-- HuntEvent에 (Stage,Region) 행이 없을 때의 기존 동작(지역명+사냥터, 1~2시간, 티어당 +15).
+		-- (map = 현재 맵 이름 문자열 = self.Entity.CurrentMapName)
+		local huntingGround = _TileManager:RegionDisplayName(region) .. " 사냥터"
 		local statKind = "main"
 		local statName = "주스탯"
 		if stage == 1 then
 			statKind = "all"
 			statName = "올스탯"
 		end
-
-		-- 사냥 시간: 1시간(+15) 또는 2시간(+30).
 		local hours = _UtilLogic:RandomIntegerRange(1, 2)
 		local gain = hours * 15
-
-		local line1 = huntingGround .. "에서 " .. tostring(hours) .. "시간 동안 몬스터를 사냥했다!"
-		local line2 = statName .. "이 " .. tostring(gain) .. "만큼 올랐다!"
-
-		-- 이 타일에 정해진(지역 가중 추첨) 몬스터의 RUID → 이벤트 팝업 Monsters 이미지에 표시.
+		local message = huntingGround .. "에서 " .. tostring(hours) .. "시간 동안 몬스터를 사냥했다!\n"
+			.. statName .. "이 " .. tostring(gain) .. "만큼 올랐다!"
 		local monsterRUID = _TileManager:GetTileMonsterRUID(map, tile)
-
 		return {
 			eventType   = "Hunt",
-			message     = line1 .. "\n" .. line2,
-			statKind    = statKind,   -- "main"=주스탯 / "all"=올스탯
-			statMode    = "flat",     -- 고정 수치 증가
-			statValue   = gain,       -- 문구에 표시한 상승치와 동일
-			monsterRUID = monsterRUID, -- 사냥 몬스터 STAND RUID(없으면 "")
-			anim        = "attack",   -- 사냥 칸 init 애니메이션: 공격
+			message     = message,
+			statKind    = statKind,
+			statMode    = "flat",
+			statValue   = gain,
+			monsterRUID = monsterRUID,
+			imageKind   = "monster",
+			anim        = "attack",
 		}
+	end
+
+	method string StatDisplayName(string statKind)
+		-- 보상 스탯 키 → 문구용 한글 이름.
+		if statKind == "all" then return "올스탯" end
+		if statKind == "main" then return "주스탯" end
+		if statKind == "attack" then return "공격력/마력" end
+		return "스탯"
+	end
+
+	method table SplitPipe(string s)
+		-- '|'로 구분된 문자열을 목록으로 나눈다(예: "30분|1시간|2시간" → {"30분","1시간","2시간"}).
+		local list = {}
+		if s == nil or s == "" then return list end
+		for part in string.gmatch(s, "[^|]+") do
+			table.insert(list, part)
+		end
+		return list
 	end
 
 	@ExecSpace("Server")
