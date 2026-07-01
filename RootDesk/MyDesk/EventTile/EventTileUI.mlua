@@ -34,6 +34,8 @@ script EventTileUI extends Logic
 	property Entity MonsterImage1 = "eb5c3997-2c03-4c8c-bd2f-e817bd2ca486"
 	property Entity MonsterImage2 = "419c949d-bc4a-4821-801a-89b796cd6053"
 	property Entity MonsterImage3 = "f3c7cd32-8ab8-4fd4-859c-6c3513ea8853"
+	-- NPC 이미지(마을/사냥+ 이벤트에서 표시). 기본 숨김, 해당 이벤트에서만 켠다.
+	property Entity NPCImage = "1fbf3532-d2e1-452f-8796-3a990a65660e"
 
 	-- 진행 중인 타일 컴포넌트(진행/선택을 서버로 되돌릴 콜백 대상).
 	property any _activeTile = nil
@@ -85,9 +87,16 @@ script EventTileUI extends Logic
 
 	@ExecSpace("ClientOnly")
 	method void ShowGroup()
-		-- 이벤트 그룹을 켠다. (몬스터 이미지는 기본 숨김 — 사냥 이벤트에서만 켠다.)
+		-- 이벤트 그룹을 켠다. (몬스터/NPC 이미지는 기본 숨김 — 각 이벤트에서 필요한 쪽만 켠다.)
 		if isvalid(self.EventGroup) then self.EventGroup.Enable = true end
 		self:SetMonsterImages("")
+		self:SetNPCImage(false)
+	end
+
+	@ExecSpace("ClientOnly")
+	method void SetNPCImage(boolean show)
+		-- NPC 이미지 표시/숨김. 마을·사냥+ 이벤트에서 켜고, 그 외에는 끈다.
+		if isvalid(self.NPCImage) then self.NPCImage.Enable = show end
 	end
 
 	@ExecSpace("ClientOnly")
@@ -251,12 +260,17 @@ script EventTileUI extends Logic
 	-- ===== 사냥 등 단순 이벤트(텍스트 1장 + 다음) =====
 
 	@ExecSpace("ClientOnly")
-	method void ShowEventText(string message, string anim, string monsterRUID, Component tile)
-		-- EventTileBase(사냥/세금 등): 텍스트(페이지 단위) + 초상화(타일 지정 anim) + 몬스터 이미지.
-		-- anim은 칸의 기본값(사냥=attack / 그 외=idle). 마지막 장 '다음' → 종료.
+	method void ShowEventText(string message, string anim, string monsterRUID, string imageKind, Component tile)
+		-- EventTileBase(사냥/세금/사냥+ 등): 텍스트(페이지 단위) + 초상화(타일 지정 anim) + 이미지.
+		-- imageKind = "npc"(사냥+ → NPC 이미지) / 그 외(사냥 → 몬스터 이미지). anim은 칸의 기본값.
+		-- 마지막 장 '다음' → 종료.
 		self._activeTile = tile
 		self:ShowGroup()
-		self:SetMonsterImages(monsterRUID)
+		if imageKind == "npc" then
+			self:SetNPCImage(true)
+		else
+			self:SetMonsterImages(monsterRUID)
+		end
 		self:SetPortrait(anim)
 		self:ShowPagedText(message, self.OnEventDone)
 	end
@@ -284,6 +298,7 @@ script EventTileUI extends Logic
 		-- 텍스트 씬: 그룹/초상화/텍스트(페이지 단위). 마지막 장에서 '다음' → 서버에 진행 요청.
 		self._activeTile = tile
 		self:ShowGroup()
+		self:SetNPCImage(true)   -- 마을 이벤트: NPC 이미지 표시
 		self:SetPortrait(anim)
 		self:ShowPagedText(text, self.OnTextAdvance)
 	end
@@ -305,6 +320,7 @@ script EventTileUI extends Logic
 		self._rollBoard = board
 		self._rollOutcome = outcomeLabel
 		self:ShowGroup()
+		self:SetNPCImage(true)   -- 마을 이벤트: NPC 이미지 표시
 		self:SetPortrait(anim)
 		self:ShowPagedText(leadText, self.OnRollLeadDone)
 	end
@@ -324,6 +340,7 @@ script EventTileUI extends Logic
 		self._activeTile = tile
 		self._choiceLabels = labels
 		self:ShowGroup()
+		self:SetNPCImage(true)   -- 마을 이벤트: NPC 이미지 표시
 		self:SetPortrait(anim)
 		self._pages = self:SplitPages(text)
 		self._pageIdx = 1

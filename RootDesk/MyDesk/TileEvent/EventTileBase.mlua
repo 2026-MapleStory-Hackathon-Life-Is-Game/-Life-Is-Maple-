@@ -38,7 +38,9 @@ script EventTileBase extends BaseTile
 		local monsterRUID = ev.monsterRUID or ""
 		-- 초상화 애니메이션 = 칸의 기본값(없으면 idle). 사냥 칸만 RollEvent에서 attack을 지정한다.
 		local anim = ev.anim or "idle"
-		self:ShowEventUI(ev.message, anim, monsterRUID, ownerId)
+		-- 표시할 이미지 종류: "npc"(사냥+ → NPC 이미지) / 그 외(사냥 → 몬스터 이미지). RollEvent가 지정.
+		local imageKind = ev.imageKind or "monster"
+		self:ShowEventUI(ev.message, anim, monsterRUID, imageKind, ownerId)
 
 		log("[EventTileBase] 이벤트 발생 tile=" .. self.Entity.Name
 			.. " type=" .. tostring(ev.eventType))
@@ -141,10 +143,11 @@ script EventTileBase extends BaseTile
 	end
 
 	@ExecSpace("Client")
-	method void ShowEventUI(string message, string anim, string monsterRUID)
-		-- 도착한 플레이어의 클라에서 실행(타깃 호출). 텍스트 + 초상화(anim) + 몬스터 이미지 + '다음' 표시를 위임.
+	method void ShowEventUI(string message, string anim, string monsterRUID, string imageKind)
+		-- 도착한 플레이어의 클라에서 실행(타깃 호출). 텍스트 + 초상화(anim) + 이미지(NPC/몬스터) + '다음' 표시를 위임.
+		-- imageKind = "npc"(사냥+ → NPC 이미지) / 그 외(사냥 → 몬스터 이미지).
 		-- (콜백용으로 self 전달 → '다음' 클릭 시 self:RequestDone() 으로 종료 신호)
-		_EventTileUI:ShowEventText(message, anim, monsterRUID, self)
+		_EventTileUI:ShowEventText(message, anim, monsterRUID, imageKind, self)
 	end
 
 	method boolean IsEventTile()
