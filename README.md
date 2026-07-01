@@ -154,7 +154,7 @@ MoveSteps(N)
 
 #### 현재 타일 구성 (11개)
 ```
-HexaTile_0(Start) → 1(Hunt) → 2(Hunt) → 3(Hunt) → 4(Tax) → 5(Hunt) → 6(Boss)
+HexaTile_0(Start) → 1(Hunt) → 2(Hunt) → 3(Hunt) → 4(Unlucky) → 5(Hunt) → 6(Boss)
                                                                             ↓
                                                            HexaTile_7A(Village/왼쪽) → 8(End)
                                                            HexaTile_7B(Guild/오른쪽)  → 9(Hunt) → 10(End)
@@ -165,7 +165,7 @@ HexaTile_0(Start) → 1(Hunt) → 2(Hunt) → 3(Hunt) → 4(Tax) → 5(Hunt) →
 |---|---|
 | `Start` | 시작 칸 |
 | `Hunt` | 사냥 칸 (이벤트 미구현) |
-| `Tax` | 세금 칸 (이벤트 미구현) |
+| `Unlucky` | 세금 칸 (이벤트 미구현) |
 | `Boss` | 보스 칸 / 분기점 |
 | `Village` | 마을 칸 |
 | `Guild` | 길드 칸 |

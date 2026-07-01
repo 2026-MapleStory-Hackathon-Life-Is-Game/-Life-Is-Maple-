@@ -57,7 +57,7 @@ script CombatPowerManager extends Component
 	property number HuntPlusStatGain = 15
 
 	@Sync
-	property number TaxStatLoss = 5
+	property number UnluckyStatLoss = 5
 
 	@ExecSpace("ServerOnly")
 	method void SetJob(string job)
@@ -196,9 +196,9 @@ script CombatPowerManager extends Component
 	end
 
 	@ExecSpace("ServerOnly")
-	method void TaxStat()
+	method void UnluckyStat()
 		-- 세금 칸: 주스탯 감소.
-		self:AddMainStat("flat", -self.TaxStatLoss)
+		self:AddMainStat("flat", -self.UnluckyStatLoss)
 	end
 
 	method string MainStatField()

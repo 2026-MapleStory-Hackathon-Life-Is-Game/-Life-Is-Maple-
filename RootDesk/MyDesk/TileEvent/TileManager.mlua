@@ -114,7 +114,7 @@ script TileManager extends Logic
 		if tileType == "Start" then return "StartTile"
 				elseif tileType == "Hunt" then return "HuntTile"
 				elseif tileType == "HuntPlus" then return "HuntPlusTile"
-				elseif tileType == "Tax" then return "TaxTile"
+				elseif tileType == "Unlucky" then return "UnluckyTile"
 				elseif tileType == "Boss" then return "BossTile"
 				elseif tileType == "Village" then return "VillageTile"
 				elseif tileType == "Guild" then return "GuildTile"
@@ -403,7 +403,7 @@ script TileManager extends Logic
 	method boolean ApplyTileArtLocal()
 		-- 각 타일의 'TileType_TileSprite' 자식(y+0.5)에 Type별 스프라이트 적용.
 		--   Hunt/HuntPlus → 서버가 롤한 몬스터 STAND(@Sync TileMonster) — 동기화 도착 전이면 false 반환(재시도).
-		--   그 외(Start/End/Village/Guild/Union/Tax) → TileArt.csv의 Type별 고정 스프라이트(이정표/제단/NPC, 로컬 조회).
+		--   그 외(Start/End/Village/Guild/Union/Unlucky) → TileArt.csv의 Type별 고정 스프라이트(이정표/제단/NPC, 로컬 조회).
 		if self:CountTiles() == 0 then return false end
 		local pendingHunt = false
 		for key, entity in pairs(self.tileEntities) do

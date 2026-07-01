@@ -8,7 +8,7 @@ script TileEventTester extends Logic
 		if key == "Hunt" then return "HuntTile"
 		elseif key == "Village" then return "VillageTile"
 		elseif key == "Boss" then return "BossTile"
-		elseif key == "Tax" then return "TaxTile"
+		elseif key == "Unlucky" then return "UnluckyTile"
 		end
 		return ""
 	end

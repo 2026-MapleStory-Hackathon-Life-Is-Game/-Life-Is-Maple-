@@ -1,5 +1,5 @@
 @Component
-script TaxTile extends EventTileBase
+script UnluckyTile extends EventTileBase
 
 	-- 세금(부정) 이벤트 타일. 마을/사냥 이벤트와 동일한 흐름(텍스트 팝업 + '다음'으로 진행)이지만
 	-- 보상이 부정적(스탯 하락)이다. 구체 table 연동 전까지는 임시 고정 문구/수치를 사용한다.
@@ -7,7 +7,7 @@ script TaxTile extends EventTileBase
 	method table RollEvent(Entity piece)
 		-- 임시: 세금 지불 → 올스탯 -10. (추후 세금 table 연동 시 교체)
 		return {
-			eventType = "Tax",
+			eventType = "Unlucky",
 			message   = "세금을 지불했다!\n올스탯이 10 감소했다.",
 			statKind  = "all",      -- 올스탯
 			statMode  = "flat",     -- 고정 수치
