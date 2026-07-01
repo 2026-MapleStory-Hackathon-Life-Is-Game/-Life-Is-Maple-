@@ -1,0 +1,546 @@
+@Logic
+script RankingManager extends Logic
+
+	property string panelBase = "/ui/LobbyUIGroup/RankingPanel/"
+
+	property string ctxPath = "/ui/LobbyUIGroup/RankCtx"
+
+	property string infoPath = "/ui/LobbyUIGroup/RankInfoBox"
+
+	property any _records = nil
+
+	property any _clientRecords = nil
+
+	property any _storage = nil
+
+	property integer MaxEntries = 10
+
+	property integer _hoverRow = 0
+
+	property boolean _lastMouse1 = false
+
+	property integer _ctxRow = 0
+
+	property any _rowH = nil
+
+	property any _ctxH = nil
+
+	method void OnBeginPlay()
+		-- 서버: 저장소에서 랭킹 로드. 클라: UI 배선 + 현재 랭킹 요청.
+		if self:IsServer() then
+			self._records = {}
+			self:LoadFromStorage()
+		else
+			self._clientRecords = {}
+			self._hoverRow = 0
+			self._lastMouse1 = false
+			self._ctxRow = 0
+			self:WireClient()
+			self:RequestRanking()
+		end
+	end
+
+	@ExecSpace("ServerOnly")
+	method void LoadFromStorage()
+		-- 전역 저장소 "Ranking"의 "Top" 키에서 상위 기록 목록을 1회 읽어 캐시에 적재.
+		self._storage = _DataStorageService:GetGlobalDataStorage("Ranking")
+		if isvalid(self._storage) == false then
+			log_warning("[RankingManager] 저장소 획득 실패")
+			return
+		end
+		local errorCode, raw = self._storage:GetAndWait("Top")
+		if errorCode == 0 and raw ~= nil and raw ~= "" then
+			local t = self:DeserializeRecords(raw)
+			if t ~= nil then self._records = t end
+		elseif errorCode ~= 0 and errorCode ~= 1000002 then
+			-- 1000002 = NotFound(최초 실행). 그 외 오류만 경고.
+			log_warning("[RankingManager] 랭킹 로드 오류코드=" .. tostring(errorCode))
+		end
+		log("[RankingManager] 랭킹 로드 완료: " .. tostring(#self._records) .. "건")
+	end
+
+	@ExecSpace("ServerOnly")
+	method void SubmitRecord(string userId, string name, string job, string camp, integer power)
+		-- 게임 종료 시 호출. 플레이어별 '최고 전투력'만 유지. 실제로 갱신될 때만 저장+브로드캐스트.
+		if self._records == nil then self._records = {} end
+		
+		-- 제출 시점의 코디(Custom*Equip 슬롯)를 캡처해 함께 저장 → 캐릭터 정보에서 아바타 재현.
+		local avatar = self:CaptureCostume(userId)
+		
+		local idx = -1
+		for i, r in ipairs(self._records) do
+			if r.userId == userId then idx = i break end
+		end
+		
+		local changed = false
+		if idx == -1 then
+			table.insert(self._records, { userId = userId, name = name, job = job, camp = camp, power = power, avatar = avatar })
+			changed = true
+		elseif power > self._records[idx].power then
+			self._records[idx] = { userId = userId, name = name, job = job, camp = camp, power = power, avatar = avatar }
+			changed = true
+		end
+		
+		if changed == false then
+			log("[RankingManager] 기록 갱신 없음(기존 최고 유지): " .. tostring(name))
+			return
+		end
+		
+		-- 전투력 내림차순 정렬 후 상위 N개만 유지.
+		table.sort(self._records, function(a, b) return a.power > b.power end)
+		while #self._records > self.MaxEntries do table.remove(self._records) end
+		
+		self:SaveToStorage()
+		self:BroadcastData(self:SerializeRecords())
+		log("[RankingManager] 기록 제출: " .. tostring(name) .. " 전투력=" .. tostring(power))
+	end
+
+	@ExecSpace("ServerOnly")
+	method void SaveToStorage()
+		-- 캐시를 문자열로 직렬화해 비동기 저장. 값이 실제 변경됐을 때만 호출된다(과금 절약).
+		if isvalid(self._storage) == false then return end
+		local raw = self:SerializeRecords()
+		self._storage:SetAsync("Top", raw, function(ec, key)
+			if ec ~= 0 then log_warning("[RankingManager] 랭킹 저장 오류코드=" .. tostring(ec)) end
+		end)
+	end
+
+	@ExecSpace("ServerOnly")
+	method integer GetPlayerBest(string userId)
+		-- 해당 유저의 저장된 최고 전투력. 기록 없으면 -1(=신기록 판정용).
+		if self._records == nil then return -1 end
+		for _, r in ipairs(self._records) do
+			if r.userId == userId then return math.floor(r.power) end
+		end
+		return -1
+	end
+
+	@ExecSpace("ServerOnly")
+	method integer GetRankOf(string userId)
+		-- 현재 랭킹(_records는 전투력 내림차순 유지)에서 해당 유저의 1-based 순위. 없으면 0.
+		if self._records == nil then return 0 end
+		for i, r in ipairs(self._records) do
+			if r.userId == userId then return i end
+		end
+		return 0
+	end
+
+	@ExecSpace("Server")
+	method void RequestRanking()
+		-- 클라(로비 진입)가 현재 랭킹을 요청 → 요청자에게만 직렬화 데이터 전송.
+		self:SendData(self:SerializeRecords(), senderUserId)
+	end
+
+	@ExecSpace("Multicast")
+	method void BroadcastData(string raw)
+		-- 기록 갱신 시 모든 클라에 최신 랭킹 데이터 전송.
+		self:ApplyData(raw)
+	end
+
+	@ExecSpace("Client")
+	method void SendData(string raw)
+		-- 특정 클라(요청자)에게만 랭킹 데이터 전송.
+		self:ApplyData(raw)
+	end
+
+	@ExecSpace("ClientOnly")
+	method void ApplyData(string raw)
+		-- 수신한 직렬화 데이터를 클라 캐시에 반영하고 표를 다시 그린다.
+		self._clientRecords = self:DeserializeRecords(raw)
+		self:RenderTable()
+	end
+
+	@ExecSpace("ClientOnly")
+	method void RenderTable()
+		-- 클라 기록으로 각 행의 5개 셀을 채우고, 기록 수만큼만 행 버튼을 활성화한다.
+		local recs = self._clientRecords
+		if recs == nil then recs = {} end
+		for i = 1, self.MaxEntries do
+			local rec = recs[i]
+			local btn = _EntityService:GetEntityByPath(self.panelBase .. "Row" .. tostring(i) .. "Btn")
+			if rec ~= nil then
+				if isvalid(btn) then btn.Enable = true end
+				self:SetRowHighlight(i, false)
+				self:SetCell(i, "Rank", tostring(i) .. "위")
+				self:SetCell(i, "Name", tostring(rec.name))
+				self:SetCell(i, "Power", self:FormatPower(rec.power))
+				self:SetCell(i, "Job", self:JobKo(tostring(rec.job)))
+				self:SetCell(i, "Camp", self:CampKo(tostring(rec.camp)))
+			else
+				if isvalid(btn) then btn.Enable = false end
+				self:SetCell(i, "Rank", "")
+				self:SetCell(i, "Name", "")
+				self:SetCell(i, "Power", "")
+				self:SetCell(i, "Job", "")
+				self:SetCell(i, "Camp", "")
+			end
+		end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void SetCell(integer row, string col, string text)
+		-- 경로 조회로 셀 텍스트 엔티티를 찾아 Text 설정.
+		local e = _EntityService:GetEntityByPath(self.panelBase .. "Cell" .. tostring(row) .. "_" .. col)
+		if isvalid(e) and isvalid(e.TextComponent) then
+			e.TextComponent.Text = text
+		end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void SetRowHighlight(integer row, boolean on)
+		-- 행 버튼 배경 밝기로 호버 하이라이트.
+		local e = _EntityService:GetEntityByPath(self.panelBase .. "Row" .. tostring(row) .. "Btn")
+		if isvalid(e) == false then return end
+		local sr = e.SpriteGUIRendererComponent
+		if isvalid(sr) == false then return end
+		if on then
+			sr.Color = Color(1, 1, 1, 0.20)
+		else
+			sr.Color = Color(1, 1, 1, 0.06)
+		end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void WireClient()
+		-- 행 버튼(호버 추적) + 컨텍스트/정보 팝업 버튼 이벤트 배선. 컨텍스트/정보 팝업은 기본 숨김.
+		self._rowH = {}
+		self._ctxH = {}
+		local ctx = _EntityService:GetEntityByPath(self.ctxPath)
+		if isvalid(ctx) then ctx.Enable = false end
+		local info = _EntityService:GetEntityByPath(self.infoPath)
+		if isvalid(info) then info.Enable = false end
+		local notice = _EntityService:GetEntityByPath("/ui/LobbyUIGroup/RankNotice")
+		if isvalid(notice) then notice.Enable = false end
+		
+		-- 행 버튼: 호버 진입/이탈만 추적(우클릭 열기는 OnUpdate 엣지 감지).
+		for i = 1, self.MaxEntries do
+			local e = _EntityService:GetEntityByPath(self.panelBase .. "Row" .. tostring(i) .. "Btn")
+			if isvalid(e) then
+				local capturedRow = i
+				local h = e:ConnectEvent(ButtonStateChangeEvent, function(ev)
+					self:OnRowState(capturedRow, ev)
+				end)
+				table.insert(self._rowH, { entity = e, evtH = h })
+			end
+		end
+		
+		-- 컨텍스트 메뉴 3버튼.
+		self:WireBtn(self.ctxPath .. "/BtnInfo", function() self:OnCtxInfo() end)
+		self:WireBtn(self.ctxPath .. "/BtnFriend", function() self:OnCtxFriend() end)
+		self:WireBtn(self.ctxPath .. "/BtnClose", function() self:OnCtxClose() end)
+		-- 정보 팝업 닫기 + 안내 팝업 닫기.
+		self:WireBtn(self.infoPath .. "/BtnClose", function() self:OnInfoClose() end)
+		self:WireBtn("/ui/LobbyUIGroup/RankNotice/BtnClose", function() self:OnNoticeClose() end)
+	end
+
+	@ExecSpace("ClientOnly")
+	method void WireBtn(string path, any fn)
+		-- 경로의 버튼에 ButtonClickEvent를 연결하고 핸들을 _ctxH에 보관(OnEndPlay 해제용).
+		local e = _EntityService:GetEntityByPath(path)
+		if isvalid(e) == false then return end
+		local h = e:ConnectEvent(ButtonClickEvent, fn)
+		table.insert(self._ctxH, { entity = e, evtH = h })
+	end
+
+	method void OnRowState(integer row, ButtonStateChangeEvent ev)
+		-- 행 호버 진입 → 하이라이트+대상 추적, 이탈 → 해제.
+		if ev.state == ButtonState.Hover then
+			self._hoverRow = row
+			self:SetRowHighlight(row, true)
+		elseif ev.state == ButtonState.Normal then
+			if self._hoverRow == row then self._hoverRow = 0 end
+			self:SetRowHighlight(row, false)
+		end
+	end
+
+	method void OnUpdate(number delta)
+		-- 클라: 우클릭 눌림 엣지에서 호버 중인 행의 컨텍스트 메뉴를 연다.
+		if self:IsClient() == false then return end
+		local down = _InputService:IsKeyPressed(KeyboardKey.Mouse1)
+		if down and self._lastMouse1 == false then
+			if self._hoverRow > 0 then
+				self:OpenRankContext(self._hoverRow)
+			end
+		end
+		self._lastMouse1 = down
+	end
+
+	@ExecSpace("ClientOnly")
+	method void OpenRankContext(integer row)
+		-- 해당 행에 기록이 있으면 커서 왼쪽에 컨텍스트 메뉴를 띄운다(랭킹판이 화면 우측이라 왼쪽 배치).
+		if self._clientRecords == nil or self._clientRecords[row] == nil then return end
+		self._ctxRow = row
+		local ctx = _EntityService:GetEntityByPath(self.ctxPath)
+		if isvalid(ctx) == false then return end
+		local cur = _InputService:GetCursorPosition()
+		local uiPos = _UILogic:ScreenToUIPosition(cur)
+		local ut = ctx.UITransformComponent
+		if isvalid(ut) then ut.anchoredPosition = Vector2(uiPos.x - 100, uiPos.y - 20) end
+		-- 정보 팝업이 떠 있으면 닫는다.
+		local info = _EntityService:GetEntityByPath(self.infoPath)
+		if isvalid(info) then info.Enable = false end
+		ctx.Enable = true
+		if isvalid(ut) then _UILogic:SetSiblingIndex(ut, 1000000) end
+		_SFXManager:PlayClick()
+		log("[RankingManager] 컨텍스트 메뉴 열기: row=" .. tostring(row))
+	end
+
+	@ExecSpace("ClientOnly")
+	method void CloseRankContext()
+		-- 컨텍스트 메뉴 숨김.
+		local ctx = _EntityService:GetEntityByPath(self.ctxPath)
+		if isvalid(ctx) and ctx.Enable then ctx.Enable = false end
+		self._ctxRow = 0
+	end
+
+	method void OnCtxInfo()
+		-- '캐릭터 정보': 선택한 행의 기록을 정보 팝업에 표시.
+		_SFXManager:PlayClick()
+		local row = self._ctxRow
+		self:CloseRankContext()
+		if self._clientRecords == nil then return end
+		local rec = self._clientRecords[row]
+		if rec == nil then return end
+		self:ShowInfo(row, rec)
+	end
+
+	method void OnCtxFriend()
+		-- '친구추가': 친구 시스템 미구현 → 준비 중 안내만 표시(버튼은 배치만).
+		_SFXManager:PlayClick()
+		self:CloseRankContext()
+		self:ShowNotice("친구 기능은\n아직 준비 중입니다.")
+		log("[RankingManager] 친구추가(준비 중)")
+	end
+
+	method void OnCtxClose()
+		-- '닫기': 컨텍스트 메뉴만 닫는다.
+		_SFXManager:PlayClick()
+		self:CloseRankContext()
+	end
+
+	@ExecSpace("ClientOnly")
+	method void ShowInfo(integer rank, table rec)
+		-- 캐릭터 정보 팝업: 좌측 아바타 + 우측 분리 스펙 텍스트.
+		local info = _EntityService:GetEntityByPath(self.infoPath)
+		if isvalid(info) == false then return end
+		self:SetInfoText("RankBig", tostring(rank) .. "위")
+		self:SetInfoText("Val_Name", tostring(rec.name))
+		self:SetInfoText("Val_Power", self:FormatPower(rec.power))
+		self:SetInfoText("Val_Job", self:JobKo(tostring(rec.job)))
+		self:SetInfoText("Val_Camp", self:CampKo(tostring(rec.camp)))
+		-- 좌측 아바타: 계정 기본(피부/체형)을 DefaultEquipUserId로 깔고,
+		-- 저장해 둔 게임 코디(Custom*Equip)를 그 위에 슬롯별로 덮어써 재현.
+		-- (이 게임의 코디는 계정 공식 아바타가 아니라 런타임 CustomEquip이므로 슬롯 저장이 필수.)
+		local av = _EntityService:GetEntityByPath(self.infoPath .. "/Avatar")
+		if isvalid(av) and isvalid(av.CostumeManagerComponent) then
+			local cm = av.CostumeManagerComponent
+			cm.UseCustomEquipOnly = false
+			cm.DefaultEquipUserId = tostring(rec.userId)
+			self:ApplyCostume(cm, tostring(rec.avatar or ""))
+		end
+		-- 알림 팝업이 떠 있으면 닫고 정보 팝업 표시.
+		local notice = _EntityService:GetEntityByPath("/ui/LobbyUIGroup/RankNotice")
+		if isvalid(notice) then notice.Enable = false end
+		info.Enable = true
+		local ut = info.UITransformComponent
+		if isvalid(ut) then _UILogic:SetSiblingIndex(ut, 1000000) end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void SetInfoText(string node, string text)
+		-- 정보 팝업 내부 텍스트 노드(RankBig/Val_*) Text 설정.
+		local e = _EntityService:GetEntityByPath(self.infoPath .. "/" .. node)
+		if isvalid(e) and isvalid(e.TextComponent) then e.TextComponent.Text = text end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void ShowNotice(string msg)
+		-- 간단 안내 팝업(친구추가 준비 중 등).
+		local notice = _EntityService:GetEntityByPath("/ui/LobbyUIGroup/RankNotice")
+		if isvalid(notice) == false then return end
+		local m = _EntityService:GetEntityByPath("/ui/LobbyUIGroup/RankNotice/Msg")
+		if isvalid(m) and isvalid(m.TextComponent) then m.TextComponent.Text = msg end
+		local info = _EntityService:GetEntityByPath(self.infoPath)
+		if isvalid(info) then info.Enable = false end
+		notice.Enable = true
+		local ut = notice.UITransformComponent
+		if isvalid(ut) then _UILogic:SetSiblingIndex(ut, 1000000) end
+	end
+
+	method void OnNoticeClose()
+		-- 안내 팝업 닫기.
+		_SFXManager:PlayClick()
+		local notice = _EntityService:GetEntityByPath("/ui/LobbyUIGroup/RankNotice")
+		if isvalid(notice) then notice.Enable = false end
+	end
+
+	method void OnInfoClose()
+		-- 정보 팝업 닫기.
+		_SFXManager:PlayClick()
+		local info = _EntityService:GetEntityByPath(self.infoPath)
+		if isvalid(info) then info.Enable = false end
+	end
+
+	method string JobKo(string job)
+		-- 직업 영문 키 → 한글. 알 수 없으면 원문 유지(미선택 '--' 등).
+		if job == "Warrior" then return "전사"
+		elseif job == "Archer" then return "궁수"
+		elseif job == "Mage" then return "마법사"
+		elseif job == "Thief" then return "도적"
+		elseif job == "Pirate" then return "해적"
+		elseif job == "Beginner" then return "초보자"
+		end
+		return job
+	end
+
+	method string CampKo(string camp)
+		-- 캠프(진영) 영문 키 → 한글. 알 수 없으면 원문 유지.
+		if camp == "Adventurer" then return "모험가"
+		elseif camp == "Cygnus" then return "시그너스"
+		elseif camp == "Resistance" then return "레지스탕스"
+		elseif camp == "Nova" then return "노바"
+		end
+		return camp
+	end
+
+	method string FormatPower(number value)
+		-- 전투력 표기(만 단위 구분). GameModeManager와 동일 규칙.
+		local n = math.floor(value)
+		if n >= 10000 then
+			local man = math.floor(n / 10000)
+			local rest = n % 10000
+			return tostring(man) .. "만 " .. string.format("%04d", rest)
+		end
+		return tostring(n)
+	end
+
+	method any SlotDefs()
+		-- 아바타 코디 슬롯 목록(고정 순서). p=CostumeManager 속성명, c=SetEquip용 카테고리.
+		-- 캡처(속성 읽기)와 적용(SetEquip)이 같은 인덱스 순서를 공유하도록 한 곳에서 정의.
+		return {
+			{ p = "CustomBodyEquip",            c = MapleAvatarItemCategory.Body },
+			{ p = "CustomHairEquip",            c = MapleAvatarItemCategory.Hair },
+			{ p = "CustomFaceEquip",            c = MapleAvatarItemCategory.Face },
+			{ p = "CustomCapEquip",             c = MapleAvatarItemCategory.Cap },
+			{ p = "CustomCapeEquip",            c = MapleAvatarItemCategory.Cape },
+			{ p = "CustomCoatEquip",            c = MapleAvatarItemCategory.Coat },
+			{ p = "CustomLongcoatEquip",        c = MapleAvatarItemCategory.Longcoat },
+			{ p = "CustomPantsEquip",           c = MapleAvatarItemCategory.Pants },
+			{ p = "CustomGloveEquip",           c = MapleAvatarItemCategory.Glove },
+			{ p = "CustomShoesEquip",           c = MapleAvatarItemCategory.Shoes },
+			{ p = "CustomOneHandedWeaponEquip", c = MapleAvatarItemCategory.OneHandedWeapon },
+			{ p = "CustomTwoHandedWeaponEquip", c = MapleAvatarItemCategory.TwoHandedWeapon },
+			{ p = "CustomSubWeaponEquip",       c = MapleAvatarItemCategory.SubWeapon },
+			{ p = "CustomFaceAccessoryEquip",   c = MapleAvatarItemCategory.FaceAccessory },
+			{ p = "CustomEyeAccessoryEquip",    c = MapleAvatarItemCategory.EyeAccessory },
+			{ p = "CustomEarAccessoryEquip",    c = MapleAvatarItemCategory.EarAccessory },
+			{ p = "CustomEarEquip",             c = MapleAvatarItemCategory.Ear },
+		}
+	end
+
+	@ExecSpace("ServerOnly")
+	method string CaptureCostume(string userId)
+		-- 서버: 해당 유저 엔티티의 현재 코디 슬롯 RUID를 고정 순서로 GS(char29) 구분 직렬화.
+		local p = _UserService:GetUserEntityByUserId(userId)
+		if isvalid(p) == false then return "" end
+		local cm = p.CostumeManagerComponent
+		if isvalid(cm) == false then return "" end
+		local GS = string.char(29)
+		local parts = {}
+		for _, d in ipairs(self:SlotDefs()) do
+			local v = cm[d.p]
+			if v == nil then v = "" end
+			table.insert(parts, tostring(v))
+		end
+		return table.concat(parts, GS)
+	end
+
+	@ExecSpace("ClientOnly")
+	method void ApplyCostume(any cm, string avatar)
+		-- 저장된 코디 문자열을 UI 아바타 CostumeManager에 슬롯별 SetEquip.
+		if isvalid(cm) == false then return end
+		local GS = string.char(29)
+		local vals = self:SplitStr(avatar, GS)
+		local defs = self:SlotDefs()
+		for i, d in ipairs(defs) do
+			local ruid = vals[i]
+			if ruid ~= nil and ruid ~= "" then
+				cm:SetEquip(d.c, ruid)
+			end
+		end
+	end
+
+	method string SerializeRecords()
+		-- 기록 리스트를 수동 구분자로 직렬화. TableToString은 중첩 테이블을 못 담으므로 직접 처리.
+		-- 필드 구분 = char(31), 레코드 구분 = char(30) (닉네임 등에 나올 수 없는 제어문자).
+		local FS = string.char(31)
+		local RS = string.char(30)
+		local parts = {}
+		if self._records ~= nil then
+			for _, r in ipairs(self._records) do
+				local row = tostring(r.userId) .. FS .. tostring(r.name) .. FS
+					.. tostring(r.job) .. FS .. tostring(r.camp) .. FS .. tostring(math.floor(r.power))
+					.. FS .. tostring(r.avatar or "")
+				table.insert(parts, row)
+			end
+		end
+		return table.concat(parts, RS)
+	end
+
+	method table DeserializeRecords(string raw)
+		-- SerializeRecords의 역변환. 필드가 5개 이상인 레코드만 채택.
+		local FS = string.char(31)
+		local RS = string.char(30)
+		local result = {}
+		for _, row in ipairs(self:SplitStr(raw, RS)) do
+			if row ~= "" then
+				local f = self:SplitStr(row, FS)
+				if #f >= 5 then
+					table.insert(result, {
+						userId = f[1], name = f[2], job = f[3], camp = f[4],
+						power = tonumber(f[5]) or 0,
+						avatar = f[6] or "",
+					})
+				end
+			end
+		end
+		return result
+	end
+
+	method table SplitStr(string s, string delim)
+		-- 빈 필드까지 보존하는 평문(plain) 분리. Lua에 split이 없어 직접 구현.
+		local out = {}
+		local start = 1
+		local delimLen = #delim
+		while true do
+			local i = (string.find(s, delim, start, true))
+			if i == nil then
+				table.insert(out, string.sub(s, start))
+				break
+			end
+			table.insert(out, string.sub(s, start, i - 1))
+			start = i + delimLen
+		end
+		return out
+	end
+
+	@ExecSpace("ClientOnly")
+	method void OnEndPlay()
+		-- 행/컨텍스트/정보 버튼 이벤트 핸들 해제.
+		if self._rowH ~= nil then
+			for _, r in ipairs(self._rowH) do
+				if isvalid(r.entity) and r.evtH ~= nil then
+					r.entity:DisconnectEvent(ButtonStateChangeEvent, r.evtH)
+				end
+			end
+		end
+		if self._ctxH ~= nil then
+			for _, r in ipairs(self._ctxH) do
+				if isvalid(r.entity) and r.evtH ~= nil then
+					r.entity:DisconnectEvent(ButtonClickEvent, r.evtH)
+				end
+			end
+		end
+	end
+
+end

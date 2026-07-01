@@ -129,7 +129,26 @@ script GameModeManager extends Logic
 		        log("[GameModeManager] 싱글 클리어 — 전투력=" .. tostring(finalPower))
 		
 		        _SingleTurnManager:Stop()
-		        self:ShowResult("게임 클리어!\n최종 전투력  " .. self:FormatPower(finalPower))
+		        local singleIds = {}
+		        if isvalid(piece) and piece.PlayerComponent ~= nil then table.insert(singleIds, piece.PlayerComponent.UserId) end
+		        -- 결과 표시는 기록 제출 후 순위/신기록 계산과 함께 아래에서 처리(ShowSingle).
+		
+		        -- 랭킹 기록 제출(전투력 초기화 전, 플레이어별 최고 기록만 유지).
+		        if isvalid(piece) and piece.PlayerComponent ~= nil then
+		            local uid = piece.PlayerComponent.UserId
+		            local pname = self:GetPlayerName(piece)
+		            local pjob = self:GetPlayerJob(piece)
+		            local pcamp = self:GetPlayerCamp(piece)
+		            local ipower = math.floor(finalPower)
+		            -- 리셋/제출 전에 신기록 판정 + 코디 캡처(리셋되면 코디가 사라짐).
+		            local prevBest = _RankingManager:GetPlayerBest(uid)
+		            local avatar = _RankingManager:CaptureCostume(uid)
+		            local isNew = (prevBest < 0) or (ipower > prevBest)
+		            -- 제출(플레이어별 최고만 유지) 후 전체 순위 계산 → 완주자 클라에 리치 결과 카드.
+		            _RankingManager:SubmitRecord(uid, pname, pjob, pcamp, ipower)
+		            local rank = _RankingManager:GetRankOf(uid)
+		            _ResultUI:ShowSingle(pname, ipower, pjob, pcamp, rank, isNew, avatar, uid)
+		        end
 		
 		        local ids = {}
 		        if isvalid(piece) and piece.PlayerComponent ~= nil then
@@ -153,6 +172,17 @@ script GameModeManager extends Logic
 		
 		        _MultiTurnManager:Stop()
 		        self:ShowResult(ranking)
+		
+		        -- 랭킹 기록 제출(각 플레이어, 전투력 초기화 전).
+		        for _, uid in ipairs(userIds) do
+		            local ue = _UserService:GetUserEntityByUserId(uid)
+		            if isvalid(ue) then
+		                local rp = 0
+		                local rcp = ue:GetComponent("script.CombatPowerManager")
+		                if isvalid(rcp) then rp = rcp.CombatPower end
+		                _RankingManager:SubmitRecord(uid, self:GetPlayerName(ue), self:GetPlayerJob(ue), self:GetPlayerCamp(ue), math.floor(rp))
+		            end
+		        end
 		        _MatchManager:TeleportPlayersToLobby(userIds)
 		        for _, uid in ipairs(userIds) do
 		            local ue = _UserService:GetUserEntityByUserId(uid)
@@ -165,7 +195,7 @@ script GameModeManager extends Logic
 
 	@ExecSpace("ServerOnly")
 	method string BuildRankingText(table userIds)
-		        -- {name, power, finishRank} 목록 수집
+		        -- 랭킹 행 수집: {name, power, job, camp}. 기준은 전투력, 나머지는 부가 정보. finishRank는 동점 타이브레이크용.
 		        local rows = {}
 		        for _, uid in ipairs(userIds) do
 		            local ue = _UserService:GetUserEntityByUserId(uid)
@@ -176,21 +206,25 @@ script GameModeManager extends Logic
 		                table.insert(rows, {
 		                    name = self:GetPlayerName(ue),
 		                    power = power,
+		                    job = self:GetPlayerJob(ue),
+		                    camp = self:GetPlayerCamp(ue),
 		                    finishRank = _MultiTurnManager:GetFinishRank(uid),  -- 1=가장 먼저 완주, 미완주=거대값
 		                })
 		            end
 		        end
 		
-		        -- 완주 순서 오름차순(먼저 도착이 상위) → 동점이면 전투력 내림차순
+		        -- 정렬 기준 = 전투력 내림차순. 동점이면 먼저 완주한 순 → 그래도 같으면 이름.
 		        table.sort(rows, function(a, b)
+		            if a.power ~= b.power then return a.power > b.power end
 		            if a.finishRank ~= b.finishRank then return a.finishRank < b.finishRank end
-		            return a.power > b.power
+		            return a.name < b.name
 		        end)
 		
-		        -- 줄 조립(1위에는 우승 표시)
+		        -- 헤더 + 행 조립. 열 순서: 순위 - 이름 - 전투력 - 직업 - 캠프 (1위에는 우승 표시).
 		        local lines = {}
+		        table.insert(lines, "순위   이름   전투력   직업   캠프")
 		        for i, r in ipairs(rows) do
-		            local line = tostring(i) .. "위   " .. r.name .. "   전투력 " .. self:FormatPower(r.power)
+		            local line = tostring(i) .. "위   " .. r.name .. "   전투력 " .. self:FormatPower(r.power) .. "   " .. r.job .. "   " .. r.camp
 		            if i == 1 then line = line .. "   우승!" end
 		            table.insert(lines, line)
 		        end
@@ -222,6 +256,24 @@ script GameModeManager extends Logic
 		        if isvalid(cp) then cp:CalculateCurrentCombatPower() end
 	end
 
+	method string GetPlayerJob(Entity entity)
+		        -- 직업: JobWeaponManager(전역 Logic)의 currentJob. 현 설계상 직업은 플레이어별이 아닌 전역 단일값(싱글 기준 정확).
+		        if isvalid(entity) then
+		            local job = _JobWeaponManager
+		            if isvalid(job) and job.currentJob ~= nil and job.currentJob ~= "" then return job.currentJob end
+		        end
+		        return "--"
+	end
+
+	method string GetPlayerCamp(Entity entity)
+		        -- 캠프(진영): BuffManager.CampName(미선택/미부착 시 '--').
+		        if isvalid(entity) then
+		            local buff = entity:GetComponent("script.BuffManager")
+		            if isvalid(buff) and buff.CampName ~= nil and buff.CampName ~= "" then return buff.CampName end
+		        end
+		        return "--"
+	end
+
 	method string GetPlayerName(Entity entity)
 		        if isvalid(entity) and entity.PlayerComponent ~= nil then
 		            local nick = entity.PlayerComponent.Nickname
@@ -250,7 +302,7 @@ script GameModeManager extends Logic
 				-- 2. 해당 맵으로 텔레포트
 				-- (Tile_1의 위치를 잡기 전이므로 임시 좌표(0,0)로 이동시킵니다)
 				_TeleportService:TeleportToMapPosition(piece, Vector3(0,0,0), nextMapEntity.Name)
-
+		
 				-- 다른 맵 도착 연출: '점프'하는 느낌(공중 포즈 + 수직 홉). 텔레포트 동기화 여유로 약간 지연.
 				local jumpUid = ""
 				if piece.PlayerComponent ~= nil then jumpUid = piece.PlayerComponent.UserId end
@@ -279,14 +331,14 @@ script GameModeManager extends Logic
 		local pos = piece.TransformComponent.WorldPosition
 		local ground = Vector2(pos.x, pos.y)
 		local apex = Vector2(pos.x, pos.y + 1.2)
-
+		
 		-- 공중(낙하) 포즈
 		local fall = BodyActionStateChangeEvent()
 		fall.ActionState = MapleAvatarBodyActionState.Fall
 		fall.needResetAction = true
 		piece:SendEvent(fall)
 		_SFXManager:PlayJump()   -- 점프 효과음
-
+		
 		-- 위로 떴다(감속) → 내려오며(가속) 착지 → 착지 시 Stand 복귀
 		local up = _TweenLogic:MoveTo(piece, apex, 0.22, EaseType.QuadEaseOut)
 		up:SetOnEndCallback(function()

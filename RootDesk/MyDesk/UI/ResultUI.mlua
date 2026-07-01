@@ -7,10 +7,19 @@ script ResultUI extends Logic
 
 	property ButtonComponent confirmButton = "dbcde8a3-2755-42bb-bf2e-b99f3db2deb4"
 
-	-- 팝업 뒤 반투명 검정 디머(패널과 함께 토글).
 	property Entity dimBack = "9379a292-313a-4e73-83f7-e36112f8e358"
 
 	property any hConfirm = nil
+
+	property string groupPath = "/ui/ResultGroup"
+
+	property string cardPath = "/ui/ResultGroup/ResultCard"
+
+	property string dimPath = "/ui/ResultGroup/DimBack"
+
+	property any hCardConfirm = nil
+
+	property any hCardRanking = nil
 
 	@ExecSpace("ClientOnly")
 	method void OnBeginPlay()
@@ -18,6 +27,17 @@ script ResultUI extends Logic
 		if isvalid(self.panel) then self.panel.Enable = false end
 		if isvalid(self.confirmButton) then
 			self.hConfirm = self.confirmButton.Entity:ConnectEvent(ButtonClickEvent, function() self:Hide() end)
+		end
+		-- 싱글 리치 카드: 기본 숨김 + 확인/랭킹보기 버튼 배선.
+		local card = _EntityService:GetEntityByPath(self.cardPath)
+		if isvalid(card) then card.Enable = false end
+		local btnC = _EntityService:GetEntityByPath(self.cardPath .. "/BtnConfirm")
+		if isvalid(btnC) then
+			self.hCardConfirm = btnC:ConnectEvent(ButtonClickEvent, function() self:HideCard() end)
+		end
+		local btnR = _EntityService:GetEntityByPath(self.cardPath .. "/BtnRanking")
+		if isvalid(btnR) then
+			self.hCardRanking = btnR:ConnectEvent(ButtonClickEvent, function() self:HideCard() end)
 		end
 	end
 
@@ -27,11 +47,83 @@ script ResultUI extends Logic
 			self.confirmButton.Entity:DisconnectEvent(ButtonClickEvent, self.hConfirm)
 			self.hConfirm = nil
 		end
+		local btnC = _EntityService:GetEntityByPath(self.cardPath .. "/BtnConfirm")
+		if self.hCardConfirm ~= nil and isvalid(btnC) then
+			btnC:DisconnectEvent(ButtonClickEvent, self.hCardConfirm)
+			self.hCardConfirm = nil
+		end
+		local btnR = _EntityService:GetEntityByPath(self.cardPath .. "/BtnRanking")
+		if self.hCardRanking ~= nil and isvalid(btnR) then
+			btnR:DisconnectEvent(ButtonClickEvent, self.hCardRanking)
+			self.hCardRanking = nil
+		end
+	end
+
+	@ExecSpace("Client")
+	method void ShowSingle(string name, integer power, string job, string camp, integer rank, boolean isNewRecord, string avatar)
+		-- 싱글 완주 리치 결과 카드. 좌측 아바타(캡처 코디) + 우측 전투력/전체순위/신기록/스펙.
+		_SFXManager:PlayWin()
+		local card = _EntityService:GetEntityByPath(self.cardPath)
+		if isvalid(card) == false then return end
+		local grp = _EntityService:GetEntityByPath(self.groupPath)
+		if isvalid(grp) then grp.Enable = true end
+		local dim = _EntityService:GetEntityByPath(self.dimPath)
+		if isvalid(dim) then dim.Enable = true end
+		
+		self:SetCardText("PowerBig", _RankingManager:FormatPower(power))
+		if rank > 0 then
+			self:SetCardText("RankBig", "전체 " .. tostring(rank) .. "위")
+		else
+			self:SetCardText("RankBig", "")
+		end
+		local badge = _EntityService:GetEntityByPath(self.cardPath .. "/Badge")
+		if isvalid(badge) then badge.Enable = isNewRecord end
+		self:SetCardText("Val_Name", tostring(name))
+		self:SetCardText("Val_Job", _RankingManager:JobKo(tostring(job)))
+		self:SetCardText("Val_Camp", _RankingManager:CampKo(tostring(camp)))
+		
+		-- 아바타: 완주자=로컬 플레이어. 계정 기본 체형 위에 캡처한 게임 코디를 덮어씀.
+		local av = _EntityService:GetEntityByPath(self.cardPath .. "/Avatar")
+		if isvalid(av) and isvalid(av.CostumeManagerComponent) then
+			local cm = av.CostumeManagerComponent
+			cm.UseCustomEquipOnly = false
+			local me = _UserService.LocalPlayer
+			if isvalid(me) and me.PlayerComponent ~= nil then
+				cm.DefaultEquipUserId = tostring(me.PlayerComponent.UserId)
+			end
+			_RankingManager:ApplyCostume(cm, tostring(avatar))
+		end
+		
+		card.Enable = true
+		local ut = card.UITransformComponent
+		if isvalid(ut) then _UILogic:SetSiblingIndex(ut, 1000000) end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void SetCardText(string node, string text)
+		-- 결과 카드 내부 텍스트 노드 Text 설정.
+		local e = _EntityService:GetEntityByPath(self.cardPath .. "/" .. node)
+		if isvalid(e) and isvalid(e.TextComponent) then e.TextComponent.Text = text end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void HideCard()
+		-- 결과 카드 닫기(로비 랭킹판이 뒤에 보임).
+		_SFXManager:PlayClick()
+		local card = _EntityService:GetEntityByPath(self.cardPath)
+		if isvalid(card) then card.Enable = false end
+		local dim = _EntityService:GetEntityByPath(self.dimPath)
+		if isvalid(dim) then dim.Enable = false end
+		local grp = _EntityService:GetEntityByPath(self.groupPath)
+		if isvalid(grp) then grp.Enable = false end
 	end
 
 	@ExecSpace("ClientOnly")
 	method void Show(string message)
 		_SFXManager:PlayWin()   -- 결과(승리) 팡파르
+		-- 부모 UIGroup(ResultGroup)이 기본 비활성이라 panel/dim만 켜면 안 보인다. 그룹을 켜고 맨 앞으로.
+		local grp = isvalid(self.panel) and self.panel.Parent or nil
+		if isvalid(grp) then grp.Enable = true end
 		if isvalid(self.dimBack) then self.dimBack.Enable = true end
 		if isvalid(self.panel) then self.panel.Enable = true end
 		if isvalid(self.resultText) then
@@ -46,6 +138,8 @@ script ResultUI extends Logic
 		_SFXManager:PlayClick()
 		if isvalid(self.panel) then self.panel.Enable = false end
 		if isvalid(self.dimBack) then self.dimBack.Enable = false end
+		local grp = isvalid(self.panel) and self.panel.Parent or nil
+		if isvalid(grp) then grp.Enable = false end
 		log("[ResultUI] 결과 닫힘")
 	end
 
