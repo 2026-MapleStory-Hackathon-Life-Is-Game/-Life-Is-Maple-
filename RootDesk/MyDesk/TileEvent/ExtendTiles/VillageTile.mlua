@@ -77,30 +77,56 @@ script VillageTile extends EventTileBase
 			self:ClientShowChoices(scene.text, scene.anim, labels, ownerId)
 
 		elseif scene.nodeType == "roll" then
-			-- 확률게임: 분기 Weight로 주사위 결과판을 구성(첫 분기=성공, 둘째=대성공, 실패 없음) →
-			-- 2d6를 굴려 나온 합으로 분기를 정한다. 확률은 테이블의 Weight 그대로 반영.
+			-- 확률게임: 대성공/성공/실패 확률을 '확률 테이블'(VillageEventFlowManager)에서 조회한다.
+			-- 테이블에 없으면 분기 Weight를 정규화해 사용(폴백). 분기(보상/문구/다음씬)는 키로 매칭한다.
 			local branches = _VillageEventFlowManager:GetRollBranches(scene.branchGroup)
+			local byKey = {}
 			local totalW = 0
-			for i = 1, #branches do totalW += branches[i].weight end
-			local successPct = 0
-			local greatPct = 0
-			if totalW > 0 then
-				if #branches >= 1 then successPct = branches[1].weight / totalW * 100 end
-				if #branches >= 2 then greatPct = branches[2].weight / totalW * 100 end
+			for i = 1, #branches do
+				byKey[branches[i].key] = branches[i]
+				totalW += branches[i].weight
 			end
-			-- 결과판(주사위합 2~12 → 0실패/1성공/2대성공). 실패는 0%.
-			local board = _ResultDiceManager:PlaceOutcomes(0, successPct, greatPct)
 
+			local greatPct = 0
+			local successPct = 0
+			local failPct = 0
+			local prob = _VillageEventFlowManager:GetRollProbabilities(scene.branchGroup)
+			if prob ~= nil then
+				greatPct = prob.great
+				successPct = prob.success
+				failPct = prob.fail
+			elseif totalW > 0 then
+				-- 폴백: 분기 Weight 정규화.
+				if byKey["great"] ~= nil then greatPct = byKey["great"].weight / totalW * 100 end
+				if byKey["success"] ~= nil then successPct = byKey["success"].weight / totalW * 100 end
+				if byKey["fail"] ~= nil then failPct = byKey["fail"].weight / totalW * 100 end
+			end
+			-- SetProbabilities와 동일 규칙으로 실패를 보정(합계 100) → 서버 판정과 클라 표시 결과판을 일치시킨다.
+			local np = _RollResultDiceAnimationUI:NormalizeProbabilities(greatPct, successPct, failPct)
+			greatPct = np.great
+			successPct = np.success
+			failPct = np.fail
+
+			-- 결과판(주사위합 2~12 → 0실패/1성공/2대성공). 서버 권위 판정용.
+			local board = _ResultDiceManager:PlaceOutcomes(failPct, successPct, greatPct)
 			local d1 = _UtilLogic:RandomIntegerRange(1, 6)
 			local d2 = _UtilLogic:RandomIntegerRange(1, 6)
 			local sum = d1 + d2
 			local tier = board[sum] or 1
-			local idx = 1
-			if tier == 2 then idx = 2 end
-			if idx > #branches then idx = #branches end
-			local chosen = branches[idx]
+
+			-- tier: 0=실패 / 1=성공 / 2=대성공 → 해당 키의 분기 선택.
 			local outcomeLabel = "성공"
-			if tier == 2 then outcomeLabel = "대성공" end
+			local chosen = byKey["success"]
+			if tier == 0 then
+				outcomeLabel = "실패"
+				chosen = byKey["fail"]
+			elseif tier == 2 then
+				outcomeLabel = "대성공"
+				chosen = byKey["great"]
+			end
+			-- 해당 등급 분기가 없으면 성공 → 첫 분기 순으로 폴백(결과가 항상 존재하도록).
+			if chosen == nil then chosen = byKey["success"] end
+			if chosen == nil and #branches > 0 then chosen = branches[1] end
 
 			local resultText = ""
 			if chosen ~= nil then
@@ -112,9 +138,11 @@ script VillageTile extends EventTileBase
 			else
 				self._pendingNext = 0
 			end
-			log("[VillageTile] 확률게임 group=" .. scene.branchGroup .. " 주사위=" .. tostring(d1) .. "+" .. tostring(d2)
-				.. "=" .. tostring(sum) .. " → " .. outcomeLabel)
-			self:ClientShowRoll(scene.text, scene.anim, resultText, d1, d2, sum, board, outcomeLabel, ownerId)
+			log("[VillageTile] 확률게임 group=" .. scene.branchGroup
+				.. " 확률(대/성/실)=" .. tostring(greatPct) .. "/" .. tostring(successPct) .. "/" .. tostring(failPct)
+				.. " 주사위=" .. tostring(d1) .. "+" .. tostring(d2) .. "=" .. tostring(sum) .. " → " .. outcomeLabel)
+			-- 클라 표시는 확률을 넘겨 SetProbabilities로 결과판을 구성하게 한다.
+			self:ClientShowRoll(scene.text, scene.anim, resultText, d1, d2, sum, greatPct, successPct, failPct, outcomeLabel, ownerId)
 
 		else
 			-- text
@@ -176,9 +204,10 @@ script VillageTile extends EventTileBase
 	end
 
 	@ExecSpace("Client")
-	method void ClientShowRoll(string leadText, string anim, string resultText, integer d1, integer d2, integer diceTotal, table board, string outcomeLabel)
+	method void ClientShowRoll(string leadText, string anim, string resultText, integer d1, integer d2, integer diceTotal, number greatPct, number successPct, number failPct, string outcomeLabel)
 		-- 도착 플레이어 클라: roll 씬(리드 텍스트 → 주사위 연출 → 결과 문구) 표시.
-		_EventTileUI:SceneRoll(leadText, anim, resultText, d1, d2, diceTotal, board, outcomeLabel, self)
+		-- 확률(대성공/성공/실패)을 넘겨 클라가 SetProbabilities로 결과판을 구성한다.
+		_EventTileUI:SceneRoll(leadText, anim, resultText, d1, d2, diceTotal, greatPct, successPct, failPct, outcomeLabel, self)
 	end
 
 	@ExecSpace("Client")

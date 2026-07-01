@@ -35,6 +35,12 @@ script RollResultDiceAnimationUI extends Logic
 
 	property TextGUIRendererComponent twelve_Value = "8c4863cd-02ba-4353-8852-3a1c4956ff64"
 
+	-- 다른 스크립트가 SetProbabilities로 설정한 현재 확률(%)과 결과판 보관.
+	property number GreatPct = 0
+	property number SuccessPct = 0
+	property number FailPct = 0
+	property table currentBoard = {}
+
 	@ExecSpace("ClientOnly")
 	method void OnBeginPlay()
 		-- 눈금별 RUID 등록 (실제 RUID로 교체)
@@ -95,6 +101,43 @@ script RollResultDiceAnimationUI extends Logic
 						else comp.Text = "실패" end
 					end
 				end
+	end
+
+	method table NormalizeProbabilities(number greatPct, number successPct, number failPct)
+		-- 대성공/성공/실패(%) 합이 100이 되도록 '실패'를 조정해 반환한다.
+		-- 실패 = 100 - 대성공 - 성공 으로 재산출한다(합이 이미 100이면 입력 실패와 같고, 아니면 자동 보정).
+		-- 대성공+성공이 100을 넘으면 실패만으로 100을 맞출 수 없으므로 실패=0으로 고정한다.
+		local great = greatPct or 0
+		local success = successPct or 0
+		local inFail = failPct or 0
+		if great < 0 then great = 0 end
+		if success < 0 then success = 0 end
+		local fail = 100 - great - success
+		if fail < 0 then
+			fail = 0
+			log_warning("[RollResultDiceUI] 대성공+성공=" .. tostring(great + success) .. "%(>100) — 실패 0%로 고정(합계 100 초과)")
+		elseif math.abs((great + success + inFail) - 100) > 0.001 then
+			log("[RollResultDiceUI] 합계 " .. tostring(great + success + inFail) .. "% ≠ 100 → 실패를 "
+				.. tostring(inFail) .. "% → " .. tostring(fail) .. "%로 조정")
+		end
+		return { great = great, success = success, fail = fail }
+	end
+
+	@ExecSpace("ClientOnly")
+	method table SetProbabilities(number greatPct, number successPct, number failPct)
+		-- 다른 스크립트가 대성공/성공/실패 확률(%)을 넣으면 resultDice 보드에 즉시 반영한다.
+		-- 합이 100이 아니면 실패 확률을 조정해 100에 맞춘다(NormalizeProbabilities).
+		-- 반환: 주사위합 2~12 → 실패0/성공1/대성공2 결과판(table). 그대로 Show에 넘겨 굴릴 수 있다.
+		local p = self:NormalizeProbabilities(greatPct, successPct, failPct)
+		self.GreatPct = p.great
+		self.SuccessPct = p.success
+		self.FailPct = p.fail
+		-- 확률 → 2d6 결과판 계산(누적분포 기반, ResultDiceManager와 동일 규칙) 후 보드 UI 갱신.
+		self.currentBoard = _ResultDiceManager:PlaceOutcomes(p.fail, p.success, p.great)
+		self:UpdateBoardUI(self.currentBoard)
+		log("[RollResultDiceUI] 확률 설정 → 대성공=" .. tostring(p.great)
+			.. "% 성공=" .. tostring(p.success) .. "% 실패=" .. tostring(p.fail) .. "%")
+		return self.currentBoard
 	end
 
 end

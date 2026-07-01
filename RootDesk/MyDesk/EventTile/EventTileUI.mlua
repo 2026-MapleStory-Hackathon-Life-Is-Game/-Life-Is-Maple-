@@ -50,7 +50,10 @@ script EventTileUI extends Logic
 	property integer _rollD1 = 0
 	property integer _rollD2 = 0
 	property integer _rollTotal = 0
-	property table _rollBoard = {}
+	-- roll 씬 확률(대성공/성공/실패 %) — 클라가 SetProbabilities로 결과판을 구성할 때 사용.
+	property number _rollGreat = 0
+	property number _rollSuccess = 0
+	property number _rollFail = 0
 	property string _rollOutcome = ""
 	-- 텍스트의 '\n\n'(빈 줄)을 '다음'으로 한 페이지씩 끊어 출력하기 위한 상태.
 	property table _pages = {}
@@ -310,14 +313,17 @@ script EventTileUI extends Logic
 	end
 
 	@ExecSpace("ClientOnly")
-	method void SceneRoll(string leadText, string anim, string resultText, integer d1, integer d2, integer diceTotal, table board, string outcomeLabel, Component tile)
+	method void SceneRoll(string leadText, string anim, string resultText, integer d1, integer d2, integer diceTotal, number greatPct, number successPct, number failPct, string outcomeLabel, Component tile)
 		-- 확률게임 roll 씬: 리드 텍스트(페이지) → '다음' → 주사위 연출(resultDice) → 결과 문구(페이지) → '다음' → 진행.
+		-- 서버가 넘긴 대성공/성공/실패 확률을 보관 → OnRollLeadDone에서 SetProbabilities로 결과판 구성.
 		self._activeTile = tile
 		self._rollResult = resultText
 		self._rollD1 = d1
 		self._rollD2 = d2
 		self._rollTotal = diceTotal
-		self._rollBoard = board
+		self._rollGreat = greatPct
+		self._rollSuccess = successPct
+		self._rollFail = failPct
 		self._rollOutcome = outcomeLabel
 		self:ShowGroup()
 		self:SetNPCImage(true)   -- 마을 이벤트: NPC 이미지 표시
@@ -329,7 +335,9 @@ script EventTileUI extends Logic
 	method void OnRollLeadDone()
 		-- 리드 텍스트 끝 → 확률게임 주사위 연출(resultDiceUIGroup)을 거친 뒤 결과 문구 표시.
 		self:HideAllButtons()
-		_RollResultDiceAnimationUI:Show(self._rollD1, self._rollD2, self._rollTotal, self._rollBoard, self._rollOutcome, function()
+		-- 확률 → SetProbabilities로 결과판 구성(+보드 UI 갱신) 후 그 보드로 주사위 연출.
+		local board = _RollResultDiceAnimationUI:SetProbabilities(self._rollGreat, self._rollSuccess, self._rollFail)
+		_RollResultDiceAnimationUI:Show(self._rollD1, self._rollD2, self._rollTotal, board, self._rollOutcome, function()
 			self:ShowPagedText(self._rollResult, self.OnTextAdvance)
 		end)
 	end
