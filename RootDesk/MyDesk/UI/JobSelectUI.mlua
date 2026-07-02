@@ -16,6 +16,11 @@ script JobSelectUI extends Logic
 	-- 팝업 뒤 반투명 검정 디머(패널과 함께 토글).
 	property Entity dimBack = "e1f3aa40-5079-47ae-92d0-643835a45322"
 
+	-- 선택 후 결과 패널(대사→장비 안내 순차 재사용, 각 2초). UUID는 UIBuilder bind로 주입.
+	property Entity resultPanel = "96878c22-cd37-4ac4-8d54-e11c0fe88ad1"
+	property SpriteGUIRendererComponent jobImage = "7522cc96-9ea7-4451-9d5c-a49db58f4c4e"
+	property TextComponent resultText = "c208f966-ac2c-49b7-985b-a9af1416d954"
+
 	property any handlerWarrior = nil
 
 	property any handlerArcher = nil
@@ -31,6 +36,9 @@ script JobSelectUI extends Logic
 		-- Root UIGroup stays visible so this Logic fires; hide the visual Panel on start.
 		if isvalid(self.panel) then
 			self.panel.Enable = false
+		end
+		if isvalid(self.resultPanel) then
+			self.resultPanel.Enable = false
 		end
 	end
 
@@ -81,9 +89,75 @@ script JobSelectUI extends Logic
 
 	@ExecSpace("ClientOnly")
 	method void SelectJob(string jobName)
-		-- Client→Server RPC: send selected job to server (all UI jobs are advancement 1).
+		-- 선택 직업을 서버에 전달(무기/주스탯 적용) 후, 결과 패널을 대사(2초) → 장비 안내(2초) 순으로 보여준다.
 		_SFXManager:PlayClick()
 		_JobWeaponManager:OnJobSelected(jobName, 1)
+
+		-- 선택 버튼 패널은 닫고, 디머는 유지한 채 결과 패널로 전환.
+		self:DisconnectAll()
+		if isvalid(self.panel) then self.panel.Enable = false end
+		if isvalid(self.dimBack) then self.dimBack.Enable = true end
+
+		-- 결과 이미지: 선택한 직업 버튼의 스프라이트를 그대로 복사(별도 아트 불필요).
+		local btn = self:BtnFor(jobName)
+		if isvalid(self.jobImage) and isvalid(btn) then
+			local sr = btn.Entity.SpriteGUIRendererComponent
+			if isvalid(sr) then self.jobImage.ImageRUID = sr.ImageRUID end
+		end
+		if isvalid(self.resultPanel) then self.resultPanel.Enable = true end
+
+		-- 1) 주스탯 대사.
+		if isvalid(self.resultText) then
+			self.resultText.Text = "전투력이 " .. self:JobStat(jobName) .. " 수치를 중심으로 반영됩니다!"
+		end
+
+		-- 2) 2초 뒤 장비 안내.
+		_TimerService:SetTimerOnce(function()
+			if isvalid(self.resultText) then
+				self.resultText.Text = "기본 " .. self:JobWeaponName(jobName) .. " 지급!"
+			end
+			-- 3) 다시 2초 뒤 결과 패널/디머 종료.
+			_TimerService:SetTimerOnce(function()
+				if isvalid(self.resultPanel) then self.resultPanel.Enable = false end
+				if isvalid(self.dimBack) then self.dimBack.Enable = false end
+			end, 2.0)
+		end, 2.0)
+	end
+
+	method string JobStat(string jobName)
+		-- 직업 → 주스탯(대사 표시용). 해적은 STR.
+		local j = string.lower(jobName)
+		if j == "warrior" then return "STR"
+		elseif j == "mage" then return "INT"
+		elseif j == "archer" then return "DEX"
+		elseif j == "thief" then return "LUK"
+		elseif j == "pirate" then return "STR"
+		end
+		return "STR"
+	end
+
+	method string JobWeaponName(string jobName)
+		-- 직업 → 기본 무기 이름(안내 표시용).
+		local j = string.lower(jobName)
+		if j == "warrior" then return "검"
+		elseif j == "mage" then return "완드"
+		elseif j == "archer" then return "활"
+		elseif j == "thief" then return "단검"
+		elseif j == "pirate" then return "너클"
+		end
+		return "무기"
+	end
+
+	method any BtnFor(string jobName)
+		-- 직업 → 해당 버튼 컴포넌트(결과 이미지 스프라이트 복사용).
+		local j = string.lower(jobName)
+		if j == "warrior" then return self.btnWarrior
+		elseif j == "mage" then return self.btnMage
+		elseif j == "archer" then return self.btnArcher
+		elseif j == "thief" then return self.btnThief
+		elseif j == "pirate" then return self.btnPirate
+		end
+		return nil
 	end
 
 	method void DisconnectAll()

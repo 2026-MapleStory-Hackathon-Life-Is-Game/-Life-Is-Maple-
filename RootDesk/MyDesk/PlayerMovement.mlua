@@ -27,6 +27,9 @@ script PlayerMovement extends Component
 		
 				if self.Entity.CurrentMapName == "Map_01" then
 					_CampSelectUI:ShowSelectPanel()
+				elseif self.Entity.CurrentMapName == "Map_02" then
+					-- 2스테이지 진입: 직업 선택창 표시(내 화면만).
+					_JobWeaponManager:ShowJobSelect()
 				elseif self.Entity.CurrentMapName == "Map_03" then
 					-- 3스테이지 진입: 인생 분기(길드/연애) 선택창 표시(내 화면만).
 					_LifePathSelectUI:ShowSelectPanel()

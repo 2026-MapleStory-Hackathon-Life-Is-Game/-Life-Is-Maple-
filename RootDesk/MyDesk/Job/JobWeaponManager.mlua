@@ -90,7 +90,35 @@ script JobWeaponManager extends Logic
 		-- 직업에 맞는 주스탯/공마 타입을 해당 플레이어의 전투력 컴포넌트에 연결한다.
 		local cp = playerEntity:GetComponent("script.CombatPowerManager")
 		if isvalid(cp) then cp:SetJob(self.currentJob) end
-		self:HideJobSelectUI(senderUserId)
+		-- 직업 기본 무기를 EquipmentData에서 찾아 실제로 지급(인벤토리 보유) + 장착(전투력 반영).
+		self:GrantStarterWeapon(jobName, playerEntity)
+		-- UI 표시/숨김(선택창 닫기 + 결과 시퀀스)은 클라의 JobSelectUI.SelectJob이 전담한다(서버 hide와 경쟁 방지).
+	end
+
+	@ExecSpace("ServerOnly")
+	method void GrantStarterWeapon(string jobName, Entity playerEntity)
+		-- 직업별 기본 무기(EquipmentData의 EquipName)를 인벤토리에 지급하고 장착까지 수행한다.
+		local equipName = self:StarterWeaponFor(jobName)
+		if equipName == "" then return end
+		if isvalid(playerEntity) == false then return end
+		-- 1) 보유함에 추가.
+		_EquipmentRouter:Acquire(playerEntity, equipName)
+		-- 2) 보유→장착(전투력 재계산 포함).
+		local m = _EquipmentRouter:ManagerForItem(playerEntity, equipName)
+		if isvalid(m) then m:RequestEquip(equipName) end
+		log("JobWeaponManager: 직업 기본무기 지급+장착 → " .. equipName)
+	end
+
+	method string StarterWeaponFor(string jobName)
+		-- 직업 → EquipmentData EquipName. (UI는 소문자, 데이터셋 키는 EquipName 그대로.)
+		local j = string.lower(jobName)
+		if j == "warrior" then return "Beginner_Warrior_Sword"
+		elseif j == "mage" then return "Beginner_Magician_Wand"
+		elseif j == "archer" then return "Beginner_Archer_Bow"
+		elseif j == "thief" then return "Beginner_Thief_Dagger"
+		elseif j == "pirate" then return "Steel_Knuckle"
+		end
+		return ""
 	end
 
 	@ExecSpace("ServerOnly")
