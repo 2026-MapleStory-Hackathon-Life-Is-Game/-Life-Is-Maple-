@@ -64,6 +64,7 @@ script UnluckyTile extends EventTileBase
 			statMode  = ds:GetCell(pick, "StatMode"),          -- "flat"
 			statValue = tonumber(ds:GetCell(pick, "StatValue")) or 0,  -- 음수 = 하락
 			imageKind = "npc",                                  -- 불행 이벤트: NPC 이미지 표시
+			npcKey    = ds:GetCell(pick, "NPC"),                -- 등장 NPC 이름 키 → NpcInfo에서 RUID 조회
 			anim      = anim,
 		}
 	end

@@ -1,0 +1,44 @@
+@Logic
+script NpcInfoManager extends Logic
+
+	-- 마을/불행 등 이벤트에 등장하는 NPC의 표시 정보(RUID/한글명)를 '이름 키'로 조회하는 전담 레이어.
+	-- 데이터셋 'NpcInfo'(NpcInfo.userdataset + .csv)에서 읽는다. serveronly=false 라 서버/클라 양쪽에서 조회 가능.
+	--   컬럼: Name / Region / DisplayName / SpriteRUID
+	--     · Name        : NPC 고유 키(이벤트 데이터의 NPC 컬럼과 동일한 값). 서로 겹치지 않음 → 단독으로 1행 유일 매칭.
+	--     · Region      : 등장지역 태그("Village" / "Unlucky" / "Both") — 정보/문서용. 조회 키에는 쓰지 않는다.
+	--                     (등장 자격 자체는 VillageEventFlow / UnluckyEvent 각 이벤트 테이블이 이미 관리한다.)
+	--     · DisplayName : 문구/표시용 한글 이름.
+	--     · SpriteRUID  : NPCImage에 적용할 스프라이트 RUID. 빈 값이면 UI의 기본 이미지를 그대로 쓴다.
+	-- 같은 NPC가 마을·불행 양쪽에 등장해도 RUID는 동일하므로 이름 1개당 1행이면 충분하다.
+
+	method string GetNpcRUID(string name)
+		-- NPC 이름 키로 SpriteRUID를 반환. 없거나 빈 값이면 "".
+		if name == nil or name == "" then return "" end
+		local ds = _DataService:GetTable("NpcInfo")
+		if isvalid(ds) == false then return "" end
+		for i = 1, ds:GetRowCount() do
+			if ds:GetCell(i, "Name") == name then
+				local ruid = ds:GetCell(i, "SpriteRUID")
+				if ruid == nil then return "" end
+				return ruid
+			end
+		end
+		return ""
+	end
+
+	method string GetNpcDisplayName(string name)
+		-- NPC 이름 키로 표시용 한글명을 반환. 행이 없거나 값이 비면 원본 name을 그대로 돌려준다.
+		if name == nil or name == "" then return "" end
+		local ds = _DataService:GetTable("NpcInfo")
+		if isvalid(ds) == false then return name end
+		for i = 1, ds:GetRowCount() do
+			if ds:GetCell(i, "Name") == name then
+				local disp = ds:GetCell(i, "DisplayName")
+				if disp == nil or disp == "" then return name end
+				return disp
+			end
+		end
+		return name
+	end
+
+end

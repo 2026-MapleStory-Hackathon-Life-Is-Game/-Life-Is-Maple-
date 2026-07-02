@@ -68,13 +68,15 @@ script VillageTile extends EventTileBase
 		end
 
 		local ownerId = self:OwnerUserId(piece)
+		-- 이 이벤트의 등장 NPC 이름 키(VillageEventFlow.NPC). 클라가 NpcInfo에서 RUID를 조회해 표시한다.
+		local npcKey = _VillageEventFlowManager:EventNPC(self._eventId)
 
 		if scene.nodeType == "choice" then
 			self._choiceGroup = scene.branchGroup
 			local choices = _VillageEventFlowManager:GetChoices(scene.branchGroup)
 			local labels = {}
 			for i = 1, #choices do labels[i] = choices[i].label end
-			self:ClientShowChoices(scene.text, scene.anim, labels, ownerId)
+			self:ClientShowChoices(scene.text, scene.anim, labels, npcKey, ownerId)
 
 		elseif scene.nodeType == "roll" then
 			-- 확률게임: 대성공/성공/실패 확률을 '확률 테이블'(VillageEventFlowManager)에서 조회한다.
@@ -142,12 +144,12 @@ script VillageTile extends EventTileBase
 				.. " 확률(대/성/실)=" .. tostring(greatPct) .. "/" .. tostring(successPct) .. "/" .. tostring(failPct)
 				.. " 주사위=" .. tostring(d1) .. "+" .. tostring(d2) .. "=" .. tostring(sum) .. " → " .. outcomeLabel)
 			-- 클라 표시는 확률을 넘겨 SetProbabilities로 결과판을 구성하게 한다.
-			self:ClientShowRoll(scene.text, scene.anim, resultText, d1, d2, sum, greatPct, successPct, failPct, outcomeLabel, ownerId)
+			self:ClientShowRoll(scene.text, scene.anim, resultText, d1, d2, sum, greatPct, successPct, failPct, outcomeLabel, npcKey, ownerId)
 
 		else
 			-- text
 			self._pendingNext = tonumber(scene.nextSeq) or 0
-			self:ClientShowText(scene.text, scene.anim, ownerId)
+			self:ClientShowText(scene.text, scene.anim, npcKey, ownerId)
 		end
 	end
 
@@ -198,22 +200,22 @@ script VillageTile extends EventTileBase
 	end
 
 	@ExecSpace("Client")
-	method void ClientShowText(string text, string anim)
-		-- 도착 플레이어 클라: 텍스트 씬 표시(콜백용으로 self 전달).
-		_EventTileUI:SceneText(text, anim, self)
+	method void ClientShowText(string text, string anim, string npcKey)
+		-- 도착 플레이어 클라: 텍스트 씬 표시(콜백용으로 self 전달). npcKey = 등장 NPC 이름 키.
+		_EventTileUI:SceneText(text, anim, npcKey, self)
 	end
 
 	@ExecSpace("Client")
-	method void ClientShowRoll(string leadText, string anim, string resultText, integer d1, integer d2, integer diceTotal, number greatPct, number successPct, number failPct, string outcomeLabel)
+	method void ClientShowRoll(string leadText, string anim, string resultText, integer d1, integer d2, integer diceTotal, number greatPct, number successPct, number failPct, string outcomeLabel, string npcKey)
 		-- 도착 플레이어 클라: roll 씬(리드 텍스트 → 주사위 연출 → 결과 문구) 표시.
-		-- 확률(대성공/성공/실패)을 넘겨 클라가 SetProbabilities로 결과판을 구성한다.
-		_EventTileUI:SceneRoll(leadText, anim, resultText, d1, d2, diceTotal, greatPct, successPct, failPct, outcomeLabel, self)
+		-- 확률(대성공/성공/실패)을 넘겨 클라가 SetProbabilities로 결과판을 구성한다. npcKey = 등장 NPC 이름 키.
+		_EventTileUI:SceneRoll(leadText, anim, resultText, d1, d2, diceTotal, greatPct, successPct, failPct, outcomeLabel, npcKey, self)
 	end
 
 	@ExecSpace("Client")
-	method void ClientShowChoices(string text, string anim, table labels)
-		-- 도착 플레이어 클라: 선택지 씬 표시.
-		_EventTileUI:SceneChoices(text, anim, labels, self)
+	method void ClientShowChoices(string text, string anim, table labels, string npcKey)
+		-- 도착 플레이어 클라: 선택지 씬 표시. npcKey = 등장 NPC 이름 키.
+		_EventTileUI:SceneChoices(text, anim, labels, npcKey, self)
 	end
 
 	@ExecSpace("Client")
