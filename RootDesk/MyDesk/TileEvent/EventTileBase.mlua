@@ -124,13 +124,7 @@ script EventTileBase extends BaseTile
 		end
 	end
 
-	@ExecSpace("ServerOnly")
-	method void AddSpecificStat(Entity piece, string statName, number value)
-		-- 지정 스탯(str/dex/int/luk) 보상 → CombatPowerManager의 해당 스탯 필드에 직접 가산.
-		local cp = self:CP(piece)
-		if isvalid(cp) == false then return end
-		cp:AddSpecificStat(string.upper(statName), value)
-	end
+	-- AddSpecificStat(piece, statName, value)은 BaseTile로 이동(모든 타일 공유). 여기서는 상속으로 사용.
 
 	method string OwnerUserId(Entity piece)
 		-- 말(piece)의 소유 유저 ID를 반환한다. 플레이어 엔티티가 아니면 "".

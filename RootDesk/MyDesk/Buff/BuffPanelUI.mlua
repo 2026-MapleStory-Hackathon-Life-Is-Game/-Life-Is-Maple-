@@ -13,9 +13,19 @@ script BuffPanelUI extends Logic
 
 	property number stepX = 64
 
+	-- 툴팁 자동 크기조절 상수(조정 쉽게 프로퍼티로). 캔버스 1920x1080 중심원점 기준.
+	property number tooltipBoxW = 360       -- 툴팁 박스 폭(고정)
+	property number tooltipTextWidth = 330  -- 텍스트 폭(박스 − 패딩/스크롤바 여유)
+	property number tooltipPadV = 18        -- 상하 패딩 합
+	property number tooltipMinH = 40        -- 최소 박스 높이
+	property number tooltipMaxH = 900       -- 최대 박스 높이(넘으면 스크롤). 화면(1080) 안에 들어오는 값
+
 	property any cards = nil
 
 	property any hoverHandlers = nil
+
+	-- 서버가 SetBuffs와 함께 보낸 현재 길드원 수(길드 버프 툴팁에 표시).
+	property integer _guildMemberCount = 0
 
 	method void OnBeginPlay()
 		-- 템플릿/툴팁을 숨기고 내부 상태를 초기화한다.
@@ -31,8 +41,9 @@ script BuffPanelUI extends Logic
 	end
 
 	@ExecSpace("Client")
-	method void SetBuffs(table buffNames)
-		-- 서버가 보낸 활성 버프 이름 목록으로 카드 한 줄을 다시 만든다.
+	method void SetBuffs(table buffNames, integer guildMemberCount)
+		-- 서버가 보낸 활성 버프 이름 목록으로 카드 한 줄을 다시 만든다. guildMemberCount는 길드 버프 툴팁용.
+		self._guildMemberCount = guildMemberCount
 		self:ClearCards()
 		if isvalid(self.cardTemplate) == false then
 			log_error("[BuffPanelUI] cardTemplate 없음")
@@ -120,7 +131,12 @@ script BuffPanelUI extends Logic
 		self:AppendEffect(lines, ds, rowIdx, "MainPower_Percent", "공격력/마력 +", "%")
 		self:AppendEffect(lines, ds, rowIdx, "Damage_Percent", "데미지 +", "%")
 		self:AppendEffect(lines, ds, rowIdx, "CriticalDamage_Percent", "크리티컬 데미지 +", "%")
-		
+
+		-- 길드 버프(Category=Guild)면 현재 영입한 길드원 수를 덧붙인다.
+		if ds:GetCell(rowIdx, "Category") == "Guild" then
+			table.insert(lines, "영입한 길드원: " .. tostring(self._guildMemberCount) .. "명")
+		end
+
 		return table.concat(lines, "\n")
 	end
 
@@ -150,17 +166,52 @@ script BuffPanelUI extends Logic
 		end
 	end
 
+	method number Clamp(number v, number lo, number hi)
+		-- v를 [lo, hi]로 제한. 범위가 뒤집히면 중앙값.
+		if lo > hi then return (lo + hi) / 2 end
+		if v < lo then return lo end
+		if v > hi then return hi end
+		return v
+	end
+
 	method void ShowTooltip(Entity card, string text)
-		-- 카드 옆쪽에 효과 툴팁 패널을 띄운다.
+		-- 툴팁을 내용 높이에 맞춰 자동 크기조절하고, 박스가 화면(±960/±540) 밖으로 안 나가게 위치를 보정한다.
+		-- 내용이 tooltipMaxH보다 길면 ScrollLayoutGroup(AutoHide)이 스크롤바를 자동 표시하고 Mask가 클립한다.
 		if isvalid(self.tooltip) == false then return end
-		if isvalid(self.tooltipText) then self.tooltipText.Text = text end
+		if isvalid(self.tooltipText) == false then return end
+		self.tooltipText.Text = text
+
+		-- 1) 내용 높이 계산 → 텍스트/박스 크기 자동 조절.
+		local textW = self.tooltipTextWidth
+		local contentH = self.tooltipText:GetPreferredHeight(text, textW)
+		if contentH < self.tooltipMinH then contentH = self.tooltipMinH end
+		local boxH = contentH + self.tooltipPadV
+		if boxH > self.tooltipMaxH then boxH = self.tooltipMaxH end
+
+		local textTr = self.tooltipText.Entity.UITransformComponent
+		if isvalid(textTr) then textTr.RectSize = Vector2(textW, contentH) end
+		local tt = self.tooltip.UITransformComponent
+		if isvalid(tt) then tt.RectSize = Vector2(self.tooltipBoxW, boxH) end
+
+		-- 2) 카드 기준 위치 → 박스가 화면 안에 완전히 들어오게 클램프.
+		local baseX = 0
+		local baseY = 0
 		if isvalid(card) then
 			local ctr = card.UITransformComponent
-			local tt = self.tooltip.UITransformComponent
-			if isvalid(ctr) and isvalid(tt) then
-				tt.anchoredPosition = Vector2(ctr.anchoredPosition.x + 220, ctr.anchoredPosition.y - 60)
+			if isvalid(ctr) then
+				baseX = ctr.anchoredPosition.x + 220
+				baseY = ctr.anchoredPosition.y - 60
 			end
 		end
+		local halfW = self.tooltipBoxW / 2
+		local halfH = boxH / 2
+		local x = self:Clamp(baseX, -960 + halfW, 960 - halfW)
+		local y = self:Clamp(baseY, -540 + halfH, 540 - halfH)
+		if isvalid(tt) then tt.anchoredPosition = Vector2(x, y) end
+
+		-- 3) 스크롤 최상단 초기화 + 표시.
+		local scroll = self.tooltip.ScrollLayoutGroupComponent
+		if isvalid(scroll) then scroll:ResetScrollPosition(UITransformAxis.Vertical) end
 		self.tooltip.Enable = true
 	end
 

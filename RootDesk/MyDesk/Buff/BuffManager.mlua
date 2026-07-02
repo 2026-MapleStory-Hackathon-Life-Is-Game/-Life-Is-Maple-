@@ -301,7 +301,11 @@ script BuffManager extends Component
 		if pc == nil then return end
 		local userId = pc.UserId
 		if userId == nil or userId == "" then return end
-		_BuffPanelUI:SetBuffs(self:GetActiveBuffNames(), userId)
+		-- 길드원 수(같은 플레이어의 GuildManager)를 함께 보내 길드 버프 툴팁에 표시한다. 미부착/미창설 시 0.
+		local memberCount = 0
+		local guild = self.Entity:GetComponent("script.GuildManager")
+		if isvalid(guild) then memberCount = guild.GeneralMembers end
+		_BuffPanelUI:SetBuffs(self:GetActiveBuffNames(), memberCount, userId)
 	end
 
 end

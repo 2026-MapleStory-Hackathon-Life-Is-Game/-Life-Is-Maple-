@@ -260,6 +260,8 @@ script GameModeManager extends Logic
 		        if isvalid(entity) == false then return end
 		        local buff = entity:GetComponent("script.BuffManager")
 		        if isvalid(buff) then buff:ResetAll() end
+		        local guild = entity:GetComponent("script.GuildManager")
+		        if isvalid(guild) then guild:ResetAll() end
 		        for _, t in ipairs({ "script.WeaponEquipment", "script.ArmorEquipment", "script.AccessoryEquipment" }) do
 		            local m = entity:GetComponent(t)
 		            if isvalid(m) then m:ResetAll() end
