@@ -3,19 +3,42 @@ script MapViewManager extends Logic
 
 	property boolean _isOpen = false
 
+	-- 인벤토리가 열려 있으면 휠은 카메라 줌이 아니라 인벤 목록 스크롤에 쓰여야 하므로 줌을 막는다.
+	property boolean _inventoryOpen = false
+
 	property number _camMoveSpeed = 6.0
 
 	property Vector2 _origCameraOffset = Vector2(0, 0)
 
 	property number _origZoom = 100
 
+	property boolean _origConfine = true
+
 	property any _currentTween = nil
 
 	property any _scrollHandler = nil
 
+	-- 우클릭 드래그 패닝 상태.
+	property boolean _dragging = false
+	property Vector2 _lastCursor = Vector2(0, 0)
+	-- 드래그 1px당 카메라 오프셋(월드) 이동량. 줌 비례 보정과 함께 사용.
+	property number _dragScale = 0.012
+
 	@ExecSpace("ClientOnly")
 	method void OnBeginPlay()
 		self._scrollHandler = _InputService:ConnectEvent(MouseScrollEvent, self.OnMouseScroll)
+		-- 엔진 내장 휠 줌(IsAllowZoomInOut)은 끈다. 맵뷰 줌은 OnMouseScroll에서만 직접 처리.
+		self:DisableEngineZoom()
+	end
+
+	@ExecSpace("ClientOnly")
+	method void DisableEngineZoom()
+		-- DefaultPlayer.model의 IsAllowZoomInOut=true 때문에 맵뷰가 아닌데도 휠로 카메라가 줌됨.
+		-- 모델은 읽기전용이라 런타임에서 끈다. 끄더라도 수동 ZoomRatio/SetZoomTo는 계속 동작함(검증됨).
+		local cam = _CameraService:GetCurrentCameraComponent()
+		if isvalid(cam) and cam.IsAllowZoomInOut then
+			cam.IsAllowZoomInOut = false
+		end
 	end
 
 	@ExecSpace("ClientOnly")
@@ -28,7 +51,9 @@ script MapViewManager extends Logic
 
 	@ExecSpace("ClientOnly")
 	method void OnMouseScroll(MouseScrollEvent event)
+		-- 휠 줌은 '지도(맵뷰) 열림' 상태에서만. 인벤토리가 열려 있으면 휠은 인벤 스크롤용이므로 줌하지 않는다.
 		if not self._isOpen then return end
+		if self._inventoryOpen then return end
 		local cam = _CameraService:GetCurrentCameraComponent()
 		if not isvalid(cam) then return end
 		
@@ -40,22 +65,58 @@ script MapViewManager extends Logic
 
 	@ExecSpace("ClientOnly")
 	method void OnUpdate(number delta)
+		-- 맵 전환으로 카메라가 모델에서 재생성되면 IsAllowZoomInOut이 다시 true가 될 수 있어 매 프레임 끈다(필요할 때만 write).
+		self:DisableEngineZoom()
+
 		if not self._isOpen then return end
-		
+
 		local cam = _CameraService:GetCurrentCameraComponent()
 		if not isvalid(cam) then return end
-		
+
 		local spd = self._camMoveSpeed * delta
 		local dx = 0
 		local dy = 0
-		if _InputService:IsKeyPressed(KeyboardKey.W) then dy = dy + spd end
-		if _InputService:IsKeyPressed(KeyboardKey.S) then dy = dy - spd end
-		if _InputService:IsKeyPressed(KeyboardKey.A) then dx = dx - spd end
-		if _InputService:IsKeyPressed(KeyboardKey.D) then dx = dx + spd end
-		
+		if _InputService:IsKeyPressed(KeyboardKey.W) or _InputService:IsKeyPressed(KeyboardKey.UpArrow) then dy = dy + spd end
+		if _InputService:IsKeyPressed(KeyboardKey.S) or _InputService:IsKeyPressed(KeyboardKey.DownArrow) then dy = dy - spd end
+		if _InputService:IsKeyPressed(KeyboardKey.A) or _InputService:IsKeyPressed(KeyboardKey.LeftArrow) then dx = dx - spd end
+		if _InputService:IsKeyPressed(KeyboardKey.D) or _InputService:IsKeyPressed(KeyboardKey.RightArrow) then dx = dx + spd end
+
 		if dx ~= 0 or dy ~= 0 then
 			cam.CameraOffset = Vector2(cam.CameraOffset.x + dx, cam.CameraOffset.y + dy)
 		end
+
+		-- 우클릭 드래그 패닝(맵뷰 한정). 맵을 '잡아끌기': 커서 이동 방향으로 맵이 따라온다.
+		self:UpdateDragPan(cam)
+	end
+
+	@ExecSpace("ClientOnly")
+	method void UpdateDragPan(any cam)
+		-- 우클릭(Mouse1)을 누른 채 마우스를 움직이면 카메라 오프셋을 이동(맵을 상하좌우로 끌기).
+		if _InputService:IsKeyPressed(KeyboardKey.Mouse1) == false then
+			self._dragging = false
+			return
+		end
+		local cur = _InputService:GetCursorPosition()
+		if self._dragging == false then
+			-- 드래그 시작 프레임: 기준 커서만 저장하고 이동은 다음 프레임부터(튐 방지).
+			self._dragging = true
+			self._lastCursor = cur
+			return
+		end
+		local ddx = cur.x - self._lastCursor.x
+		local ddy = cur.y - self._lastCursor.y
+		self._lastCursor = cur
+		if ddx == 0 and ddy == 0 then return end
+		-- 줌 비례 보정: 줌아웃(작은 ZoomRatio)일수록 1px가 더 넓은 월드에 대응.
+		local k = self._dragScale * (100 / math.max(1, cam.ZoomRatio))
+		-- 방향: 커서 이동 반대 방향으로 카메라를 이동(맵을 손으로 잡아 끄는 느낌 — 드래그한 만큼 맵이 따라온다).
+		cam.CameraOffset = Vector2(cam.CameraOffset.x - ddx * k, cam.CameraOffset.y - ddy * k)
+	end
+
+	@ExecSpace("ClientOnly")
+	method void SetInventoryOpen(boolean open)
+		-- 인벤토리 열림 상태 통지(InventoryPanel.Open/Close에서 호출). 휠 줌 차단 판단에 사용.
+		self._inventoryOpen = open
 	end
 
 	@ExecSpace("ClientOnly")
@@ -109,6 +170,10 @@ script MapViewManager extends Logic
 		-- 현재 상태 저장
 		self._origCameraOffset = cam.CameraOffset
 		self._origZoom = cam.ZoomRatio
+		self._origConfine = cam.ConfineCameraArea
+
+		-- 맵 경계 클램프 해제: 줌 아웃 시 카메라가 맵 가장자리에 밀려 살짝 움직이는 현상 방지.
+		cam.ConfineCameraArea = false
 
 		-- 카메라 줌 축소 (0.4초 트윈)
 		cam:SetZoomTo(50, 0.25)
@@ -122,6 +187,7 @@ script MapViewManager extends Logic
 	method void CloseMapView()
 		if not self._isOpen then return end
 		self._isOpen = false
+		self._dragging = false
 
 		self:HideTileNumbers()
 		self:SetHudHidden(false)
@@ -148,6 +214,9 @@ script MapViewManager extends Logic
 
 		-- 줌 원래대로 복귀 (0.3초 트윈)
 		cam:SetZoomTo(self._origZoom, 0.3)
+
+		-- 맵 경계 클램프 원복
+		cam.ConfineCameraArea = self._origConfine
 
 		log("[MapViewManager] 맵 뷰 닫힘")
 	end

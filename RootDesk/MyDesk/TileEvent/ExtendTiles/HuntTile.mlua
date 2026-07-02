@@ -1,12 +1,54 @@
 @Component
-script HuntTile extends BaseTile
+script HuntTile extends EventTileBase
 
-	@ExecSpace("ServerOnly")
-	method void OnArrive(Entity piece)
-		-- ⚠️ base 직접 수정(영구): cp:HuntStat() → AddMainStat(base). 동적 버프(self:Add~) 아님.
-		local cp = self:CP(piece)
-		if isvalid(cp) then cp:HuntStat() end
-		log("[HuntTile] 사냥 칸 효과 적용 tile=" .. self.Entity.Name)
+	method table RollEvent(Entity piece)
+		-- 사냥 이벤트를 서버에서 굴린다.
+		--   사냥 시간은 1시간 / 2시간 중 하나 → 각각 스탯 +15 / +30.
+		--   스테이지1 = 올스탯만, 그 외 스테이지 = 주스탯만.
+		-- 문구에 쓴 gain/statName을 그대로 보상 필드로 반환해, 화면 문구와 실제 적용 스탯이 일치하게 한다.
+
+		-- 사냥터 이름 = 현재 타일 지역(테마)의 한글명 + " 사냥터" (예: 헤네시스 사냥터 / 페리온 사냥터).
+		local map = self.Entity.CurrentMapName
+		local tile = self.Entity.Name
+		local region = _TileManager:GetTileRegion(map, tile)
+		local huntingGround = _TileManager:RegionDisplayName(region) .. " 사냥터"
+
+		-- 스테이지1만 올스탯, 나머지는 주스탯.
+		local stage = _TileManager:GetTileStage(map, tile)
+		local statKind = "main"
+		local statName = "주스탯"
+		if stage == 1 then
+			statKind = "all"
+			statName = "올스탯"
+		end
+
+		-- 사냥 시간: 1시간(+15) 또는 2시간(+30).
+		local hours = _UtilLogic:RandomIntegerRange(1, 2)
+		local gain = hours * 15
+
+		local line1 = huntingGround .. "에서 " .. tostring(hours) .. "시간 동안 몬스터를 사냥했다!"
+		local line2 = statName .. "이 " .. tostring(gain) .. "만큼 올랐다!"
+
+		-- 이 타일에 정해진(지역 가중 추첨) 몬스터의 RUID → 이벤트 팝업 Monsters 이미지에 표시.
+		local monsterRUID = _TileManager:GetTileMonsterRUID(map, tile)
+
+		return {
+			eventType   = "Hunt",
+			message     = line1 .. "\n" .. line2,
+			statKind    = statKind,   -- "main"=주스탯 / "all"=올스탯
+			statMode    = "flat",     -- 고정 수치 증가
+			statValue   = gain,       -- 문구에 표시한 상승치와 동일
+			monsterRUID = monsterRUID, -- 사냥 몬스터 STAND RUID(없으면 "")
+			anim        = "attack",   -- 사냥 칸 init 애니메이션: 공격
+		}
+	end
+
+	@ExecSpace("Server")
+	method void RequestDone()
+		-- '다음' 클릭 시 이벤트 종료 RPC. (베이스 상속 RPC가 서브클래스에서 라우팅 안 되므로 리프에 재정의)
+		local piece = self._eventPiece
+		if isvalid(piece) and senderUserId ~= self:OwnerUserId(piece) then return end
+		self:FinishEventTile()
 	end
 
 end

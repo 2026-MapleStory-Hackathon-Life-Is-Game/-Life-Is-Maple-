@@ -1,0 +1,210 @@
+@Logic
+script BossUI extends Logic
+
+	-- 보스 선택 UI(BossUIGroup) 클라 컨트롤러.
+	-- 흐름: BossTile이 Show(self) 호출 → 보스 4선택 → 카드 클릭 시 상세(난이도) →
+	--        난이도 클릭 시 BossTile:RequestSelect(bossKey, diffKey) / 뒤로가기 → 선택으로 복귀.
+	-- 난이도 버튼(이지/노말/하드/카오스)은 ScrollLayout 안에 4개 상주.
+	-- 보스마다 BossProbability에 실존하는 난이도만 Enable=true, 없는 난이도는 Enable=false(ScrollLayout이 남은 것만 정렬).
+
+	property Entity BossGroup = "b3478f61-f3f7-45ae-a10d-396161da6527"
+	property Entity SelectionPanel = "ddde3d93-9f2c-40bb-a070-c4ac99b84613"
+	property Entity DetailPanel = "352c550f-af4f-4375-9883-7134c23babb0"
+
+	property Entity BossCard1 = "e223d50e-cbe3-4b23-80db-37a531b2b143"
+	property Entity BossCard2 = "b02bf98b-61c8-4fce-94de-024e4e6c60f4"
+	property Entity BossCard3 = "c2ea2ceb-18e7-4462-a7e2-a1649e2b39b8"
+	property Entity BossCard4 = "e8a4749f-02f4-4b9e-a068-328744594bf7"
+
+	property Entity DetailBossName = "36060171-5658-42a6-b756-204cdd114f62"
+
+	-- 난이도 버튼(ScrollLayout 자식). 값은 UIBuilder 바인딩 주입으로 채워진다.
+	property Entity EasyButton = "983189c4-66cd-4971-b802-4d30ebc1a2e8"
+	property Entity NormalButton = "47ee2787-2240-4454-9c54-dc8cf8cfbdf7"
+	property Entity HardButton = "269e9bdd-61cc-4772-9bb1-2258fcca1f59"
+	property Entity ChaosButton = "af964015-c85e-4fc4-b13f-b1f0c8f20bcd"
+
+	property Entity BackButton = "3c201d98-f990-403a-84b4-95714351580b"
+
+	-- 보스 선택 화면 안내 텍스트(EventTileGroup UIText와 같은 위치).
+	property Entity SelectionText = "d297d26f-19c2-49d4-b639-3f61c446a0fb"
+
+	-- 인게임 HUD(InGameUIGroup) 루트 — 보스 선택 중에는 숨겼다가 닫을 때 복원.
+	property Entity InGameGroup = "a322b09a-023e-427d-9c6c-19724156dab7"
+
+	-- 진행 중인 보스 타일(콜백용).
+	property any _bossTile = nil
+	-- 현재 상세 화면에서 보고 있는 보스 인덱스(1~4).
+	property integer _selectedIndex = 1
+
+	property table _bossKeys = {}
+	property table _bossNames = {}
+	property table _diffButtons = {}
+	property table _cardHandlers = {}
+	property table _diffHandlers = {}
+	property any _backHandler = nil
+
+	@ExecSpace("ClientOnly")
+	method void OnBeginPlay()
+		-- 보스 키/표시명 매핑 + 카드/난이도/뒤로 버튼 핸들러 연결. 평소엔 그룹 숨김.
+		-- 보스 키는 BossProbability.csv의 BossName(영문키)과 일치시킨다 → RollByBossTable이 바로 매칭.
+		self._bossKeys = { "Root_Abyss", "Papulatus", "Lotus", "Damien" }
+		self._bossNames = { "루타비스", "파풀라투스", "스우", "데미안" }
+
+		-- 난이도 버튼 구성(고정 4종). 순서 = 이지 → 노말 → 하드 → 카오스.
+		self._diffButtons = {
+			{ key = "Easy",   label = "이지",   e = self.EasyButton },
+			{ key = "Normal", label = "노말",   e = self.NormalButton },
+			{ key = "Hard",   label = "하드",   e = self.HardButton },
+			{ key = "Chaos",  label = "카오스", e = self.ChaosButton },
+		}
+
+		if isvalid(self.BossGroup) then
+			self.BossGroup.Enable = false
+		end
+
+		self._cardHandlers = {}
+		local cards = { self.BossCard1, self.BossCard2, self.BossCard3, self.BossCard4 }
+		for i = 1, 4 do
+			local card = cards[i]
+			if isvalid(card) then
+				local idx = i
+				local h = card:ConnectEvent(ButtonClickEvent, function() self:OnCardClicked(idx) end)
+				table.insert(self._cardHandlers, { entity = card, eventHandler = h })
+			end
+		end
+
+		-- 난이도 버튼 각각을 RequestSelect(그 난이도)에 연결(클로저로 키 캡처).
+		self._diffHandlers = {}
+		for i = 1, #self._diffButtons do
+			local d = self._diffButtons[i]
+			if isvalid(d.e) then
+				local dk = d.key
+				local h = d.e:ConnectEvent(ButtonClickEvent, function() self:RequestSelect(dk) end)
+				table.insert(self._diffHandlers, { entity = d.e, eventHandler = h })
+			end
+		end
+
+		if isvalid(self.BackButton) then
+			self._backHandler = self.BackButton:ConnectEvent(ButtonClickEvent, self.OnBackClicked)
+		end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void OnEndPlay()
+		-- 핸들러 해제.
+		for i = 1, #self._cardHandlers do
+			local rec = self._cardHandlers[i]
+			if isvalid(rec.entity) and rec.eventHandler ~= nil then
+				rec.entity:DisconnectEvent(ButtonClickEvent, rec.eventHandler)
+			end
+		end
+		self._cardHandlers = {}
+		for i = 1, #self._diffHandlers do
+			local rec = self._diffHandlers[i]
+			if isvalid(rec.entity) and rec.eventHandler ~= nil then
+				rec.entity:DisconnectEvent(ButtonClickEvent, rec.eventHandler)
+			end
+		end
+		self._diffHandlers = {}
+		if isvalid(self.BackButton) and self._backHandler ~= nil then
+			self.BackButton:DisconnectEvent(ButtonClickEvent, self._backHandler)
+		end
+	end
+
+	method table DiffRow(string bossKey, string diff)
+		-- BossProbability에서 (보스, 난이도) 행을 찾아 표시용 데이터를 반환한다. 없으면 nil.
+		-- (데이터셋은 serveronly=false라 클라에서도 조회 가능.)
+		local ds = _DataService:GetTable("BossProbability")
+		if isvalid(ds) == false then return nil end
+		for i = 1, ds:GetRowCount() do
+			local en = ds:GetCell(i, "BossName")
+			local kr = ds:GetCell(i, "BossNameKR")
+			if (en == bossKey or kr == bossKey) and ds:GetCell(i, "Difficulty") == diff then
+				return { drop = ds:GetCell(i, "DropEquip"), req = ds:GetCell(i, "RequiredPower") }
+			end
+		end
+		return nil
+	end
+
+	@ExecSpace("ClientOnly")
+	method void Show(Component bossTile, string introText)
+		-- 보스 선택 화면 표시. 도착 BossTile을 콜백용으로 보관하고 안내 문구를 세팅한다.
+		self._bossTile = bossTile
+		self._selectedIndex = 1
+		self:HideOtherUIs()
+		if isvalid(self.BossGroup) then self.BossGroup.Enable = true end
+		if isvalid(self.SelectionPanel) then self.SelectionPanel.Enable = true end
+		if isvalid(self.DetailPanel) then self.DetailPanel.Enable = false end
+		if isvalid(self.SelectionText) and isvalid(self.SelectionText.TextComponent) then
+			self.SelectionText.TextComponent.Text = introText
+		end
+		log("[BossUI] 보스 선택 표시")
+	end
+
+	@ExecSpace("ClientOnly")
+	method void Hide()
+		-- 보스 UI 닫기 + 보스 선택 중 숨겼던 인게임 HUD 복원.
+		if isvalid(self.BossGroup) then self.BossGroup.Enable = false end
+		if isvalid(self.InGameGroup) then self.InGameGroup.Enable = true end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void HideOtherUIs()
+		-- 보스 선택 화면은 BossUI만 보이게 — 인게임 HUD / EventTileGroup / 이동·결과 주사위 UI를 모두 숨긴다.
+		if isvalid(self.InGameGroup) then self.InGameGroup.Enable = false end
+		if isvalid(_EventTileUI.EventGroup) then _EventTileUI.EventGroup.Enable = false end
+		if isvalid(_RollDiceAnimationUI.panel) then _RollDiceAnimationUI.panel.Enable = false end
+		if isvalid(_RollDiceAnimationUI.DiceBuffPanel) then _RollDiceAnimationUI.DiceBuffPanel.Enable = false end
+		if isvalid(_RollDiceAnimationUI.diceParticle) then _RollDiceAnimationUI.diceParticle.Enable = false end
+		if isvalid(_RollResultDiceAnimationUI.panel) then _RollResultDiceAnimationUI.panel.Enable = false end
+		if isvalid(_RollResultDiceAnimationUI.diceParticle) then _RollResultDiceAnimationUI.diceParticle.Enable = false end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void OnCardClicked(integer idx)
+		-- 카드 클릭 → 상세 화면(난이도 선택지)으로. 보스 이름 세팅 + 실존 난이도만 활성화.
+		self._selectedIndex = idx
+		if isvalid(self.DetailBossName) and isvalid(self.DetailBossName.TextComponent) then
+			self.DetailBossName.TextComponent.Text = self._bossNames[idx]
+		end
+
+		-- 이 보스에 실존하는 난이도만 버튼 활성화. 없는 난이도는 Enable=false로 숨긴다.
+		local bossKey = self._bossKeys[idx]
+		for i = 1, #self._diffButtons do
+			local d = self._diffButtons[i]
+			if isvalid(d.e) then
+				local row = self:DiffRow(bossKey, d.key)
+				if row ~= nil then
+					d.e.Enable = true
+					if isvalid(d.e.TextComponent) then
+						d.e.TextComponent.Text = d.label .. "\n드랍: " .. tostring(row.drop)
+					end
+				else
+					d.e.Enable = false
+				end
+			end
+		end
+
+		if isvalid(self.SelectionPanel) then self.SelectionPanel.Enable = false end
+		if isvalid(self.DetailPanel) then self.DetailPanel.Enable = true end
+		log("[BossUI] 보스 상세: " .. tostring(self._bossNames[idx]))
+	end
+
+	@ExecSpace("ClientOnly")
+	method void OnBackClicked(ButtonClickEvent event)
+		-- 뒤로가기 → 보스 선택지로 복귀.
+		if isvalid(self.DetailPanel) then self.DetailPanel.Enable = false end
+		if isvalid(self.SelectionPanel) then self.SelectionPanel.Enable = true end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void RequestSelect(string diffKey)
+		-- 현재 상세 보스 + 난이도로 BossTile에 최종 선택을 보낸다.
+		if isvalid(self._bossTile) == false then return end
+		local key = self._bossKeys[self._selectedIndex]
+		if key == nil then return end
+		self._bossTile:RequestSelect(key, diffKey)
+	end
+
+end

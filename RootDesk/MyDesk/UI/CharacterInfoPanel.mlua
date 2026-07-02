@@ -53,6 +53,22 @@ script CharacterInfoPanel extends Component
 
 	property string _lastSlotSig = ""
 
+	property string _hoverCat = ""
+
+	property boolean _lastMouse1 = false
+
+	property Entity ctxMenu = "5bc48a0e-8216-4b0e-a4b8-0cf03b1ffd40"
+
+	property ButtonComponent ctxBtnUnequip = "26241197-5c25-4712-bb28-23b35e6b2e54"
+
+	property ButtonComponent ctxBtnCube = "c79c5aee-cda3-45bd-9ba9-d12d54042329"
+
+	property ButtonComponent ctxBtnClose = "34accd66-4ee6-4d08-a120-e9ee127aae02"
+
+	property string _ctxCat = ""
+
+	property any _ctxHandlers = nil
+
 	method void OnBeginPlay()
 		-- 클라 전용: 패널 시작은 숨김 + 슬롯 호버/더블클릭 배선.
 		if self:IsClient() then
@@ -62,10 +78,28 @@ script CharacterInfoPanel extends Component
 			self._lastSlotCat = ""
 			self._lastSlotTime = 0
 			self.invPanel = nil
+			self._hoverCat = ""
+			self._lastMouse1 = false
 			self:SetPanelVisible(false)
 			self:WireSlot(self.weaponIcon, "Weapon")
 			self:WireSlot(self.armorIcon, "Armor")
 			self:WireSlot(self.accessoryIcon, "Accessory")
+			-- 슬롯 우클릭 컨텍스트 메뉴: 기본 숨김 + 3버튼(장착해제/잠재능력 재설정/닫기) 배선.
+			self._ctxCat = ""
+			self._ctxHandlers = {}
+			if isvalid(self.ctxMenu) then self.ctxMenu.Enable = false end
+			if isvalid(self.ctxBtnUnequip) then
+				local hu = self.ctxBtnUnequip.Entity:ConnectEvent(ButtonClickEvent, function() self:OnCtxUnequip() end)
+				table.insert(self._ctxHandlers, { entity = self.ctxBtnUnequip.Entity, evtH = hu })
+			end
+			if isvalid(self.ctxBtnCube) then
+				local hc = self.ctxBtnCube.Entity:ConnectEvent(ButtonClickEvent, function() self:OnCtxCube() end)
+				table.insert(self._ctxHandlers, { entity = self.ctxBtnCube.Entity, evtH = hc })
+			end
+			if isvalid(self.ctxBtnClose) then
+				local hx = self.ctxBtnClose.Entity:ConnectEvent(ButtonClickEvent, function() self:OnCtxClose() end)
+				table.insert(self._ctxHandlers, { entity = self.ctxBtnClose.Entity, evtH = hx })
+			end
 		end
 	end
 
@@ -156,22 +190,26 @@ script CharacterInfoPanel extends Component
 		if isvalid(renderer) == false then return end
 		local e = renderer.Entity
 		if equipName == "" then
-			renderer.Color = Color(1, 1, 1, 0)
+			-- 빈 슬롯: 기본 '네모 슬롯'(어두운 사각) 모양으로 복원.
+			-- 이전 장착품 썸네일 ImageRUID가 남아 실루엣처럼 보이는 문제 방지 → 기본 사각 스프라이트/색으로 되돌린다.
+			renderer.ImageRUID = DataRef("4fea64a3307cda641809ad8be0d4890b")
+			renderer.Color = Color(0.2, 0.22, 0.29, 1)
 			self:SetSlotLabel(e, "(없음)", false)
 			return
 		end
-		local ds = _DataService:GetTable("EquipData")
+		local ds = _DataService:GetTable("EquipmentData")
 		local ruid = ""
 		local dname = equipName
 		for i = 1, ds:GetRowCount() do
 			if ds:GetCell(i, "EquipName") == equipName then
-				ruid = ds:GetCell(i, "Icon")
+				ruid = ds:GetCell(i, "Sprite RUID")
 				dname = ds:GetCell(i, "Name")
 				break
 			end
 		end
 		if ruid ~= "" then
-			renderer.ImageRUID = ruid
+			-- 장비 RUID는 avataritem 타입 → thumbnail:// 접두 + DataRef로 감싸야 아이콘이 렌더된다.
+			renderer.ImageRUID = DataRef("thumbnail://" .. ruid)
 			renderer.Color = Color(1, 1, 1, 1)
 		else
 			renderer.Color = Color(1, 1, 1, 0)
@@ -215,6 +253,8 @@ script CharacterInfoPanel extends Component
 	method void OnUpdate(number delta)
 		-- 패널 열린 동안 0.2초마다 슬롯 장착 변경 감지 → 갱신.
 		if self:IsClient() == false or self.isOpen == false then return end
+		-- 장착 슬롯 우클릭 → 큐브 사용 확인 패널(매 프레임 엣지 감지).
+		self:UpdateRightClick()
 		self._pollTimer = self._pollTimer + delta
 		if self._pollTimer < 0.2 then return end
 		self._pollTimer = 0
@@ -235,12 +275,119 @@ script CharacterInfoPanel extends Component
 	end
 
 	method void OnSlotState(string category, ButtonStateChangeEvent ev)
-		-- 슬롯 호버 진입 → 스펙 툴팁 표시, 이탈 → 숨김.
+		-- 슬롯 호버 진입 → 스펙 툴팁 표시 + 우클릭 대상 추적, 이탈 → 숨김.
 		if ev.state == ButtonState.Hover then
+			self._hoverCat = category
 			_EquipTooltip:ShowItem(self:EquippedOf(category))
 		elseif ev.state == ButtonState.Normal then
+			if self._hoverCat == category then self._hoverCat = "" end
 			_EquipTooltip:Hide()
 		end
+	end
+
+	method integer CubeCount()
+		-- 로컬 플레이어의 미라클 큐브 보유 수(없으면 0).
+		local p = _UserService.LocalPlayer
+		if isvalid(p) == false then return 0 end
+		local bag = p:GetComponent("script.CubeInventory")
+		if isvalid(bag) == false then return 0 end
+		return bag.MiracleCubeCount
+	end
+
+	method void UpdateRightClick()
+		-- 매 프레임: 장착 슬롯 위에서 우클릭 눌림 엣지 → 컨텍스트 메뉴(장착해제/잠재능력 재설정/닫기).
+		-- 슬롯에 장착품이 있을 때만 연다.
+		local down = _InputService:IsKeyPressed(KeyboardKey.Mouse1)
+		if down and self._lastMouse1 == false then
+			if self._hoverCat ~= "" then
+				local eq = self:EquippedOf(self._hoverCat)
+				if eq ~= "" then
+					self:OpenContextMenu(self._hoverCat)
+				end
+			end
+		end
+		self._lastMouse1 = down
+	end
+
+	method void OpenContextMenu(string category)
+		-- 장착 슬롯 우클릭 메뉴를 커서 옆(오른쪽 약간 아래)에 띄운다.
+		if isvalid(self.ctxMenu) == false then return end
+		self._ctxCat = category
+		local cur = _InputService:GetCursorPosition()
+		local uiPos = _UILogic:ScreenToUIPosition(cur)
+		local ut = self.ctxMenu.UITransformComponent
+		if isvalid(ut) then ut.anchoredPosition = Vector2(uiPos.x + 110, uiPos.y - 30) end
+		-- 미라클 큐브 보유 여부로 '잠재능력 재설정' 버튼 활성/반투명 갱신.
+		self:UpdateCtxCubeButton()
+		self.ctxMenu.Enable = true
+		if isvalid(ut) then _UILogic:SetSiblingIndex(ut, 1000000) end
+		_EquipTooltip:Hide()
+		log("[CharacterInfoPanel] 컨텍스트 메뉴 열기: " .. category)
+	end
+
+	method void CloseContextMenu()
+		-- 컨텍스트 메뉴 숨김.
+		if isvalid(self.ctxMenu) and self.ctxMenu.Enable then self.ctxMenu.Enable = false end
+		self._ctxCat = ""
+	end
+
+	method void UpdateCtxCubeButton()
+		-- 미라클 큐브 보유 시 활성(보라/흰글씨), 없으면 반투명.
+		if isvalid(self.ctxBtnCube) == false then return end
+		local e = self.ctxBtnCube.Entity
+		if isvalid(e) == false then return end
+		local sr = e.SpriteGUIRendererComponent
+		local tc = e:GetComponent("MOD.Core.TextComponent")
+		if self:CubeCount() > 0 then
+			if isvalid(sr) then sr.Color = Color(0.45, 0.30, 0.62, 1.0) end
+			if tc ~= nil then tc.FontColor = Color(1, 1, 1, 1) end
+		else
+			if isvalid(sr) then sr.Color = Color(0.45, 0.30, 0.62, 0.35) end
+			if tc ~= nil then tc.FontColor = Color(1, 1, 1, 0.4) end
+		end
+	end
+
+	method void OnCtxUnequip()
+		-- '장착 해제': 해당 카테고리 슬롯 해제(+ 배낭 열려 있으면 탭 자동전환).
+		_SFXManager:PlayClick()
+		local cat = self._ctxCat
+		self:CloseContextMenu()
+		if cat == "" then return end
+		local p = _UserService.LocalPlayer
+		if isvalid(p) then
+			local m = _EquipmentRouter:ManagerFor(p, cat)
+			if isvalid(m) then m:RequestUnequip() end
+		end
+		_EquipTooltip:Hide()
+		if isvalid(self.invPanel) == false then
+			local ie = _EntityService:GetEntityByPath("/ui/InGameUIGroup/Inventory_Panel/Ctrl")
+			if isvalid(ie) then self.invPanel = ie:GetComponent("script.InventoryPanel") end
+		end
+		if isvalid(self.invPanel) and self.invPanel.isOpen then self.invPanel:SelectTab(cat) end
+		log("[CharacterInfoPanel] 컨텍스트: 장착해제 " .. cat)
+	end
+
+	method void OnCtxCube()
+		-- '잠재능력 재설정': 미라클 큐브 보유 시 확인 팝업(없으면 무시 — 버튼 반투명).
+		if self:CubeCount() <= 0 then
+			log("[CharacterInfoPanel] 컨텍스트: 큐브 없음(무시)")
+			return
+		end
+		_SFXManager:PlayClick()
+		local cat = self._ctxCat
+		self:CloseContextMenu()
+		if cat == "" then return end
+		local eq = self:EquippedOf(cat)
+		if eq == "" then return end
+		_EquipTooltip:Hide()
+		_CubeConfirmPopup:Open(eq)
+		log("[CharacterInfoPanel] 컨텍스트: 잠재 재설정 " .. eq)
+	end
+
+	method void OnCtxClose()
+		-- '닫기': 메뉴만 닫는다.
+		_SFXManager:PlayClick()
+		self:CloseContextMenu()
 	end
 
 	method void OnSlotClicked(string category)
@@ -272,7 +419,7 @@ script CharacterInfoPanel extends Component
 	end
 
 	method void OnEndPlay()
-		-- 슬롯 이벤트 핸들 해제.
+		-- 슬롯 + 컨텍스트 메뉴 이벤트 핸들 해제.
 		if self.slotHandlers ~= nil then
 			for _, r in ipairs(self.slotHandlers) do
 				if isvalid(r.entity) then
@@ -282,6 +429,14 @@ script CharacterInfoPanel extends Component
 			end
 		end
 		self.slotHandlers = {}
+		if self._ctxHandlers ~= nil then
+			for _, r in ipairs(self._ctxHandlers) do
+				if isvalid(r.entity) and r.evtH ~= nil then
+					r.entity:DisconnectEvent(ButtonClickEvent, r.evtH)
+				end
+			end
+		end
+		self._ctxHandlers = {}
 	end
 
 	method string FormatPower(number value)

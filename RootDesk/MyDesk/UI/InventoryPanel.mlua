@@ -2,15 +2,48 @@
 script InventoryPanel extends Component
 
 	property Entity panelRoot = "265b6a00-710c-4654-ad3f-85db1bc7685f"
+
 	property Entity gridEntity = "c4fadd74-2612-44e0-913c-94d38acf97f1"
+
 	property Entity cellPrefab = "5c958470-46b3-40e2-a250-24aaa2847a6e"
+
+	property Entity cubeBanner = "e1e4862c-e849-48f2-9de5-22c888cf1634"
+
 	property boolean isOpen = false
+
 	property string activeTab = "Armor"
+
 	property any cellHandlers = nil
+
 	property string _lastClickName = ""
+
 	property number _lastClickTime = 0
+
 	property number _pollTimer = 0
+
 	property string _lastListSig = ""
+
+	property boolean _cubeUseMode = false
+
+	property string _lastBannerSig = ""
+
+	property Entity ctxMenu = "246bd7cf-bcce-4d32-a8ec-6e04e25642a1"
+
+	property ButtonComponent ctxBtnEquip = "db28172c-7b0d-4809-bfad-8b3f2221f029"
+
+	property ButtonComponent ctxBtnCube = "ff23db32-c729-487d-bf5e-a806008f0ade"
+
+	property ButtonComponent ctxBtnClose = "160a192d-b859-4ac9-9fa3-9ae0bd99a0d8"
+
+	property string _hoverEquip = ""
+
+	property boolean _lastMouse1 = false
+
+	property string _ctxTarget = ""
+
+	property any _ctxHandlers = nil
+
+	property string _ctxEquipLabel = "장착 / 교체"
 
 	method void OnBeginPlay()
 		-- 클라: 패널 숨김 + GridView 셀 프리팹 주입 + 탭 버튼 이벤트 배선.
@@ -22,18 +55,19 @@ script InventoryPanel extends Component
 		self._lastClickTime = 0
 		self._T.items = {}
 		self._T.tabH = {}
-
+		self._T.tabEnts = {}
+		
 		if isvalid(self.panelRoot) then
 			self.panelRoot.Enable = false
 		end
-
+		
 		if isvalid(self.gridEntity) and isvalid(self.cellPrefab) then
 			local gvc = self.gridEntity.GridViewComponent
 			if gvc ~= nil then
 				gvc.ItemEntity = self.cellPrefab
-				-- 스크롤은 셀의 클릭 제스처를 가로채므로 끈다(데모 아이템 수에선 스크롤 불필요).
-				-- 아이템이 화면을 넘칠 만큼 많아지면 다시 켜되 클릭은 OnCellState의 Pressed로 처리됨.
-				gvc.UseScroll = false
+				-- 마우스 휠/드래그로 목록을 위아래 스크롤(아이템이 많아 한 화면을 넘침).
+				-- 클릭은 ButtonClickEvent가 스크롤에 먹히므로 OnCellState의 Pressed(=2)로 감지한다.
+				gvc.UseScroll = true
 				gvc.OnRefresh = function(index, cell)
 					self:OnGridCellRefresh(index, cell)
 				end
@@ -42,7 +76,7 @@ script InventoryPanel extends Component
 				end
 			end
 		end
-
+		
 		-- 탭 버튼 이벤트 배선
 		local base = "/ui/InGameUIGroup/Inventory_Panel/Window/"
 		local tabs = {
@@ -60,19 +94,167 @@ script InventoryPanel extends Component
 					self:SelectTab(capturedKey)
 				end)
 				table.insert(self._T.tabH, { entity = e, evtH = h })
+				self._T.tabEnts[t.key] = e
 			end
+		end
+		self:UpdateTabVisual()
+		
+		-- 하단 푸터의 닫기 버튼 → 인벤 닫기. 탭과 동일하게 _T.tabH에 넣어 OnEndPlay에서 함께 해제.
+		local closeBtn = _EntityService:GetEntityByPath(base .. "Footer/BtnClose")
+		if isvalid(closeBtn) then
+			local ch = closeBtn:ConnectEvent(ButtonClickEvent, function()
+				_SFXManager:PlayClick()
+				self:Close()
+			end)
+			table.insert(self._T.tabH, { entity = closeBtn, evtH = ch })
+		end
+		
+		-- 큐브 사용 모드 배너는 기본 숨김(미라클 큐브 셀을 누르면 켜진다).
+		self._cubeUseMode = false
+		self._lastBannerSig = ""
+		if isvalid(self.cubeBanner) then self.cubeBanner.Enable = false end
+		
+		-- 우클릭 컨텍스트 메뉴: 기본 숨김 + 3버튼 클릭 배선.
+		self._ctxHandlers = {}
+		self._hoverEquip = ""
+		self._lastMouse1 = false
+		self._ctxTarget = ""
+		if isvalid(self.ctxMenu) then self.ctxMenu.Enable = false end
+		if isvalid(self.ctxBtnEquip) then
+			local he = self.ctxBtnEquip.Entity:ConnectEvent(ButtonClickEvent, function() self:OnCtxEquip() end)
+			table.insert(self._ctxHandlers, { entity = self.ctxBtnEquip.Entity, evtH = he })
+		end
+		if isvalid(self.ctxBtnCube) then
+			local hc = self.ctxBtnCube.Entity:ConnectEvent(ButtonClickEvent, function() self:OnCtxCube() end)
+			table.insert(self._ctxHandlers, { entity = self.ctxBtnCube.Entity, evtH = hc })
+		end
+		if isvalid(self.ctxBtnClose) then
+			local hx = self.ctxBtnClose.Entity:ConnectEvent(ButtonClickEvent, function() self:OnCtxClose() end)
+			table.insert(self._ctxHandlers, { entity = self.ctxBtnClose.Entity, evtH = hx })
+		end
+		-- 컨텍스트 메뉴 'Equip' 버튼의 원래 라벨을 기억(큐브 모드에서 '미라클 큐브 사용'으로 바꿨다 복원).
+		if isvalid(self.ctxBtnEquip) then
+			local etc = self.ctxBtnEquip.Entity:GetComponent("MOD.Core.TextComponent")
+			if etc ~= nil and etc.Text ~= nil and etc.Text ~= "" then self._ctxEquipLabel = etc.Text end
 		end
 
 		log("[InventoryPanel] OnBeginPlay OK")
+	end
+
+	method integer CubeCount()
+		-- 로컬 플레이어의 미라클 큐브 보유 수(없으면 0).
+		local p = _UserService.LocalPlayer
+		if isvalid(p) == false then return 0 end
+		local bag = p:GetComponent("script.CubeInventory")
+		if isvalid(bag) == false then return 0 end
+		return bag.MiracleCubeCount
+	end
+
+	method string DisplayName(string equipName)
+		-- equipName의 표시명(EquipmentData.Name). 없으면 equipName 그대로.
+		if equipName == "" then return "" end
+		local ds = _DataService:GetTable("EquipmentData")
+		if isvalid(ds) then
+			for i = 1, ds:GetRowCount() do
+				if ds:GetCell(i, "EquipName") == equipName then return ds:GetCell(i, "Name") end
+			end
+		end
+		return equipName
+	end
+
+	method void UpdateBanner()
+		-- 큐브 사용 모드일 때만 안내 배너 표시(평소 숨김). 상태 변화 없으면 스킵(깜빡임 방지).
+		if isvalid(self.cubeBanner) == false then return end
+		local sig = self._cubeUseMode and "on" or "off"
+		if sig == self._lastBannerSig then return end
+		self._lastBannerSig = sig
+		self.cubeBanner.Enable = self._cubeUseMode
+		if self._cubeUseMode then
+			local tc = self.cubeBanner:GetComponent("MOD.Core.TextComponent")
+			if tc ~= nil then tc.Text = "재설정할 장비를 선택하세요  (취소: 다른 탭)" end
+		end
+	end
+
+	method void EnterCubeUseMode()
+		-- 미라클 큐브 사용: 그리드를 '재설정 대상 장비(전체 장비)'로 전환.
+		if self:CubeCount() <= 0 then
+			log("[InventoryPanel] 큐브 사용: 보유 0")
+			return
+		end
+		self:CloseContextMenu()
+		self._cubeUseMode = true
+		self:UpdateBanner()
+		self:Rebuild()
+		log("[InventoryPanel] 큐브 사용 모드 진입")
+	end
+
+	method void ExitCubeUseMode()
+		-- 큐브 사용 모드 종료(배너 숨김). Item 탭이면 다시 큐브 셀이 보인다.
+		self._cubeUseMode = false
+		self:UpdateBanner()
+	end
+
+	method string ListSig(table items)
+		-- 목록 변경 감지용 시그니처. Item 탭(비큐브모드)은 큐브 보유수도 반영해 수량 변동 시 갱신되게.
+		local s = table.concat(items, ",")
+		if self.activeTab == "Item" and self._cubeUseMode == false then
+			s = s .. "|cube" .. tostring(self:CubeCount())
+		end
+		return s
+	end
+
+	method table AllEquipList(Entity p)
+		-- 큐브 사용 대상 후보: 보유+장착 장비 전체(무기/방어구/장신구), 중복 제거.
+		local out = {}
+		local seen = {}
+		local tabs = { "Armor", "Weapon", "Accessory" }
+		for _, tab in ipairs(tabs) do
+			local m = _EquipmentRouter:ManagerFor(p, tab)
+			if isvalid(m) then
+				local eq = m.Equipped
+				if eq ~= nil and eq ~= "" and seen[eq] == nil then
+					table.insert(out, eq)
+					seen[eq] = true
+				end
+				for _, n in ipairs(m:OwnedSorted()) do
+					if seen[n] == nil then
+						table.insert(out, n)
+						seen[n] = true
+					end
+				end
+			end
+		end
+		return out
+	end
+
+	method void UpdateTabVisual()
+		-- 활성 탭은 파란색, 비활성은 어둡게(.ui 기본 색상 스킴 유지).
+		if self._T.tabEnts == nil then return end
+		for key, ent in pairs(self._T.tabEnts) do
+			if isvalid(ent) then
+				local sr = ent.SpriteGUIRendererComponent
+				if isvalid(sr) then
+					if key == self.activeTab then
+						sr.Color = Color(0.2, 0.4, 0.7, 1)
+					else
+						sr.Color = Color(0.25, 0.25, 0.35, 1)
+					end
+				end
+			end
+		end
 	end
 
 	method void Open()
 		-- 배낭 열기 + 현재 탭 목록 갱신.
 		if self:IsClient() == false then return end
 		self.isOpen = true
+		self._cubeUseMode = false
+		self:UpdateBanner()
 		if isvalid(self.panelRoot) then
 			self.panelRoot.Enable = true
 		end
+		-- 인벤 열림 동안 마우스 휠은 카메라 줌이 아니라 인벤 스크롤에 쓰이도록 맵뷰에 통지.
+		if _MapViewManager ~= nil then _MapViewManager:SetInventoryOpen(true) end
 		self:Rebuild()
 	end
 
@@ -80,38 +262,51 @@ script InventoryPanel extends Component
 		-- 배낭 닫기.
 		if self:IsClient() == false then return end
 		self.isOpen = false
+		self:CloseContextMenu()
 		if isvalid(self.panelRoot) then
 			self.panelRoot.Enable = false
 		end
+		if _MapViewManager ~= nil then _MapViewManager:SetInventoryOpen(false) end
 	end
 
 	method void SelectTab(string tab)
-		-- 탭 전환 후 그리드 재구성.
+		-- 탭 전환 후 활성 탭 색 갱신 + 그리드 재구성. 큐브 사용 모드면 취소(다른 탭 전환=취소).
 		self.activeTab = tab
+		self:CloseContextMenu()
+		if self._cubeUseMode then self:ExitCubeUseMode() end
+		self:UpdateTabVisual()
 		self:Rebuild()
 	end
 
 	method table CurrentList()
-		-- 현재 탭 타입의 정렬된 보유 목록(Item 탭은 빈 목록).
-		if self.activeTab == "Item" then return {} end
+		-- 현재 탭 목록. Item 탭: 평소엔 미라클 큐브 1칸, 큐브 사용 모드면 전체 장비(재설정 대상).
 		local p = _UserService.LocalPlayer
 		if isvalid(p) == false then return {} end
+		if self.activeTab == "Item" then
+			if self._cubeUseMode then return self:AllEquipList(p) end
+			if self:CubeCount() > 0 then return { "__MIRACLE_CUBE__" } end
+			return {}
+		end
 		local m = _EquipmentRouter:ManagerFor(p, self.activeTab)
 		if isvalid(m) == false then return {} end
+		-- 장착중인 아이템은 인벤토리에 표시하지 않는다(캐릭터 정보 패널에서만 보임).
+		-- OwnedSorted()는 이미 장착품(Equipped)을 제외한 보유목록이므로 그대로 반환.
 		return m:OwnedSorted()
 	end
 
 	method void Rebuild()
 		-- 보유 목록으로 GridView 재구성.
 		if self:IsClient() == false or self.isOpen == false then return end
-
+		
 		-- ⚠ Rebuild에서는 셀 핸들러를 건드리지 않는다. TotalCount가 같으면 gvc:Refresh()가
 		--   OnRefresh를 다시 부르지 않아, 여기서 해제하면 핸들러가 영영 재연결되지 않는다(호버 사망).
 		--   핸들러 교체/해제는 셀 생애주기 콜백(OnGridCellRefresh/Clear)에서만 처리한다.
 		local items = self:CurrentList()
 		self._T.items = items
+		-- 깜빡임 방지: 시그니처를 여기서 동기화해 OnUpdate 폴러가 중복 Rebuild를 또 트리거하지 않게 한다.
+		self._lastListSig = self:ListSig(items)
 		log("[InventoryPanel] Rebuild tab=" .. self.activeTab .. " count=" .. tostring(#items))
-
+		
 		if isvalid(self.gridEntity) then
 			local gvc = self.gridEntity.GridViewComponent
 			if gvc ~= nil then
@@ -129,37 +324,46 @@ script InventoryPanel extends Component
 		if items == nil then return end
 		local name = items[index + 1]
 		if name == nil then return end
-
-		-- 아이콘 RUID + 표시명 조회
-		local ds = _DataService:GetTable("EquipData")
-		local ruid = ""
-		local dname = name
-		if isvalid(ds) then
-			for i = 1, ds:GetRowCount() do
-				if ds:GetCell(i, "EquipName") == name then
-					ruid = ds:GetCell(i, "Icon")
-					dname = ds:GetCell(i, "Name")
-					break
+		
+		local rend = cell.SpriteGUIRendererComponent
+		local tc = cell:GetComponent("MOD.Core.TextComponent")
+		
+		if name == "__MIRACLE_CUBE__" then
+			-- 미라클 큐브 셀: 아이콘 RUID가 없으므로 보라색 틴트 + 보유 수 텍스트로 표현.
+			if isvalid(rend) then
+				-- 미라클 큐브 아이콘(sprite RUID → thumbnail:// 없이 직접). 흰색으로 제 색 표시.
+				rend.ImageRUID = DataRef("07b0f309e17d4b4ca5564b0c038d889d")
+				rend.Color = Color(1, 1, 1, 1)
+			end
+			if tc ~= nil then
+				-- TextComponent는 '아이템'일 때만 보유 수량 숫자를 나타낸다(이름 표시 없음). 셀 오른쪽 하단 배치.
+				tc.Text = tostring(self:CubeCount())
+				tc.FontSize = 18
+				tc.Alignment = TextAlignmentType.LowerRight
+			end
+		else
+			-- 장비 셀: 아이콘만 표시(이름 텍스트 없음). RUID만 조회.
+			local ds = _DataService:GetTable("EquipmentData")
+			local ruid = ""
+			if isvalid(ds) then
+				for i = 1, ds:GetRowCount() do
+					if ds:GetCell(i, "EquipName") == name then
+						ruid = ds:GetCell(i, "Sprite RUID")
+						break
+					end
 				end
 			end
-		end
-
-		-- 버튼 자신의 SpriteGUIRendererComponent에 아이콘 적용
-		local rend = cell.SpriteGUIRendererComponent
-		if isvalid(rend) then
-			if ruid ~= "" then
-				rend.ImageRUID = ruid
+			if isvalid(rend) then
+				if ruid ~= "" then
+					-- 장비 RUID는 avataritem 타입 → thumbnail:// 접두 + DataRef로 감싸야 아이콘이 렌더된다.
+					rend.ImageRUID = DataRef("thumbnail://" .. ruid)
+				end
+				rend.Color = Color(1, 1, 1, 1)
 			end
-			rend.Color = Color(1, 1, 1, 1)
+			-- 장비/방어구/장신구 셀에는 이름 텍스트를 표시하지 않는다(이름 표시 로직 제거).
+			if tc ~= nil then tc.Text = "" end
 		end
-
-		-- 아이콘이 없어도 무슨 아이템인지 보이도록 셀 버튼 텍스트에 이름 표시
-		local tc = cell:GetComponent("MOD.Core.TextComponent")
-		if tc ~= nil then
-			tc.Text = dname
-			tc.FontSize = 12
-		end
-
+		
 		-- 이 셀의 기존 핸들러만 교체(누적 방지). Rebuild는 핸들러를 안 건드리므로 여기서 관리한다.
 		for i = #self.cellHandlers, 1, -1 do
 			local r = self.cellHandlers[i]
@@ -197,7 +401,27 @@ script InventoryPanel extends Component
 		-- 인벤 셀: 호버→비교 툴팁, 이탈→숨김, Pressed→클릭 처리.
 		-- ⚠ GridView(스크롤) 안의 셀은 ButtonClickEvent가 스크롤에 먹혀 안 뜬다. 작동하는
 		--    ButtonStateChangeEvent의 Pressed(=2) 상태로 클릭/더블클릭을 감지한다.
+		if equipName == "__MIRACLE_CUBE__" then
+			-- 미라클 큐브 셀(장비 셀과 동일한 상호작용):
+			--   호버 → 우클릭 폴백용 추적 / 우클릭 → 컨텍스트 메뉴 / 더블클릭 → 큐브 사용.
+			--   단일 좌클릭으로 바로 사용되지 않게(오작동 방지) OnCellClicked의 더블클릭 판정을 탄다.
+			if ev.state == ButtonState.Hover then
+				self._hoverEquip = "__MIRACLE_CUBE__"
+			elseif ev.state == ButtonState.Pressed then
+				if _InputService:IsKeyPressed(KeyboardKey.Mouse1) then
+					self._hoverEquip = "__MIRACLE_CUBE__"
+					self:OpenContextMenu("__MIRACLE_CUBE__")
+				else
+					self:OnCellClicked("__MIRACLE_CUBE__")
+				end
+			elseif ev.state == ButtonState.Normal then
+				if self._hoverEquip == "__MIRACLE_CUBE__" then self._hoverEquip = "" end
+			end
+			return
+		end
 		if ev.state == ButtonState.Hover then
+			-- 우클릭 메뉴 대상 추적: 지금 호버 중인 장비를 기억.
+			self._hoverEquip = equipName
 			local cur = ""
 			local p = _UserService.LocalPlayer
 			if isvalid(p) then
@@ -206,8 +430,16 @@ script InventoryPanel extends Component
 			end
 			_EquipTooltip:ShowCompare(equipName, cur)
 		elseif ev.state == ButtonState.Pressed then
-			self:OnCellClicked(equipName)
+			-- 우클릭이면 컨텍스트 메뉴(좌클릭 장착 로직은 타지 않음 → 메뉴 즉시 닫힘 경합 방지).
+			if _InputService:IsKeyPressed(KeyboardKey.Mouse1) then
+				self._hoverEquip = equipName
+				self:OpenContextMenu(equipName)
+			else
+				self:OnCellClicked(equipName)
+			end
 		elseif ev.state == ButtonState.Normal then
+			-- 이 셀에서 마우스가 빠지면 호버 추적 해제(다른 셀이 이미 잡았으면 건드리지 않음).
+			if self._hoverEquip == equipName then self._hoverEquip = "" end
 			_EquipTooltip:Hide()
 		end
 	end
@@ -215,11 +447,16 @@ script InventoryPanel extends Component
 	method void OnUpdate(number delta)
 		-- 인벤 열린 동안 0.2초마다 목록 변경 감지 → Rebuild.
 		if self:IsClient() == false or self.isOpen == false then return end
+		
+		-- 우클릭 엣지 감지(매 프레임): 장비 셀 위 우클릭 → 컨텍스트 메뉴 열기(폴백 경로).
+		self:UpdateRightClick()
+		
 		self._pollTimer = self._pollTimer + delta
 		if self._pollTimer < 0.2 then return end
 		self._pollTimer = 0
+		self:UpdateBanner()
 		local items = self:CurrentList()
-		local sig = table.concat(items, ",")
+		local sig = self:ListSig(items)
 		if sig ~= self._lastListSig then
 			self._lastListSig = sig
 			self:Rebuild()
@@ -228,11 +465,28 @@ script InventoryPanel extends Component
 	end
 
 	method void OnCellClicked(string equipName)
-		-- 더블클릭(0.3초 내 같은 아이템 2회) → 장착 요청.
+		-- 큐브 사용 모드: 클릭한 장비를 재설정 대상으로 큐브 사용 요청.
+		-- 일반 모드: 더블클릭(0.3초 내 같은 아이템 2회) → 장착 요청.
+		-- 좌클릭이 들어오면 떠 있던 우클릭 메뉴는 닫는다.
+		self:CloseContextMenu()
 		_SFXManager:PlayClick()
+		if self._cubeUseMode then
+			-- 바로 사용하지 않고 확인 패널을 먼저 띄운다(예→실제 사용 / 아니오→취소).
+			-- 모드 종료/RequestCube는 CubeConfirmPopup:OnYes에서 처리.
+			log("[InventoryPanel] 큐브 대상 선택(확인 대기): " .. equipName)
+			_EquipTooltip:Hide()
+			_CubeConfirmPopup:Open(equipName)
+			return
+		end
 		local now = _UtilLogic.ElapsedSeconds
 		if self._lastClickName == equipName and (now - self._lastClickTime) <= 0.3 then
 			self._lastClickName = ""
+			-- 미라클 큐브 셀: 더블클릭 시 장비 선택 패널 열기.
+			if equipName == "__MIRACLE_CUBE__" then
+				log("[InventoryPanel] 큐브 더블클릭 → 선택 패널")
+				_CubeTargetSelect:Open()
+				return
+			end
 			log("[InventoryPanel] 더블클릭 장착: " .. equipName)
 			local p = _UserService.LocalPlayer
 			if isvalid(p) then
@@ -252,8 +506,154 @@ script InventoryPanel extends Component
 		end
 	end
 
+	method void UpdateRightClick()
+		-- 매 프레임 호출. 우클릭 눌림 엣지에서, 호버 중인 장비가 있으면 컨텍스트 메뉴를 띄운다.
+		local down = _InputService:IsKeyPressed(KeyboardKey.Mouse1)
+		if down and self._lastMouse1 == false then
+			-- 우클릭 눌림 엣지. 큐브 사용 모드가 아니고 호버 중인 장비가 있으면 메뉴를 연다.
+			-- (셀 Pressed 이벤트가 우클릭을 직접 처리하지 못하는 경우의 폴백 경로.)
+			-- 빈 곳 우클릭 시 자동 닫기는 이벤트 경로와의 경합을 막기 위해 하지 않는다(닫기는 닫기 버튼/좌클릭으로).
+			if self._cubeUseMode == false and self._hoverEquip ~= "" then
+				self:OpenContextMenu(self._hoverEquip)
+			end
+		end
+		self._lastMouse1 = down
+	end
+
+	method void OpenContextMenu(string equipName)
+		-- 장비 셀 옆(커서 기준 오른쪽 약간 아래)에 3버튼 메뉴를 띄운다.
+		if isvalid(self.ctxMenu) == false then return end
+		self._ctxTarget = equipName
+		local cur = _InputService:GetCursorPosition()
+		local uiPos = _UILogic:ScreenToUIPosition(cur)
+		-- 대상에 맞춰 메뉴 버튼 구성(큐브 셀: 2행 '미라클 큐브 사용/닫기', 장비: 3행).
+		self:ConfigureCtxMenu(equipName == "__MIRACLE_CUBE__")
+		local ut = self.ctxMenu.UITransformComponent
+		if isvalid(ut) then
+			-- 메뉴 중심을 커서 오른쪽으로 약 110px(메뉴폭 절반+여백) 이동 → 왼쪽 변이 커서 옆에 붙는다.
+			ut.anchoredPosition = Vector2(uiPos.x + 110, uiPos.y - 30)
+		end
+		self.ctxMenu.Enable = true
+		-- 같은 부모(인벤 패널) 형제 중 맨 앞으로(그리드/창 위에 표시).
+		if isvalid(ut) then _UILogic:SetSiblingIndex(ut, 1000000) end
+		_EquipTooltip:Hide()
+		log("[InventoryPanel] 컨텍스트 메뉴 열기: " .. equipName)
+	end
+
+	method void CloseContextMenu()
+		-- 컨텍스트 메뉴 숨김.
+		if isvalid(self.ctxMenu) and self.ctxMenu.Enable then
+			self.ctxMenu.Enable = false
+		end
+		self._ctxTarget = ""
+	end
+
+	method void UpdateCtxCubeButton()
+		-- 미라클 큐브 보유 시 활성(보라색/흰글씨), 없으면 반투명 비활성 표시.
+		if isvalid(self.ctxBtnCube) == false then return end
+		local e = self.ctxBtnCube.Entity
+		if isvalid(e) == false then return end
+		local sr = e.SpriteGUIRendererComponent
+		local tc = e:GetComponent("MOD.Core.TextComponent")
+		if self:CubeCount() > 0 then
+			if isvalid(sr) then sr.Color = Color(0.45, 0.30, 0.62, 1.0) end
+			if tc ~= nil then tc.FontColor = Color(1, 1, 1, 1) end
+		else
+			if isvalid(sr) then sr.Color = Color(0.45, 0.30, 0.62, 0.35) end
+			if tc ~= nil then tc.FontColor = Color(1, 1, 1, 0.4) end
+		end
+	end
+
+	method void SetBtnLabel(ButtonComponent btn, string text)
+		-- 컨텍스트 메뉴 버튼의 라벨(TextComponent.Text) 설정.
+		if isvalid(btn) == false then return end
+		local tc = btn.Entity:GetComponent("MOD.Core.TextComponent")
+		if tc ~= nil then tc.Text = text end
+	end
+
+	method void SetBtnPos(ButtonComponent btn, number y)
+		-- 컨텍스트 메뉴 버튼의 세로 위치(anchoredPosition.y) 설정.
+		if isvalid(btn) == false then return end
+		local ut = btn.Entity.UITransformComponent
+		if isvalid(ut) then ut.anchoredPosition = Vector2(0, y) end
+	end
+
+	method void ConfigureCtxMenu(boolean isCube)
+		-- 컨텍스트 메뉴 버튼 구성.
+		--   큐브 셀: 2행('미라클 큐브 사용' / '닫기') — 가운데 '잠재 재설정' 숨김 + 배경 축소.
+		--   장비   : 3행('장착/교체' / '잠재능력 재설정' / '닫기') — 원래 레이아웃 복원.
+		local menuUt = self.ctxMenu.UITransformComponent
+		if isCube then
+			self:SetBtnLabel(self.ctxBtnEquip, "사용한다")
+			self:SetBtnPos(self.ctxBtnEquip, 27)
+			if isvalid(self.ctxBtnCube) then self.ctxBtnCube.Entity.Enable = false end
+			self:SetBtnPos(self.ctxBtnClose, -27)
+			if isvalid(menuUt) then menuUt.RectSize = Vector2(188, 130) end
+		else
+			self:SetBtnLabel(self.ctxBtnEquip, self._ctxEquipLabel)
+			self:SetBtnPos(self.ctxBtnEquip, 54)
+			if isvalid(self.ctxBtnCube) then
+				self.ctxBtnCube.Entity.Enable = true
+				self:SetBtnPos(self.ctxBtnCube, 0)
+			end
+			self:SetBtnPos(self.ctxBtnClose, -54)
+			if isvalid(menuUt) then menuUt.RectSize = Vector2(188, 184) end
+			-- 장비 메뉴는 큐브 보유 여부로 '재설정' 버튼 활성/반투명 갱신.
+			self:UpdateCtxCubeButton()
+		end
+	end
+
+	method void OnCtxEquip()
+		-- 장비: '장착/교체' → 장착 요청. 큐브 셀: '미라클 큐브 사용' → 사용(장비 선택) 모드 진입.
+		_SFXManager:PlayClick()
+		local eq = self._ctxTarget
+		self:CloseContextMenu()
+		if eq == "" then return end
+		if eq == "__MIRACLE_CUBE__" then
+			-- '사용한다' → 장비 선택 패널 열기(무기/방어구/장신구 탭에서 대상 선택).
+			_CubeTargetSelect:Open()
+			return
+		end
+		local p = _UserService.LocalPlayer
+		if isvalid(p) then
+			local m = _EquipmentRouter:ManagerForItem(p, eq)
+			if isvalid(m) then m:RequestEquip(eq) end
+		end
+		_EquipTooltip:Hide()
+		self:Rebuild()
+		log("[InventoryPanel] 컨텍스트: 장착/교체 " .. eq)
+	end
+
+	method void OnCtxCube()
+		-- '잠재능력 재설정': 미라클 큐브가 있을 때만 확인 팝업을 띄운다(없으면 무시 — 버튼 반투명).
+		if self:CubeCount() <= 0 then
+			log("[InventoryPanel] 컨텍스트: 큐브 없음(비활성 클릭 무시)")
+			return
+		end
+		_SFXManager:PlayClick()
+		local eq = self._ctxTarget
+		self:CloseContextMenu()
+		if eq == "" then return end
+		_EquipTooltip:Hide()
+		_CubeConfirmPopup:Open(eq)
+		log("[InventoryPanel] 컨텍스트: 잠재능력 재설정 " .. eq)
+	end
+
+	method void OnCtxClose()
+		-- '닫기': 메뉴만 닫는다.
+		_SFXManager:PlayClick()
+		self:CloseContextMenu()
+	end
+
 	method void OnEndPlay()
 		-- 셀 핸들(클릭+호버) + 탭 핸들 모두 해제.
+		if self._ctxHandlers ~= nil then
+			for _, r in ipairs(self._ctxHandlers) do
+				if isvalid(r.entity) and r.evtH ~= nil then
+					r.entity:DisconnectEvent(ButtonClickEvent, r.evtH)
+				end
+			end
+		end
 		if self.cellHandlers ~= nil then
 			for _, r in ipairs(self.cellHandlers) do
 				if isvalid(r.entity) and r.stateH ~= nil then

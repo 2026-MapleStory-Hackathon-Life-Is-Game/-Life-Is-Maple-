@@ -1,12 +1,27 @@
 @Component
-script TaxTile extends BaseTile
+script TaxTile extends EventTileBase
 
-	@ExecSpace("ServerOnly")
-	method void OnArrive(Entity piece)
-		-- ⚠️ base 직접 수정(영구): cp:TaxStat() → AddMainStat(base, 감소). 동적 버프(self:Add~) 아님.
-		local cp = self:CP(piece)
-		if isvalid(cp) then cp:TaxStat() end
-		log("[TaxTile] 세금 칸 효과 적용 tile=" .. self.Entity.Name)
+	-- 세금(부정) 이벤트 타일. 마을/사냥 이벤트와 동일한 흐름(텍스트 팝업 + '다음'으로 진행)이지만
+	-- 보상이 부정적(스탯 하락)이다. 구체 table 연동 전까지는 임시 고정 문구/수치를 사용한다.
+
+	method table RollEvent(Entity piece)
+		-- 임시: 세금 지불 → 올스탯 -10. (추후 세금 table 연동 시 교체)
+		return {
+			eventType = "Tax",
+			message   = "세금을 지불했다!\n올스탯이 10 감소했다.",
+			statKind  = "all",      -- 올스탯
+			statMode  = "flat",     -- 고정 수치
+			statValue = -10,        -- 음수 = 하락
+			anim      = "idle",     -- 세금 칸 init 애니메이션: 기본(idle)
+		}
+	end
+
+	@ExecSpace("Server")
+	method void RequestDone()
+		-- '다음' 클릭 시 이벤트 종료 RPC. (베이스 상속 RPC가 서브클래스에서 라우팅 안 되므로 리프에 재정의)
+		local piece = self._eventPiece
+		if isvalid(piece) and senderUserId ~= self:OwnerUserId(piece) then return end
+		self:FinishEventTile()
 	end
 
 end

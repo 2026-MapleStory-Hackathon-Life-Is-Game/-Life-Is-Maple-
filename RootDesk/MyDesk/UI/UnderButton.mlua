@@ -25,6 +25,17 @@ script UnderButton extends Component
 
 	property ButtonComponent BagButton = "620689f7-d644-4347-94c3-9a74de27cc46"
 
+	-- 주사위 버튼 자리에 겹쳐 놓는 상황별 버튼: 맵뷰=돌아가기 / 캐릭터정보=닫기.
+	property ButtonComponent btnMapBack = "0533069c-9624-4b11-bb19-720ff7977b62"
+
+	property ButtonComponent btnCharClose = "a1a14fd7-6fbf-442e-bdcd-e06f1e5f96f9"
+
+	property any mapBackHandler = nil
+
+	property any charCloseHandler = nil
+
+	property string _hudCtx = ""
+
 	property Entity WholePanel = "f6591a77-568d-41c8-b6f0-b4721629787f"
 
 	property Entity DicePanel = "3cf2b530-e75e-4041-8925-4e4e2c4f96f1"
@@ -65,6 +76,17 @@ script UnderButton extends Component
 				self.bagHandler = self.BagButton.Entity:ConnectEvent(ButtonClickEvent, self.OnClickBag)
 			end
 
+			-- 상황별 버튼(돌아가기/닫기) 배선 + 시작 숨김.
+			self._hudCtx = ""
+			if isvalid(self.btnMapBack) and isvalid(self.btnMapBack.Entity) then
+				self.btnMapBack.Entity.Enable = false
+				self.mapBackHandler = self.btnMapBack.Entity:ConnectEvent(ButtonClickEvent, self.OnClickMapBack)
+			end
+			if isvalid(self.btnCharClose) and isvalid(self.btnCharClose.Entity) then
+				self.btnCharClose.Entity.Enable = false
+				self.charCloseHandler = self.btnCharClose.Entity:ConnectEvent(ButtonClickEvent, self.OnClickCharClose)
+			end
+
 			self.DicePanel.Visible = false
 		end
 
@@ -90,7 +112,68 @@ script UnderButton extends Component
 					if self.bagHandler ~= nil and isvalid(self.BagButton.Entity) then
 						self.BagButton.Entity:DisconnectEvent(ButtonClickEvent, self.bagHandler)
 					end
+					if self.mapBackHandler ~= nil and isvalid(self.btnMapBack) and isvalid(self.btnMapBack.Entity) then
+						self.btnMapBack.Entity:DisconnectEvent(ButtonClickEvent, self.mapBackHandler)
+					end
+					if self.charCloseHandler ~= nil and isvalid(self.btnCharClose) and isvalid(self.btnCharClose.Entity) then
+						self.btnCharClose.Entity:DisconnectEvent(ButtonClickEvent, self.charCloseHandler)
+					end
 				end
+	end
+
+	method void OnUpdate(number delta)
+		-- 패널이 자체 닫기 버튼/ESC 등 UnderButton을 거치지 않고 닫혔을 때,
+		-- openExclusive가 "BAG"/"CHAR"로 남아 주사위 차단·토글 오작동을 일으킨다.
+		-- 매 프레임 실제 패널 isOpen과 동기화해 desync를 제거한다.
+		if self:IsClient() == false then return end
+		if self.openExclusive == "BAG" then
+			if isvalid(self.invPanel) and self.invPanel.isOpen == false then
+				self.openExclusive = ""
+			end
+		elseif self.openExclusive == "CHAR" then
+			if isvalid(self.charPanel) and self.charPanel.isOpen == false then
+				self.openExclusive = ""
+			end
+		end
+
+		-- 주사위 버튼 자리에 상황별 버튼을 보이고(맵뷰=돌아가기 / 캐릭터정보=닫기), 주사위 버튼은 숨긴다.
+		-- 상태 변할 때만 적용(매 프레임 Enable 쓰기 방지).
+		local ctx = "none"
+		if _MapViewManager ~= nil and _MapViewManager._isOpen then
+			ctx = "map"
+		elseif self.openExclusive == "CHAR" then
+			ctx = "char"
+		end
+		if ctx ~= self._hudCtx then
+			self._hudCtx = ctx
+			self:ApplyHudContext(ctx)
+		end
+	end
+
+	method void ApplyHudContext(string ctx)
+		-- ctx: "map"=돌아가기만 / "char"=닫기만 / "none"=주사위 버튼 복원.
+		if isvalid(self.btnMapBack) and isvalid(self.btnMapBack.Entity) then
+			self.btnMapBack.Entity.Enable = (ctx == "map")
+		end
+		if isvalid(self.btnCharClose) and isvalid(self.btnCharClose.Entity) then
+			self.btnCharClose.Entity.Enable = (ctx == "char")
+		end
+		-- 주사위(열기) 버튼은 상황별 버튼이 뜰 때 숨긴다. 맵뷰는 SetHudHidden도 끄지만 일관되게 여기서도 처리.
+		if isvalid(self.OpenDicePanelButton) and isvalid(self.OpenDicePanelButton.Entity) then
+			self.OpenDicePanelButton.Entity.Enable = (ctx == "none")
+		end
+	end
+
+	method void OnClickMapBack(any event)
+		-- 맵뷰 '돌아가기' → 맵뷰 닫기.
+		_SFXManager:PlayClick()
+		if _MapViewManager ~= nil then _MapViewManager:CloseMapView() end
+	end
+
+	method void OnClickCharClose(any event)
+		-- 캐릭터 정보 '닫기' → 캐릭터 정보 패널 닫기(배타 상태 해제).
+		_SFXManager:PlayClick()
+		self:CloseExclusive()
 	end
 
 	method void OnDicePanelClickOpen(any event)
@@ -128,6 +211,8 @@ script UnderButton extends Component
 
 	method void OnClickCharInfo(any event)
 		-- 캐릭터 정보 토글(배낭과 상호배타).
+		-- 주사위 결과 연출 중엔 새로 열지 않는다(주사위 그룹이 위에 떠 닫기 버튼을 가림).
+		if self.openExclusive ~= "CHAR" and self:IsDiceResultShowing() then return end
 		_SFXManager:PlayClick()
 		if self.openExclusive == "CHAR" then
 			self:CloseExclusive()
@@ -140,6 +225,8 @@ script UnderButton extends Component
 
 	method void OnClickBag(any event)
 		-- 배낭 토글(캐릭터 정보와 상호배타).
+		-- 주사위 결과 연출 중엔 새로 열지 않는다(주사위 그룹이 위에 떠 닫기 버튼을 가림).
+		if self.openExclusive ~= "BAG" and self:IsDiceResultShowing() then return end
 		_SFXManager:PlayClick()
 		if self.openExclusive == "BAG" then
 			self:CloseExclusive()
@@ -186,6 +273,13 @@ script UnderButton extends Component
 
 				-- 그 외(NONE 등): 못 엶
 				return false
+	end
+
+	method boolean IsDiceResultShowing()
+		-- 주사위 결과 연출 패널(ResultDicetUIGroup)이 현재 떠 있는지 라이브 상태로 판단(플래그 desync 없음).
+		if _RollResultDiceAnimationUI == nil then return false end
+		local p = _RollResultDiceAnimationUI.panel
+		return isvalid(p) and p.Enable
 	end
 
 	@ExecSpace("ServerOnly")

@@ -18,7 +18,7 @@ script EquipmentRouter extends Logic
 
 	method string CategoryOfItem(string equipName)
 		-- CSV에서 equipName의 Category.
-		local ds = _DataService:GetTable("EquipData")
+		local ds = _DataService:GetTable("EquipmentData")
 		if isvalid(ds) == false then return "" end
 		for i = 1, ds:GetRowCount() do
 			if ds:GetCell(i, "EquipName") == equipName then return ds:GetCell(i, "Category") end
@@ -51,15 +51,19 @@ script EquipmentRouter extends Logic
 
 	method table EmptyMods()
 		-- 0 초기 modifier.
-		return { statFlat = 0, statPct = 0, attackFlat = 0, attackPct = 0, damagePct = 0, bossDamagePct = 0 }
+		return { statFlat = 0, statPct = 0, attackFlat = 0, attackPct = 0, damagePct = 0, bossDamagePct = 0, allStatFlat = 0, allStatPct = 0 }
 	end
 
 	method void Add(table acc, table m)
 		-- acc += m.
 		acc.statFlat = acc.statFlat + (m.statFlat or 0)
+		acc.statPct = acc.statPct + (m.statPct or 0)
 		acc.attackFlat = acc.attackFlat + (m.attackFlat or 0)
+		acc.attackPct = acc.attackPct + (m.attackPct or 0)
 		acc.damagePct = acc.damagePct + (m.damagePct or 0)
 		acc.bossDamagePct = acc.bossDamagePct + (m.bossDamagePct or 0)
+		acc.allStatFlat = (acc.allStatFlat or 0) + (m.allStatFlat or 0)
+		acc.allStatPct = (acc.allStatPct or 0) + (m.allStatPct or 0)
 	end
 
 	method table TotalModifiers(Entity player)

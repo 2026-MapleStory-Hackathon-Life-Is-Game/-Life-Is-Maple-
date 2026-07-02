@@ -126,6 +126,17 @@ script CombatPowerManager extends Component
 	end
 
 	@ExecSpace("ServerOnly")
+	method void AddSpecificStat(string statName, number value)
+		-- 특정 스탯(STR/DEX/INT/LUK)을 직접 증감하고 전투력을 재계산한다.
+		-- (마을 이벤트의 직업별 스탯 보상 등, 주스탯/올스탯이 아닌 '지정 스탯' 보상용)
+		self:AddToStat(statName, value)
+		self:CalculateCurrentCombatPower()
+		log("CombatPowerManager: 개별스탯 " .. statName .. " " .. tostring(value)
+			.. " → 값=" .. tostring(self:GetStat(statName))
+			.. " 전투력=" .. tostring(self.CombatPower))
+	end
+
+	@ExecSpace("ServerOnly")
 	method void AddMainAttack(string kind, number value)
 		-- 공/마: flat → MainAttack(0 미만 방지), percent → BaseAttackPct.
 		if kind == "percent" then
@@ -311,13 +322,34 @@ script CombatPowerManager extends Component
 		local swapEq = _EquipmentRouter:ModifiersWithSwap(self.Entity, candidate)
 		local pe = {
 			statFlat      = cur.statFlat - curEq.statFlat + swapEq.statFlat,
-			statPct       = cur.statPct,
-			allStatFlat   = cur.allStatFlat,
-			allStatPct    = cur.allStatPct,
+			statPct       = cur.statPct - curEq.statPct + swapEq.statPct,
+			allStatFlat   = cur.allStatFlat - (curEq.allStatFlat or 0) + (swapEq.allStatFlat or 0),
+			allStatPct    = cur.allStatPct - (curEq.allStatPct or 0) + (swapEq.allStatPct or 0),
 			attackFlat    = cur.attackFlat - curEq.attackFlat + swapEq.attackFlat,
-			attackPct     = cur.attackPct,
+			attackPct     = cur.attackPct - curEq.attackPct + swapEq.attackPct,
 			damagePct     = cur.damagePct - curEq.damagePct + swapEq.damagePct,
 			bossDamagePct = cur.bossDamagePct - curEq.bossDamagePct + swapEq.bossDamagePct,
+			critPct       = cur.critPct,
+		}
+		return self:CalculateCurrentMainStat(pe) * self:CalculateCurrentMainAttack(pe)
+			* self:CalculateCurrentExtraDamage(pe) * self:CalculateCurrentCriticalDamage(pe)
+	end
+
+	method number PreviewPowerWithPotentialSwap(string fromPot, string toPot)
+		-- 현재 적용중인 fromPot 잠재를 toPot로 바꿨을 때의 총 전투력(상태변경 없음, 잠재 비교 프리뷰용).
+		-- fromPot/toPot은 PotentialManager 직렬화 문자열("" = 없음).
+		local cur = self:BuildExtraTable()
+		local f = _PotentialManager:ModifiersOf(fromPot)
+		local t = _PotentialManager:ModifiersOf(toPot)
+		local pe = {
+			statFlat      = cur.statFlat - f.statFlat + t.statFlat,
+			statPct       = cur.statPct - f.statPct + t.statPct,
+			allStatFlat   = cur.allStatFlat - f.allStatFlat + t.allStatFlat,
+			allStatPct    = cur.allStatPct - f.allStatPct + t.allStatPct,
+			attackFlat    = cur.attackFlat - f.attackFlat + t.attackFlat,
+			attackPct     = cur.attackPct - f.attackPct + t.attackPct,
+			damagePct     = cur.damagePct - f.damagePct + t.damagePct,
+			bossDamagePct = cur.bossDamagePct - f.bossDamagePct + t.bossDamagePct,
 			critPct       = cur.critPct,
 		}
 		return self:CalculateCurrentMainStat(pe) * self:CalculateCurrentMainAttack(pe)
@@ -342,7 +374,9 @@ script CombatPowerManager extends Component
 	method number ItemStandalonePower(table m)
 		-- 단독 전투력 환산값(정렬용, 결정적, 장착상태 무관). 곱셈구조 근사.
 		local dmg = 1 + ((m.damagePct or 0) + (m.bossDamagePct or 0)) / 100
-		return (1 + (m.statFlat or 0)) * (1 + (m.attackFlat or 0)) * dmg
+		local stat = (1 + (m.statFlat or 0)) * (1 + (m.statPct or 0) / 100)
+		local atk = (1 + (m.attackFlat or 0)) * (1 + (m.attackPct or 0) / 100)
+		return stat * atk * dmg
 	end
 
 end

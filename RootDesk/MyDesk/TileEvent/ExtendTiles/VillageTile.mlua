@@ -1,33 +1,196 @@
 @Component
-script VillageTile extends BaseTile
+script VillageTile extends EventTileBase
 
-	@Sync
-	property number greatGain = 15
+	-- 마을(인터랙티브) 이벤트 타일 — 데이터 테이블 기반 씬 재생.
+	-- 흐름: 도착(서버) → 타일 지역으로 VillageEventFlow 가중 추첨 → 시작 씬부터 순차 재생.
+	--   text   씬: 텍스트 + 초상화 애니 표시 → 도착 플레이어가 '다음'으로 진행.
+	--   choice 씬: 선택지 버튼 표시 → 선택 → 해당 분기의 NextScene 으로 이동.
+	--   roll   씬: 서버가 VillageEventFlowBranch 가중 추첨 → 보상 적용 → 결과 문구 표시.
+	-- 보상/추첨은 모두 서버 권위. 클라(EventTileUI)는 표시와 입력만 담당하고 진행/선택을 서버로 되돌린다.
+	-- 완료 시 _GameModeManager:NotifyTileEventDone() 으로 턴 진행을 신호한다.
 
-	@Sync
-	property number successGain = 5
+	-- 진행 중인 도착 플레이어(서버 상태). 턴제라 동시 1명.
+	property any _currentPiece = nil
+	-- 현재 재생 중인 이벤트/씬 상태(서버 전용).
+	property string _eventId = ""
+	property integer _seq = 0
+	property integer _pendingNext = 0
+	property string _choiceGroup = ""
 
-	@Sync
-	property number failLoss = 3
+	method boolean IsInteractiveTile()
+		-- 버튼/진행 입력으로 완료되는 인터랙티브 타일 → 턴 매니저가 완료 신호를 기다린다.
+		return true
+	end
 
 	@ExecSpace("ServerOnly")
 	method void OnArrive(Entity piece)
-		-- ⚠️ base 직접 수정(영구): 아래 cp:AddMainStat 호출은 base 주스탯을 직접 바꾼다. 동적 버프(self:Add~) 아님.
-		local cp = self:CP(piece)
-		if isvalid(cp) == false then return end
-		
-		-- 룰렛 굴리기 (분포는 VillageProbability.csv: 대성공/성공/실패)
-		local outcome = self:RollOutcome("VillageProbability")
-		if outcome == "GreatSuccess" then
-			log("[VillageTile] 마을 이벤트 대성공! 주스탯 +" .. tostring(self.greatGain))
-			cp:AddMainStat("flat", self.greatGain)
-		elseif outcome == "Success" then
-			log("[VillageTile] 마을 이벤트 성공. 주스탯 +" .. tostring(self.successGain))
-			cp:AddMainStat("flat", self.successGain)
-		else
-			log("[VillageTile] 마을 이벤트 실패. 주스탯 -" .. tostring(self.failLoss))
-			cp:AddMainStat("flat", -self.failLoss)
+		-- 마을 이벤트 시작: 타일 지역으로 이벤트를 뽑아 첫 씬부터 재생한다.
+		self._currentPiece = piece
+		local ownerId = self:OwnerUserId(piece)
+		if ownerId == "" then
+			-- 소유자 없는 말이면 바로 종료 신호.
+			_GameModeManager:NotifyTileEventDone()
+			return
 		end
+
+		local region = _TileManager:GetTileRegion(self.Entity.CurrentMapName, self.Entity.Name)
+		local stage = _TileManager:GetTileStage(self.Entity.CurrentMapName, self.Entity.Name)
+		local eventId = _VillageEventFlowManager:RollEventForArrival(stage, region)
+		if eventId == "" then
+			log_warning("[VillageTile] 해당 (Stage,Region) 마을 이벤트 없음 stage=" .. tostring(stage) .. " region=" .. tostring(region))
+			self:FinishEvent()
+			return
+		end
+
+		self._eventId = eventId
+		self._seq = _VillageEventFlowManager:FirstScene(eventId)
+		log("[VillageTile] 마을 이벤트 시작 event=" .. eventId .. " stage=" .. tostring(stage) .. " region=" .. tostring(region) .. " firstScene=" .. tostring(self._seq))
+		self:PlayScene()
+	end
+
+	@ExecSpace("ServerOnly")
+	method void PlayScene()
+		-- 현재 _seq 씬을 해석해 종류별로 클라에 표시를 지시한다(text/choice/roll).
+		local piece = self._currentPiece
+		if isvalid(piece) == false then self:FinishEvent() return end
+		if self._seq <= 0 then self:FinishEvent() return end
+
+		local scene = _VillageEventFlowManager:GetScene(self._eventId, self._seq)
+		if scene == nil then
+			log_warning("[VillageTile] 씬 없음 event=" .. self._eventId .. " seq=" .. tostring(self._seq))
+			self:FinishEvent()
+			return
+		end
+
+		-- 씬 자체 보상(텍스트 씬에 보상이 달린 경우, 예: 연극 관람 올스탯+20).
+		if scene.reward ~= nil and scene.reward ~= "" then
+			self:ApplyRewardString(piece, scene.reward)
+		end
+
+		local ownerId = self:OwnerUserId(piece)
+
+		if scene.nodeType == "choice" then
+			self._choiceGroup = scene.branchGroup
+			local choices = _VillageEventFlowManager:GetChoices(scene.branchGroup)
+			local labels = {}
+			for i = 1, #choices do labels[i] = choices[i].label end
+			self:ClientShowChoices(scene.text, scene.anim, labels, ownerId)
+
+		elseif scene.nodeType == "roll" then
+			-- 확률게임: 분기 Weight로 주사위 결과판을 구성(첫 분기=성공, 둘째=대성공, 실패 없음) →
+			-- 2d6를 굴려 나온 합으로 분기를 정한다. 확률은 테이블의 Weight 그대로 반영.
+			local branches = _VillageEventFlowManager:GetRollBranches(scene.branchGroup)
+			local totalW = 0
+			for i = 1, #branches do totalW += branches[i].weight end
+			local successPct = 0
+			local greatPct = 0
+			if totalW > 0 then
+				if #branches >= 1 then successPct = branches[1].weight / totalW * 100 end
+				if #branches >= 2 then greatPct = branches[2].weight / totalW * 100 end
+			end
+			-- 결과판(주사위합 2~12 → 0실패/1성공/2대성공). 실패는 0%.
+			local board = _ResultDiceManager:PlaceOutcomes(0, successPct, greatPct)
+
+			local d1 = _UtilLogic:RandomIntegerRange(1, 6)
+			local d2 = _UtilLogic:RandomIntegerRange(1, 6)
+			local sum = d1 + d2
+			local tier = board[sum] or 1
+			local idx = 1
+			if tier == 2 then idx = 2 end
+			if idx > #branches then idx = #branches end
+			local chosen = branches[idx]
+			local outcomeLabel = "성공"
+			if tier == 2 then outcomeLabel = "대성공" end
+
+			local resultText = ""
+			if chosen ~= nil then
+				if chosen.reward ~= nil and chosen.reward ~= "" then
+					self:ApplyRewardString(piece, chosen.reward)
+				end
+				resultText = chosen.resultText
+				self._pendingNext = tonumber(chosen.nextScene) or 0
+			else
+				self._pendingNext = 0
+			end
+			log("[VillageTile] 확률게임 group=" .. scene.branchGroup .. " 주사위=" .. tostring(d1) .. "+" .. tostring(d2)
+				.. "=" .. tostring(sum) .. " → " .. outcomeLabel)
+			self:ClientShowRoll(scene.text, scene.anim, resultText, d1, d2, sum, board, outcomeLabel, ownerId)
+
+		else
+			-- text
+			self._pendingNext = tonumber(scene.nextSeq) or 0
+			self:ClientShowText(scene.text, scene.anim, ownerId)
+		end
+	end
+
+	@ExecSpace("Server")
+	method void RequestAdvance()
+		-- 클라(도착 플레이어)가 text/roll 씬을 '다음'으로 넘길 때 호출. 예약된 다음 씬으로 이동.
+		local piece = self._currentPiece
+		if isvalid(piece) == false then return end
+		if senderUserId ~= self:OwnerUserId(piece) then return end
+		self._seq = self._pendingNext
+		if self._seq <= 0 then self:FinishEvent() else self:PlayScene() end
+	end
+
+	@ExecSpace("Server")
+	method void RequestChoice(integer index)
+		-- 클라가 choice 씬에서 index 번째 선택지를 골랐을 때 호출. 분기 보상 적용 후 NextScene 으로 이동.
+		local piece = self._currentPiece
+		if isvalid(piece) == false then return end
+		if senderUserId ~= self:OwnerUserId(piece) then return end
+
+		local choices = _VillageEventFlowManager:GetChoices(self._choiceGroup)
+		if index < 1 or index > #choices then return end
+		local chosen = choices[index]
+		local branch = _VillageEventFlowManager:GetBranch(self._choiceGroup, chosen.key)
+		if branch ~= nil and branch.reward ~= nil and branch.reward ~= "" then
+			self:ApplyRewardString(piece, branch.reward)
+		end
+
+		local nxt = tonumber(chosen.nextScene)
+		if nxt == nil and branch ~= nil then nxt = tonumber(branch.nextScene) end
+		self._seq = nxt or 0
+		if self._seq <= 0 then self:FinishEvent() else self:PlayScene() end
+	end
+
+	@ExecSpace("ServerOnly")
+	method void FinishEvent()
+		-- 이벤트 종료: 클라 UI 닫기 + 상태 초기화 + 턴 진행 신호.
+		local ownerId = ""
+		if isvalid(self._currentPiece) then ownerId = self:OwnerUserId(self._currentPiece) end
+		self._currentPiece = nil
+		self._eventId = ""
+		self._seq = 0
+		self._pendingNext = 0
+		self._choiceGroup = ""
+		if ownerId ~= "" then self:ClientHide(ownerId) end
+		_GameModeManager:NotifyTileEventDone()
+		log("[VillageTile] 마을 이벤트 종료")
+	end
+
+	@ExecSpace("Client")
+	method void ClientShowText(string text, string anim)
+		-- 도착 플레이어 클라: 텍스트 씬 표시(콜백용으로 self 전달).
+		_EventTileUI:SceneText(text, anim, self)
+	end
+
+	@ExecSpace("Client")
+	method void ClientShowRoll(string leadText, string anim, string resultText, integer d1, integer d2, integer diceTotal, table board, string outcomeLabel)
+		-- 도착 플레이어 클라: roll 씬(리드 텍스트 → 주사위 연출 → 결과 문구) 표시.
+		_EventTileUI:SceneRoll(leadText, anim, resultText, d1, d2, diceTotal, board, outcomeLabel, self)
+	end
+
+	@ExecSpace("Client")
+	method void ClientShowChoices(string text, string anim, table labels)
+		-- 도착 플레이어 클라: 선택지 씬 표시.
+		_EventTileUI:SceneChoices(text, anim, labels, self)
+	end
+
+	@ExecSpace("Client")
+	method void ClientHide()
+		-- 도착 플레이어 클라: 이벤트 UI 닫기.
+		_EventTileUI:SceneHide()
 	end
 
 end
