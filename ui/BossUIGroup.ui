@@ -24,7 +24,7 @@
           "enable": true,
           "visible": true,
           "localize": true,
-          "displayOrder": 5,
+          "displayOrder": 6,
           "pathConstraints": "//",
           "revision": 0,
           "origin": {
@@ -96,8 +96,8 @@
             },
             {
               "@type": "MOD.Core.UIGroupComponent",
-              "DefaultShow": false,
-              "GroupOrder": 5,
+              "DefaultShow": true,
+              "GroupOrder": 7,
               "GroupType": 1,
               "Enable": true
             },
@@ -3108,510 +3108,6 @@
         }
       },
       {
-        "id": "0c91838e-e8eb-4b70-9ff5-26d0623817f9",
-        "path": "/ui/BossUIGroup/DetailPanel/NormalButton",
-        "componentNames": "MOD.Core.UITransformComponent,MOD.Core.SpriteGUIRendererComponent,MOD.Core.ButtonComponent,MOD.Core.TextComponent",
-        "jsonString": {
-          "name": "NormalButton",
-          "path": "/ui/BossUIGroup/DetailPanel/NormalButton",
-          "nameEditable": true,
-          "enable": true,
-          "visible": true,
-          "localize": true,
-          "displayOrder": 0,
-          "pathConstraints": "////",
-          "revision": 0,
-          "origin": {
-            "type": "Model",
-            "entry_id": "UIButton",
-            "sub_entity_id": null,
-            "root_entity_id": null,
-            "replaced_model_id": null
-          },
-          "modelId": "uibutton",
-          "@components": [
-            {
-              "@type": "MOD.Core.UITransformComponent",
-              "ActivePlatform": 255,
-              "AlignmentOption": 0,
-              "AnchorsMax": {
-                "x": 0.5,
-                "y": 0.5
-              },
-              "AnchorsMin": {
-                "x": 0.5,
-                "y": 0.5
-              },
-              "MobileOnly": false,
-              "OffsetMax": {
-                "x": 283.083954,
-                "y": 342.858643
-              },
-              "OffsetMin": {
-                "x": -165.368958,
-                "y": -205.086243
-              },
-              "Pivot": {
-                "x": 0.5,
-                "y": 0.5
-              },
-              "RectSize": {
-                "x": 448.4529,
-                "y": 547.9449
-              },
-              "UIMode": 1,
-              "UIScale": {
-                "x": 1,
-                "y": 1,
-                "z": 1
-              },
-              "UIVersion": 2,
-              "anchoredPosition": {
-                "x": 58.8575,
-                "y": 68.8862
-              },
-              "Position": {
-                "x": 58.8575,
-                "y": 68.8862,
-                "z": 0
-              },
-              "QuaternionRotation": {
-                "x": 0,
-                "y": 0,
-                "z": 0,
-                "w": 1
-              },
-              "Scale": {
-                "x": 1,
-                "y": 1,
-                "z": 1
-              },
-              "Enable": true
-            },
-            {
-              "@type": "MOD.Core.SpriteGUIRendererComponent",
-              "AnimClipPlayType": 0,
-              "EndFrameIndex": 2147483647,
-              "IgnoreMapLayerCheck": false,
-              "ImageRUID": {
-                "DataId": "4fea64a3307cda641809ad8be0d4890b"
-              },
-              "LocalPosition": {
-                "x": 0,
-                "y": 0
-              },
-              "LocalScale": {
-                "x": 1,
-                "y": 1
-              },
-              "MaterialId": "",
-              "OrderInLayer": 0,
-              "OverrideSorting": false,
-              "PlayRate": 1,
-              "PreserveSprite": 0,
-              "SortingLayer": "UI",
-              "StartFrameIndex": 0,
-              "Color": {
-                "r": 0.16,
-                "g": 0.3,
-                "b": 0.22,
-                "a": 1
-              },
-              "DropShadow": false,
-              "DropShadowAngle": 120,
-              "DropShadowColor": {
-                "r": 0,
-                "g": 0,
-                "b": 0,
-                "a": 0.72
-              },
-              "DropShadowDistance": 3,
-              "FillAmount": 1,
-              "FillCenter": true,
-              "FillClockWise": true,
-              "FillMethod": 0,
-              "FillOrigin": 0,
-              "FlipX": false,
-              "FlipY": false,
-              "FrameColumn": 1,
-              "FrameRate": 0,
-              "FrameRow": 1,
-              "Outline": false,
-              "OutlineColor": {
-                "r": 0,
-                "g": 0,
-                "b": 0,
-                "a": 1
-              },
-              "OutlineWidth": 3,
-              "RaycastTarget": true,
-              "Type": 0,
-              "Enable": true
-            },
-            {
-              "@type": "MOD.Core.ButtonComponent",
-              "Colors": {
-                "NormalColor": {
-                  "r": 1,
-                  "g": 1,
-                  "b": 1,
-                  "a": 1
-                },
-                "HighlightedColor": {
-                  "r": 0.9607843,
-                  "g": 0.9607843,
-                  "b": 0.9607843,
-                  "a": 1
-                },
-                "PressedColor": {
-                  "r": 0.784313738,
-                  "g": 0.784313738,
-                  "b": 0.784313738,
-                  "a": 1
-                },
-                "SelectedColor": {
-                  "r": 0.9607843,
-                  "g": 0.9607843,
-                  "b": 0.9607843,
-                  "a": 1
-                },
-                "DisabledColor": {
-                  "r": 0.784313738,
-                  "g": 0.784313738,
-                  "b": 0.784313738,
-                  "a": 0.5019608
-                },
-                "ColorMultiplier": 1,
-                "FadeDuration": 0.1
-              },
-              "IgnoreMapLayerCheck": false,
-              "ImageRUIDs": {
-                "HighlightedSprite": null,
-                "PressedSprite": null,
-                "SelectedSprite": null,
-                "DisabledSprite": null
-              },
-              "KeyCode": 0,
-              "OrderInLayer": 0,
-              "OverrideSorting": false,
-              "SortingLayer": "UI",
-              "Transition": 1,
-              "Enable": true
-            },
-            {
-              "@type": "MOD.Core.TextComponent",
-              "Alignment": 4,
-              "AllowAutomaticTranslation": true,
-              "BestFit": false,
-              "Bold": false,
-              "ConstraintX": 100,
-              "ConstraintY": 100,
-              "DropShadow": false,
-              "DropShadowAngle": 120,
-              "DropShadowColor": {
-                "r": 0,
-                "g": 0,
-                "b": 0,
-                "a": 0.72
-              },
-              "DropShadowDistance": 3,
-              "Font": 0,
-              "FontColor": {
-                "r": 1,
-                "g": 1,
-                "b": 1,
-                "a": 1
-              },
-              "FontSize": 28,
-              "IgnoreMapLayerCheck": false,
-              "IsLocalizationKey": false,
-              "MaxSize": 40,
-              "MinSize": 10,
-              "OrderInLayer": 0,
-              "OutlineColor": {
-                "r": 0.698039234,
-                "g": 0.698039234,
-                "b": 0.698039234,
-                "a": 1
-              },
-              "OutlineDistance": {
-                "x": 1,
-                "y": -1
-              },
-              "OutlineWidth": 1,
-              "Overflow": 0,
-              "OverrideSorting": false,
-              "Padding": {
-                "left": 0,
-                "right": 0,
-                "top": 0,
-                "bottom": 0
-              },
-              "SizeFit": false,
-              "SortingLayer": "UI",
-              "Text": "노말\n적정 전투력 5000만 이상\n드랍: 앱솔랩스 보호구",
-              "UseConstraintX": false,
-              "UseConstraintY": false,
-              "UseOutLine": false,
-              "Enable": true
-            }
-          ],
-          "@version": 1
-        }
-      },
-      {
-        "id": "d830cc4b-6efd-4ddd-a68b-f939d0f716fe",
-        "path": "/ui/BossUIGroup/DetailPanel/HardButton",
-        "componentNames": "MOD.Core.UITransformComponent,MOD.Core.SpriteGUIRendererComponent,MOD.Core.ButtonComponent,MOD.Core.TextComponent",
-        "jsonString": {
-          "name": "HardButton",
-          "path": "/ui/BossUIGroup/DetailPanel/HardButton",
-          "nameEditable": true,
-          "enable": true,
-          "visible": true,
-          "localize": true,
-          "displayOrder": 1,
-          "pathConstraints": "////",
-          "revision": 0,
-          "origin": {
-            "type": "Model",
-            "entry_id": "UIButton",
-            "sub_entity_id": null,
-            "root_entity_id": null,
-            "replaced_model_id": null
-          },
-          "modelId": "uibutton",
-          "@components": [
-            {
-              "@type": "MOD.Core.UITransformComponent",
-              "ActivePlatform": 255,
-              "AlignmentOption": 0,
-              "AnchorsMax": {
-                "x": 0.5,
-                "y": 0.5
-              },
-              "AnchorsMin": {
-                "x": 0.5,
-                "y": 0.5
-              },
-              "MobileOnly": false,
-              "OffsetMax": {
-                "x": 778.0315,
-                "y": 340.87
-              },
-              "OffsetMin": {
-                "x": 344.93335,
-                "y": -203.2362
-              },
-              "Pivot": {
-                "x": 0.5,
-                "y": 0.5
-              },
-              "RectSize": {
-                "x": 433.0981,
-                "y": 544.1062
-              },
-              "UIMode": 1,
-              "UIScale": {
-                "x": 1,
-                "y": 1,
-                "z": 1
-              },
-              "UIVersion": 2,
-              "anchoredPosition": {
-                "x": 561.4824,
-                "y": 68.8169
-              },
-              "Position": {
-                "x": 561.4824,
-                "y": 68.8169,
-                "z": 0
-              },
-              "QuaternionRotation": {
-                "x": 0,
-                "y": 0,
-                "z": 0,
-                "w": 1
-              },
-              "Scale": {
-                "x": 1,
-                "y": 1,
-                "z": 1
-              },
-              "Enable": true
-            },
-            {
-              "@type": "MOD.Core.SpriteGUIRendererComponent",
-              "AnimClipPlayType": 0,
-              "EndFrameIndex": 2147483647,
-              "IgnoreMapLayerCheck": false,
-              "ImageRUID": {
-                "DataId": "4fea64a3307cda641809ad8be0d4890b"
-              },
-              "LocalPosition": {
-                "x": 0,
-                "y": 0
-              },
-              "LocalScale": {
-                "x": 1,
-                "y": 1
-              },
-              "MaterialId": "",
-              "OrderInLayer": 0,
-              "OverrideSorting": false,
-              "PlayRate": 1,
-              "PreserveSprite": 0,
-              "SortingLayer": "UI",
-              "StartFrameIndex": 0,
-              "Color": {
-                "r": 0.32,
-                "g": 0.16,
-                "b": 0.16,
-                "a": 1
-              },
-              "DropShadow": false,
-              "DropShadowAngle": 120,
-              "DropShadowColor": {
-                "r": 0,
-                "g": 0,
-                "b": 0,
-                "a": 0.72
-              },
-              "DropShadowDistance": 3,
-              "FillAmount": 1,
-              "FillCenter": true,
-              "FillClockWise": true,
-              "FillMethod": 0,
-              "FillOrigin": 0,
-              "FlipX": false,
-              "FlipY": false,
-              "FrameColumn": 1,
-              "FrameRate": 0,
-              "FrameRow": 1,
-              "Outline": false,
-              "OutlineColor": {
-                "r": 0,
-                "g": 0,
-                "b": 0,
-                "a": 1
-              },
-              "OutlineWidth": 3,
-              "RaycastTarget": true,
-              "Type": 0,
-              "Enable": true
-            },
-            {
-              "@type": "MOD.Core.ButtonComponent",
-              "Colors": {
-                "NormalColor": {
-                  "r": 1,
-                  "g": 1,
-                  "b": 1,
-                  "a": 1
-                },
-                "HighlightedColor": {
-                  "r": 0.9607843,
-                  "g": 0.9607843,
-                  "b": 0.9607843,
-                  "a": 1
-                },
-                "PressedColor": {
-                  "r": 0.784313738,
-                  "g": 0.784313738,
-                  "b": 0.784313738,
-                  "a": 1
-                },
-                "SelectedColor": {
-                  "r": 0.9607843,
-                  "g": 0.9607843,
-                  "b": 0.9607843,
-                  "a": 1
-                },
-                "DisabledColor": {
-                  "r": 0.784313738,
-                  "g": 0.784313738,
-                  "b": 0.784313738,
-                  "a": 0.5019608
-                },
-                "ColorMultiplier": 1,
-                "FadeDuration": 0.1
-              },
-              "IgnoreMapLayerCheck": false,
-              "ImageRUIDs": {
-                "HighlightedSprite": null,
-                "PressedSprite": null,
-                "SelectedSprite": null,
-                "DisabledSprite": null
-              },
-              "KeyCode": 0,
-              "OrderInLayer": 0,
-              "OverrideSorting": false,
-              "SortingLayer": "UI",
-              "Transition": 1,
-              "Enable": true
-            },
-            {
-              "@type": "MOD.Core.TextComponent",
-              "Alignment": 4,
-              "AllowAutomaticTranslation": true,
-              "BestFit": false,
-              "Bold": false,
-              "ConstraintX": 100,
-              "ConstraintY": 100,
-              "DropShadow": false,
-              "DropShadowAngle": 120,
-              "DropShadowColor": {
-                "r": 0,
-                "g": 0,
-                "b": 0,
-                "a": 0.72
-              },
-              "DropShadowDistance": 3,
-              "Font": 0,
-              "FontColor": {
-                "r": 1,
-                "g": 1,
-                "b": 1,
-                "a": 1
-              },
-              "FontSize": 28,
-              "IgnoreMapLayerCheck": false,
-              "IsLocalizationKey": false,
-              "MaxSize": 40,
-              "MinSize": 10,
-              "OrderInLayer": 0,
-              "OutlineColor": {
-                "r": 0.698039234,
-                "g": 0.698039234,
-                "b": 0.698039234,
-                "a": 1
-              },
-              "OutlineDistance": {
-                "x": 1,
-                "y": -1
-              },
-              "OutlineWidth": 1,
-              "Overflow": 0,
-              "OverrideSorting": false,
-              "Padding": {
-                "left": 0,
-                "right": 0,
-                "top": 0,
-                "bottom": 0
-              },
-              "SizeFit": false,
-              "SortingLayer": "UI",
-              "Text": "하드\n적정 전투력 1억 이상\n드랍: 칠흑의 보스 장신구 세트(9)",
-              "UseConstraintX": false,
-              "UseConstraintY": false,
-              "UseOutLine": false,
-              "Enable": true
-            }
-          ],
-          "@version": 1
-        }
-      },
-      {
         "id": "3c201d98-f990-403a-84b4-95714351580b",
         "path": "/ui/BossUIGroup/DetailPanel/BackButton",
         "componentNames": "MOD.Core.UITransformComponent,MOD.Core.SpriteGUIRendererComponent,MOD.Core.ButtonComponent,MOD.Core.TextComponent",
@@ -4261,6 +3757,1157 @@
               "SizeFit": false,
               "SortingLayer": "UI",
               "Text": "신규 장비를 모아 더 강해지고 싶다!\n어떤 보스를 처치하러 갈까?",
+              "UseConstraintX": false,
+              "UseConstraintY": false,
+              "UseOutLine": false,
+              "Enable": true
+            }
+          ],
+          "@version": 1
+        }
+      },
+      {
+        "id": "81712ebd-9ccf-4342-9837-d47336b7d737",
+        "path": "/ui/BossUIGroup/DetailPanel/DiffScroll",
+        "componentNames": "MOD.Core.UITransformComponent,MOD.Core.ScrollLayoutGroupComponent",
+        "jsonString": {
+          "name": "DiffScroll",
+          "path": "/ui/BossUIGroup/DetailPanel/DiffScroll",
+          "nameEditable": true,
+          "enable": true,
+          "visible": true,
+          "localize": true,
+          "displayOrder": 4,
+          "pathConstraints": "////",
+          "revision": 0,
+          "origin": {
+            "type": "Model",
+            "entry_id": "UIEmpty",
+            "sub_entity_id": null,
+            "root_entity_id": null,
+            "replaced_model_id": null
+          },
+          "modelId": "uiempty",
+          "@components": [
+            {
+              "@type": "MOD.Core.UITransformComponent",
+              "ActivePlatform": 255,
+              "AlignmentOption": 0,
+              "AnchorsMax": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "AnchorsMin": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "MobileOnly": false,
+              "OffsetMax": {
+                "x": 930,
+                "y": 300
+              },
+              "OffsetMin": {
+                "x": -270,
+                "y": -260
+              },
+              "Pivot": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "RectSize": {
+                "x": 1200,
+                "y": 560
+              },
+              "UIMode": 1,
+              "UIScale": {
+                "x": 1,
+                "y": 1,
+                "z": 1
+              },
+              "UIVersion": 2,
+              "anchoredPosition": {
+                "x": 330,
+                "y": 20
+              },
+              "Position": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+              },
+              "QuaternionRotation": {
+                "x": 0,
+                "y": 0,
+                "z": 0,
+                "w": 1
+              },
+              "Scale": {
+                "x": 1,
+                "y": 1,
+                "z": 1
+              },
+              "Enable": true
+            },
+            {
+              "@type": "MOD.Core.ScrollLayoutGroupComponent",
+              "CellSize": {
+                "x": 360,
+                "y": 520
+              },
+              "ChildAlignment": 4,
+              "Constraint": 0,
+              "ConstraintCount": 1,
+              "GridChildAlignment": 0,
+              "GridSpacing": {
+                "x": 0,
+                "y": 0
+              },
+              "HorizontalScrollBarDirection": 0,
+              "IgnoreMapLayerCheck": false,
+              "OrderInLayer": 0,
+              "OverrideSorting": false,
+              "Padding": {
+                "left": 20,
+                "right": 20,
+                "top": 20,
+                "bottom": 20
+              },
+              "ReverseArrangement": false,
+              "ScrollBarBackgroundColor": {
+                "r": 1,
+                "g": 1,
+                "b": 1,
+                "a": 0.4
+              },
+              "ScrollBarBgImageRUID": {
+                "DataId": ""
+              },
+              "ScrollBarHandleColor": {
+                "r": 0.5,
+                "g": 0.5,
+                "b": 0.5,
+                "a": 1
+              },
+              "ScrollBarHandleImageRUID": {
+                "DataId": ""
+              },
+              "ScrollBarThickness": 20,
+              "ScrollBarVisible": 0,
+              "SortingLayer": "UI",
+              "Spacing": 24,
+              "StartAxis": 0,
+              "StartCorner": 0,
+              "Type": 0,
+              "UseScroll": true,
+              "VerticalScrollBarDirection": 0,
+              "Enable": true
+            }
+          ],
+          "@version": 1
+        }
+      },
+      {
+        "id": "983189c4-66cd-4971-b802-4d30ebc1a2e8",
+        "path": "/ui/BossUIGroup/DetailPanel/DiffScroll/EasyButton",
+        "componentNames": "MOD.Core.UITransformComponent,MOD.Core.SpriteGUIRendererComponent,MOD.Core.ButtonComponent,MOD.Core.TextComponent",
+        "jsonString": {
+          "name": "EasyButton",
+          "path": "/ui/BossUIGroup/DetailPanel/DiffScroll/EasyButton",
+          "nameEditable": true,
+          "enable": true,
+          "visible": true,
+          "localize": true,
+          "displayOrder": 0,
+          "pathConstraints": "/////",
+          "revision": 0,
+          "origin": {
+            "type": "Model",
+            "entry_id": "UIButton",
+            "sub_entity_id": null,
+            "root_entity_id": null,
+            "replaced_model_id": null
+          },
+          "modelId": "uibutton",
+          "@components": [
+            {
+              "@type": "MOD.Core.UITransformComponent",
+              "ActivePlatform": 255,
+              "AlignmentOption": 0,
+              "AnchorsMax": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "AnchorsMin": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "MobileOnly": false,
+              "OffsetMax": {
+                "x": 180,
+                "y": 260
+              },
+              "OffsetMin": {
+                "x": -180,
+                "y": -260
+              },
+              "Pivot": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "RectSize": {
+                "x": 360,
+                "y": 520
+              },
+              "UIMode": 1,
+              "UIScale": {
+                "x": 1,
+                "y": 1,
+                "z": 1
+              },
+              "UIVersion": 2,
+              "anchoredPosition": {
+                "x": 0,
+                "y": 0
+              },
+              "Position": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+              },
+              "QuaternionRotation": {
+                "x": 0,
+                "y": 0,
+                "z": 0,
+                "w": 1
+              },
+              "Scale": {
+                "x": 1,
+                "y": 1,
+                "z": 1
+              },
+              "Enable": true
+            },
+            {
+              "@type": "MOD.Core.SpriteGUIRendererComponent",
+              "AnimClipPlayType": 0,
+              "EndFrameIndex": 2147483647,
+              "ImageRUID": {
+                "DataId": "4fea64a3307cda641809ad8be0d4890b"
+              },
+              "IgnoreMapLayerCheck": false,
+              "LocalPosition": {
+                "x": 0,
+                "y": 0
+              },
+              "LocalScale": {
+                "x": 1,
+                "y": 1
+              },
+              "MaterialId": "",
+              "OrderInLayer": 0,
+              "OverrideSorting": false,
+              "PlayRate": 1,
+              "PreserveAspect": false,
+              "PreserveSprite": 0,
+              "SortingLayer": "UI",
+              "StartFrameIndex": 0,
+              "Color": {
+                "r": 0.16,
+                "g": 0.22,
+                "b": 0.34,
+                "a": 1
+              },
+              "DropShadow": false,
+              "DropShadowAngle": 120,
+              "DropShadowColor": {
+                "r": 0,
+                "g": 0,
+                "b": 0,
+                "a": 0.72
+              },
+              "DropShadowDistance": 3,
+              "FillAmount": 1,
+              "FillCenter": true,
+              "FillClockWise": true,
+              "FillMethod": 0,
+              "FillOrigin": 0,
+              "FlipX": false,
+              "FlipY": false,
+              "FrameColumn": 1,
+              "FrameRate": 0,
+              "FrameRow": 1,
+              "Outline": false,
+              "OutlineColor": {
+                "r": 0,
+                "g": 0,
+                "b": 0,
+                "a": 1
+              },
+              "OutlineWidth": 3,
+              "RaycastTarget": true,
+              "Type": 0,
+              "Enable": true
+            },
+            {
+              "@type": "MOD.Core.ButtonComponent",
+              "Colors": {
+                "NormalColor": {
+                  "r": 1,
+                  "g": 1,
+                  "b": 1,
+                  "a": 1
+                },
+                "HighlightedColor": {
+                  "r": 0.9607843,
+                  "g": 0.9607843,
+                  "b": 0.9607843,
+                  "a": 1
+                },
+                "PressedColor": {
+                  "r": 0.784313738,
+                  "g": 0.784313738,
+                  "b": 0.784313738,
+                  "a": 1
+                },
+                "SelectedColor": {
+                  "r": 0.9607843,
+                  "g": 0.9607843,
+                  "b": 0.9607843,
+                  "a": 1
+                },
+                "DisabledColor": {
+                  "r": 0.784313738,
+                  "g": 0.784313738,
+                  "b": 0.784313738,
+                  "a": 0.5019608
+                },
+                "ColorMultiplier": 1,
+                "FadeDuration": 0.1
+              },
+              "IgnoreMapLayerCheck": false,
+              "ImageRUIDs": {
+                "HighlightedSprite": null,
+                "PressedSprite": null,
+                "SelectedSprite": null,
+                "DisabledSprite": null
+              },
+              "KeyCode": 0,
+              "OrderInLayer": 0,
+              "OverrideSorting": false,
+              "SortingLayer": "UI",
+              "Transition": 1,
+              "Enable": true
+            },
+            {
+              "@type": "MOD.Core.TextComponent",
+              "Alignment": 4,
+              "AllowAutomaticTranslation": true,
+              "BestFit": false,
+              "Bold": false,
+              "ConstraintX": 100,
+              "ConstraintY": 100,
+              "DropShadow": false,
+              "DropShadowAngle": 120,
+              "DropShadowColor": {
+                "r": 0,
+                "g": 0,
+                "b": 0,
+                "a": 0.72
+              },
+              "DropShadowDistance": 3,
+              "Font": 0,
+              "FontColor": {
+                "r": 1,
+                "g": 1,
+                "b": 1,
+                "a": 1
+              },
+              "FontSize": 30,
+              "IgnoreMapLayerCheck": false,
+              "IsLocalizationKey": false,
+              "MaxSize": 42,
+              "MinSize": 10,
+              "OrderInLayer": 0,
+              "OutlineColor": {
+                "r": 0.698039234,
+                "g": 0.698039234,
+                "b": 0.698039234,
+                "a": 1
+              },
+              "OutlineDistance": {
+                "x": 1,
+                "y": -1
+              },
+              "OutlineWidth": 1,
+              "Overflow": 0,
+              "OverrideSorting": false,
+              "Padding": {
+                "left": 0,
+                "right": 0,
+                "top": 0,
+                "bottom": 0
+              },
+              "SizeFit": false,
+              "SortingLayer": "UI",
+              "Text": "이지",
+              "UseConstraintX": false,
+              "UseConstraintY": false,
+              "UseOutLine": false,
+              "Enable": true
+            }
+          ],
+          "@version": 1
+        }
+      },
+      {
+        "id": "47ee2787-2240-4454-9c54-dc8cf8cfbdf7",
+        "path": "/ui/BossUIGroup/DetailPanel/DiffScroll/NormalButton",
+        "componentNames": "MOD.Core.UITransformComponent,MOD.Core.SpriteGUIRendererComponent,MOD.Core.ButtonComponent,MOD.Core.TextComponent",
+        "jsonString": {
+          "name": "NormalButton",
+          "path": "/ui/BossUIGroup/DetailPanel/DiffScroll/NormalButton",
+          "nameEditable": true,
+          "enable": true,
+          "visible": true,
+          "localize": true,
+          "displayOrder": 1,
+          "pathConstraints": "/////",
+          "revision": 0,
+          "origin": {
+            "type": "Model",
+            "entry_id": "UIButton",
+            "sub_entity_id": null,
+            "root_entity_id": null,
+            "replaced_model_id": null
+          },
+          "modelId": "uibutton",
+          "@components": [
+            {
+              "@type": "MOD.Core.UITransformComponent",
+              "ActivePlatform": 255,
+              "AlignmentOption": 0,
+              "AnchorsMax": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "AnchorsMin": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "MobileOnly": false,
+              "OffsetMax": {
+                "x": 180,
+                "y": 260
+              },
+              "OffsetMin": {
+                "x": -180,
+                "y": -260
+              },
+              "Pivot": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "RectSize": {
+                "x": 360,
+                "y": 520
+              },
+              "UIMode": 1,
+              "UIScale": {
+                "x": 1,
+                "y": 1,
+                "z": 1
+              },
+              "UIVersion": 2,
+              "anchoredPosition": {
+                "x": 0,
+                "y": 0
+              },
+              "Position": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+              },
+              "QuaternionRotation": {
+                "x": 0,
+                "y": 0,
+                "z": 0,
+                "w": 1
+              },
+              "Scale": {
+                "x": 1,
+                "y": 1,
+                "z": 1
+              },
+              "Enable": true
+            },
+            {
+              "@type": "MOD.Core.SpriteGUIRendererComponent",
+              "AnimClipPlayType": 0,
+              "EndFrameIndex": 2147483647,
+              "ImageRUID": {
+                "DataId": "4fea64a3307cda641809ad8be0d4890b"
+              },
+              "IgnoreMapLayerCheck": false,
+              "LocalPosition": {
+                "x": 0,
+                "y": 0
+              },
+              "LocalScale": {
+                "x": 1,
+                "y": 1
+              },
+              "MaterialId": "",
+              "OrderInLayer": 0,
+              "OverrideSorting": false,
+              "PlayRate": 1,
+              "PreserveAspect": false,
+              "PreserveSprite": 0,
+              "SortingLayer": "UI",
+              "StartFrameIndex": 0,
+              "Color": {
+                "r": 0.16,
+                "g": 0.3,
+                "b": 0.22,
+                "a": 1
+              },
+              "DropShadow": false,
+              "DropShadowAngle": 120,
+              "DropShadowColor": {
+                "r": 0,
+                "g": 0,
+                "b": 0,
+                "a": 0.72
+              },
+              "DropShadowDistance": 3,
+              "FillAmount": 1,
+              "FillCenter": true,
+              "FillClockWise": true,
+              "FillMethod": 0,
+              "FillOrigin": 0,
+              "FlipX": false,
+              "FlipY": false,
+              "FrameColumn": 1,
+              "FrameRate": 0,
+              "FrameRow": 1,
+              "Outline": false,
+              "OutlineColor": {
+                "r": 0,
+                "g": 0,
+                "b": 0,
+                "a": 1
+              },
+              "OutlineWidth": 3,
+              "RaycastTarget": true,
+              "Type": 0,
+              "Enable": true
+            },
+            {
+              "@type": "MOD.Core.ButtonComponent",
+              "Colors": {
+                "NormalColor": {
+                  "r": 1,
+                  "g": 1,
+                  "b": 1,
+                  "a": 1
+                },
+                "HighlightedColor": {
+                  "r": 0.9607843,
+                  "g": 0.9607843,
+                  "b": 0.9607843,
+                  "a": 1
+                },
+                "PressedColor": {
+                  "r": 0.784313738,
+                  "g": 0.784313738,
+                  "b": 0.784313738,
+                  "a": 1
+                },
+                "SelectedColor": {
+                  "r": 0.9607843,
+                  "g": 0.9607843,
+                  "b": 0.9607843,
+                  "a": 1
+                },
+                "DisabledColor": {
+                  "r": 0.784313738,
+                  "g": 0.784313738,
+                  "b": 0.784313738,
+                  "a": 0.5019608
+                },
+                "ColorMultiplier": 1,
+                "FadeDuration": 0.1
+              },
+              "IgnoreMapLayerCheck": false,
+              "ImageRUIDs": {
+                "HighlightedSprite": null,
+                "PressedSprite": null,
+                "SelectedSprite": null,
+                "DisabledSprite": null
+              },
+              "KeyCode": 0,
+              "OrderInLayer": 0,
+              "OverrideSorting": false,
+              "SortingLayer": "UI",
+              "Transition": 1,
+              "Enable": true
+            },
+            {
+              "@type": "MOD.Core.TextComponent",
+              "Alignment": 4,
+              "AllowAutomaticTranslation": true,
+              "BestFit": false,
+              "Bold": false,
+              "ConstraintX": 100,
+              "ConstraintY": 100,
+              "DropShadow": false,
+              "DropShadowAngle": 120,
+              "DropShadowColor": {
+                "r": 0,
+                "g": 0,
+                "b": 0,
+                "a": 0.72
+              },
+              "DropShadowDistance": 3,
+              "Font": 0,
+              "FontColor": {
+                "r": 1,
+                "g": 1,
+                "b": 1,
+                "a": 1
+              },
+              "FontSize": 30,
+              "IgnoreMapLayerCheck": false,
+              "IsLocalizationKey": false,
+              "MaxSize": 42,
+              "MinSize": 10,
+              "OrderInLayer": 0,
+              "OutlineColor": {
+                "r": 0.698039234,
+                "g": 0.698039234,
+                "b": 0.698039234,
+                "a": 1
+              },
+              "OutlineDistance": {
+                "x": 1,
+                "y": -1
+              },
+              "OutlineWidth": 1,
+              "Overflow": 0,
+              "OverrideSorting": false,
+              "Padding": {
+                "left": 0,
+                "right": 0,
+                "top": 0,
+                "bottom": 0
+              },
+              "SizeFit": false,
+              "SortingLayer": "UI",
+              "Text": "노말",
+              "UseConstraintX": false,
+              "UseConstraintY": false,
+              "UseOutLine": false,
+              "Enable": true
+            }
+          ],
+          "@version": 1
+        }
+      },
+      {
+        "id": "269e9bdd-61cc-4772-9bb1-2258fcca1f59",
+        "path": "/ui/BossUIGroup/DetailPanel/DiffScroll/HardButton",
+        "componentNames": "MOD.Core.UITransformComponent,MOD.Core.SpriteGUIRendererComponent,MOD.Core.ButtonComponent,MOD.Core.TextComponent",
+        "jsonString": {
+          "name": "HardButton",
+          "path": "/ui/BossUIGroup/DetailPanel/DiffScroll/HardButton",
+          "nameEditable": true,
+          "enable": true,
+          "visible": true,
+          "localize": true,
+          "displayOrder": 2,
+          "pathConstraints": "/////",
+          "revision": 0,
+          "origin": {
+            "type": "Model",
+            "entry_id": "UIButton",
+            "sub_entity_id": null,
+            "root_entity_id": null,
+            "replaced_model_id": null
+          },
+          "modelId": "uibutton",
+          "@components": [
+            {
+              "@type": "MOD.Core.UITransformComponent",
+              "ActivePlatform": 255,
+              "AlignmentOption": 0,
+              "AnchorsMax": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "AnchorsMin": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "MobileOnly": false,
+              "OffsetMax": {
+                "x": 180,
+                "y": 260
+              },
+              "OffsetMin": {
+                "x": -180,
+                "y": -260
+              },
+              "Pivot": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "RectSize": {
+                "x": 360,
+                "y": 520
+              },
+              "UIMode": 1,
+              "UIScale": {
+                "x": 1,
+                "y": 1,
+                "z": 1
+              },
+              "UIVersion": 2,
+              "anchoredPosition": {
+                "x": 0,
+                "y": 0
+              },
+              "Position": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+              },
+              "QuaternionRotation": {
+                "x": 0,
+                "y": 0,
+                "z": 0,
+                "w": 1
+              },
+              "Scale": {
+                "x": 1,
+                "y": 1,
+                "z": 1
+              },
+              "Enable": true
+            },
+            {
+              "@type": "MOD.Core.SpriteGUIRendererComponent",
+              "AnimClipPlayType": 0,
+              "EndFrameIndex": 2147483647,
+              "ImageRUID": {
+                "DataId": "4fea64a3307cda641809ad8be0d4890b"
+              },
+              "IgnoreMapLayerCheck": false,
+              "LocalPosition": {
+                "x": 0,
+                "y": 0
+              },
+              "LocalScale": {
+                "x": 1,
+                "y": 1
+              },
+              "MaterialId": "",
+              "OrderInLayer": 0,
+              "OverrideSorting": false,
+              "PlayRate": 1,
+              "PreserveAspect": false,
+              "PreserveSprite": 0,
+              "SortingLayer": "UI",
+              "StartFrameIndex": 0,
+              "Color": {
+                "r": 0.32,
+                "g": 0.16,
+                "b": 0.16,
+                "a": 1
+              },
+              "DropShadow": false,
+              "DropShadowAngle": 120,
+              "DropShadowColor": {
+                "r": 0,
+                "g": 0,
+                "b": 0,
+                "a": 0.72
+              },
+              "DropShadowDistance": 3,
+              "FillAmount": 1,
+              "FillCenter": true,
+              "FillClockWise": true,
+              "FillMethod": 0,
+              "FillOrigin": 0,
+              "FlipX": false,
+              "FlipY": false,
+              "FrameColumn": 1,
+              "FrameRate": 0,
+              "FrameRow": 1,
+              "Outline": false,
+              "OutlineColor": {
+                "r": 0,
+                "g": 0,
+                "b": 0,
+                "a": 1
+              },
+              "OutlineWidth": 3,
+              "RaycastTarget": true,
+              "Type": 0,
+              "Enable": true
+            },
+            {
+              "@type": "MOD.Core.ButtonComponent",
+              "Colors": {
+                "NormalColor": {
+                  "r": 1,
+                  "g": 1,
+                  "b": 1,
+                  "a": 1
+                },
+                "HighlightedColor": {
+                  "r": 0.9607843,
+                  "g": 0.9607843,
+                  "b": 0.9607843,
+                  "a": 1
+                },
+                "PressedColor": {
+                  "r": 0.784313738,
+                  "g": 0.784313738,
+                  "b": 0.784313738,
+                  "a": 1
+                },
+                "SelectedColor": {
+                  "r": 0.9607843,
+                  "g": 0.9607843,
+                  "b": 0.9607843,
+                  "a": 1
+                },
+                "DisabledColor": {
+                  "r": 0.784313738,
+                  "g": 0.784313738,
+                  "b": 0.784313738,
+                  "a": 0.5019608
+                },
+                "ColorMultiplier": 1,
+                "FadeDuration": 0.1
+              },
+              "IgnoreMapLayerCheck": false,
+              "ImageRUIDs": {
+                "HighlightedSprite": null,
+                "PressedSprite": null,
+                "SelectedSprite": null,
+                "DisabledSprite": null
+              },
+              "KeyCode": 0,
+              "OrderInLayer": 0,
+              "OverrideSorting": false,
+              "SortingLayer": "UI",
+              "Transition": 1,
+              "Enable": true
+            },
+            {
+              "@type": "MOD.Core.TextComponent",
+              "Alignment": 4,
+              "AllowAutomaticTranslation": true,
+              "BestFit": false,
+              "Bold": false,
+              "ConstraintX": 100,
+              "ConstraintY": 100,
+              "DropShadow": false,
+              "DropShadowAngle": 120,
+              "DropShadowColor": {
+                "r": 0,
+                "g": 0,
+                "b": 0,
+                "a": 0.72
+              },
+              "DropShadowDistance": 3,
+              "Font": 0,
+              "FontColor": {
+                "r": 1,
+                "g": 1,
+                "b": 1,
+                "a": 1
+              },
+              "FontSize": 30,
+              "IgnoreMapLayerCheck": false,
+              "IsLocalizationKey": false,
+              "MaxSize": 42,
+              "MinSize": 10,
+              "OrderInLayer": 0,
+              "OutlineColor": {
+                "r": 0.698039234,
+                "g": 0.698039234,
+                "b": 0.698039234,
+                "a": 1
+              },
+              "OutlineDistance": {
+                "x": 1,
+                "y": -1
+              },
+              "OutlineWidth": 1,
+              "Overflow": 0,
+              "OverrideSorting": false,
+              "Padding": {
+                "left": 0,
+                "right": 0,
+                "top": 0,
+                "bottom": 0
+              },
+              "SizeFit": false,
+              "SortingLayer": "UI",
+              "Text": "하드",
+              "UseConstraintX": false,
+              "UseConstraintY": false,
+              "UseOutLine": false,
+              "Enable": true
+            }
+          ],
+          "@version": 1
+        }
+      },
+      {
+        "id": "af964015-c85e-4fc4-b13f-b1f0c8f20bcd",
+        "path": "/ui/BossUIGroup/DetailPanel/DiffScroll/ChaosButton",
+        "componentNames": "MOD.Core.UITransformComponent,MOD.Core.SpriteGUIRendererComponent,MOD.Core.ButtonComponent,MOD.Core.TextComponent",
+        "jsonString": {
+          "name": "ChaosButton",
+          "path": "/ui/BossUIGroup/DetailPanel/DiffScroll/ChaosButton",
+          "nameEditable": true,
+          "enable": true,
+          "visible": true,
+          "localize": true,
+          "displayOrder": 3,
+          "pathConstraints": "/////",
+          "revision": 0,
+          "origin": {
+            "type": "Model",
+            "entry_id": "UIButton",
+            "sub_entity_id": null,
+            "root_entity_id": null,
+            "replaced_model_id": null
+          },
+          "modelId": "uibutton",
+          "@components": [
+            {
+              "@type": "MOD.Core.UITransformComponent",
+              "ActivePlatform": 255,
+              "AlignmentOption": 0,
+              "AnchorsMax": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "AnchorsMin": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "MobileOnly": false,
+              "OffsetMax": {
+                "x": 180,
+                "y": 260
+              },
+              "OffsetMin": {
+                "x": -180,
+                "y": -260
+              },
+              "Pivot": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "RectSize": {
+                "x": 360,
+                "y": 520
+              },
+              "UIMode": 1,
+              "UIScale": {
+                "x": 1,
+                "y": 1,
+                "z": 1
+              },
+              "UIVersion": 2,
+              "anchoredPosition": {
+                "x": 0,
+                "y": 0
+              },
+              "Position": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+              },
+              "QuaternionRotation": {
+                "x": 0,
+                "y": 0,
+                "z": 0,
+                "w": 1
+              },
+              "Scale": {
+                "x": 1,
+                "y": 1,
+                "z": 1
+              },
+              "Enable": true
+            },
+            {
+              "@type": "MOD.Core.SpriteGUIRendererComponent",
+              "AnimClipPlayType": 0,
+              "EndFrameIndex": 2147483647,
+              "ImageRUID": {
+                "DataId": "4fea64a3307cda641809ad8be0d4890b"
+              },
+              "IgnoreMapLayerCheck": false,
+              "LocalPosition": {
+                "x": 0,
+                "y": 0
+              },
+              "LocalScale": {
+                "x": 1,
+                "y": 1
+              },
+              "MaterialId": "",
+              "OrderInLayer": 0,
+              "OverrideSorting": false,
+              "PlayRate": 1,
+              "PreserveAspect": false,
+              "PreserveSprite": 0,
+              "SortingLayer": "UI",
+              "StartFrameIndex": 0,
+              "Color": {
+                "r": 0.28,
+                "g": 0.16,
+                "b": 0.34,
+                "a": 1
+              },
+              "DropShadow": false,
+              "DropShadowAngle": 120,
+              "DropShadowColor": {
+                "r": 0,
+                "g": 0,
+                "b": 0,
+                "a": 0.72
+              },
+              "DropShadowDistance": 3,
+              "FillAmount": 1,
+              "FillCenter": true,
+              "FillClockWise": true,
+              "FillMethod": 0,
+              "FillOrigin": 0,
+              "FlipX": false,
+              "FlipY": false,
+              "FrameColumn": 1,
+              "FrameRate": 0,
+              "FrameRow": 1,
+              "Outline": false,
+              "OutlineColor": {
+                "r": 0,
+                "g": 0,
+                "b": 0,
+                "a": 1
+              },
+              "OutlineWidth": 3,
+              "RaycastTarget": true,
+              "Type": 0,
+              "Enable": true
+            },
+            {
+              "@type": "MOD.Core.ButtonComponent",
+              "Colors": {
+                "NormalColor": {
+                  "r": 1,
+                  "g": 1,
+                  "b": 1,
+                  "a": 1
+                },
+                "HighlightedColor": {
+                  "r": 0.9607843,
+                  "g": 0.9607843,
+                  "b": 0.9607843,
+                  "a": 1
+                },
+                "PressedColor": {
+                  "r": 0.784313738,
+                  "g": 0.784313738,
+                  "b": 0.784313738,
+                  "a": 1
+                },
+                "SelectedColor": {
+                  "r": 0.9607843,
+                  "g": 0.9607843,
+                  "b": 0.9607843,
+                  "a": 1
+                },
+                "DisabledColor": {
+                  "r": 0.784313738,
+                  "g": 0.784313738,
+                  "b": 0.784313738,
+                  "a": 0.5019608
+                },
+                "ColorMultiplier": 1,
+                "FadeDuration": 0.1
+              },
+              "IgnoreMapLayerCheck": false,
+              "ImageRUIDs": {
+                "HighlightedSprite": null,
+                "PressedSprite": null,
+                "SelectedSprite": null,
+                "DisabledSprite": null
+              },
+              "KeyCode": 0,
+              "OrderInLayer": 0,
+              "OverrideSorting": false,
+              "SortingLayer": "UI",
+              "Transition": 1,
+              "Enable": true
+            },
+            {
+              "@type": "MOD.Core.TextComponent",
+              "Alignment": 4,
+              "AllowAutomaticTranslation": true,
+              "BestFit": false,
+              "Bold": false,
+              "ConstraintX": 100,
+              "ConstraintY": 100,
+              "DropShadow": false,
+              "DropShadowAngle": 120,
+              "DropShadowColor": {
+                "r": 0,
+                "g": 0,
+                "b": 0,
+                "a": 0.72
+              },
+              "DropShadowDistance": 3,
+              "Font": 0,
+              "FontColor": {
+                "r": 1,
+                "g": 1,
+                "b": 1,
+                "a": 1
+              },
+              "FontSize": 30,
+              "IgnoreMapLayerCheck": false,
+              "IsLocalizationKey": false,
+              "MaxSize": 42,
+              "MinSize": 10,
+              "OrderInLayer": 0,
+              "OutlineColor": {
+                "r": 0.698039234,
+                "g": 0.698039234,
+                "b": 0.698039234,
+                "a": 1
+              },
+              "OutlineDistance": {
+                "x": 1,
+                "y": -1
+              },
+              "OutlineWidth": 1,
+              "Overflow": 0,
+              "OverrideSorting": false,
+              "Padding": {
+                "left": 0,
+                "right": 0,
+                "top": 0,
+                "bottom": 0
+              },
+              "SizeFit": false,
+              "SortingLayer": "UI",
+              "Text": "카오스",
               "UseConstraintX": false,
               "UseConstraintY": false,
               "UseOutLine": false,

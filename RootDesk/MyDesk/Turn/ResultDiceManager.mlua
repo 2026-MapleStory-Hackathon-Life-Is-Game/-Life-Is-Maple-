@@ -209,4 +209,61 @@ script ResultDiceManager extends Logic
 		return self._currentResultTable
 	end
 
+	method table LookupBossPercents(string bossKey, string difficulty, number playerCombatPower)
+		-- BossProbability에서 (보스, 난이도) 행을 찾아 현재 전투력 기준 밴드의 확률(%)을 돌려준다.
+		-- bossKey는 CSV의 BossName(영문) 또는 BossNameKR(한글) 어느 쪽이든 매칭. 못 찾으면 Base 확률로 폴백.
+		local fallback = { fail = self.BaseFailPct, success = 100 - self.BaseFailPct - self.BaseGreatPct, great = self.BaseGreatPct }
+		local ds = _DataService:GetTable("BossProbability")
+		if isvalid(ds) == false then
+			log_warning("[ResultDiceManager] BossProbability 데이터셋 없음 → 기본확률 폴백")
+			return fallback
+		end
+		local diff = string.lower(difficulty)
+		for i = 1, ds:GetRowCount() do
+			local nameEn = ds:GetCell(i, "BossName")
+			local nameKr = ds:GetCell(i, "BossNameKR")
+			if (nameEn == bossKey or nameKr == bossKey) and string.lower(ds:GetCell(i, "Difficulty")) == diff then
+				local required = tonumber(ds:GetCell(i, "RequiredPower")) or 0
+				local prefix = "Below"
+				if playerCombatPower >= required then prefix = "Above" end
+				return {
+					fail = tonumber(ds:GetCell(i, prefix .. "Fail")) or 0,
+					success = tonumber(ds:GetCell(i, prefix .. "Success")) or 0,
+					great = tonumber(ds:GetCell(i, prefix .. "Great")) or 0,
+				}
+			end
+		end
+		log_warning("[ResultDiceManager] BossProbability 행 없음: " .. tostring(bossKey) .. "/" .. tostring(difficulty) .. " → 기본확률 폴백")
+		return fallback
+	end
+
+	@ExecSpace("Server")
+	method integer RollByBossTable(string bossKey, string difficulty, number playerCombatPower)
+		-- 보스 표(BossProbability) 기반 판정. 폐기된 전투력 비례식(CalculateRulletResult/하드코딩 3500·2000) 대신,
+		-- 현재 전투력을 적정전투력(RequiredPower)과 비교해 미만/이상 밴드의 실패:성공:대성공 확률을 그대로 쓴다.
+		-- 그 외 흐름(2d6/효과음/프로퍼티 저장/리턴)은 Roll()과 동일. BossTile 등은 Roll() 대신 이걸 호출하면 된다.
+		local pct = self:LookupBossPercents(bossKey, difficulty, playerCombatPower)
+		self._currentResultTable = self:PlaceOutcomes(pct.fail, pct.success, pct.great)
+		log("[ResultDiceManager] 보스표 확률 실패=" .. tostring(pct.fail) .. "% 성공=" .. tostring(pct.success) .. "% 대성공=" .. tostring(pct.great) .. "% (CP=" .. tostring(playerCombatPower) .. ")")
+
+		local d1 = _UtilLogic:RandomIntegerRange(1, 6)
+		local d2 = _UtilLogic:RandomIntegerRange(1, 6)
+		local total = d1 + d2
+		_TimerService:SetTimerOnce(function()
+			self:PlayTotalResultDiceSFX(total)
+		end, 2.0)
+
+		local finalVal = self._currentResultTable[total]
+		if finalVal == 2 then self.GameOutcome = "대성공"
+		elseif finalVal == 1 then self.GameOutcome = "성공"
+		else self.GameOutcome = "실패" end
+
+		self._dice1 = d1
+		self._dice2 = d2
+		self._total = total
+
+		log("[ResultDiceManager] 보스 주사위: " .. tostring(d1) .. " + " .. tostring(d2) .. " = " .. tostring(total) .. " (" .. self.GameOutcome .. ")")
+		return total
+	end
+
 end

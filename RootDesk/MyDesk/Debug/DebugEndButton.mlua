@@ -1,0 +1,34 @@
+@Logic
+script DebugEndButton extends Logic
+
+	-- [임시/디버그] 인게임 HUD의 '게임종료(TEST)' 버튼 컨트롤러.
+	-- 3단계 End 타일 도달 없이도 게임 종료 흐름(결과 패널)을 강제 실행해 검증하기 위한 임시 버튼.
+	-- ⚠️ 출시 전 제거: 이 스크립트 + InGameUIGroup의 DebugEndButton 엔티티.
+
+	property Entity DebugBtn = "f18b3307-490a-4094-a0cf-acfa3350b396"
+	property any _handler = nil
+
+	@ExecSpace("ClientOnly")
+	method void OnBeginPlay()
+		-- 버튼 클릭 → 서버에 강제 종료 요청.
+		if isvalid(self.DebugBtn) then
+			self._handler = self.DebugBtn:ConnectEvent(ButtonClickEvent, self.OnClick)
+		end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void OnEndPlay()
+		-- 핸들러 해제.
+		if isvalid(self.DebugBtn) and self._handler ~= nil then
+			self.DebugBtn:DisconnectEvent(ButtonClickEvent, self._handler)
+		end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void OnClick(ButtonClickEvent event)
+		-- 게임 종료 이벤트(싱글) 강제 실행.
+		log("[DebugEndButton] 게임종료(TEST) 클릭 → DebugFinishGame")
+		_GameModeManager:DebugFinishGame()
+	end
+
+end

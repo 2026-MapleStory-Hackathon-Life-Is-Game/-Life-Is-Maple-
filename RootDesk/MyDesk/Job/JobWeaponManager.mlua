@@ -94,6 +94,14 @@ script JobWeaponManager extends Logic
 	end
 
 	@ExecSpace("ServerOnly")
+	method void ResetJob(Entity playerEntity)
+		-- 게임 종료 초기화: 직업을 Beginner로 되돌리고 기본 무기를 재적용한다.
+		-- currentJob은 전역 단일값이라 여기서 되돌리면 다음 판이 초기값에서 시작한다.
+		self.currentJob = "Beginner"
+		if isvalid(playerEntity) then self:ChangeWeaponByJob("Beginner", playerEntity) end
+	end
+
+	@ExecSpace("ServerOnly")
 	method void ChangeWeaponByJob(string jobName, Entity playerEntity)
 		-- JobWeapon 데이터셋에서 직업 행을 찾아 무기 슬롯만 적용한다.
 		-- Custom*Equip은 @Sync라 서버에서 실행해야 모든 클라에 전파된다.

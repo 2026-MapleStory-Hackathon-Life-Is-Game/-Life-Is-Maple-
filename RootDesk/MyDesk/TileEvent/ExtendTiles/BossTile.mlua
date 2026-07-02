@@ -19,9 +19,9 @@ script BossTile extends EventTileBase
 
 	-- 진행 중인 도착 플레이어(서버 상태). 턴제라 동시 1명.
 	property any _currentPiece = nil
-	-- 최종 선택 정보. {선택한보스이름} default = 노말 스우.
+	-- 최종 선택 정보. {선택한보스이름} default = 노말 스우. bossKey는 BossProbability.csv의 BossName(영문키).
 	property string _selectedBossName = "노말스우"
-	property string _selectedBossKey = "Suu"
+	property string _selectedBossKey = "Lotus"
 	property string _selectedDiff = "Normal"
 
 	method boolean IsInteractiveTile()
@@ -78,8 +78,12 @@ script BossTile extends EventTileBase
 		if isvalid(piece) == false then return end
 		if senderUserId ~= self:OwnerUserId(piece) then return end
 
-		-- 결과 주사위(기존 ResultDiceManager 재사용) → 도전 대성공/성공/실패.
-		local total = _ResultDiceManager:Roll()
+		-- 결과 주사위: 보스 표(BossProbability) 기반 판정. 현재 전투력을 적정전투력(RequiredPower)과 비교해
+		-- 미만/이상 밴드의 실패:성공:대성공 확률을 적용한다(폐기된 CP 비례식 대신).
+		local cp = 0
+		local cpm = self:CP(piece)
+		if isvalid(cpm) then cp = cpm.CombatPower end
+		local total = _ResultDiceManager:RollByBossTable(self._selectedBossKey, self._selectedDiff, cp)
 		local d1 = _ResultDiceManager._dice1
 		local d2 = _ResultDiceManager._dice2
 		local outcome = _ResultDiceManager.GameOutcome
@@ -123,10 +127,10 @@ script BossTile extends EventTileBase
 	-- ===== 보스/난이도 설정 (임시값 — 추후 table 연동) =====
 
 	method string BossName(string key)
-		-- 보스 키 → 표시명.
-		if key == "Karuta" then return "카루타"
+		-- 보스 키(BossProbability.csv BossName) → 표시명.
+		if key == "Root_Abyss" then return "루타비스"
 		elseif key == "Papulatus" then return "파풀라투스"
-		elseif key == "Suu" then return "스우"
+		elseif key == "Lotus" then return "스우"
 		elseif key == "Damien" then return "데미안"
 		end
 		return key

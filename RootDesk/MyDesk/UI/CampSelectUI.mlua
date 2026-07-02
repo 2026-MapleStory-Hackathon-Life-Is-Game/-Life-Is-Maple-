@@ -7,9 +7,9 @@ script CampSelectUI extends Logic
 
 	property ButtonComponent btnCygnus = "54c33214-6fcd-4dc2-a19f-8b10c7dabe80"
 
-	property ButtonComponent btnResistance = "d4caad9a-84b0-4970-90ae-061b74fe313b"
+	property ButtonComponent btnResistance = "8e930aba-6e79-423a-8a1b-98e9a2e647a9"
 
-	property ButtonComponent btnNova = "8e930aba-6e79-423a-8a1b-98e9a2e647a9"
+	property ButtonComponent btnNova = "d4caad9a-84b0-4970-90ae-061b74fe313b"
 
 	property any handlerAdventurer = nil
 
@@ -25,7 +25,6 @@ script CampSelectUI extends Logic
 
 	property TextGUIRendererComponent campDesc = "62f024a8-dc21-497b-b8c1-550ed9c0ae07"
 
-	-- 팝업 뒤 반투명 검정 디머(선택→결과 패널 동안 유지).
 	property Entity dimBack = "b6afee70-506d-47e3-b941-1ac8ca2b35b8"
 
 	@ExecSpace("ClientOnly")
@@ -52,7 +51,7 @@ script CampSelectUI extends Logic
 		if isvalid(self.selectPanel) == false then return end
 		if isvalid(self.dimBack) then self.dimBack.Enable = true end
 		self.selectPanel.Enable = true
-
+		
 		-- 재오픈 시 중복 구독 방지: 기존 핸들러를 먼저 끊고 다시 연결한다.
 		self:DisconnectAll()
 		self.handlerAdventurer = self.btnAdventurer.Entity:ConnectEvent(ButtonClickEvent, function() self:SelectRace("Adventurer") end)
@@ -114,16 +113,16 @@ script CampSelectUI extends Logic
 		
 		-- 일단 하드코딩 상태인데, 추후 csv 파일로 바꿔야 함
 		if campName == "Adventurer" then
-			self.campSprite.ImageRUID = ""
+			self.campSprite.ImageRUID = "a46a226749924a90ac01a4804aa21205"
 			self.campDesc.Text = "모험가의 의지가 차오릅니다!"	
 		elseif campName == "Cygnus" then
-			self.campSprite.ImageRUID = ""
+			self.campSprite.ImageRUID = "93fdd69fda3345dd8eef0d33554e5c7e"
 			self.campDesc.Text = "기사단의 맹세가 반짝입니다!"
 		elseif campName == "Resistance" then
-			self.campSprite.ImageRUID = ""
+			self.campSprite.ImageRUID = "3ccb7f97072b47559833000f19795337"
 			self.campDesc.Text = "혁명의 불꽃이 타오릅니다!"
 		elseif campName == "Nova" then
-			self.campSprite.ImageRUID = ""
+			self.campSprite.ImageRUID = "d1650025554c4d3485e2b6c279467ce8"
 			self.campDesc.Text = "용의 힘이 깨어납니다!"	
 		end
 		

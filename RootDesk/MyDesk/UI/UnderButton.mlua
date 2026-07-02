@@ -211,6 +211,8 @@ script UnderButton extends Component
 
 	method void OnClickCharInfo(any event)
 		-- 캐릭터 정보 토글(배낭과 상호배타).
+		-- 주사위 결과 연출 중엔 새로 열지 않는다(주사위 그룹이 위에 떠 닫기 버튼을 가림).
+		if self.openExclusive ~= "CHAR" and self:IsDiceResultShowing() then return end
 		_SFXManager:PlayClick()
 		if self.openExclusive == "CHAR" then
 			self:CloseExclusive()
@@ -223,6 +225,8 @@ script UnderButton extends Component
 
 	method void OnClickBag(any event)
 		-- 배낭 토글(캐릭터 정보와 상호배타).
+		-- 주사위 결과 연출 중엔 새로 열지 않는다(주사위 그룹이 위에 떠 닫기 버튼을 가림).
+		if self.openExclusive ~= "BAG" and self:IsDiceResultShowing() then return end
 		_SFXManager:PlayClick()
 		if self.openExclusive == "BAG" then
 			self:CloseExclusive()
@@ -269,6 +273,13 @@ script UnderButton extends Component
 
 				-- 그 외(NONE 등): 못 엶
 				return false
+	end
+
+	method boolean IsDiceResultShowing()
+		-- 주사위 결과 연출 패널(ResultDicetUIGroup)이 현재 떠 있는지 라이브 상태로 판단(플래그 desync 없음).
+		if _RollResultDiceAnimationUI == nil then return false end
+		local p = _RollResultDiceAnimationUI.panel
+		return isvalid(p) and p.Enable
 	end
 
 	@ExecSpace("ServerOnly")

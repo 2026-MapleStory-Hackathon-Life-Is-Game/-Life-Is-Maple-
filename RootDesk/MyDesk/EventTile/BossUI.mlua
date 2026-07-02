@@ -4,6 +4,8 @@ script BossUI extends Logic
 	-- 보스 선택 UI(BossUIGroup) 클라 컨트롤러.
 	-- 흐름: BossTile이 Show(self) 호출 → 보스 4선택 → 카드 클릭 시 상세(난이도) →
 	--        난이도 클릭 시 BossTile:RequestSelect(bossKey, diffKey) / 뒤로가기 → 선택으로 복귀.
+	-- 난이도 버튼(이지/노말/하드/카오스)은 ScrollLayout 안에 4개 상주.
+	-- 보스마다 BossProbability에 실존하는 난이도만 Enable=true, 없는 난이도는 Enable=false(ScrollLayout이 남은 것만 정렬).
 
 	property Entity BossGroup = "b3478f61-f3f7-45ae-a10d-396161da6527"
 	property Entity SelectionPanel = "ddde3d93-9f2c-40bb-a070-c4ac99b84613"
@@ -15,8 +17,13 @@ script BossUI extends Logic
 	property Entity BossCard4 = "e8a4749f-02f4-4b9e-a068-328744594bf7"
 
 	property Entity DetailBossName = "36060171-5658-42a6-b756-204cdd114f62"
-	property Entity NormalButton = "0c91838e-e8eb-4b70-9ff5-26d0623817f9"
-	property Entity HardButton = "d830cc4b-6efd-4ddd-a68b-f939d0f716fe"
+
+	-- 난이도 버튼(ScrollLayout 자식). 값은 UIBuilder 바인딩 주입으로 채워진다.
+	property Entity EasyButton = "983189c4-66cd-4971-b802-4d30ebc1a2e8"
+	property Entity NormalButton = "47ee2787-2240-4454-9c54-dc8cf8cfbdf7"
+	property Entity HardButton = "269e9bdd-61cc-4772-9bb1-2258fcca1f59"
+	property Entity ChaosButton = "af964015-c85e-4fc4-b13f-b1f0c8f20bcd"
+
 	property Entity BackButton = "3c201d98-f990-403a-84b4-95714351580b"
 
 	-- 보스 선택 화면 안내 텍스트(EventTileGroup UIText와 같은 위치).
@@ -32,16 +39,25 @@ script BossUI extends Logic
 
 	property table _bossKeys = {}
 	property table _bossNames = {}
+	property table _diffButtons = {}
 	property table _cardHandlers = {}
-	property any _normalHandler = nil
-	property any _hardHandler = nil
+	property table _diffHandlers = {}
 	property any _backHandler = nil
 
 	@ExecSpace("ClientOnly")
 	method void OnBeginPlay()
-		-- 보스 키/표시명 매핑 + 버튼 핸들러 연결. 평소엔 그룹 숨김.
-		self._bossKeys = { "Karuta", "Papulatus", "Suu", "Damien" }
-		self._bossNames = { "카루타", "파풀라투스", "스우", "데미안" }
+		-- 보스 키/표시명 매핑 + 카드/난이도/뒤로 버튼 핸들러 연결. 평소엔 그룹 숨김.
+		-- 보스 키는 BossProbability.csv의 BossName(영문키)과 일치시킨다 → RollByBossTable이 바로 매칭.
+		self._bossKeys = { "Root_Abyss", "Papulatus", "Lotus", "Damien" }
+		self._bossNames = { "루타비스", "파풀라투스", "스우", "데미안" }
+
+		-- 난이도 버튼 구성(고정 4종). 순서 = 이지 → 노말 → 하드 → 카오스.
+		self._diffButtons = {
+			{ key = "Easy",   label = "이지",   e = self.EasyButton },
+			{ key = "Normal", label = "노말",   e = self.NormalButton },
+			{ key = "Hard",   label = "하드",   e = self.HardButton },
+			{ key = "Chaos",  label = "카오스", e = self.ChaosButton },
+		}
 
 		if isvalid(self.BossGroup) then
 			self.BossGroup.Enable = false
@@ -57,12 +73,18 @@ script BossUI extends Logic
 				table.insert(self._cardHandlers, { entity = card, eventHandler = h })
 			end
 		end
-		if isvalid(self.NormalButton) then
-			self._normalHandler = self.NormalButton:ConnectEvent(ButtonClickEvent, self.OnNormalClicked)
+
+		-- 난이도 버튼 각각을 RequestSelect(그 난이도)에 연결(클로저로 키 캡처).
+		self._diffHandlers = {}
+		for i = 1, #self._diffButtons do
+			local d = self._diffButtons[i]
+			if isvalid(d.e) then
+				local dk = d.key
+				local h = d.e:ConnectEvent(ButtonClickEvent, function() self:RequestSelect(dk) end)
+				table.insert(self._diffHandlers, { entity = d.e, eventHandler = h })
+			end
 		end
-		if isvalid(self.HardButton) then
-			self._hardHandler = self.HardButton:ConnectEvent(ButtonClickEvent, self.OnHardClicked)
-		end
+
 		if isvalid(self.BackButton) then
 			self._backHandler = self.BackButton:ConnectEvent(ButtonClickEvent, self.OnBackClicked)
 		end
@@ -78,15 +100,31 @@ script BossUI extends Logic
 			end
 		end
 		self._cardHandlers = {}
-		if isvalid(self.NormalButton) and self._normalHandler ~= nil then
-			self.NormalButton:DisconnectEvent(ButtonClickEvent, self._normalHandler)
+		for i = 1, #self._diffHandlers do
+			local rec = self._diffHandlers[i]
+			if isvalid(rec.entity) and rec.eventHandler ~= nil then
+				rec.entity:DisconnectEvent(ButtonClickEvent, rec.eventHandler)
+			end
 		end
-		if isvalid(self.HardButton) and self._hardHandler ~= nil then
-			self.HardButton:DisconnectEvent(ButtonClickEvent, self._hardHandler)
-		end
+		self._diffHandlers = {}
 		if isvalid(self.BackButton) and self._backHandler ~= nil then
 			self.BackButton:DisconnectEvent(ButtonClickEvent, self._backHandler)
 		end
+	end
+
+	method table DiffRow(string bossKey, string diff)
+		-- BossProbability에서 (보스, 난이도) 행을 찾아 표시용 데이터를 반환한다. 없으면 nil.
+		-- (데이터셋은 serveronly=false라 클라에서도 조회 가능.)
+		local ds = _DataService:GetTable("BossProbability")
+		if isvalid(ds) == false then return nil end
+		for i = 1, ds:GetRowCount() do
+			local en = ds:GetCell(i, "BossName")
+			local kr = ds:GetCell(i, "BossNameKR")
+			if (en == bossKey or kr == bossKey) and ds:GetCell(i, "Difficulty") == diff then
+				return { drop = ds:GetCell(i, "DropEquip"), req = ds:GetCell(i, "RequiredPower") }
+			end
+		end
+		return nil
 	end
 
 	@ExecSpace("ClientOnly")
@@ -125,11 +163,29 @@ script BossUI extends Logic
 
 	@ExecSpace("ClientOnly")
 	method void OnCardClicked(integer idx)
-		-- 카드 클릭 → 상세 화면(난이도 선택지)으로. 보스 이름을 동적으로 세팅.
+		-- 카드 클릭 → 상세 화면(난이도 선택지)으로. 보스 이름 세팅 + 실존 난이도만 활성화.
 		self._selectedIndex = idx
 		if isvalid(self.DetailBossName) and isvalid(self.DetailBossName.TextComponent) then
 			self.DetailBossName.TextComponent.Text = self._bossNames[idx]
 		end
+
+		-- 이 보스에 실존하는 난이도만 버튼 활성화. 없는 난이도는 Enable=false로 숨긴다.
+		local bossKey = self._bossKeys[idx]
+		for i = 1, #self._diffButtons do
+			local d = self._diffButtons[i]
+			if isvalid(d.e) then
+				local row = self:DiffRow(bossKey, d.key)
+				if row ~= nil then
+					d.e.Enable = true
+					if isvalid(d.e.TextComponent) then
+						d.e.TextComponent.Text = d.label .. "\n드랍: " .. tostring(row.drop)
+					end
+				else
+					d.e.Enable = false
+				end
+			end
+		end
+
 		if isvalid(self.SelectionPanel) then self.SelectionPanel.Enable = false end
 		if isvalid(self.DetailPanel) then self.DetailPanel.Enable = true end
 		log("[BossUI] 보스 상세: " .. tostring(self._bossNames[idx]))
@@ -140,18 +196,6 @@ script BossUI extends Logic
 		-- 뒤로가기 → 보스 선택지로 복귀.
 		if isvalid(self.DetailPanel) then self.DetailPanel.Enable = false end
 		if isvalid(self.SelectionPanel) then self.SelectionPanel.Enable = true end
-	end
-
-	@ExecSpace("ClientOnly")
-	method void OnNormalClicked(ButtonClickEvent event)
-		-- 노말 선택 → 서버에 최종 선택 요청.
-		self:RequestSelect("Normal")
-	end
-
-	@ExecSpace("ClientOnly")
-	method void OnHardClicked(ButtonClickEvent event)
-		-- 하드 선택 → 서버에 최종 선택 요청.
-		self:RequestSelect("Hard")
 	end
 
 	@ExecSpace("ClientOnly")
