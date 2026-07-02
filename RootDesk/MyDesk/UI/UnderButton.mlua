@@ -46,6 +46,9 @@ script UnderButton extends Component
 
 	property string openExclusive = ""
 
+	-- 주사위(열기) 버튼의 마지막 적용 Enable 상태(변할 때만 기록, nil=최초 적용 강제).
+	property any _lastDiceEnable = nil
+
 	method void OnBeginPlay()
 		if self:IsServer() then
 
@@ -148,6 +151,16 @@ script UnderButton extends Component
 			self._hudCtx = ctx
 			self:ApplyHudContext(ctx)
 		end
+
+		-- 주사위(열기) 버튼 활성/비활성: 굴릴 수 있는 상태(내 DICE 차례 · 굴리는 중 아님 · 맵/캐릭터뷰 아님)에서만 활성.
+		-- 주사위를 굴리면 DICE 단계를 벗어나 자동으로 비활성 → 다음 DICE 차례에 다시 활성된다.
+		local wantDice = (ctx == "none") and self:CanOpenDicePanel()
+		if self._lastDiceEnable ~= wantDice then
+			self._lastDiceEnable = wantDice
+			if isvalid(self.OpenDicePanelButton) and isvalid(self.OpenDicePanelButton.Entity) then
+				self.OpenDicePanelButton.Entity.Enable = wantDice
+			end
+		end
 	end
 
 	method void ApplyHudContext(string ctx)
@@ -159,9 +172,7 @@ script UnderButton extends Component
 			self.btnCharClose.Entity.Enable = (ctx == "char")
 		end
 		-- 주사위(열기) 버튼은 상황별 버튼이 뜰 때 숨긴다. 맵뷰는 SetHudHidden도 끄지만 일관되게 여기서도 처리.
-		if isvalid(self.OpenDicePanelButton) and isvalid(self.OpenDicePanelButton.Entity) then
-			self.OpenDicePanelButton.Entity.Enable = (ctx == "none")
-		end
+		-- (주사위 열기 버튼 Enable은 OnUpdate에서 CanOpenDicePanel 상태에 맞춰 관리 → 여기서 처리하지 않음)
 	end
 
 	method void OnClickMapBack(any event)
