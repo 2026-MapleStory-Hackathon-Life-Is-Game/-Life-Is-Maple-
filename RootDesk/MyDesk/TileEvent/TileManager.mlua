@@ -96,7 +96,7 @@ script TileManager extends Logic
 							self:BuildTileGraph()
 						end
 						self:CollectTiles()
-						-- 수집 완료 후 '현재 맵' 기준으로 캠프/몬스터 비주얼을 재적용한다.
+						-- 수집 완료 후 '현재 맵' 기준으로 진영/몬스터 비주얼을 재적용한다.
 						-- (맵 전환 시 ApplyPhysicsForMap의 즉시 호출은 이 지연 수집보다 빨라서
 						--  이전 맵 타일에 적용하고 끝나버려 새 맵 사냥타일이 빈 채로 남는 버그가 있었음.)
 						self:RequestCampVisuals()

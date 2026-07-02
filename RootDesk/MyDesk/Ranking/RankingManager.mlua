@@ -394,7 +394,7 @@ script RankingManager extends Logic
 	end
 
 	method string CampKo(string camp)
-		-- 캠프(진영) 영문 키 → 한글. 알 수 없으면 원문 유지.
+		-- 진영 영문 키 → 한글. 알 수 없으면 원문 유지.
 		if camp == "Adventurer" then return "모험가"
 		elseif camp == "Cygnus" then return "시그너스"
 		elseif camp == "Resistance" then return "레지스탕스"
