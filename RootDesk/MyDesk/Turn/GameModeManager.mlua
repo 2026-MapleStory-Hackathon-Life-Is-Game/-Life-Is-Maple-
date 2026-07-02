@@ -162,6 +162,20 @@ script GameModeManager extends Logic
 	end
 
 	@ExecSpace("Server")
+	method void DebugFinishGame()
+		        -- [임시/디버그] 요청 클라이언트 기준으로 싱글 게임 종료 흐름(결과 패널)을 강제 실행한다.
+		        -- 결과 패널/랭킹/초기화 검증용. 싱글 게임 진행 중이 아니면 무시(먼저 싱글 게임을 시작해야 함).
+		        local player = _UserService:GetUserEntityByUserId(senderUserId)
+		        if isvalid(player) == false then return end
+		        if self._activeMode ~= "SINGLE" then
+		            log_warning("[GameModeManager] DebugFinishGame 무시: 싱글 게임이 아님(mode=" .. tostring(self._activeMode) .. ")")
+		            return
+		        end
+		        log("[GameModeManager] (디버그) 강제 게임 종료 요청")
+		        self:FinishGame(player)
+	end
+
+	@ExecSpace("Server")
 	method void FinishMulti(table userIds)
 		        if not self._isGameActive then return end
 		
@@ -250,6 +264,14 @@ script GameModeManager extends Logic
 		            local m = entity:GetComponent(t)
 		            if isvalid(m) then m:ResetAll() end
 		        end
+		        -- 미라클 큐브 인벤토리 + 미확정 잠재 후보 초기화.
+		        local bag = entity:GetComponent("script.CubeInventory")
+		        if isvalid(bag) then bag:ResetAll() end
+		        if entity.PlayerComponent ~= nil then
+		            _PotentialManager:ClearPendingFor(entity.PlayerComponent.UserId)
+		        end
+		        -- 직업 초기화(Beginner) + 기본 무기 재적용. currentJob이 전역 단일값이라 여기서 되돌린다.
+		        _JobWeaponManager:ResetJob(entity)
 		        local cp = entity:GetComponent("script.CombatPowerManager")
 		        if isvalid(cp) then cp:ResetAll() end
 		        -- 초기화 후 빈 장비 기준 전투력 재계산.

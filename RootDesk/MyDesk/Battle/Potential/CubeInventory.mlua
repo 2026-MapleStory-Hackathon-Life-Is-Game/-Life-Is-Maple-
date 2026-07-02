@@ -11,4 +11,10 @@ script CubeInventory extends Component
 		self.MiracleCubeCount = self.MiracleCubeCount + n
 	end
 
+	@ExecSpace("ServerOnly")
+	method void ResetAll()
+		-- 게임 종료 초기화: 보유 미라클 큐브 수량을 0으로 되돌린다.
+		self.MiracleCubeCount = 0
+	end
+
 end

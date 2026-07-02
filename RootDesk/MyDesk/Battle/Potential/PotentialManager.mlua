@@ -167,6 +167,15 @@ script PotentialManager extends Logic
 		return player:GetComponent("script.CubeInventory")
 	end
 
+	@ExecSpace("ServerOnly")
+	method void ClearPendingFor(string userId)
+		-- 게임 종료 초기화: 해당 유저의 미확정 큐브 후보(Before/After 대기)를 모두 제거한다.
+		local prefix = userId .. ":"
+		for k in pairs(self._pending) do
+			if string.sub(k, 1, #prefix) == prefix then self._pending[k] = nil end
+		end
+	end
+
 	@ExecSpace("Server")
 	method void RequestCube(string equipName)
 		-- 미라클 큐브 사용 요청. 없음→자동 확정, 있음→Before/After 대기(ChooseCube로 확정).

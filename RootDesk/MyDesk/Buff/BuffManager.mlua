@@ -37,6 +37,7 @@ script BuffManager extends Component
 		self.SlotBuffs = {}
 		self.ListBuffs = {}
 		self.DynamicMods = self:EmptyModifier()
+		self.CampName = ""   -- 진영 라벨도 초기화(캠프 버프 슬롯은 위에서 비워지지만 이름 라벨은 별도 필드).
 		log("BuffManager: 버프 전체 초기화")
 		-- 전투력 재계산 + 버프바 UI 갱신.
 		self:OnBuffsChanged()
