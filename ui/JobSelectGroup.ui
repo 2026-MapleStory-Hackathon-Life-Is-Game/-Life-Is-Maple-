@@ -196,13 +196,14 @@
             {
               "@type": "MOD.Core.SpriteGUIRendererComponent",
               "ImageRUID": {
-                "DataId": "4fea64a3307cda641809ad8be0d4890b"
+                "DataId": "54e35f0bc48a440abf16229122faa636"
               },
               "OverrideSorting": false,
+              "PreserveSprite": 2,
               "Color": {
-                "r": 0.08,
-                "g": 0.08,
-                "b": 0.16,
+                "r": 1.0,
+                "g": 1.0,
+                "b": 1.0,
                 "a": 0.95
               },
               "Enable": true
@@ -219,7 +220,7 @@
           "name": "Title",
           "path": "/ui/JobSelectGroup/Panel/Title",
           "nameEditable": true,
-          "enable": true,
+          "enable": false,
           "visible": true,
           "localize": true,
           "displayOrder": 0,
@@ -414,18 +415,117 @@
         }
       },
       {
-        "id": "1894c0b6-5e8b-40b4-a106-89b48d746379",
-        "path": "/ui/JobSelectGroup/Panel/BtnWarrior",
-        "componentNames": "MOD.Core.UITransformComponent,MOD.Core.SpriteGUIRendererComponent,MOD.Core.ButtonComponent,MOD.Core.TextComponent",
+        "id": "9123ab4d-cbc4-4e50-b100-9513538baafb",
+        "path": "/ui/JobSelectGroup/Panel/Content",
+        "componentNames": "MOD.Core.UITransformComponent,MOD.Core.ScrollLayoutGroupComponent",
         "jsonString": {
-          "name": "BtnWarrior",
-          "path": "/ui/JobSelectGroup/Panel/BtnWarrior",
+          "name": "Content",
+          "path": "/ui/JobSelectGroup/Panel/Content",
           "nameEditable": true,
           "enable": true,
           "visible": true,
           "localize": true,
           "displayOrder": 1,
           "pathConstraints": "////",
+          "revision": 1,
+          "origin": {
+            "type": "Model",
+            "entry_id": "uiempty",
+            "sub_entity_id": null,
+            "root_entity_id": "9123ab4d-cbc4-4e50-b100-9513538baafb",
+            "replaced_model_id": null
+          },
+          "modelId": "uiempty",
+          "@components": [
+            {
+              "@type": "MOD.Core.UITransformComponent",
+              "AlignmentOption": 0,
+              "AnchorsMax": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "AnchorsMin": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "MobileOnly": false,
+              "OffsetMax": {
+                "x": 963.7028,
+                "y": 310.9271
+              },
+              "OffsetMin": {
+                "x": -956.2972,
+                "y": -421.5143
+              },
+              "Pivot": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "RectSize": {
+                "x": 1920.0,
+                "y": 732.4414
+              },
+              "UIMode": 1,
+              "UIScale": {
+                "x": 1.0,
+                "y": 1.0,
+                "z": 1.0
+              },
+              "UIVersion": 2,
+              "anchoredPosition": {
+                "x": 3.7028,
+                "y": -55.2936
+              },
+              "Rotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+              },
+              "Position": {
+                "x": 3.7028,
+                "y": -55.2936,
+                "z": 0.0
+              },
+              "QuaternionRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": -1.0
+              },
+              "Scale": {
+                "x": 1.0,
+                "y": 1.0,
+                "z": 1.0
+              },
+              "ZRotation": 0.0,
+              "Enable": true
+            },
+            {
+              "@type": "MOD.Core.ScrollLayoutGroupComponent",
+              "ChildAlignment": 4,
+              "OverrideSorting": false,
+              "ScrollBarThickness": 21.6,
+              "Spacing": 191.29,
+              "UseScroll": false,
+              "Enable": true
+            }
+          ],
+          "@version": 1
+        }
+      },
+      {
+        "id": "1894c0b6-5e8b-40b4-a106-89b48d746379",
+        "path": "/ui/JobSelectGroup/Panel/Content/BtnWarrior",
+        "componentNames": "MOD.Core.UITransformComponent,MOD.Core.SpriteGUIRendererComponent,MOD.Core.ButtonComponent,MOD.Core.TextComponent",
+        "jsonString": {
+          "name": "BtnWarrior",
+          "path": "/ui/JobSelectGroup/Panel/Content/BtnWarrior",
+          "nameEditable": true,
+          "enable": true,
+          "visible": true,
+          "localize": true,
+          "displayOrder": 0,
+          "pathConstraints": "/////",
           "revision": 0,
           "origin": {
             "type": "Model",
@@ -439,23 +539,23 @@
             {
               "@type": "MOD.Core.UITransformComponent",
               "ActivePlatform": 255,
-              "AlignmentOption": 0,
+              "AlignmentOption": 4,
               "AnchorsMax": {
-                "x": 0.5,
-                "y": 0.5
+                "x": 0.0,
+                "y": 1.0
               },
               "AnchorsMin": {
-                "x": 0.5,
-                "y": 0.5
+                "x": 0.0,
+                "y": 1.0
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": -90.0,
-                "y": 64.0
+                "x": 367.0,
+                "y": -322.0
               },
               "OffsetMin": {
-                "x": -230.0,
-                "y": -24.0
+                "x": 227.0,
+                "y": -410.0
               },
               "Pivot": {
                 "x": 0.5,
@@ -473,12 +573,12 @@
               },
               "UIVersion": 2,
               "anchoredPosition": {
-                "x": -160.0,
-                "y": 20.0
+                "x": 297.0,
+                "y": -366.0
               },
               "Position": {
-                "x": -160.0,
-                "y": 20.0,
+                "x": 297.0,
+                "y": -366.0,
                 "z": 0.0
               },
               "QuaternionRotation": {
@@ -500,7 +600,7 @@
               "EndFrameIndex": 2147483647,
               "IgnoreMapLayerCheck": false,
               "ImageRUID": {
-                "DataId": "4fea64a3307cda641809ad8be0d4890b"
+                "DataId": "9966bc7edf144159a1de67cf805294af"
               },
               "LocalPosition": {
                 "x": 0.0,
@@ -514,13 +614,13 @@
               "OrderInLayer": 0,
               "OverrideSorting": false,
               "PlayRate": 1.0,
-              "PreserveSprite": 0,
+              "PreserveSprite": 2,
               "SortingLayer": "UI",
               "StartFrameIndex": 0,
               "Color": {
-                "r": 0.75,
-                "g": 0.22,
-                "b": 0.22,
+                "r": 1.0,
+                "g": 1.0,
+                "b": 1.0,
                 "a": 1.0
               },
               "DropShadow": false,
@@ -659,7 +759,7 @@
               "UseConstraintX": false,
               "UseConstraintY": false,
               "UseOutLine": false,
-              "Enable": true
+              "Enable": false
             }
           ],
           "@version": 1
@@ -667,17 +767,17 @@
       },
       {
         "id": "b0597270-1f81-45be-b1db-241d0bbd36fd",
-        "path": "/ui/JobSelectGroup/Panel/BtnArcher",
+        "path": "/ui/JobSelectGroup/Panel/Content/BtnArcher",
         "componentNames": "MOD.Core.UITransformComponent,MOD.Core.SpriteGUIRendererComponent,MOD.Core.ButtonComponent,MOD.Core.TextComponent",
         "jsonString": {
           "name": "BtnArcher",
-          "path": "/ui/JobSelectGroup/Panel/BtnArcher",
+          "path": "/ui/JobSelectGroup/Panel/Content/BtnArcher",
           "nameEditable": true,
           "enable": true,
           "visible": true,
           "localize": true,
-          "displayOrder": 2,
-          "pathConstraints": "////",
+          "displayOrder": 1,
+          "pathConstraints": "/////",
           "revision": 0,
           "origin": {
             "type": "Model",
@@ -691,23 +791,23 @@
             {
               "@type": "MOD.Core.UITransformComponent",
               "ActivePlatform": 255,
-              "AlignmentOption": 0,
+              "AlignmentOption": 4,
               "AnchorsMax": {
-                "x": 0.5,
-                "y": 0.5
+                "x": 0.0,
+                "y": 1.0
               },
               "AnchorsMin": {
-                "x": 0.5,
-                "y": 0.5
+                "x": 0.0,
+                "y": 1.0
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 70.0,
-                "y": 64.0
+                "x": 698.29,
+                "y": -322.0
               },
               "OffsetMin": {
-                "x": -70.0,
-                "y": -24.0
+                "x": 558.29,
+                "y": -410.0
               },
               "Pivot": {
                 "x": 0.5,
@@ -725,12 +825,12 @@
               },
               "UIVersion": 2,
               "anchoredPosition": {
-                "x": 0.0,
-                "y": 20.0
+                "x": 628.29,
+                "y": -366.0
               },
               "Position": {
-                "x": 0.0,
-                "y": 20.0,
+                "x": 628.29,
+                "y": -366.0,
                 "z": 0.0
               },
               "QuaternionRotation": {
@@ -752,7 +852,7 @@
               "EndFrameIndex": 2147483647,
               "IgnoreMapLayerCheck": false,
               "ImageRUID": {
-                "DataId": "4fea64a3307cda641809ad8be0d4890b"
+                "DataId": "4b473c3761d44176acd62c6ec810bb8f"
               },
               "LocalPosition": {
                 "x": 0.0,
@@ -766,13 +866,13 @@
               "OrderInLayer": 0,
               "OverrideSorting": false,
               "PlayRate": 1.0,
-              "PreserveSprite": 0,
+              "PreserveSprite": 2,
               "SortingLayer": "UI",
               "StartFrameIndex": 0,
               "Color": {
-                "r": 0.22,
-                "g": 0.65,
-                "b": 0.22,
+                "r": 1.0,
+                "g": 1.0,
+                "b": 1.0,
                 "a": 1.0
               },
               "DropShadow": false,
@@ -919,17 +1019,17 @@
       },
       {
         "id": "8e751a35-dd1a-4836-9079-945f5a7e909d",
-        "path": "/ui/JobSelectGroup/Panel/BtnMage",
+        "path": "/ui/JobSelectGroup/Panel/Content/BtnMage",
         "componentNames": "MOD.Core.UITransformComponent,MOD.Core.SpriteGUIRendererComponent,MOD.Core.ButtonComponent,MOD.Core.TextComponent",
         "jsonString": {
           "name": "BtnMage",
-          "path": "/ui/JobSelectGroup/Panel/BtnMage",
+          "path": "/ui/JobSelectGroup/Panel/Content/BtnMage",
           "nameEditable": true,
           "enable": true,
           "visible": true,
           "localize": true,
-          "displayOrder": 3,
-          "pathConstraints": "////",
+          "displayOrder": 2,
+          "pathConstraints": "/////",
           "revision": 0,
           "origin": {
             "type": "Model",
@@ -943,23 +1043,23 @@
             {
               "@type": "MOD.Core.UITransformComponent",
               "ActivePlatform": 255,
-              "AlignmentOption": 0,
+              "AlignmentOption": 4,
               "AnchorsMax": {
-                "x": 0.5,
-                "y": 0.5
+                "x": 0.0,
+                "y": 1.0
               },
               "AnchorsMin": {
-                "x": 0.5,
-                "y": 0.5
+                "x": 0.0,
+                "y": 1.0
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 230.0,
-                "y": 64.0
+                "x": 1029.58,
+                "y": -322.0
               },
               "OffsetMin": {
-                "x": 90.0,
-                "y": -24.0
+                "x": 889.579956,
+                "y": -410.0
               },
               "Pivot": {
                 "x": 0.5,
@@ -977,12 +1077,12 @@
               },
               "UIVersion": 2,
               "anchoredPosition": {
-                "x": 160.0,
-                "y": 20.0
+                "x": 959.579956,
+                "y": -366.0
               },
               "Position": {
-                "x": 160.0,
-                "y": 20.0,
+                "x": 959.579956,
+                "y": -366.0,
                 "z": 0.0
               },
               "QuaternionRotation": {
@@ -1004,7 +1104,7 @@
               "EndFrameIndex": 2147483647,
               "IgnoreMapLayerCheck": false,
               "ImageRUID": {
-                "DataId": "4fea64a3307cda641809ad8be0d4890b"
+                "DataId": "f8408bcc8992433dabb7a232b49b30cc"
               },
               "LocalPosition": {
                 "x": 0.0,
@@ -1018,13 +1118,13 @@
               "OrderInLayer": 0,
               "OverrideSorting": false,
               "PlayRate": 1.0,
-              "PreserveSprite": 0,
+              "PreserveSprite": 2,
               "SortingLayer": "UI",
               "StartFrameIndex": 0,
               "Color": {
-                "r": 0.22,
-                "g": 0.35,
-                "b": 0.8,
+                "r": 1.0,
+                "g": 1.0,
+                "b": 1.0,
                 "a": 1.0
               },
               "DropShadow": false,
@@ -1163,7 +1263,7 @@
               "UseConstraintX": false,
               "UseConstraintY": false,
               "UseOutLine": false,
-              "Enable": true
+              "Enable": false
             }
           ],
           "@version": 1
@@ -1171,17 +1271,17 @@
       },
       {
         "id": "8d6f95a2-905b-4daf-9a65-5c896d1e3364",
-        "path": "/ui/JobSelectGroup/Panel/BtnThief",
+        "path": "/ui/JobSelectGroup/Panel/Content/BtnThief",
         "componentNames": "MOD.Core.UITransformComponent,MOD.Core.SpriteGUIRendererComponent,MOD.Core.ButtonComponent,MOD.Core.TextComponent",
         "jsonString": {
           "name": "BtnThief",
-          "path": "/ui/JobSelectGroup/Panel/BtnThief",
+          "path": "/ui/JobSelectGroup/Panel/Content/BtnThief",
           "nameEditable": true,
           "enable": true,
           "visible": true,
           "localize": true,
-          "displayOrder": 4,
-          "pathConstraints": "////",
+          "displayOrder": 3,
+          "pathConstraints": "/////",
           "revision": 0,
           "origin": {
             "type": "Model",
@@ -1195,23 +1295,23 @@
             {
               "@type": "MOD.Core.UITransformComponent",
               "ActivePlatform": 255,
-              "AlignmentOption": 0,
+              "AlignmentOption": 4,
               "AnchorsMax": {
-                "x": 0.5,
-                "y": 0.5
+                "x": 0.0,
+                "y": 1.0
               },
               "AnchorsMin": {
-                "x": 0.5,
-                "y": 0.5
+                "x": 0.0,
+                "y": 1.0
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": -10.0,
-                "y": -36.0
+                "x": 1360.86987,
+                "y": -322.0
               },
               "OffsetMin": {
-                "x": -150.0,
-                "y": -124.0
+                "x": 1220.86987,
+                "y": -410.0
               },
               "Pivot": {
                 "x": 0.5,
@@ -1229,12 +1329,12 @@
               },
               "UIVersion": 2,
               "anchoredPosition": {
-                "x": -80.0,
-                "y": -80.0
+                "x": 1290.86987,
+                "y": -366.0
               },
               "Position": {
-                "x": -80.0,
-                "y": -80.0,
+                "x": 1290.86987,
+                "y": -366.0,
                 "z": 0.0
               },
               "QuaternionRotation": {
@@ -1256,7 +1356,7 @@
               "EndFrameIndex": 2147483647,
               "IgnoreMapLayerCheck": false,
               "ImageRUID": {
-                "DataId": "4fea64a3307cda641809ad8be0d4890b"
+                "DataId": "c55b0f065a744bf0a134cc407067e132"
               },
               "LocalPosition": {
                 "x": 0.0,
@@ -1270,13 +1370,13 @@
               "OrderInLayer": 0,
               "OverrideSorting": false,
               "PlayRate": 1.0,
-              "PreserveSprite": 0,
+              "PreserveSprite": 2,
               "SortingLayer": "UI",
               "StartFrameIndex": 0,
               "Color": {
-                "r": 0.45,
-                "g": 0.22,
-                "b": 0.65,
+                "r": 1.0,
+                "g": 1.0,
+                "b": 1.0,
                 "a": 1.0
               },
               "DropShadow": false,
@@ -1415,7 +1515,7 @@
               "UseConstraintX": false,
               "UseConstraintY": false,
               "UseOutLine": false,
-              "Enable": true
+              "Enable": false
             }
           ],
           "@version": 1
@@ -1423,17 +1523,17 @@
       },
       {
         "id": "f6fe7b29-dde2-4a1e-a396-86c8b958ff32",
-        "path": "/ui/JobSelectGroup/Panel/BtnPirate",
+        "path": "/ui/JobSelectGroup/Panel/Content/BtnPirate",
         "componentNames": "MOD.Core.UITransformComponent,MOD.Core.SpriteGUIRendererComponent,MOD.Core.ButtonComponent,MOD.Core.TextComponent",
         "jsonString": {
           "name": "BtnPirate",
-          "path": "/ui/JobSelectGroup/Panel/BtnPirate",
+          "path": "/ui/JobSelectGroup/Panel/Content/BtnPirate",
           "nameEditable": true,
           "enable": true,
           "visible": true,
           "localize": true,
-          "displayOrder": 5,
-          "pathConstraints": "////",
+          "displayOrder": 4,
+          "pathConstraints": "/////",
           "revision": 0,
           "origin": {
             "type": "Model",
@@ -1447,23 +1547,23 @@
             {
               "@type": "MOD.Core.UITransformComponent",
               "ActivePlatform": 255,
-              "AlignmentOption": 0,
+              "AlignmentOption": 4,
               "AnchorsMax": {
-                "x": 0.5,
-                "y": 0.5
+                "x": 0.0,
+                "y": 1.0
               },
               "AnchorsMin": {
-                "x": 0.5,
-                "y": 0.5
+                "x": 0.0,
+                "y": 1.0
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 150.0,
-                "y": -36.0
+                "x": 1692.15991,
+                "y": -322.0
               },
               "OffsetMin": {
-                "x": 10.0,
-                "y": -124.0
+                "x": 1552.15991,
+                "y": -410.0
               },
               "Pivot": {
                 "x": 0.5,
@@ -1481,12 +1581,12 @@
               },
               "UIVersion": 2,
               "anchoredPosition": {
-                "x": 80.0,
-                "y": -80.0
+                "x": 1622.15991,
+                "y": -366.0
               },
               "Position": {
-                "x": 80.0,
-                "y": -80.0,
+                "x": 1622.15991,
+                "y": -366.0,
                 "z": 0.0
               },
               "QuaternionRotation": {
@@ -1508,7 +1608,7 @@
               "EndFrameIndex": 2147483647,
               "IgnoreMapLayerCheck": false,
               "ImageRUID": {
-                "DataId": "4fea64a3307cda641809ad8be0d4890b"
+                "DataId": "da87f5f2eed34b259f187bf5b9840359"
               },
               "LocalPosition": {
                 "x": 0.0,
@@ -1522,13 +1622,13 @@
               "OrderInLayer": 0,
               "OverrideSorting": false,
               "PlayRate": 1.0,
-              "PreserveSprite": 0,
+              "PreserveSprite": 2,
               "SortingLayer": "UI",
               "StartFrameIndex": 0,
               "Color": {
-                "r": 0.8,
-                "g": 0.55,
-                "b": 0.1,
+                "r": 1.0,
+                "g": 1.0,
+                "b": 1.0,
                 "a": 1.0
               },
               "DropShadow": false,
@@ -1667,7 +1767,7 @@
               "UseConstraintX": false,
               "UseConstraintY": false,
               "UseOutLine": false,
-              "Enable": true
+              "Enable": false
             }
           ],
           "@version": 1
