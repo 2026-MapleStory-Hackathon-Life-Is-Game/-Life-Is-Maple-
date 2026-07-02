@@ -130,6 +130,7 @@ script BuffPanelUI extends Logic
 		self:AppendEffect(lines, ds, rowIdx, "MainPower_Num", "공격력/마력 +", "")
 		self:AppendEffect(lines, ds, rowIdx, "MainPower_Percent", "공격력/마력 +", "%")
 		self:AppendEffect(lines, ds, rowIdx, "Damage_Percent", "데미지 +", "%")
+		self:AppendEffect(lines, ds, rowIdx, "Boss_Percent", "보스 공격력 +", "%")
 		self:AppendEffect(lines, ds, rowIdx, "CriticalDamage_Percent", "크리티컬 데미지 +", "%")
 
 		-- 길드 버프(Category=Guild)면 현재 영입한 길드원 수를 덧붙인다.

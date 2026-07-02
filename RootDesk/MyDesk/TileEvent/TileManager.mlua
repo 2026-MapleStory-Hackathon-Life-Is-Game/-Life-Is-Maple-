@@ -118,7 +118,7 @@ script TileManager extends Logic
 				elseif tileType == "Boss" then return "BossTile"
 				elseif tileType == "Village" then return "VillageTile"
 				elseif tileType == "Guild" then return "GuildTile"
-				elseif tileType == "Union" then return "UnionTile"
+				elseif tileType == "Union" then return "RomanceTile"
 				elseif tileType == "End" then return "EndTile"
 				end
 				return ""
@@ -233,6 +233,28 @@ script TileManager extends Logic
 	end
 
 	@ExecSpace("ServerOnly")
+	method any LifePathComp(string key, Entity piece, any defaultComp)
+		-- 인생 분기(Stage3): 'Guild' 타입 타일을 도착 플레이어의 LifePath에 따라 교체한다.
+		--   Guild/미선택 → 기존 GuildTile(defaultComp) / Romance → 이 엔티티의 RomanceTile을 보장해 반환.
+		-- (Guild 타입이 아니면 그대로 defaultComp. Stage1~2엔 Guild 타일이 없어 영향 없음.)
+		local data = self.tileGraph[key]
+		if data == nil or data.type ~= "Guild" then return defaultComp end
+		local lp = piece:GetComponent("script.LifePathManager")
+		local path = ""
+		if isvalid(lp) then path = lp.LifePath end
+		if path ~= "Romance" then return defaultComp end
+		local entity = self.tileEntities[key]
+		if isvalid(entity) == false then return defaultComp end
+		local rt = entity:GetComponent("script.RomanceTile")
+		if isvalid(rt) == false then
+			entity:AddComponent("RomanceTile")
+			rt = entity:GetComponent("script.RomanceTile")
+		end
+		if isvalid(rt) == false then return defaultComp end
+		return rt
+	end
+
+	@ExecSpace("ServerOnly")
 	method boolean TriggerArrive(string mapName, string tileName, Entity piece)
 		-- 도착 타일 효과를 실행하고 '이벤트 UI를 띄우는 타일이었는지'를 반환한다.
 		-- 반환 true면 호출측(턴 매니저)이 UI 표시 시간만큼 대기한 뒤 다음 단계로 진행한다.
@@ -261,6 +283,8 @@ script TileManager extends Logic
 			comp = self.tileComponents[key]
 		end
 
+		-- 인생 분기: Stage3 'Guild' 타일은 플레이어 LifePath로 GuildTile↔RomanceTile 교체.
+		comp = self:LifePathComp(key, piece, comp)
 		if comp == nil then return false end
 		comp:OnArrive(piece)
 		return comp:IsEventTile()
@@ -283,6 +307,7 @@ script TileManager extends Logic
 		else
 			comp = self.tileComponents[key]
 		end
+		comp = self:LifePathComp(key, piece, comp)
 		if comp == nil then return false end
 		return comp:IsEventTile()
 	end
@@ -304,6 +329,7 @@ script TileManager extends Logic
 		else
 			comp = self.tileComponents[key]
 		end
+		comp = self:LifePathComp(key, piece, comp)
 		if comp == nil then return false end
 		return comp:IsInteractiveTile()
 	end
@@ -420,7 +446,7 @@ script TileManager extends Logic
 							pendingHunt = true
 						end
 					else
-						ruid = self:TileArtRUID(data.type)
+						ruid = self:LifePathTileArt(data.type)
 					end
 					if ruid ~= "" then
 						local child = self:FindChild(entity, "TileType_TileSprite")
@@ -441,6 +467,23 @@ script TileManager extends Logic
 		-- 하나라도 몬스터 미동기화면 재시도(false), 전부 적용됐을 때만 완료(true).
 		if pendingHunt then return false end
 		return true
+	end
+
+	method string LocalLifePathArtType()
+		-- 내(LocalPlayer) 인생 분기에 따라 'Guild' 타일의 표시 타입을 결정한다. Romance면 "Union", 아니면 "Guild".
+		local me = _UserService.LocalPlayer
+		if isvalid(me) == false then return "Guild" end
+		local lp = me:GetComponent("script.LifePathManager")
+		if isvalid(lp) and lp.LifePath == "Romance" then return "Union" end
+		return "Guild"
+	end
+
+	method string LifePathTileArt(string tileType)
+		-- 'Guild' 타일은 내 LifePath에 맞춰 Guild/Union 스프라이트로(per-player), 그 외는 타입 스프라이트 그대로.
+		if tileType == "Guild" then
+			return self:TileArtRUID(self:LocalLifePathArtType())
+		end
+		return self:TileArtRUID(tileType)
 	end
 
 	method string TileArtRUID(string tileType)

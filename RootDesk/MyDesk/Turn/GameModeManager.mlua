@@ -176,6 +176,33 @@ script GameModeManager extends Logic
 	end
 
 	@ExecSpace("Server")
+	method void DebugNextStage()
+		        -- [임시/디버그] 요청 클라이언트를 현재 스테이지 완주 없이 곧바로 다음 스테이지(맵)로 이동시킨다.
+		        -- Map_01→Map_02, Map_02→Map_03, Map_03(마지막)→게임 종료(FinishGame). 싱글 게임 진행 중에만 동작.
+		        local player = _UserService:GetUserEntityByUserId(senderUserId)
+		        if isvalid(player) == false then return end
+		        if self._activeMode ~= "SINGLE" then
+		            log_warning("[GameModeManager] DebugNextStage 무시: 싱글 게임이 아님(mode=" .. tostring(self._activeMode) .. ")")
+		            return
+		        end
+		        if not self._isGameActive then
+		            log_warning("[GameModeManager] DebugNextStage 무시: 게임이 진행 중이 아님")
+		            return
+		        end
+		        local currentMap = player.CurrentMapName
+		        log("[GameModeManager] (디버그) 다음 스테이지 이동 요청 (현재=" .. tostring(currentMap) .. ")")
+		        if currentMap == "Map_01" then
+		            self:MoveToNextMap(player, "Map_02")
+		        elseif currentMap == "Map_02" then
+		            self:MoveToNextMap(player, "Map_03")
+		        else
+		            -- 마지막 스테이지(Map_03) → 최종 완주 처리.
+		            log("[GameModeManager] (디버그) 마지막 스테이지 → 게임 종료 처리")
+		            self:FinishGame(player)
+		        end
+	end
+
+	@ExecSpace("Server")
 	method void FinishMulti(table userIds)
 		        if not self._isGameActive then return end
 		
@@ -262,6 +289,10 @@ script GameModeManager extends Logic
 		        if isvalid(buff) then buff:ResetAll() end
 		        local guild = entity:GetComponent("script.GuildManager")
 		        if isvalid(guild) then guild:ResetAll() end
+		        local romance = entity:GetComponent("script.RomanceManager")
+		        if isvalid(romance) then romance:ResetAll() end
+		        local lifepath = entity:GetComponent("script.LifePathManager")
+		        if isvalid(lifepath) then lifepath:ResetAll() end
 		        for _, t in ipairs({ "script.WeaponEquipment", "script.ArmorEquipment", "script.AccessoryEquipment" }) do
 		            local m = entity:GetComponent(t)
 		            if isvalid(m) then m:ResetAll() end

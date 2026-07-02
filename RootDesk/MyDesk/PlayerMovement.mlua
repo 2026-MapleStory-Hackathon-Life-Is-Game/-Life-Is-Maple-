@@ -26,7 +26,11 @@ script PlayerMovement extends Component
 		        if self.Entity ~= _UserService.LocalPlayer then return end
 		
 				if self.Entity.CurrentMapName == "Map_01" then
-					_CampSelectUI:ShowSelectPanel() end
+					_CampSelectUI:ShowSelectPanel()
+				elseif self.Entity.CurrentMapName == "Map_03" then
+					-- 3스테이지 진입: 인생 분기(길드/연애) 선택창 표시(내 화면만).
+					_LifePathSelectUI:ShowSelectPanel()
+				end
 	end
 
 	method void ApplyPhysicsForMap()

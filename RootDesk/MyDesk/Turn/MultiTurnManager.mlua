@@ -199,6 +199,14 @@ script MultiTurnManager extends Logic
     @ExecSpace("Server")
     method void OnTurnStart()
         log("[MultiTurnManager] 턴 시작 (플레이어 " .. tostring(self._currentPlayerIndex) .. ")")
+        -- 턴 시작 시 현재 턴 플레이어의 데이트 버프 잔여 턴을 1 줄인다(3턴 후 소멸).
+        for userId, userEntity in pairs(_UserService.UserEntities) do
+            if userId == self._currentPlayerUserId then
+                local rm = userEntity:GetComponent("script.RomanceManager")
+                if isvalid(rm) then rm:OnTurnPassed() end
+                break
+            end
+        end
         self:AdvanceToState("DICE")
     end
 
