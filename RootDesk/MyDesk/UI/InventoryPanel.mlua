@@ -253,6 +253,14 @@ script InventoryPanel extends Component
 		if isvalid(self.panelRoot) then
 			self.panelRoot.Enable = true
 		end
+		-- 인벤 최상위 그룹을 형제 중 맨 앞으로 올린다. InGameUIGroup 정적 순서상 Inventory_Panel이
+		-- UnderButton(HUD 하단바)보다 뒤라, 이 처리가 없으면 주사위/열기 버튼이 인벤 하단 닫기 버튼을 덮는다.
+		-- (다른 팝업/툴팁도 열릴 때 동일하게 SetSiblingIndex로 맨 앞으로 올리므로 그들이 가려지지 않는다.)
+		local grp = self.Entity.Parent
+		if isvalid(grp) then
+			local gut = grp.UITransformComponent
+			if isvalid(gut) then _UILogic:SetSiblingIndex(gut, 1000000) end
+		end
 		-- 인벤 열림 동안 마우스 휠은 카메라 줌이 아니라 인벤 스크롤에 쓰이도록 맵뷰에 통지.
 		if _MapViewManager ~= nil then _MapViewManager:SetInventoryOpen(true) end
 		self:Rebuild()
