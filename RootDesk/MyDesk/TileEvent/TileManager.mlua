@@ -436,6 +436,10 @@ script TileManager extends Logic
 			if isvalid(entity) then
 				local data = self.tileGraph[key]
 				if data ~= nil then
+					-- 칸 표시 아이콘(Dummy_TileSprite): 타일 유형별 아이콘을 적용한다.
+					-- (몬스터 @Sync와 무관 → 매 재시도 패스마다 idempotent하게 적용해도 무방.)
+					self:ApplyTileTypeIcon(entity, data.type)
+
 					local ruid = ""
 					if data.type == "Hunt" or data.type == "HuntPlus" then
 						local mn = self.TileMonster[key]
@@ -492,6 +496,41 @@ script TileManager extends Logic
 		if isvalid(ds) == false then return "" end
 		for i = 1, ds:GetRowCount() do
 			if ds:GetCell(i, "Type") == tileType then
+				return ds:GetCell(i, "SpriteRUID")
+			end
+		end
+		return ""
+	end
+
+	@ExecSpace("ClientOnly")
+	method void ApplyTileTypeIcon(Entity entity, string tileType)
+		-- 타일 유형에 맞는 '칸 표시 아이콘'을 Dummy_TileSprite 자식 스프라이트에 적용한다.
+		-- 아이콘 없는 유형(Start/End 등)은 건너뛴다.
+		local iconRuid = self:TileTypeIconRUID(tileType)
+		if iconRuid == "" then return end
+		local dummy = self:FindChild(entity, "Dummy_TileSprite")
+		if isvalid(dummy) == false then return end
+		local sr = dummy.SpriteRendererComponent
+		if isvalid(sr) == false then return end
+		sr.SpriteRUID = iconRuid
+		-- 지형(MapLayer0)에 가려지지 않도록 플레이어와 같은 "Default" 레이어로 올린다.
+		-- (지형 위 / 플레이어(3)·타일 대형아트(2) 아래 = Order 1). z가 큰 값(999.999)이면 카메라에서
+		-- 잘릴 수 있어 타일 중심(0,0,0)으로 리셋한다.
+		sr.SortingLayer = "Default"
+		sr.OrderInLayer = 1
+		local dtf = dummy.TransformComponent
+		if isvalid(dtf) then dtf.Position = Vector3(0, 0, 0) end
+	end
+
+	method string TileTypeIconRUID(string tileType)
+		-- 타일 유형 → 칸 표시 아이콘 RUID(TileTypeIcon 데이터셋).
+		-- Guild 타일은 내 인생분기가 Romance면 Union(연애) 아이콘으로 표시(TileType_TileSprite와 동일 규칙).
+		local resolved = tileType
+		if tileType == "Guild" then resolved = self:LocalLifePathArtType() end
+		local ds = _DataService:GetTable("TileTypeIcon")
+		if isvalid(ds) == false then return "" end
+		for i = 1, ds:GetRowCount() do
+			if ds:GetCell(i, "Type") == resolved then
 				return ds:GetCell(i, "SpriteRUID")
 			end
 		end
