@@ -3,6 +3,9 @@ script RollResultDiceAnimationUI extends Logic
 
 	property Entity panel = "3f6e7924-909b-4856-bff4-06a1c4d4169a"
 
+	-- 그룹 루트(/ui/ResultDicetUIGroup). 주사위 연출 시 형제 최상단으로 올려 EventTileGroup 위에 뜨게 한다.
+	property Entity groupRoot = "e507219b-ec70-41f0-bd59-a00a82974aa2"
+
 	property SpriteGUIRendererComponent leftDice = "5e5ae24c-e218-4e4c-a54b-a35ce41cb108"
 
 	property SpriteGUIRendererComponent rightDice = "03c56c53-dbfe-44c6-a3de-98baf3d3aa1f"
@@ -62,6 +65,7 @@ script RollResultDiceAnimationUI extends Logic
 				
 				-- 패널 켜고, 주사위 눈 스프라이트 교체
 				self.panel.Enable = true
+				self:BringToFront()   -- EventTileGroup 등 다른 그룹 위로 강제(그룹 순서 churn 방지)
 				if isvalid(self.diceParticle) then self.diceParticle.Enable = true end   -- 반짝임 시작
 				self.leftDice.ImageRUID  = self.diceSprites[d1]
 				self.rightDice.ImageRUID = self.diceSprites[d2]
@@ -79,6 +83,15 @@ script RollResultDiceAnimationUI extends Logic
 						end
 					end, 1.0)
 				end, 4.0)
+	end
+
+	@ExecSpace("ClientOnly")
+	method void BringToFront()
+		-- 그룹 루트를 /ui 형제 중 맨 뒤(=최상단 렌더)로 이동해 EventTileGroup 등 다른 그룹 위에 뜨게 한다.
+		-- GroupOrder/displayOrder는 Maker 재직렬화로 흔들리므로, 다른 팝업들과 동일하게 런타임에서 강제한다.
+		if isvalid(self.groupRoot) == false then return end
+		local ut = self.groupRoot.UITransformComponent
+		if isvalid(ut) then _UILogic:SetSiblingIndex(ut, 1000000) end
 	end
 
 	@ExecSpace("ClientOnly")
