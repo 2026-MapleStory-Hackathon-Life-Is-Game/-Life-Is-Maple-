@@ -12,8 +12,12 @@ script PlayerInfoPanel extends Component
 	-- 진영/직업 라벨 텍스트(content/UIText, 예전 "모험가/해적"). 실제 진영/직업을 반영한다.
 	property TextGUIRendererComponent campJobText = "b38deec1-0973-4ad3-9ab8-f3bff963349d"
 
+	-- 레벨 라벨(content/UIText_Level, 우측 하단). 서있는 타일로 결정된 CombatPowerManager.Level 표시.
+	property Entity levelText = "09edce29-fce5-4d8c-a0f9-f421113dbd03"
+
 	property any combatComp = nil      -- 로컬 플레이어의 CombatPowerManager (지연 캐시)
 	property number lastShownPower = -1 -- 마지막으로 표시한 전투력(값이 바뀔 때만 텍스트 갱신)
+	property integer lastShownLevel = -1 -- 마지막으로 표시한 레벨(값이 바뀔 때만 텍스트 갱신)
 	property any buffComp = nil          -- 로컬 플레이어의 BuffManager (진영 라벨용, 지연 캐시)
 	property string lastShownCampJob = "" -- 마지막으로 표시한 진영/직업(값이 바뀔 때만 갱신)
 
@@ -27,6 +31,7 @@ script PlayerInfoPanel extends Component
 
 			self.combatComp = nil
 			self.lastShownPower = -1
+			self.lastShownLevel = -1
 
 		end
 
@@ -57,6 +62,14 @@ script PlayerInfoPanel extends Component
 			end
 		end
 
+		-- 레벨: 서있는 타일(Stage,Tier)로 결정된 CombatPowerManager.Level(@Sync)을 폴링해 갱신.
+		local level = cp.Level
+		if level ~= self.lastShownLevel then
+			self.lastShownLevel = level
+			self:SetLevelText("Lv." .. tostring(level))
+			log("[PlayerInfoPanel] 레벨 라벨 = Lv." .. tostring(level))
+		end
+
 		-- 진영/직업 라벨 갱신(진영=로컬 플레이어 BuffManager.CampName, 직업=전역 currentJob).
 		local campJob = self:CampKo(self:LocalCampKey()) .. "/" .. self:JobKo(self:CurrentJobKey())
 		if campJob ~= self.lastShownCampJob then
@@ -66,6 +79,13 @@ script PlayerInfoPanel extends Component
 			end
 			log("[PlayerInfoPanel] 진영/직업 라벨 = " .. campJob)
 		end
+	end
+
+	method void SetLevelText(string s)
+		-- 레벨 라벨 엔티티(content/UIText_Level)의 TextComponent.Text 설정.
+		if isvalid(self.levelText) == false then return end
+		local tc = self.levelText:GetComponent("MOD.Core.TextComponent")
+		if tc ~= nil then tc.Text = s end
 	end
 
 	method string LocalCampKey()

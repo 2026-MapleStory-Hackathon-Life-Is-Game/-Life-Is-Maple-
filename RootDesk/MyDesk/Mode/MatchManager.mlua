@@ -164,6 +164,8 @@ script MatchManager extends Logic
 		                if userEntity.PlayerMovement ~= nil then
 		                    userEntity.PlayerMovement.currentTile = "Tile_1"
 		                end
+		                -- 맵 시작 시 서 있는 시작 타일의 레벨을 즉시 적용(이동 전에도 레벨이 반영되도록).
+		                _TileManager:ApplyStartTileLevel(userEntity, "Map_01")
 		                log("[MatchManager] 게임 맵 전환: " .. uid)
 		            else
 		                log_warning("[MatchManager] 텔레포트 대상 무효: " .. tostring(uid))

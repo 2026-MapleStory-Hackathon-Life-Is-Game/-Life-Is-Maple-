@@ -1,13 +1,167 @@
 @Component
 script EndTile extends BaseTile
 
+	-- 종료 칸.
+	--   Stage 1·2 End: 도착 즉시 게임 종료/맵 전환(기존 동작).
+	--   Stage 3 End(TileEventData의 마지막 END — Limina, TileIndex 133): 검은 마법사 최종 결전.
+	--     보스 타일처럼 BossUI 단일 선택(검은 마법사/하드, 선택지 1개)으로 진입 → CP 판정
+	--     (적정 전투력 이상=승리 / 미만=패배) → win/lose 문구 → 승·패 모두 게임 종료(재도전 없음).
+	--     대사는 BossDialog(Group=blackmage)에서 관리(intro=선택 화면 안내 / challenge / win / lose).
+	-- 결전 흐름: BossUI 단일 선택(intro) → 하드 선택(RequestSelect) → challenge → '다음' → CP 판정 → win/lose → '다음' → 종료.
+	-- '최종 결전' 여부는 이 종료칸의 Stage(_TileManager:GetTileStage)가 3인지로 자동 판정한다(수동 지정 불필요).
+
+	-- 결전 진행 상태(서버 전용).
+	property any _piece = nil
+	property integer _step = 0
+	property boolean _won = false
+
+	method boolean IsFinalBattle()
+		-- 이 종료칸이 스테이지3(마지막) End 인지 → 검은 마법사 최종 결전. (Stage 1·2 End은 false)
+		if isvalid(self.Entity) == false then return false end
+		-- [테스트] TileEventTester로 BlackMage를 강제하면 어느 칸이든 검은 마법사 결전으로 취급.
+		if isvalid(_TileEventTester) and _TileEventTester.ForceEvent == "BlackMage" then return true end
+		local stage = _TileManager:GetTileStage(self.Entity.CurrentMapName, self.Entity.Name)
+		return stage == 3
+	end
+
+	method boolean IsEventTile()
+		-- 최종 결전 칸만 이벤트(대사)로 취급 → 턴 매니저가 완료까지 대기. 일반 종료칸은 기존대로 즉시 처리.
+		return self:IsFinalBattle()
+	end
+
+	method boolean IsInteractiveTile()
+		-- 최종 결전 칸만 인터랙티브(선택/‘다음’ 진행) → 5초 대기 대신 완료(게임 종료)까지 대기.
+		return self:IsFinalBattle()
+	end
+
+	method string OwnerUserId(Entity piece)
+		-- 말(piece)의 소유 유저 ID. 플레이어가 아니면 "".
+		if isvalid(piece.PlayerComponent) == false then return "" end
+		local uid = piece.PlayerComponent.UserId
+		if uid == nil then return "" end
+		return uid
+	end
+
 	@ExecSpace("ServerOnly")
 	method void OnArrive(Entity piece)
-		log("[EndTile] 종료 칸 도착 → 게임 종료 tile=" .. self.Entity.Name)
-		_GameModeManager:OnPlayerReachedEnd(piece)
-		
-		-- 2. 턴 종료 및 IDLE 상태로 정리
-		    _SingleTurnManager:Stop()
+		-- 일반 종료칸(Stage 1·2): 기존 동작(게임 종료/맵 전환). 최종 결전 칸(Stage 3): 검은 마법사 선택 화면.
+		if self:IsFinalBattle() == false then
+			log("[EndTile] 종료 칸 도착 → 게임 종료 tile=" .. self.Entity.Name)
+			_GameModeManager:OnPlayerReachedEnd(piece)
+			_SingleTurnManager:Stop()
+			return
+		end
+
+		self._piece = piece
+		local ownerId = self:OwnerUserId(piece)
+		if ownerId == "" then
+			-- 소유자 없는 말이면 결전 없이 즉시 종료.
+			_GameModeManager:OnPlayerReachedEnd(piece)
+			_SingleTurnManager:Stop()
+			return
+		end
+		self._step = 0
+		log("[EndTile] 검은 마법사 결전 — 보스 선택 표시 tile=" .. self.Entity.Name)
+		self:ClientShowBossSelect(self:Dlg("intro"), ownerId)
+	end
+
+	@ExecSpace("Server")
+	method void RequestSelect(string bossKey, string diffKey)
+		-- BossUI 단일 선택 콜백(검은 마법사/하드). 도전 문구로 진행.
+		local piece = self._piece
+		if isvalid(piece) == false then return end
+		if senderUserId ~= self:OwnerUserId(piece) then return end
+		self._step = 2
+		log("[EndTile] 검은 마법사 선택 (" .. tostring(bossKey) .. "/" .. tostring(diffKey) .. ") → 도전")
+		self:ClientStartChallenge(self:Dlg("challenge"), self:OwnerUserId(piece))
+	end
+
+	@ExecSpace("Server")
+	method void RequestAdvance()
+		-- 결전 대사 '다음': challenge → (CP 판정) win/lose → 게임 종료.
+		local piece = self._piece
+		if isvalid(piece) == false then return end
+		if senderUserId ~= self:OwnerUserId(piece) then return end
+		local ownerId = self:OwnerUserId(piece)
+
+		if self._step == 2 then
+			-- CP 판정: 현재 전투력이 하드 검은 마법사 적정 전투력 이상이면 승리.
+			local cp = 0
+			local cpm = piece:GetComponent("script.CombatPowerManager")
+			if isvalid(cpm) then cp = cpm.CombatPower end
+			local req = self:BlackMageRequiredPower()
+			self._won = cp >= req
+			self._step = 3
+			local key = "lose"
+			if self._won then key = "win" end
+			log("[EndTile] 검은 마법사 판정 CP=" .. tostring(cp) .. " / 적정=" .. tostring(req) .. " → " .. key)
+			self:ClientShowText(self:Dlg(key), "BlackMage", ownerId)
+		else
+			self:EndBattle()
+		end
+	end
+
+	@ExecSpace("ServerOnly")
+	method void EndBattle()
+		-- 결전 종료: 승/패 무관 게임 종료(기존 종료 경로 재사용). UI 닫고 상태 정리.
+		local piece = self._piece
+		local ownerId = ""
+		if isvalid(piece) then ownerId = self:OwnerUserId(piece) end
+		self._piece = nil
+		self._step = 0
+		if ownerId ~= "" then self:ClientHide(ownerId) end
+		if isvalid(piece) then _GameModeManager:OnPlayerReachedEnd(piece) end
+		_SingleTurnManager:Stop()
+		log("[EndTile] 검은 마법사 결전 종료(won=" .. tostring(self._won) .. ") → 게임 종료")
+	end
+
+	method integer BlackMageRequiredPower()
+		-- BossProbability의 (Black_Mage, Hard) 적정 전투력. 없으면 20000.
+		local ds = _DataService:GetTable("BossProbability")
+		if isvalid(ds) == false then return 20000 end
+		for i = 1, ds:GetRowCount() do
+			if ds:GetCell(i, "BossName") == "Black_Mage" and ds:GetCell(i, "Difficulty") == "Hard" then
+				return tonumber(ds:GetCell(i, "RequiredPower")) or 20000
+			end
+		end
+		return 20000
+	end
+
+	method string Dlg(string key)
+		-- BossDialog(Group=blackmage)의 대사 문구. 없으면 "".
+		local ds = _DataService:GetTable("BossDialog")
+		if isvalid(ds) == false then return "" end
+		for i = 1, ds:GetRowCount() do
+			if ds:GetCell(i, "Group") == "blackmage" and ds:GetCell(i, "Key") == key then
+				return _VillageEventFlowManager:DecodeText(ds:GetCell(i, "Text"))
+			end
+		end
+		return ""
+	end
+
+	@ExecSpace("Client")
+	method void ClientShowBossSelect(string introText)
+		-- 검은 마법사 단일 보스 선택 화면(선택지 1개). 카드 클릭 → 하드 → self:RequestSelect(...).
+		_BossUI:ShowSingle(self, "Black_Mage", "검은 마법사", introText)
+	end
+
+	@ExecSpace("Client")
+	method void ClientStartChallenge(string text)
+		-- BossUI 닫고 도전 문구 표시(콜백용 self). '다음' → RequestAdvance.
+		_BossUI:Hide()
+		_EventTileUI:SceneText(text, "idle", "BlackMage", self)
+	end
+
+	@ExecSpace("Client")
+	method void ClientShowText(string text, string npcKey)
+		-- 결과 문구 표시(콜백용 self). '다음' → RequestAdvance. npcKey=등장 NPC(검은 마법사 이미지).
+		_EventTileUI:SceneText(text, "idle", npcKey, self)
+	end
+
+	@ExecSpace("Client")
+	method void ClientHide()
+		-- 결전 UI 그룹 닫기.
+		_EventTileUI:SceneHide()
 	end
 
 end

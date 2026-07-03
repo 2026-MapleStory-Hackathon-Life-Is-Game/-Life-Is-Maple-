@@ -73,7 +73,7 @@ script RollDiceAnimationUI extends Logic
 		        self.rightDice.ImageRUID = self.rightDiceSprites[d2]
 		
 		        -- 결과 텍스트
-				self.resultText.FontSize = 60
+				self.resultText.FontSize = 48
 				self.resultText.FontStyle = FontStyleType.Bold
 		        self.resultText.Text = tostring(total) .. "칸"
 		

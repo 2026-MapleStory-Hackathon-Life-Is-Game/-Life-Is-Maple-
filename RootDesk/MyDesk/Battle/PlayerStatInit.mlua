@@ -50,27 +50,70 @@ script PlayerStatInit extends Logic
 		self:AddIfMissing(p, "script.CubeInventory")
 		log("[PlayerStatInit] 전투 컴포넌트 부착 완료: " .. event.UserId)
 
-		-- [임시/디버그] 구현된 모든 장비(EquipmentData 전체 행)를 각 타입 인벤토리에 지급. 출시 전 false 또는 블록 제거.
+		-- [임시/디버그] 입장 시 기본 지급(토글 기본 ON). 이후 인게임 DebugGrantItemsButton이 즉시 지급/회수한다.
 		if self.debugGrantTestItems then
-			local ds = _DataService:GetTable("EquipmentData")
-			local count = 0
-			if isvalid(ds) then
-				for i = 1, ds:GetRowCount() do
-					local equipName = ds:GetCell(i, "EquipName")
-					if equipName ~= "" then
-						_EquipmentRouter:Acquire(p, equipName)
-						count += 1
-					end
+			self:GrantTestItems(p)
+		else
+			-- 빈 장비 기준 전투력 초기 계산.
+			local cp = p:GetComponent("script.CombatPowerManager")
+			if isvalid(cp) then cp:CalculateCurrentCombatPower() end
+		end
+	end
+
+	@ExecSpace("Server")
+	method void SetTestItems(boolean on)
+		-- [디버그] 인게임 토글 버튼 콜백. 요청 플레이어에게 더미 아이템을 즉시 지급/회수한다.
+		local p = _UserService:GetUserEntityByUserId(senderUserId)
+		if isvalid(p) == false then
+			log_warning("[PlayerStatInit] SetTestItems: 플레이어 엔티티 없음: " .. tostring(senderUserId))
+			return
+		end
+		if on then
+			self:GrantTestItems(p)
+		else
+			self:RevokeTestItems(p)
+		end
+	end
+
+	@ExecSpace("ServerOnly")
+	method void GrantTestItems(Entity p)
+		-- [임시/디버그] 구현된 모든 장비(EquipmentData 전체 행) + 미라클 큐브 999개를 지급. 재호출 안전(큐브는 999로 고정).
+		local ds = _DataService:GetTable("EquipmentData")
+		local count = 0
+		if isvalid(ds) then
+			for i = 1, ds:GetRowCount() do
+				local equipName = ds:GetCell(i, "EquipName")
+				if equipName ~= "" then
+					_EquipmentRouter:Acquire(p, equipName)
+					count += 1
 				end
 			end
-			log("[PlayerStatInit] (디버그) 전체 장비 지급: " .. tostring(count) .. "개")
+		end
+		log("[PlayerStatInit] (디버그) 전체 장비 지급: " .. tostring(count) .. "개")
 
-			-- [임시/디버그] 잠재 재설정 테스트용 미라클 큐브 지급. 출시 전 제거.
-			local bag = p:GetComponent("script.CubeInventory")
-			if isvalid(bag) then bag:AddMiracleCube(999) end
+		-- 잠재 재설정 테스트용 미라클 큐브: 중복 지급 방지로 0으로 되돌린 뒤 999개.
+		local bag = p:GetComponent("script.CubeInventory")
+		if isvalid(bag) then
+			bag:ResetAll()
+			bag:AddMiracleCube(999)
 		end
 
-		-- 빈 장비 기준 전투력 초기 계산.
+		local cp = p:GetComponent("script.CombatPowerManager")
+		if isvalid(cp) then cp:CalculateCurrentCombatPower() end
+	end
+
+	@ExecSpace("ServerOnly")
+	method void RevokeTestItems(Entity p)
+		-- [디버그] 지급된 더미 아이템 회수: 3종 장비(슬롯/보유/잠재) + 미라클 큐브를 모두 비운다.
+		local cats = { "script.WeaponEquipment", "script.ArmorEquipment", "script.AccessoryEquipment" }
+		for _, c in ipairs(cats) do
+			local eq = p:GetComponent(c)
+			if isvalid(eq) then eq:ResetAll() end
+		end
+		local bag = p:GetComponent("script.CubeInventory")
+		if isvalid(bag) then bag:ResetAll() end
+		log("[PlayerStatInit] (디버그) 더미 아이템 회수 완료")
+
 		local cp = p:GetComponent("script.CombatPowerManager")
 		if isvalid(cp) then cp:CalculateCurrentCombatPower() end
 	end

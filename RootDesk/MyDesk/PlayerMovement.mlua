@@ -63,6 +63,9 @@ script PlayerMovement extends Component
 				-- 남은 주사위 이동 횟수를 표시
 				self:UpdateDiceBuffUI(steps)
 		
+				-- 목적지가 (분기 없이) 확정되면 도착 전에 미리 배경/RUID 프리로드(pop-in 방지).
+				self:TryPrefetchDestination()
+		
 				-- 실제 행동 로직
 		        self:MoveNextStep()
 	end
@@ -124,6 +127,7 @@ script PlayerMovement extends Component
 		self.currentTile = tileName
 		self.remainingSteps = self.remainingSteps - 1
 		self:UpdateDiceBuffUI(self.remainingSteps + 1)
+		self:TryPrefetchDestination()
 		if prevRegion ~= "" and nextRegion ~= "" and prevRegion ~= nextRegion then
 			self:MoveToTileJump(tileName)
 		else
@@ -168,28 +172,28 @@ script PlayerMovement extends Component
 			log_warning("[PlayerMovement] 타일 엔티티 미발견(점프 이동 중단): " .. tostring(tileName))
 			return
 		end
-
+		
 		local destPos = target.TransformComponent.WorldPosition
 		local dest2D  = Vector2(destPos.x, destPos.y)
 		local curPos  = self.Entity.TransformComponent.WorldPosition
-
+		
 		if dest2D.x > curPos.x then
 			self.Entity.PlayerControllerComponent.LookDirectionX = 1
 		elseif dest2D.x < curPos.x then
 			self.Entity.PlayerControllerComponent.LookDirectionX = -1
 		end
-
+		
 		-- 공중(낙하) 포즈
 		local fall = BodyActionStateChangeEvent()
 		fall.ActionState = MapleAvatarBodyActionState.Fall
 		fall.needResetAction = true
 		self.Entity:SendEvent(fall)
 		_SFXManager:PlayJump()   -- 점프 효과음
-
+		
 		-- 포물선: 중간 지점에서 정점(QuadEaseOut 상승) → 도착 칸으로(QuadEaseIn 하강) → 착지 시 Stand(IDLE).
 		local peakY = math.max(curPos.y, dest2D.y) + 1.2
 		local apex  = Vector2((curPos.x + dest2D.x) * 0.5, peakY)
-
+		
 		local up = _TweenLogic:MoveTo(self.Entity, apex, 0.25, EaseType.QuadEaseOut)
 		up:SetOnEndCallback(function()
 			local down = _TweenLogic:MoveTo(self.Entity, dest2D, 0.25, EaseType.QuadEaseIn)
@@ -222,6 +226,34 @@ script PlayerMovement extends Component
 	@ExecSpace("Client")
 	method void UpdateDiceBuffUI(integer remaining)
 		 _RollDiceAnimationUI:ChangeDiceBuff(remaining)
+	end
+
+	method string PredictDestination()
+		-- 현재 위치 + 남은 걸음 수로 목적지 타일을 예측한다. 도중에 분기를 만나면 "" (아직 미확정).
+		local map = self.Entity.CurrentMapName
+		local tile = self.currentTile
+		local steps = self.remainingSteps
+		while steps > 0 do
+			local nexts = _TileManager:GetNextTiles(map, tile)
+			if #nexts == 0 then break end       -- 막다른 길 → 현재 tile이 최종 도착지
+			if #nexts >= 2 then return "" end    -- 분기 → 아직 확정 불가(선택 후 재예측)
+			tile = nexts[1]
+			steps = steps - 1
+		end
+		return tile
+	end
+
+	method void TryPrefetchDestination()
+		-- 목적지가 분기 없이 확정되면 도착 플레이어 클라에 프리로드를 지시한다(서버에서 호출).
+		local dest = self:PredictDestination()
+		if dest == nil or dest == "" then return end
+		self:PrefetchArrivalAssets(dest)
+	end
+
+	@ExecSpace("Client")
+	method void PrefetchArrivalAssets(string tileName)
+		-- 도착 예정 타일의 배경/후보 RUID를 미리 적용·프리로드(도착 시 pop-in 방지). 도착 플레이어 클라에서 실행.
+		_EventTileUI:PrefetchForTile(self.Entity.CurrentMapName, tileName)
 	end
 
 end

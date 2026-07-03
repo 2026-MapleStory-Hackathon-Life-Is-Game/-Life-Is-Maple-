@@ -1,24 +1,28 @@
 @Component
 script RomanceTile extends BaseTile
 
-	-- 연애 이벤트 타일. 지역과 무관하게 플레이어별로 연애상대선택 → 결혼 → (데이트/유니온창설 반복) 순으로 진행한다.
-	-- per-player 진행 상태는 말(piece)의 RomanceManager가 보유하고, 이 타일은 상태에 따라 UI/보상만 구동한다.
-	--   상대선택 : 길드와 같은 5지선다 선택창(RomanceGuildSelectUI) → 상대 확정 후
-	--              dicepanel 룰렛(실패:성공:대성공 = 0:30:70). 기본 보상 주스탯+30·공/마+10은 성공/대성공 공통.
-	--              대성공 → 즉시 결혼 + '웨딩 팡파르'(공/마+30). 성공 → 다음 연애 칸에서 자동 결혼.
-	--   결혼     : (성공 경로) 자동 결혼 텍스트 + '웨딩 팡파르'(공/마+30 동일).
-	--   데이트   : 장소 3택(펫 산책로/심신 수련관/라무라무 온천) → 판정(실패:성공:대성공=20:60:20).
-	--              성공/대성공 시 장소별 3턴 지속 버프 획득(RomanceManager가 턴 카운트→소멸). 신규 데이트 시 교체.
-	--              대성공 → 가족 구성원 +1, 주스탯 +10(영구 누적). 가족 2명 이상 → 다음 방문 시 유니온 창설.
-	--   유니온창설 : 현재 자동진행 텍스트 스텁(보상 추후 상세).
-	-- 인터랙티브 타일: 상대선택/데이트는 선택창→SceneRoll(주사위), 결혼/유니온은 ShowEventText(텍스트)를 재사용하고,
-	-- '다음' 클릭(RequestAdvance/RequestDone)에서 _GameModeManager:NotifyTileEventDone()로 턴 진행을 신호한다.
+	-- 연애 이벤트 타일 — 흐름은 코드(고정), 대사만 RomanceDialogue 테이블(Key→Text)로 관리한다.
+	-- 마을(VillageTile)은 이벤트 구조가 제각각이라 Scene/Branch 그래프가 필요하지만,
+	-- 연애는 이벤트 4개의 흐름이 고정이라 그래프 대신 코드 Step + 대사 테이블 1개가 가볍고 명확하다.
+	-- per-player 진행 상태는 말(piece)의 RomanceManager가 보유한다.
+	--   이벤트(rm.Stage): 0=SELECT(상대선택) / 1=MARRY(결혼) / 가족2명+미창설=UNION / 그 외=DATE(데이트)
+	--   NodeType: text / partnerselect(상대 카드선택) / dateselect(장소선택) / roll(확률게임)
+	--   치환자: {partner}=연애 상대 이름 / {place}=데이트 장소 / {placedesc}=장소·등급별 버프 문구(RomanceDate)
+	-- 완료 시 _GameModeManager:NotifyTileEventDone() 으로 턴 진행을 신호한다.
 
 	-- 진행 중인 도착 플레이어(서버 상태). 턴제라 동시 1명.
 	property any _piece = nil
-	-- 이번 상대 선택창의 슬롯별 후보 Key(RomancePartner 행 순서). 선택 인덱스 → Key 매핑용.
+	-- 현재 재생 중인 이벤트/씬 상태(서버 전용).
+	property string _eventId = ""
+	property integer _seq = 0
+	property integer _pendingNext = 0
+	-- 현재 대기 중인 선택 종류("partner"/"date"/"") — RequestChoice 분기용.
+	property string _selectMode = ""
+	-- 이번 진행에서 확정된 상대/장소 Key(치환·보상용).
+	property string _selectedPartnerKey = ""
+	property string _selectedDateKey = ""
+	-- 선택창 슬롯별 Key 매핑(선택 인덱스 → Key).
 	property table _partnerKeys = {}
-	-- 이번 데이트 장소 선택창의 슬롯별 장소 Key(RomanceDate 행 순서). 선택 인덱스 → Key 매핑용.
 	property table _dateKeys = {}
 
 	method boolean IsEventTile()
@@ -27,7 +31,7 @@ script RomanceTile extends BaseTile
 	end
 
 	method boolean IsInteractiveTile()
-		-- '다음' 클릭으로 완료되는 인터랙티브 타일 → 5초 고정 대기 대신 완료 신호를 기다린다.
+		-- '다음'/선택 클릭으로 완료되는 인터랙티브 타일 → 5초 고정 대기 대신 완료 신호를 기다린다.
 		return true
 	end
 
@@ -44,16 +48,31 @@ script RomanceTile extends BaseTile
 		return uid
 	end
 
-	method number RomancePct(string outcome)
-		-- RomanceProbability에서 Outcome 행의 Weight를 % 확률로 읽는다(합 100 전제). 없으면 0.
-		local ds = _DataService:GetTable("RomanceProbability")
-		if isvalid(ds) == false then return 0 end
+	-- ===== 대사 테이블(RomanceDialogue) 접근 =====
+
+	method string DecodeText(string raw)
+		-- CSV에 '\n' 리터럴로 저장한 줄바꿈을 실제 개행으로 복원한다(셀 양끝 감싼 따옴표 1쌍도 제거).
+		if raw == nil then return "" end
+		local s = raw
+		if #s >= 2 and string.sub(s, 1, 1) == "\"" and string.sub(s, #s, #s) == "\"" then
+			s = string.sub(s, 2, #s - 1)
+		end
+		local out, _cnt = string.gsub(s, "\\n", "\n")
+		return out
+	end
+
+	method string GetText(string key)
+		-- RomanceDialogue에서 Key 일치 행의 Text를 개행 복원해 반환. 없으면 "".
+		if key == nil or key == "" then return "" end
+		local ds = _DataService:GetTable("RomanceDialogue")
+		if isvalid(ds) == false then return "" end
 		for i = 1, ds:GetRowCount() do
-			if ds:GetCell(i, "Outcome") == outcome then
-				return tonumber(ds:GetCell(i, "Weight")) or 0
+			if ds:GetCell(i, "Key") == key then
+				return self:DecodeText(ds:GetCell(i, "Text"))
 			end
 		end
-		return 0
+		log_warning("[RomanceTile] 대사 키 없음: " .. tostring(key))
+		return ""
 	end
 
 	method string PartnerName(string key)
@@ -71,165 +90,6 @@ script RomanceTile extends BaseTile
 		return key
 	end
 
-	@ExecSpace("ServerOnly")
-	method void OnArrive(Entity piece)
-		-- 연애 타일 도착: 플레이어의 RomanceManager 단계로 분기해 해당 이벤트를 구동한다.
-		self._piece = piece
-		local ownerId = self:OwnerUserId(piece)
-		local rm = self:Romance(piece)
-		if ownerId == "" or isvalid(rm) == false then
-			log_warning("[RomanceTile] 소유자/RomanceManager 없음 → 즉시 종료")
-			self:FinishEvent()
-			return
-		end
-
-		if rm.Stage == 0 then
-			self:DoSelect(piece, rm, ownerId)
-		elseif rm.Stage == 1 then
-			self:DoMarry(piece, rm, ownerId)
-		elseif rm.FamilyMembers >= 2 and rm.UnionCreated == false then
-			-- 데이트 대성공으로 가족 2명 이상 → 유니온 창설(1회).
-			self:DoUnion(piece, rm, ownerId)
-		else
-			self:DoDate(piece, rm, ownerId)
-		end
-	end
-
-	@ExecSpace("ServerOnly")
-	method void DoSelect(Entity piece, any rm, string ownerId)
-		-- 연애상대선택: RomancePartner 전체 행을 5지선다 선택창(연애/길드 공용 UI)에 채워 표시한다.
-		-- 실제 진행/보상은 선택(RequestChoice)에서 슬롯 Key로 룰렛을 굴려 확정한다.
-		local ds = _DataService:GetTable("RomancePartner")
-		if isvalid(ds) == false then
-			log_error("[RomanceTile] RomancePartner 데이터셋 없음 → 상대선택 스킵")
-			self:FinishEvent()
-			return
-		end
-		local names = {}
-		local ruids = {}
-		self._partnerKeys = {}
-		local rows = ds:GetRowCount()
-		for i = 1, rows do
-			self._partnerKeys[i] = ds:GetCell(i, "Key")
-			names[i] = ds:GetCell(i, "DisplayName")
-			ruids[i] = ds:GetCell(i, "ImageRUID")
-		end
-		log("[RomanceTile] 연애 상대 선택창 표시 (후보 " .. tostring(rows) .. "명)")
-		self:ClientShowSelect("연애 상대를 선택하세요", names, ruids, ownerId)
-	end
-
-	@ExecSpace("Server")
-	method void RequestChoice(integer index)
-		-- 선택 콜백. 스테이지로 분기: 0 → 연애상대 선택(RomanceGuildSelectUI), 2+ → 데이트 장소 선택(EventTileUI).
-		local piece = self._piece
-		if isvalid(piece) == false then return end
-		if senderUserId ~= self:OwnerUserId(piece) then return end
-
-		local rm = self:Romance(piece)
-		if isvalid(rm) and rm.Stage >= 2 then
-			-- 데이트 장소 선택 → 판정/버프 처리.
-			self:HandleDateChoice(piece, rm, index)
-			return
-		end
-
-		-- 이하 연애상대 선택(Stage 0): 슬롯 index → 상대 확정 후 룰렛(0:30:70).
-		local key = ""
-		if self._partnerKeys ~= nil and index >= 1 and index <= #self._partnerKeys then
-			key = self._partnerKeys[index]
-		end
-		if key == "" then
-			log_warning("[RomanceTile] 상대 선택 인덱스 무효(index=" .. tostring(index) .. ") → 종료")
-			self:FinishEvent()
-			return
-		end
-		if isvalid(rm) then rm:SelectPartner(key) end
-		local partnerName = self:PartnerName(key)
-
-		local ownerId = self:OwnerUserId(piece)
-		-- 선택창을 닫고 룰렛(주사위) 연출로 전환한다.
-		self:ClientHideSelect(ownerId)
-
-		-- 확률 → 2d6 결과판(실패0/성공1/대성공2) + 실제 주사위 롤.
-		local failPct = self:RomancePct("Fail")
-		local successPct = self:RomancePct("Success")
-		local greatPct = self:RomancePct("Great")
-		local board = _ResultDiceManager:PlaceOutcomes(failPct, successPct, greatPct)
-		local d1 = _UtilLogic:RandomIntegerRange(1, 6)
-		local d2 = _UtilLogic:RandomIntegerRange(1, 6)
-		local total = d1 + d2
-		local tier = board[total] or 1
-
-		-- 기본 보상(성공/대성공 공통): 주스탯+30, 공/마+10 (영구 동적 수치).
-		self:AddMainStat(piece, "flat", 30)
-		self:AddMainAttack(piece, "flat", 10)
-
-		local buff = self:Buff(piece)
-		local lead = partnerName .. "에게 마음을 전하기 위해 주사위를 굴린다!"
-		local resultText = ""
-		local outcomeLabel = "성공"
-		if tier == 2 then
-			outcomeLabel = "대성공"
-			if isvalid(rm) then rm:MarryNow() end
-			if isvalid(buff) then buff:SetBuff("Wedding_Fanfare") end
-			resultText = "대성공! " .. partnerName .. "와(과) 곧바로 결혼했다.\n"
-				.. "웨딩 팡파르가 울려퍼져 공격력/마력이 크게 올랐다!\n"
-				.. "(기본 보상: 주스탯 +30, 공격력/마력 +10)"
-		else
-			outcomeLabel = "성공"
-			if isvalid(rm) then rm:SetPendingMarry() end
-			resultText = "성공! " .. partnerName .. "와(과) 연인이 되었다.\n"
-				.. "다음 연애 칸에 도착하면 결혼식이 열린다.\n"
-				.. "(기본 보상: 주스탯 +30, 공격력/마력 +10)"
-		end
-		log("[RomanceTile] 상대선택 롤 " .. tostring(d1) .. "+" .. tostring(d2) .. "=" .. tostring(total) .. " → " .. outcomeLabel)
-		self:ClientShowRoll(lead, "idle", resultText, d1, d2, total, greatPct, successPct, failPct, outcomeLabel, "Romance", ownerId)
-	end
-
-	@ExecSpace("ServerOnly")
-	method void DoMarry(Entity piece, any rm, string ownerId)
-		-- 결혼(성공 경로): 자동으로 결혼하고 '웨딩 팡파르'(공/마+30)를 획득한다.
-		local partnerName = self:PartnerName(rm.Partner)
-		local buff = self:Buff(piece)
-		if isvalid(buff) then buff:SetBuff("Wedding_Fanfare") end
-		if isvalid(rm) then rm:CompleteMarry() end
-		log("[RomanceTile] 결혼 이벤트 진행 (상대=" .. tostring(rm.Partner) .. ")")
-		local msg = "드디어 " .. partnerName .. "와(과)의 결혼식 날이다!\n"
-			.. "웨딩 팡파르가 울려퍼져 공격력/마력이 크게 올랐다!"
-		self:ClientShowText(msg, ownerId)
-	end
-
-	@ExecSpace("ServerOnly")
-	method void DoDate(Entity piece, any rm, string ownerId)
-		-- 데이트: 장소 3택 선택창을 띄운다. 실제 판정/버프는 선택(RequestChoice→HandleDateChoice)에서 처리한다.
-		local ds = _DataService:GetTable("RomanceDate")
-		if isvalid(ds) == false then
-			log_error("[RomanceTile] RomanceDate 데이터셋 없음 → 데이트 스킵")
-			self:FinishEvent()
-			return
-		end
-		local labels = {}
-		self._dateKeys = {}
-		local rows = ds:GetRowCount()
-		for i = 1, rows do
-			self._dateKeys[i] = ds:GetCell(i, "Key")
-			labels[i] = ds:GetCell(i, "DisplayName")
-		end
-		log("[RomanceTile] 데이트 장소 선택창 표시 (" .. tostring(rows) .. "곳)")
-		self:ClientShowDateChoices("데이트 장소를 선택하세요", labels, ownerId)
-	end
-
-	method number DatePct(string outcome)
-		-- DateProbability에서 Outcome 행의 Weight를 % 확률로 읽는다(합 100 전제). 없으면 0.
-		local ds = _DataService:GetTable("DateProbability")
-		if isvalid(ds) == false then return 0 end
-		for i = 1, ds:GetRowCount() do
-			if ds:GetCell(i, "Outcome") == outcome then
-				return tonumber(ds:GetCell(i, "Weight")) or 0
-			end
-		end
-		return 0
-	end
-
 	method string DateCell(string key, string column)
 		-- RomanceDate에서 Key 일치 행의 지정 컬럼 값을 반환. 없으면 "".
 		local ds = _DataService:GetTable("RomanceDate")
@@ -242,80 +102,308 @@ script RomanceTile extends BaseTile
 		return ""
 	end
 
-	@ExecSpace("ServerOnly")
-	method void HandleDateChoice(Entity piece, any rm, integer index)
-		-- 데이트 장소 선택 콜백. index → 장소 확정 → 판정(20:60:20) → 장소·등급별 3턴 버프 부여.
-		local key = ""
-		if self._dateKeys ~= nil and index >= 1 and index <= #self._dateKeys then
-			key = self._dateKeys[index]
-		end
-		if key == "" then
-			log_warning("[RomanceTile] 데이트 장소 인덱스 무효(index=" .. tostring(index) .. ") → 종료")
-			self:FinishEvent()
-			return
-		end
-		local ownerId = self:OwnerUserId(piece)
-		local placeName = self:DateCell(key, "DisplayName")
-		local successBuff = self:DateCell(key, "SuccessBuff")
-		local greatBuff = self:DateCell(key, "GreatBuff")
+	method string Fill(string text, any rm)
+		-- {partner}/{place} 치환. ({placedesc}는 등급 확정 후 FillPlaceDesc에서 별도 처리)
+		local s = text or ""
+		local partner = ""
+		if isvalid(rm) then partner = self:PartnerName(rm.Partner) end
+		if self._selectedPartnerKey ~= "" then partner = self:PartnerName(self._selectedPartnerKey) end
+		-- ⚠ 치환 문자열에 '%'가 있으면(버프 설명 "20%" 등) string.gsub 문자열-치환이 에러난다.
+		--   → 함수형 치환(반환값을 리터럴로 사용)으로 '%'를 안전하게 처리한다.
+		local o1, _c1 = string.gsub(s, "{partner}", function() return partner end)
+		local place = ""
+		if self._selectedDateKey ~= "" then place = self:DateCell(self._selectedDateKey, "DisplayName") end
+		local o2, _c2 = string.gsub(o1, "{place}", function() return place end)
+		return o2
+	end
 
-		-- 판정(실패:성공:대성공 = 20:60:20) → 2d6 결과판.
-		local failPct = self:DatePct("Fail")
-		local successPct = self:DatePct("Success")
-		local greatPct = self:DatePct("Great")
-		local board = _ResultDiceManager:PlaceOutcomes(failPct, successPct, greatPct)
-		local d1 = _UtilLogic:RandomIntegerRange(1, 6)
-		local d2 = _UtilLogic:RandomIntegerRange(1, 6)
-		local total = d1 + d2
-		local tier = board[total] or 0
-
-		local buff = self:Buff(piece)
-		local lead = placeName .. "에서 데이트를 시작한다!\n주사위를 굴려 데이트의 성패가 갈린다."
-		local resultText = ""
-		local outcomeLabel = "실패"
-		if tier == 2 then
-			outcomeLabel = "대성공"
-			-- 3턴 버프(대성공) + 신규 데이트 시 기존 버프 교체(Date 슬롯, 같은 Tier).
-			if isvalid(buff) then buff:SetBuff(greatBuff) end
-			if isvalid(rm) then rm:SetDateBuff(greatBuff, 3) end
-			-- 대성공 추가 보상: 가족 +1, 주스탯 +10(영구 누적).
-			if isvalid(rm) then rm:AddFamilyMember() end
-			self:AddMainStat(piece, "flat", 10)
-			resultText = "대성공! " .. placeName .. " 데이트가 완벽했다.\n"
-				.. "3턴 동안 지속되는 데이트 버프를 얻었다!\n"
-				.. "가족 구성원이 늘고, 주스탯이 +10 올랐다."
-			if isvalid(rm) and rm.FamilyMembers >= 2 and rm.UnionCreated == false then
-				resultText = resultText .. "\n가족이 " .. tostring(rm.FamilyMembers)
-					.. "명! 다음 연애 칸에서 메이플 유니온을 창설한다."
-			end
-		elseif tier == 1 then
-			outcomeLabel = "성공"
-			if isvalid(buff) then buff:SetBuff(successBuff) end
-			if isvalid(rm) then rm:SetDateBuff(successBuff, 3) end
-			resultText = "성공! " .. placeName .. " 데이트가 즐거웠다.\n"
-				.. "3턴 동안 지속되는 데이트 버프를 얻었다!"
-		else
-			outcomeLabel = "실패"
-			resultText = placeName .. " 데이트가 아쉽게 끝났다...\n이번엔 버프를 얻지 못했다."
+	method string FillPlaceDesc(string text, integer tier)
+		-- {placedesc}를 데이트 장소·등급별 버프 설명으로 치환한다(대성공=Great / 성공=Success).
+		if string.find(text, "{placedesc}", 1, true) == nil then return text end
+		local desc = ""
+		if self._selectedDateKey ~= "" then
+			if tier == 2 then desc = self:DateCell(self._selectedDateKey, "GreatDesc")
+			else desc = self:DateCell(self._selectedDateKey, "SuccessDesc") end
 		end
-		log("[RomanceTile] 데이트(" .. placeName .. ") 롤 " .. tostring(d1) .. "+" .. tostring(d2)
-			.. "=" .. tostring(total) .. " → " .. outcomeLabel)
-		self:ClientShowRoll(lead, "idle", resultText, d1, d2, total, greatPct, successPct, failPct, outcomeLabel, "Romance", ownerId)
+		local out, _c = string.gsub(text, "{placedesc}", function() return desc end)
+		return out
+	end
+
+	-- ===== 코드로 고정된 씬 흐름 =====
+
+	method table Step(string eventId, integer seq)
+		-- (eventId, seq) → 씬 정의 { node, next, key, group }. 없으면 nil.
+		--   node : "text"/"partnerselect"/"dateselect"/"roll"
+		--   next : 다음 seq(0=종료) / key : 대사 키 / group : roll 씬의 확률 그룹("SELECT"/"DATE")
+		if eventId == "SELECT" then
+			if seq == 1 then return { node = "text",          next = 2, key = "SELECT_1" } end
+			if seq == 2 then return { node = "text",          next = 3, key = "SELECT_2" } end
+			if seq == 3 then return { node = "partnerselect", next = 4, key = "SELECT_PICK" } end
+			if seq == 4 then return { node = "text",          next = 5, key = "SELECT_3" } end
+			if seq == 5 then return { node = "roll",          next = 0, key = "SELECT_LEAD", group = "SELECT" } end
+		elseif eventId == "MARRY" then
+			if seq == 1 then return { node = "text", next = 2, key = "MARRY_1" } end
+			if seq == 2 then return { node = "text", next = 3, key = "MARRY_2" } end
+			if seq == 3 then return { node = "text", next = 0, key = "MARRY_3" } end
+		elseif eventId == "DATE" then
+			if seq == 1 then return { node = "dateselect", next = 2, key = "DATE_1" } end
+			if seq == 2 then return { node = "roll",       next = 0, key = "DATE_LEAD", group = "DATE" } end
+		elseif eventId == "UNION" then
+			if seq == 1 then return { node = "text", next = 2, key = "UNION_1" } end
+			if seq == 2 then return { node = "text", next = 3, key = "UNION_2" } end
+			if seq == 3 then return { node = "text", next = 0, key = "UNION_3" } end
+		end
+		return nil
 	end
 
 	@ExecSpace("ServerOnly")
-	method void DoUnion(Entity piece, any rm, string ownerId)
-		-- 유니온 창설: 가족 2명 이상일 때 1회 발생. '유니온의 힘' 버프(공/마+30, 웨딩과 별도 중첩) 획득.
-		if isvalid(rm) then rm:CreateUnion() end
-		local buff = self:Buff(piece)
-		if isvalid(buff) then buff:SetBuff("Union_Power") end
-		local fam = 0
-		if isvalid(rm) then fam = rm.FamilyMembers end
-		log("[RomanceTile] 유니온 창설 (가족 " .. tostring(fam) .. "명) → 유니온의 힘 획득")
-		local msg = "가족과 함께 메이플 유니온을 창설했다!\n"
-			.. "'유니온의 힘'을 얻어 공격력/마력이 +30 올랐다!\n"
-			.. "(이후 데이트가 계속된다)"
-		self:ClientShowText(msg, ownerId)
+	method void OnArrive(Entity piece)
+		-- 연애 타일 도착: RomanceManager 스테이지로 이벤트를 골라 첫 씬부터 재생한다.
+		self._piece = piece
+		self._selectedPartnerKey = ""
+		self._selectedDateKey = ""
+		self._selectMode = ""
+		local ownerId = self:OwnerUserId(piece)
+		local rm = self:Romance(piece)
+		if ownerId == "" or isvalid(rm) == false then
+			log_warning("[RomanceTile] 소유자/RomanceManager 없음 → 즉시 종료")
+			self:FinishEvent()
+			return
+		end
+
+		local eventId = "DATE"
+		if rm.Stage == 0 then
+			eventId = "SELECT"
+		elseif rm.Stage == 1 then
+			eventId = "MARRY"
+		elseif rm.FamilyMembers >= 2 and rm.UnionCreated == false then
+			eventId = "UNION"
+		end
+
+		-- 텍스트 전용 이벤트(결혼/유니온)의 기계 처리는 진입 시 적용(대사는 결과를 서술만 한다).
+		if eventId == "MARRY" then
+			local buff = self:Buff(piece)
+			if isvalid(buff) then buff:SetBuff("Wedding_Fanfare") end
+			if isvalid(rm) then rm:CompleteMarry() end
+		elseif eventId == "UNION" then
+			local buff = self:Buff(piece)
+			if isvalid(buff) then buff:SetBuff("Union_Power") end
+			if isvalid(rm) then rm:CreateUnion() end
+		end
+
+		self._eventId = eventId
+		self._seq = 1
+		log("[RomanceTile] 연애 이벤트 시작 event=" .. eventId .. " stage=" .. tostring(rm.Stage))
+		self:PlayScene()
+	end
+
+	@ExecSpace("ServerOnly")
+	method void PlayScene()
+		-- 현재 _seq 씬을 해석해 종류별로 클라에 표시를 지시한다(text/partnerselect/dateselect/roll).
+		local piece = self._piece
+		if isvalid(piece) == false then self:FinishEvent() return end
+		if self._seq <= 0 then self:FinishEvent() return end
+
+		local rm = self:Romance(piece)
+		local step = self:Step(self._eventId, self._seq)
+		if step == nil then
+			log_warning("[RomanceTile] 씬 없음 event=" .. self._eventId .. " seq=" .. tostring(self._seq))
+			self:FinishEvent()
+			return
+		end
+
+		local ownerId = self:OwnerUserId(piece)
+		local text = self:Fill(self:GetText(step.key), rm)
+		-- 등장 NPC 키(NpcInfo.Name과 일치해야 GetNpcRUID가 RUID를 찾는다).
+		--   SELECT/UNION → 용잡이 Ms.어카운트(NpcInfo 키 = "MsAccount") / MARRY/DATE → 연인(별도 키 없음 → 기본 이미지).
+		local npcKey = "Romance"
+		if self._eventId == "SELECT" or self._eventId == "UNION" then npcKey = "MsAccount" end
+
+		if step.node == "partnerselect" then
+			-- 상대 카드 선택창(연애/길드 공용 UI): RomancePartner 전체 행을 슬롯에 채운다.
+			self._selectMode = "partner"
+			self._pendingNext = step.next
+			local ds = _DataService:GetTable("RomancePartner")
+			local names = {}
+			local ruids = {}
+			self._partnerKeys = {}
+			if isvalid(ds) then
+				for i = 1, ds:GetRowCount() do
+					self._partnerKeys[i] = ds:GetCell(i, "Key")
+					names[i] = ds:GetCell(i, "DisplayName")
+					ruids[i] = ds:GetCell(i, "ImageRUID")
+				end
+			end
+			self:ClientShowSelect(text, names, ruids, ownerId)
+
+		elseif step.node == "dateselect" then
+			-- 데이트 장소 선택(EventTileUI 다지선다): RomanceDate 전체 행을 버튼 라벨로 채운다.
+			self._selectMode = "date"
+			self._pendingNext = step.next
+			local ds = _DataService:GetTable("RomanceDate")
+			local labels = {}
+			self._dateKeys = {}
+			if isvalid(ds) then
+				for i = 1, ds:GetRowCount() do
+					self._dateKeys[i] = ds:GetCell(i, "Key")
+					labels[i] = ds:GetCell(i, "DisplayName")
+				end
+			end
+			self:ClientShowDateChoices(text, "idle", labels, npcKey, ownerId)
+
+		elseif step.node == "roll" then
+			self:PlayRoll(piece, rm, step, ownerId, npcKey, text)
+
+		else
+			-- text
+			self._pendingNext = step.next
+			self:ClientShowText(text, "idle", npcKey, ownerId)
+		end
+	end
+
+	method table RollProb(string group)
+		-- 확률게임 그룹별 대성공/성공/실패 확률(%). 연애는 고정 밸런스라 코드 상수로 둔다.
+		if group == "SELECT" then return { great = 30, success = 70, fail = 0 } end
+		-- DATE
+		return { great = 20, success = 60, fail = 20 }
+	end
+
+	@ExecSpace("ServerOnly")
+	method void PlayRoll(Entity piece, any rm, table step, string ownerId, string npcKey, string leadText)
+		-- 확률게임: 그룹별 고정 확률로 결과판 판정 → 이벤트별 보상 적용 → 결과 문구 표시.
+		local prob = self:RollProb(step.group)
+		local greatPct = prob.great
+		local successPct = prob.success
+		local failPct = prob.fail
+
+		local board = _ResultDiceManager:PlaceOutcomes(failPct, successPct, greatPct)
+		local d1 = _UtilLogic:RandomIntegerRange(1, 6)
+		local d2 = _UtilLogic:RandomIntegerRange(1, 6)
+		local sum = d1 + d2
+		local tier = board[sum] or 1
+
+		-- tier: 0=실패 / 1=성공 / 2=대성공 → 결과 대사 키 + 라벨.
+		local outcomeLabel = "성공"
+		local resultKey = step.group .. "_SUCCESS"
+		if tier == 0 then
+			outcomeLabel = "실패"
+			resultKey = step.group .. "_FAIL"
+		elseif tier == 2 then
+			outcomeLabel = "대성공"
+			resultKey = step.group .. "_GREAT"
+		end
+
+		-- 이벤트별 기계 처리(스탯/버프/스테이지/가족).
+		self:ApplyRollMechanics(piece, rm, step.group, tier)
+
+		local resultText = self:Fill(self:GetText(resultKey), rm)
+		resultText = self:FillPlaceDesc(resultText, tier)
+		self._pendingNext = step.next
+		log("[RomanceTile] 확률게임 group=" .. step.group
+			.. " 확률(대/성/실)=" .. tostring(greatPct) .. "/" .. tostring(successPct) .. "/" .. tostring(failPct)
+			.. " 주사위=" .. tostring(d1) .. "+" .. tostring(d2) .. "=" .. tostring(sum) .. " → " .. outcomeLabel)
+		self:ClientShowRoll(leadText, "idle", resultText, d1, d2, sum, greatPct, successPct, failPct, outcomeLabel, npcKey, ownerId)
+	end
+
+	@ExecSpace("ServerOnly")
+	method void ApplyRollMechanics(Entity piece, any rm, string group, integer tier)
+		-- 롤 등급(0실패/1성공/2대성공)에 따른 이벤트별 스탯·버프·스테이지 처리.
+		if group == "SELECT" then
+			-- 성공/대성공 공통 기본 보상: 주스탯 +30, 공/마 +10.
+			self:AddMainStat(piece, "flat", 30)
+			self:AddMainAttack(piece, "flat", 10)
+			local buff = self:Buff(piece)
+			if tier == 2 then
+				-- 대성공: 즉시 결혼 + 웨딩 팡파르.
+				if isvalid(rm) then rm:MarryNow() end
+				if isvalid(buff) then buff:SetBuff("Wedding_Fanfare") end
+			else
+				-- 성공: 다음 연애 칸에서 자동 결혼 대기.
+				if isvalid(rm) then rm:SetPendingMarry() end
+			end
+		elseif group == "DATE" then
+			if tier <= 0 then return end
+			local buff = self:Buff(piece)
+			if tier == 2 then
+				-- 대성공: 장소별 대성공 버프(3턴) + 가족 +1 + 주스탯 +10.
+				local gb = self:DateCell(self._selectedDateKey, "GreatBuff")
+				if isvalid(buff) then buff:SetBuff(gb) end
+				if isvalid(rm) then rm:SetDateBuff(gb, 3) rm:AddFamilyMember() end
+				self:AddMainStat(piece, "flat", 10)
+			else
+				-- 성공: 장소별 성공 버프(3턴).
+				local sb = self:DateCell(self._selectedDateKey, "SuccessBuff")
+				if isvalid(buff) then buff:SetBuff(sb) end
+				if isvalid(rm) then rm:SetDateBuff(sb, 3) end
+			end
+		end
+	end
+
+	@ExecSpace("Server")
+	method void RequestAdvance()
+		-- text/roll 씬 '다음' → 예약된 다음 씬으로 이동. 도착 플레이어만 허용.
+		local piece = self._piece
+		if isvalid(piece) == false then return end
+		if senderUserId ~= self:OwnerUserId(piece) then return end
+		self._seq = self._pendingNext
+		if self._seq <= 0 then self:FinishEvent() else self:PlayScene() end
+	end
+
+	@ExecSpace("Server")
+	method void RequestChoice(integer index)
+		-- 선택 콜백. _selectMode 로 상대 카드선택 / 데이트 장소선택을 분기한다. 도착 플레이어만 허용.
+		local piece = self._piece
+		if isvalid(piece) == false then return end
+		if senderUserId ~= self:OwnerUserId(piece) then return end
+		local rm = self:Romance(piece)
+
+		if self._selectMode == "partner" then
+			local key = ""
+			if self._partnerKeys ~= nil and index >= 1 and index <= #self._partnerKeys then
+				key = self._partnerKeys[index]
+			end
+			if key == "" then
+				log_warning("[RomanceTile] 상대 선택 인덱스 무효(index=" .. tostring(index) .. ") → 종료")
+				self:FinishEvent()
+				return
+			end
+			self._selectedPartnerKey = key
+			if isvalid(rm) then rm:SelectPartner(key) end
+			self:ClientHideSelect(self:OwnerUserId(piece))
+			self._selectMode = ""
+			self._seq = self._pendingNext
+			if self._seq <= 0 then self:FinishEvent() else self:PlayScene() end
+
+		elseif self._selectMode == "date" then
+			local key = ""
+			if self._dateKeys ~= nil and index >= 1 and index <= #self._dateKeys then
+				key = self._dateKeys[index]
+			end
+			if key == "" then
+				log_warning("[RomanceTile] 데이트 장소 인덱스 무효(index=" .. tostring(index) .. ") → 종료")
+				self:FinishEvent()
+				return
+			end
+			self._selectedDateKey = key
+			self._selectMode = ""
+			self._seq = self._pendingNext
+			if self._seq <= 0 then self:FinishEvent() else self:PlayScene() end
+		end
+	end
+
+	@ExecSpace("ServerOnly")
+	method void FinishEvent()
+		-- 이벤트 종료: 도착 플레이어 클라 UI 닫기 + 상태 초기화 + 턴 진행 신호.
+		local ownerId = ""
+		if isvalid(self._piece) then ownerId = self:OwnerUserId(self._piece) end
+		self._piece = nil
+		self._eventId = ""
+		self._seq = 0
+		self._pendingNext = 0
+		self._selectMode = ""
+		if ownerId ~= "" then self:ClientHide(ownerId) end
+		_GameModeManager:NotifyTileEventDone()
+		log("[RomanceTile] 연애 이벤트 종료")
 	end
 
 	@ExecSpace("Client")
@@ -331,54 +419,27 @@ script RomanceTile extends BaseTile
 	end
 
 	@ExecSpace("Client")
-	method void ClientShowDateChoices(string title, table labels)
+	method void ClientShowDateChoices(string text, string anim, table labels, string npcKey)
 		-- 데이트 장소 선택창(EventTileUI 다지선다) 표시. 버튼 클릭 → self:RequestChoice(index).
-		_EventTileUI:SceneChoices(title, "idle", labels, "Romance", self)
+		_EventTileUI:SceneChoices(text, anim, labels, npcKey, self)
+	end
+
+	@ExecSpace("Client")
+	method void ClientShowText(string text, string anim, string npcKey)
+		-- 텍스트 씬 표시(콜백용 self 전달). '다음' → self:RequestAdvance().
+		_EventTileUI:SceneText(text, anim, npcKey, self)
 	end
 
 	@ExecSpace("Client")
 	method void ClientShowRoll(string leadText, string anim, string resultText, integer d1, integer d2, integer diceTotal, number greatPct, number successPct, number failPct, string outcomeLabel, string npcKey)
-		-- 상대선택 dicepanel: 리드텍스트 → 주사위 연출 → 결과텍스트 → '다음'(RequestAdvance). (GuildTile 롤 흐름 재사용)
+		-- roll 씬: 리드텍스트 → 주사위 연출 → 결과텍스트 → '다음'(RequestAdvance).
 		_EventTileUI:SceneRoll(leadText, anim, resultText, d1, d2, diceTotal, greatPct, successPct, failPct, outcomeLabel, npcKey, self)
-	end
-
-	@ExecSpace("Client")
-	method void ClientShowText(string message)
-		-- 결혼/데이트: 이미지 없는 텍스트 팝업 + '다음'(RequestDone).
-		_EventTileUI:ShowEventText(message, "idle", "", "", "", 0, "", self)
 	end
 
 	@ExecSpace("Client")
 	method void ClientHide()
 		-- 도착 플레이어 클라: 이벤트 UI 그룹을 닫는다.
 		_EventTileUI:SceneHide()
-	end
-
-	@ExecSpace("Server")
-	method void RequestAdvance()
-		-- 상대선택 dicepanel '다음' → 이벤트 종료. 도착 플레이어만 허용.
-		local piece = self._piece
-		if isvalid(piece) and senderUserId ~= self:OwnerUserId(piece) then return end
-		self:FinishEvent()
-	end
-
-	@ExecSpace("Server")
-	method void RequestDone()
-		-- 결혼/데이트 텍스트 '다음' → 이벤트 종료. 도착 플레이어만 허용.
-		local piece = self._piece
-		if isvalid(piece) and senderUserId ~= self:OwnerUserId(piece) then return end
-		self:FinishEvent()
-	end
-
-	@ExecSpace("ServerOnly")
-	method void FinishEvent()
-		-- 이벤트 종료: 도착 플레이어 클라 UI 닫기 + 상태 정리 + 턴 진행 신호.
-		local ownerId = ""
-		if isvalid(self._piece) then ownerId = self:OwnerUserId(self._piece) end
-		self._piece = nil
-		if ownerId ~= "" then self:ClientHide(ownerId) end
-		_GameModeManager:NotifyTileEventDone()
-		log("[RomanceTile] 이벤트 종료")
 	end
 
 end
