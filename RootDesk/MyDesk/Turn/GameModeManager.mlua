@@ -29,6 +29,9 @@ script GameModeManager extends Logic
 		        local ids = {}
 		        table.insert(ids, senderUserId)
 		        _MatchManager:TeleportPlayersToGame(ids)
+		        -- 게임 시작 시 기본 무기 '몽둥이(Cudgel)'를 지급+장착한다(아직 직업 선택 전의 시작 무기).
+		        local starter = _UserService:GetUserEntityByUserId(senderUserId)
+		        if isvalid(starter) then _JobWeaponManager:EquipStarterCudgel(starter) end
 		        _VillageEventFlowManager:ResetStage1Lock()
 		        _SingleTurnManager:Start()
 	end
@@ -47,6 +50,11 @@ script GameModeManager extends Logic
 		        self._activeMode = "MULTI"
 		        self._isGameActive = true
 		        _VillageEventFlowManager:ResetStage1Lock()
+		        -- 게임 시작 시 각 플레이어에게 기본 무기 '몽둥이(Cudgel)'를 지급+장착한다.
+		        for _, uid in ipairs(userIds) do
+		        	local pe = _UserService:GetUserEntityByUserId(uid)
+		        	if isvalid(pe) then _JobWeaponManager:EquipStarterCudgel(pe) end
+		        end
 		        _MultiTurnManager:Start(userIds)
 	end
 
@@ -133,8 +141,6 @@ script GameModeManager extends Logic
 		        -- 게임이 "진행 중"으로 고착돼 다음 판 시작이 영구 차단되는 것을 막는다(복구 불가한 락 방지).
 		        self._activeMode = "NONE"
 		        self._isGameActive = false
-		        local singleIds = {}
-		        if isvalid(piece) and piece.PlayerComponent ~= nil then table.insert(singleIds, piece.PlayerComponent.UserId) end
 		        -- 결과 표시는 기록 제출 후 순위/신기록 계산과 함께 아래에서 처리(ShowSingle).
 		
 		        -- 랭킹 기록 제출(전투력 초기화 전, 플레이어별 최고 기록만 유지).
@@ -154,13 +160,19 @@ script GameModeManager extends Logic
 		            _ResultUI:ShowSingle(pname, ipower, pjob, pcamp, rank, isNew, avatar, uid)
 		        end
 		
-		        local ids = {}
-		        if isvalid(piece) and piece.PlayerComponent ~= nil then
-		            table.insert(ids, piece.PlayerComponent.UserId)
-		        end
-		        _MatchManager:TeleportPlayersToLobby(ids)
-		        self:ResetPlayerStats(piece)
+		        -- 로비 복귀 + 스탯 초기화는 결과 카드를 '닫을 때'로 미룬다(ResultUI.HideCard → ReturnToLobbyAfterResult).
+		        -- 그래야 카드 닫는 순간 로딩 오버레이가 Map_03→로비 전환을 가릴 수 있다. 여기선 결과 카드만 띄운 상태로 대기.
 		        -- (게임 활성 플래그는 위 Stop 직후 이미 내렸다.)
+	end
+
+	@ExecSpace("Server")
+	method void ReturnToLobbyAfterResult()
+		        -- 결과 카드 닫힘(클라)에서 호출. 로딩 오버레이는 클라가 먼저 띄운 상태 → 여기서 로비 텔레포트 + 스탯 초기화.
+		        local uid = senderUserId
+		        local ue = _UserService:GetUserEntityByUserId(uid)
+		        _MatchManager:TeleportPlayersToLobby({ uid })
+		        if isvalid(ue) then self:ResetPlayerStats(ue) end
+		        log("[GameModeManager] 결과 확인 후 로비 복귀: " .. tostring(uid))
 	end
 
 	@ExecSpace("Server")
@@ -357,7 +369,10 @@ script GameModeManager extends Logic
 					return
 				end
 		
-				-- 2. 해당 맵으로 텔레포트
+				-- 2. 해당 맵으로 텔레포트 (전환 직전 로딩 오버레이로 새 맵 pop-in을 가린다)
+				if piece.PlayerComponent ~= nil then
+					_LoadingManager:ShowLoadingAndPreload(piece.PlayerComponent.UserId)
+				end
 				-- (Tile_1의 위치를 잡기 전이므로 임시 좌표(0,0)로 이동시킵니다)
 				_TeleportService:TeleportToMapPosition(piece, Vector3(0,0,0), nextMapEntity.Name)
 		

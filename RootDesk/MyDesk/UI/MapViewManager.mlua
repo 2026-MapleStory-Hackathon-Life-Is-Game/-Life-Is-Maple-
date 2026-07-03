@@ -24,6 +24,22 @@ script MapViewManager extends Logic
 	-- 드래그 1px당 카메라 오프셋(월드) 이동량. 줌 비례 보정과 함께 사용.
 	property number _dragScale = 0.012
 
+	-- === 카메라 이동 범위(맵 경계) ===
+	-- 맵 뷰를 열 때 '도달 가능 타일 + 플레이어 위치'로 월드 바운딩 박스를 만들고,
+	-- 매 프레임 카메라 중심(플레이어 앵커 + CameraOffset)이 이 박스를 벗어나지 못하게 클램프한다.
+	-- 목적: WASD/드래그 패닝으로 미구현 영역까지 이동하는 것을 막는다.
+	property boolean _boundsReady = false
+	-- 콘텐츠 박스에 더할 여백(월드유닛). 클수록 가장자리 너머로 더 팬할 수 있다.
+	property number _boundsPadding = 1.5
+	-- 열 때 캡처한 플레이어 월드 위치(앵커). CameraOffset=0 == 카메라가 이 지점을 비춘다는 가정.
+	property number _anchorX = 0
+	property number _anchorY = 0
+	-- 카메라 중심 허용 범위(월드).
+	property number _boundMinX = 0
+	property number _boundMaxX = 0
+	property number _boundMinY = 0
+	property number _boundMaxY = 0
+
 	@ExecSpace("ClientOnly")
 	method void OnBeginPlay()
 		self._scrollHandler = _InputService:ConnectEvent(MouseScrollEvent, self.OnMouseScroll)
@@ -87,6 +103,9 @@ script MapViewManager extends Logic
 
 		-- 우클릭 드래그 패닝(맵뷰 한정). 맵을 '잡아끌기': 커서 이동 방향으로 맵이 따라온다.
 		self:UpdateDragPan(cam)
+
+		-- 키보드/드래그 패닝이 모두 끝난 뒤, 카메라 중심을 맵 경계 박스 안으로 제한한다.
+		self:ClampCameraOffset(cam)
 	end
 
 	@ExecSpace("ClientOnly")
@@ -158,6 +177,9 @@ script MapViewManager extends Logic
 
 		self:ShowTileNumbers(reachable, mapName)
 
+		-- 카메라 이동 범위(맵 경계) 계산: 도달 타일 + 플레이어 위치 기준 바운딩 박스.
+		self:ComputeViewBounds(me, reachable, mapName)
+
 		local cam = _CameraService:GetCurrentCameraComponent()
 		if not isvalid(cam) then
 			self._isOpen = true
@@ -188,6 +210,7 @@ script MapViewManager extends Logic
 		if not self._isOpen then return end
 		self._isOpen = false
 		self._dragging = false
+		self._boundsReady = false
 
 		self:HideTileNumbers()
 		self:SetHudHidden(false)
@@ -291,6 +314,71 @@ script MapViewManager extends Logic
 			local textChild = entity:GetChildByName("MapDistance_Panel")
 			if not isvalid(textChild) then continue end
 			textChild.Enable = false
+		end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void ComputeViewBounds(Entity me, table reachable, string mapName)
+		-- 도달 가능 타일들 + 플레이어 위치로 월드 바운딩 박스를 만들고 여백을 더해 저장한다.
+		-- 이후 ClampCameraOffset이 카메라 중심을 이 박스 안으로 가둔다(미구현 영역 패닝 차단).
+		if not isvalid(me) then
+			self._boundsReady = false
+			return
+		end
+		local pos = me.TransformComponent.WorldPosition
+		self._anchorX = pos.x
+		self._anchorY = pos.y
+
+		-- 플레이어 위치를 시드로 사용: offset=0(=플레이어를 비추는 기본 뷰)이 항상 박스 안에 들어오게 해
+		-- 맵 뷰를 여는 순간 카메라가 튀는 것을 방지한다.
+		local minX = pos.x
+		local maxX = pos.x
+		local minY = pos.y
+		local maxY = pos.y
+
+		local count = 0
+		for _, entry in ipairs(reachable) do
+			local entity = _TileManager:GetTileEntity(mapName, entry.tileName)
+			if isvalid(entity) then
+				local tp = entity.TransformComponent.WorldPosition
+				if tp.x < minX then minX = tp.x end
+				if tp.x > maxX then maxX = tp.x end
+				if tp.y < minY then minY = tp.y end
+				if tp.y > maxY then maxY = tp.y end
+				count = count + 1
+			end
+		end
+
+		local pad = self._boundsPadding
+		self._boundMinX = minX - pad
+		self._boundMaxX = maxX + pad
+		self._boundMinY = minY - pad
+		self._boundMaxY = maxY + pad
+		self._boundsReady = true
+		log("[MapViewManager] 카메라 범위 설정: x[" .. tostring(self._boundMinX) .. "~" .. tostring(self._boundMaxX)
+			.. "] y[" .. tostring(self._boundMinY) .. "~" .. tostring(self._boundMaxY) .. "] tiles=" .. tostring(count))
+	end
+
+	@ExecSpace("ClientOnly")
+	method void ClampCameraOffset(any cam)
+		-- 카메라 중심(플레이어 앵커 + CameraOffset)을 콘텐츠 박스 안으로 제한한다.
+		if not self._boundsReady then return end
+		if not isvalid(cam) then return end
+
+		local off = cam.CameraOffset
+		local centerX = self._anchorX + off.x
+		local centerY = self._anchorY + off.y
+
+		if centerX < self._boundMinX then centerX = self._boundMinX end
+		if centerX > self._boundMaxX then centerX = self._boundMaxX end
+		if centerY < self._boundMinY then centerY = self._boundMinY end
+		if centerY > self._boundMaxY then centerY = self._boundMaxY end
+
+		local newX = centerX - self._anchorX
+		local newY = centerY - self._anchorY
+		-- 변화가 있을 때만 write(불필요한 대입/동기화 방지).
+		if newX ~= off.x or newY ~= off.y then
+			cam.CameraOffset = Vector2(newX, newY)
 		end
 	end
 

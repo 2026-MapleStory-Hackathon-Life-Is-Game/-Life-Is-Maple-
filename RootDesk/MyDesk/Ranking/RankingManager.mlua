@@ -408,11 +408,15 @@ script RankingManager extends Logic
 	end
 
 	method void OnCtxFriend()
-		-- '친구추가': 친구 시스템 미구현 → 준비 중 안내만 표시(버튼은 배치만).
+		-- '친구추가': 선택한 랭킹 행의 유저를 내 친구로 추가(일방향). 서버가 결과를 RankNotice로 통지.
 		_SFXManager:PlayClick()
+		local row = self._ctxRow
 		self:CloseRankContext()
-		self:ShowNotice("친구 기능은\n아직 준비 중입니다.")
-		log("[RankingManager] 친구추가(준비 중)")
+		if self._clientRecords == nil then return end
+		local rec = self._clientRecords[row]
+		if rec == nil then return end
+		_FriendManager:RequestAddFriend(tostring(rec.userId), tostring(rec.name))
+		log("[RankingManager] 친구추가 요청: " .. tostring(rec.name))
 	end
 
 	method void OnCtxClose()
@@ -426,7 +430,9 @@ script RankingManager extends Logic
 		-- 캐릭터 정보 팝업: 좌측 아바타 + 우측 분리 스펙 텍스트.
 		local info = _EntityService:GetEntityByPath(self.infoPath)
 		if isvalid(info) == false then return end
-		self:SetInfoText("RankBig", tostring(rank) .. "위")
+		local rankBig = "순위 없음"
+		if rank ~= nil and rank > 0 then rankBig = tostring(rank) .. "위" end
+		self:SetInfoText("RankBig", rankBig)
 		self:SetInfoText("Val_Name", tostring(rec.name))
 		self:SetInfoText("Val_Power", self:FormatPower(rec.power))
 		self:SetInfoText("Val_Job", self:JobKo(tostring(rec.job)))

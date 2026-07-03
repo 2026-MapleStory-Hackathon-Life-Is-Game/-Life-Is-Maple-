@@ -108,14 +108,18 @@ script ResultUI extends Logic
 
 	@ExecSpace("ClientOnly")
 	method void HideCard()
-		-- 결과 카드 닫기(로비 랭킹판이 뒤에 보임).
+		-- 결과 카드 닫기 → 로딩 오버레이로 Map_03→로비 전환을 가린 뒤 서버에 로비 복귀 요청.
 		_SFXManager:PlayClick()
+		-- 먼저 로딩 오버레이를 띄운다(로컬 즉시, 카드보다 위). 그 아래에서 카드/딤/그룹을 끄고 텔레포트가 진행돼도 안 보인다.
+		_LoadingManager:ShowLoadingAndPreload()
 		local card = _EntityService:GetEntityByPath(self.cardPath)
 		if isvalid(card) then card.Enable = false end
 		local dim = _EntityService:GetEntityByPath(self.dimPath)
 		if isvalid(dim) then dim.Enable = false end
 		local grp = _EntityService:GetEntityByPath(self.groupPath)
 		if isvalid(grp) then grp.Enable = false end
+		-- 로비 복귀 + 스탯 초기화(서버). 로딩 오버레이는 최소표시시간 후 자동으로 걷혀 로비를 드러낸다.
+		_GameModeManager:ReturnToLobbyAfterResult()
 	end
 
 	@ExecSpace("ClientOnly")

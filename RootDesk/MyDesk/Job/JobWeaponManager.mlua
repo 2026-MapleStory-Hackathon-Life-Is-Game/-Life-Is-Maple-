@@ -109,6 +109,20 @@ script JobWeaponManager extends Logic
 		log("JobWeaponManager: 직업 기본무기 지급+장착 → " .. equipName)
 	end
 
+	@ExecSpace("ServerOnly")
+	method void EquipStarterCudgel(Entity playerEntity)
+		-- 게임 시작 시 기본 무기로 '몽둥이(Cudgel)'를 지급+장착한다(스탯 아이템).
+		-- 아바타 비주얼은 Beginner 무기 RUID가 곧 Cudgel의 Sprite RUID라 이미 몽둥이를 들고 있고,
+		-- 여기서 WeaponEquipment 슬롯에 실제 장착시켜 전투력/캐릭터 패널에도 반영되게 한다.
+		if isvalid(playerEntity) == false then return end
+		-- 1) 보유함에 추가(중복 안전).
+		_EquipmentRouter:Acquire(playerEntity, "Cudgel")
+		-- 2) 보유→장착(전투력 재계산 포함). Weapon 슬롯에 다른 무기가 있으면 보유로 되돌아간다.
+		local m = _EquipmentRouter:ManagerForItem(playerEntity, "Cudgel")
+		if isvalid(m) then m:RequestEquip("Cudgel") end
+		log("JobWeaponManager: 게임 시작 기본무기(몽둥이) 지급+장착")
+	end
+
 	method string StarterWeaponFor(string jobName)
 		-- 직업 → EquipmentData EquipName. (UI는 소문자, 데이터셋 키는 EquipName 그대로.)
 		local j = string.lower(jobName)

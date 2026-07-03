@@ -162,10 +162,11 @@ script CharacterInfoPanel extends Component
 		if isvalid(cp) then
 			self:SetText(self.levelText, "Lv." .. tostring(cp.Level))
 			self:SetText(self.powerText, "전투력: " .. self:FormatPower(cp.CombatPower))
-			self:SetText(self.strText, tostring(math.floor(cp:DisplayStat("STR"))))
-			self:SetText(self.dexText, tostring(math.floor(cp:DisplayStat("DEX"))))
-			self:SetText(self.intText, tostring(math.floor(cp:DisplayStat("INT"))))
-			self:SetText(self.lukText, tostring(math.floor(cp:DisplayStat("LUK"))))
+			-- 메이플식 "총합(레벨분+가산분)" 표기. 예: 올스탯+10 → 주스탯 "64(54+10)".
+			self:SetText(self.strText, cp:DisplayStatBreakdown("STR"))
+			self:SetText(self.dexText, cp:DisplayStatBreakdown("DEX"))
+			self:SetText(self.intText, cp:DisplayStatBreakdown("INT"))
+			self:SetText(self.lukText, cp:DisplayStatBreakdown("LUK"))
 			self:SetText(self.atkText,     tostring(math.floor(cp:DisplayMainAttack())))
 			self:SetText(self.dmgText,     tostring(math.floor(cp:DisplayDamagePct())) .. "%")
 			self:SetText(self.bossDmgText, tostring(math.floor(cp:DisplayBossDamagePct())) .. "%")
@@ -251,7 +252,15 @@ script CharacterInfoPanel extends Component
 	end
 
 	method void OnUpdate(number delta)
-		-- 패널 열린 동안 0.2초마다 슬롯 장착 변경 감지 → 갱신.
+		-- ⚠️ 이 컴포넌트(Ctrl)는 숨겨진 UIGroup(CharacterInfo_Panel) 내부에 있어
+		--    엔진이 OnUpdate를 tick하지 않는다(런타임 검증 확인). 따라서 라이브 갱신 로직은
+		--    TickWhileOpen으로 분리하고, 항상 tick하는 HUD(UnderButton.OnUpdate)에서 매 프레임 구동한다.
+		--    (여기서도 호출해 두어 그룹이 활성화된 환경에서는 자체적으로도 동작하게 한다. 이중호출은 무해.)
+		self:TickWhileOpen(delta)
+	end
+
+	method void TickWhileOpen(number delta)
+		-- 패널이 열린 동안의 라이브 갱신: 우클릭 메뉴 엣지 감지 + 0.2초마다 스탯/장비 변경 폴링.
 		if self:IsClient() == false or self.isOpen == false then return end
 		-- 장착 슬롯 우클릭 → 큐브 사용 확인 패널(매 프레임 엣지 감지).
 		self:UpdateRightClick()
@@ -266,11 +275,22 @@ script CharacterInfoPanel extends Component
 		local we = isvalid(w) and w.Equipped or ""
 		local ae = isvalid(a) and a.Equipped or ""
 		local ace = isvalid(ac) and ac.Equipped or ""
-		local sig = we .. "," .. ae .. "," .. ace
+		-- 장착 슬롯뿐 아니라 전투력/레벨/스탯(버프·이벤트로 변하는 값)까지 서명에 포함한다.
+		-- CharacterInfoPanel은 자기 @Sync 프로퍼티가 없어 OnSyncProperty가 절대 호출되지 않으므로,
+		-- 올스탯 +10 같은 이벤트가 발생하면 패널이 열린 채로도 이 폴링이 감지해 즉시 갱신한다.
+		if isvalid(self.cpComp) == false then self.cpComp = p:GetComponent("script.CombatPowerManager") end
+		local statSig = ""
+		---@type CombatPowerManager
+		local cp = self.cpComp
+		if isvalid(cp) then
+			statSig = tostring(cp.CombatPower) .. "|" .. tostring(cp.Level) .. "|"
+				.. tostring(cp.STR) .. "," .. tostring(cp.DEX) .. "," .. tostring(cp.INT) .. "," .. tostring(cp.LUK)
+		end
+		local sig = we .. "," .. ae .. "," .. ace .. "||" .. statSig
 		if sig ~= self._lastSlotSig then
 			self._lastSlotSig = sig
 			self:Refresh()
-			log("[CharacterInfoPanel] 장착 변경 감지 → Refresh: " .. sig)
+			log("[CharacterInfoPanel] 스탯/장착 변경 감지 → Refresh")
 		end
 	end
 

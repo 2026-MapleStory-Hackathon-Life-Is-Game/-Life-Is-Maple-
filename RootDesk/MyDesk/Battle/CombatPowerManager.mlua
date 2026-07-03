@@ -84,10 +84,37 @@ script CombatPowerManager extends Component
 	end
 
 	method number DisplayStat(string name)
-		-- 패널 표시용 스탯: 주스탯이면 base+레벨환산, 부스탯이면 base.
-		local v = self:GetStat(name)
-		if name == self:MainStatField() then v = v + self:LevelMainStat() end
-		return v
+		-- 패널 표시용 스탯: 버프/장비/잠재의 동적 수정자까지 포함한 '실제 적용 스탯'을 반환한다.
+		-- 전투력 계산식(CalculateCurrentMainStat)과 동일한 규칙으로 스탯별 기여치를 산출하므로
+		-- 올스탯 +10, 주스탯 버프 등이 발생하면 STR/DEX/INT/LUK 표시에도 즉시 반영된다.
+		--   주스탯 = (base + 레벨환산 + 주가산 + 올스탯가산) * (1 + (base% + 주스탯% + 올스탯%)/100)
+		--   부스탯 = (base + 올스탯가산) * (1 + 올스탯%/100)   ← 부스탯엔 주스탯%는 미적용
+		local extra   = self:BuildExtraTable()
+		local allFlat = extra.allStatFlat or 0
+		local allPct  = extra.allStatPct or 0
+		local base    = self:GetStat(name)
+		if name == self:MainStatField() then
+			local mainVal = base + self:LevelMainStat()
+			local pct     = self.BaseStatPct + (extra.statPct or 0) + allPct
+			return (mainVal + (extra.statFlat or 0) + allFlat) * (1 + pct / 100)
+		end
+		return (base + allFlat) * (1 + allPct / 100)
+	end
+
+	method number StatLevelPart(string name)
+		-- 스탯 표시 분해용: '레벨업으로 증가한' 부분만 반환한다.
+		-- 주스탯은 레벨 환산 base(LevelMainStat), 부스탯은 레벨 기여가 없으므로 0.
+		-- (가산분 = DisplayStat - StatLevelPart 로 계산하면 항상 '총합 = 레벨분 + 가산분'이 성립한다.)
+		if name == self:MainStatField() then return self:LevelMainStat() end
+		return 0
+	end
+
+	method string DisplayStatBreakdown(string name)
+		-- 메이플식 표기 "총합(레벨분+가산분)". 예: 올스탯+10 주스탯 → "64(54+10)".
+		local total = math.floor(self:DisplayStat(name) + 0.0001)
+		local lv    = math.floor(self:StatLevelPart(name) + 0.0001)
+		local add   = total - lv
+		return tostring(total) .. "(" .. tostring(lv) .. "+" .. tostring(add) .. ")"
 	end
 
 	@ExecSpace("ServerOnly")
@@ -296,8 +323,25 @@ script CombatPowerManager extends Component
 			self.CurrentExtra["damagePct"]     = extra.damagePct or 0
 			self.CurrentExtra["bossDamagePct"] = extra.bossDamagePct or 0
 			self.CurrentExtra["critPct"]       = extra.critPct or 0
+			-- 전투력/스탯이 바뀔 때마다 소유 클라의 캐릭터 정보 패널을 즉시 갱신하도록 push한다.
+			-- (패널은 숨겨진 UIGroup 내부라 자체 OnUpdate 폴링이 tick되지 않을 수 있으므로,
+			--  tick에 의존하지 않는 이벤트 구동 갱신 경로를 둔다. @Sync 전파 후 클라에서 Refresh.)
+			local pc = self.Entity.PlayerComponent
+			if pc ~= nil and pc.UserId ~= nil and pc.UserId ~= "" then
+				self:PushStatUIRefresh(pc.UserId)
+			end
 		end
 		return self.CombatPower
+	end
+
+	@ExecSpace("Client")
+	method void PushStatUIRefresh()
+		-- 서버 재계산 → 소유 클라에서 호출. 캐릭터 정보 패널이 열려 있으면 즉시 갱신한다.
+		-- Refresh는 내부에서 isOpen/IsClient 가드를 하므로 닫혀 있으면 no-op.
+		local e = _EntityService:GetEntityByPath("/ui/InGameUIGroup/CharacterInfo_Panel/Ctrl")
+		if isvalid(e) == false then return end
+		local panel = e:GetComponent("script.CharacterInfoPanel")
+		if isvalid(panel) then panel:Refresh() end
 	end
 
 	method table BuildExtraTable()

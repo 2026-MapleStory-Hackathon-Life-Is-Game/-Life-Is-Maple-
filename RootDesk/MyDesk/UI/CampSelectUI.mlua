@@ -111,21 +111,40 @@ script CampSelectUI extends Logic
 			self.resultPanel.Enable = true
 		end
 		
-		-- 일단 하드코딩 상태인데, 추후 csv 파일로 바꿔야 함
+		-- 이미지는 단일 소스(CampImageRUID)에서 가져온다. 문구는 진영별로 지정.
+		if isvalid(self.campSprite) then
+			self.campSprite.ImageRUID = self:CampImageRUID(campName)
+		end
 		if campName == "Adventurer" then
-			self.campSprite.ImageRUID = "a46a226749924a90ac01a4804aa21205"
-			self.campDesc.Text = "모험가의 의지가 차오릅니다!"	
+			self.campDesc.Text = "모험가의 의지가 차오릅니다!"
 		elseif campName == "Cygnus" then
-			self.campSprite.ImageRUID = "93fdd69fda3345dd8eef0d33554e5c7e"
 			self.campDesc.Text = "기사단의 맹세가 반짝입니다!"
 		elseif campName == "Resistance" then
-			self.campSprite.ImageRUID = "3ccb7f97072b47559833000f19795337"
 			self.campDesc.Text = "혁명의 불꽃이 타오릅니다!"
 		elseif campName == "Nova" then
-			self.campSprite.ImageRUID = "d1650025554c4d3485e2b6c279467ce8"
-			self.campDesc.Text = "용의 힘이 깨어납니다!"	
+			self.campDesc.Text = "용의 힘이 깨어납니다!"
 		end
-		
+
+	end
+
+	method string CampImageRUID(string campName)
+		-- 진영 → 결과 이미지 RUID(단일 소스). ShowResultPanel과 프리로드가 함께 참조.
+		if campName == "Adventurer" then return "a46a226749924a90ac01a4804aa21205"
+		elseif campName == "Cygnus" then return "93fdd69fda3345dd8eef0d33554e5c7e"
+		elseif campName == "Resistance" then return "3ccb7f97072b47559833000f19795337"
+		elseif campName == "Nova" then return "d1650025554c4d3485e2b6c279467ce8"
+		end
+		return ""
+	end
+
+	method table GetCampImageRUIDs()
+		-- 프리로드용: 4개 진영 결과 이미지 RUID 목록.
+		local camps = { "Adventurer", "Cygnus", "Resistance", "Nova" }
+		local out = {}
+		for i = 1, #camps do
+			table.insert(out, self:CampImageRUID(camps[i]))
+		end
+		return out
 	end
 
 	@ExecSpace("Client")

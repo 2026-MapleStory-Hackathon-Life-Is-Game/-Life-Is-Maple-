@@ -1,40 +1,74 @@
 @Logic
 script BGMManager extends Logic
 
-	property string The_Great_Melee = "93153b02180e45478f538063fd6b56bc"
+	-- 마을(Region)별 BGM 매니저(클라 전용).
+	-- 로컬 플레이어가 밟은 '현재 타일'의 Region(헤네시스/페리온/오르비스 …)이 바뀌면,
+	-- 그 지역에 지정된 BGM으로 바꾼다. 어느 지역에 어떤 BGM을 틀지는 데이터셋
+	-- 'RegionBGM'(컬럼: Region, RUID)에서 조회한다.
+	--   · RUID 빈칸  → BGM을 바꾸지 않고 현재 재생 중인 BGM을 그대로 유지.
+	--   · RUID 있음  → 그 RUID의 BGM으로 전환(단, 이미 같은 BGM이면 재시작하지 않음).
+	-- 지역은 타일 데이터(TileEventData)의 Region 컬럼이며, 현재 타일→Region은
+	-- _TileManager:GetTileRegion 으로 얻는다. currentTile은 @Sync라 클라에서 읽을 수 있다.
+	-- _SoundService BGM은 맵/지역과 무관한 전역 채널이라 지역을 이동해도 재생이 이어진다.
 
-	property string North_Forest = "96caf11b323447fd829582091b364995"
-
-	property string MiniGame_1 = "8ca27cca659448c1b957a1c841712aa3"
-
-	property string StarPlanet = "a6803c3691ee4058b200aa1fe999dabe"
-
-	property string Henesys_Park = "ae1e81ea94f5421580ecbdf1b0fddfaf"
-
-	property string Lanias_House = "5e25983d0fbb48b5aa60654699e209fc"
-
-	property string Violine = "5d6edb441b68427abede76c385ca072b"
-
-	property string StrawBerry_Garden = "27845f761e1441fda0a6df50a0ca1027"
-
-	property string Maple_Live = "853c80d50c6644218eb9414752994641"
-
-	property string FlagRace = "6a3a57485388476da1969ca1a8d6d4c4"
-
-	property string The_Great_Field_Day = "2daeb6e95eac49a6b4a3105c0a6c895d"
-
-	property string MiniGame_2 = "b9cc105e858e48cfac26c73ee8ff2e08"
+	property string DataSetName = "RegionBGM"
 
 	property number volume = 1.0
 
+	-- 재생 상태(세션 내에서만 유효, OnBeginPlay에서 초기화).
+	property string _curRuid = ""     -- 현재 재생 중인 BGM RUID
+	property string _curRegion = ""   -- 마지막으로 처리한 Region(변화 감지용)
+
+	@ExecSpace("ClientOnly")
 	method void OnBeginPlay()
-		self:PlayBGM("b9cc105e858e48cfac26c73ee8ff2e08")
+		-- 클라에서만 BGM을 구동한다. 첫 지역이 잡히도록 상태를 비운다.
+		self._curRegion = ""
+		self._curRuid = ""
 	end
 
-	method void PlayBGM(string ruid)
-		-- 공통 재생부. 빈 RUID는 무시한다.
-		        if ruid == nil or ruid == "" then return end
-				_SoundService:PlayBGM(ruid, self.volume)
+	@ExecSpace("ClientOnly")
+	method void OnUpdate(number delta)
+		-- 로컬 플레이어가 서 있는 타일의 Region이 바뀌면 그 지역 BGM으로 전환한다.
+		local me = _UserService.LocalPlayer
+		if isvalid(me) == false then return end
+
+		local region = self:CurrentRegion(me)
+		if region == "" then return end             -- 지역 미확정(로비/타일 그래프 미빌드) → 유지.
+		if region == self._curRegion then return end -- 같은 지역 → 아무것도 안 함.
+		self._curRegion = region
+
+		local ruid = self:ResolveRuid(region)
+		if ruid == "" then return end               -- 빈칸 → BGM 유지(안 바꿈).
+		if ruid == self._curRuid then return end    -- 같은 BGM → 재시작 안 함(끊김 방지).
+
+		self._curRuid = ruid
+		_SoundService:PlayBGM(ruid, self.volume)
+		log("[BGMManager] PlayBGM region=" .. region .. " ruid=" .. ruid)
+	end
+
+	@ExecSpace("ClientOnly")
+	method string CurrentRegion(Entity me)
+		-- 로컬 플레이어의 현재 타일 → Region(영문). 못 구하면 "".
+		local pm = me:GetComponent("script.PlayerMovement")
+		if isvalid(pm) == false then return "" end
+		local tileName = pm.currentTile
+		if tileName == nil or tileName == "" then return "" end
+		return _TileManager:GetTileRegion(me.CurrentMapName, tileName)
+	end
+
+	@ExecSpace("ClientOnly")
+	method string ResolveRuid(string region)
+		-- RegionBGM 데이터셋에서 Region 행의 RUID를 반환. 행이 없거나 값이 비면 "".
+		local ds = _DataService:GetTable(self.DataSetName)
+		if isvalid(ds) == false then return "" end
+		for i = 1, ds:GetRowCount() do
+			if ds:GetCell(i, "Region") == region then
+				local r = ds:GetCell(i, "RUID")
+				if r == nil then return "" end
+				return r
+			end
+		end
+		return ""
 	end
 
 end
