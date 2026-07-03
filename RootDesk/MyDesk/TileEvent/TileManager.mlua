@@ -380,6 +380,7 @@ script TileManager extends Logic
 		local lv = self:LevelForStageTier(data.stage, data.tier)
 		if lv > cp.Level then
 			cp:SetLevel(lv)
+			cp:PlayLevelUpFx()   -- 레벨 상승 감지 → 레벨업 연출(효과음+이펙트) 전 클라 재생
 			log("[TileManager] 레벨 적용: " .. key .. " (Stage=" .. tostring(data.stage) .. " Tier=" .. tostring(data.tier) .. ") → Lv." .. tostring(lv))
 		end
 	end

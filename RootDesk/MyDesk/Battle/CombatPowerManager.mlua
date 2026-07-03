@@ -59,6 +59,26 @@ script CombatPowerManager extends Component
 	@Sync
 	property number UnluckyStatLoss = 5
 
+	-- 레벨업 연출용 리소스(상수: @Sync 불필요, 클라 인스턴스도 동일 기본값 보유).
+	-- 이펙트=메이플 LevelUp_Fast 애니메이션클립, 사운드는 SFXManager:PlayLevelUp에서 재생.
+	property string LevelUpEffectRUID = "d92f2ec742d94285af771d33086773d3"
+
+	property Vector3 LevelUpEffectScale = Vector3(1, 1, 1)
+
+	property Vector3 LevelUpEffectOffset = Vector3(0, 0, 0)
+
+	@ExecSpace("Multicast")
+	method void PlayLevelUpFx()
+		-- 레벨업 연출(서버가 레벨 상승을 감지한 직후 호출 → 전 클라이언트 재생).
+		-- 플레이어(자기 엔티티) 위치를 기준으로 레벨업 이펙트를 붙이고, 알림 효과음을 재생한다.
+		if isvalid(self.Entity) == false then return end
+		_SFXManager:PlayLevelUp()
+		if self.LevelUpEffectRUID ~= "" then
+			_EffectService:PlayEffectAttached(self.LevelUpEffectRUID, self.Entity, self.LevelUpEffectOffset, 0, self.LevelUpEffectScale, false)
+		end
+		log("[CombatPowerManager] 레벨업 연출 재생 (client) entity=" .. tostring(self.Entity.Name))
+	end
+
 	@ExecSpace("ServerOnly")
 	method void SetJob(string job)
 		-- 직업에 맞는 주스탯/공마 '타입'을 기록한다. (수치 값은 건드리지 않음)
