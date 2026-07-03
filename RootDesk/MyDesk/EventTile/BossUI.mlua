@@ -132,6 +132,13 @@ script BossUI extends Logic
 		-- 보스 선택 화면 표시. 도착 BossTile을 콜백용으로 보관하고 안내 문구를 세팅한다.
 		self._bossTile = bossTile
 		self._selectedIndex = 1
+		-- 기본 4보스 로스터/카드 복원(단일 모드(ShowSingle) 뒤에도 일반 보스칸이 정상 동작하도록).
+		self._bossKeys = { "Root_Abyss", "Papulatus", "Lotus", "Damien" }
+		self._bossNames = { "루타비스", "파풀라투스", "스우", "데미안" }
+		local dcards = { self.BossCard1, self.BossCard2, self.BossCard3, self.BossCard4 }
+		for i = 1, 4 do
+			if isvalid(dcards[i]) then dcards[i].Enable = true end
+		end
 		self:HideOtherUIs()
 		if isvalid(self.BossGroup) then self.BossGroup.Enable = true end
 		if isvalid(self.SelectionPanel) then self.SelectionPanel.Enable = true end
@@ -140,6 +147,33 @@ script BossUI extends Logic
 			self.SelectionText.TextComponent.Text = introText
 		end
 		log("[BossUI] 보스 선택 표시")
+	end
+
+	@ExecSpace("ClientOnly")
+	method void ShowSingle(Component bossTile, string bossKey, string bossName, string introText)
+		-- 단일 보스 선택 화면(예: 검은 마법사 최종 결전). 1번 카드만 노출하고 나머지는 숨긴다.
+		-- 카드 클릭 → 상세(실존 난이도만; BossProbability에 Hard만 있으면 하드 버튼 1개) → RequestSelect → bossTile:RequestSelect(bossKey, diffKey).
+		self._bossTile = bossTile
+		self._selectedIndex = 1
+		self._bossKeys = { bossKey }
+		self._bossNames = { bossName }
+		self:HideOtherUIs()
+		if isvalid(self.BossGroup) then self.BossGroup.Enable = true end
+		if isvalid(self.SelectionPanel) then self.SelectionPanel.Enable = true end
+		if isvalid(self.DetailPanel) then self.DetailPanel.Enable = false end
+		if isvalid(self.SelectionText) and isvalid(self.SelectionText.TextComponent) then
+			self.SelectionText.TextComponent.Text = introText
+		end
+		-- 1번 카드만 노출(선택지 1개), 2~4번 숨김.
+		local cards = { self.BossCard1, self.BossCard2, self.BossCard3, self.BossCard4 }
+		for i = 1, 4 do
+			if isvalid(cards[i]) then cards[i].Enable = (i == 1) end
+		end
+		-- 1번 카드 라벨을 보스명으로(카드에 TextComponent가 있으면).
+		if isvalid(self.BossCard1) and isvalid(self.BossCard1.TextComponent) then
+			self.BossCard1.TextComponent.Text = bossName
+		end
+		log("[BossUI] 단일 보스 선택 표시: " .. tostring(bossName))
 	end
 
 	@ExecSpace("ClientOnly")
