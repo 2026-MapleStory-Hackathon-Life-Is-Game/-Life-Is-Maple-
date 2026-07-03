@@ -23,15 +23,20 @@ script VillageEventFlowManager extends Logic
 		return out
 	end
 
-	method string RollEvent(integer stage, string region)
-		-- VillageEventFlow에서 (Stage,Region) 일치 행을 Weight 가중치로 1개 추첨 → EventId. 없으면 "".
+	method string RollEvent(integer stage, string region, boolean isLastVillage)
+		-- VillageEventFlow에서 (Stage,Region) + 배치조건 일치 행을 Weight 가중치로 1개 추첨 → EventId. 없으면 "".
 		-- 같은 (Stage,Region) 이벤트가 여러 개면 가중치에 따라 그중 하나가 랜덤 선택된다.
+		-- Placement 컬럼: ""=항상 / "last"=마지막 마을칸에만 / "notlast"=마지막 마을칸 제외.
 		local ds = _DataService:GetTable("VillageEventFlow")
 		if isvalid(ds) == false then return "" end
 		local rows = ds:GetRowCount()
 		local function match(i)
-			return (tonumber(ds:GetCell(i, "Stage")) or 0) == stage
-				and ds:GetCell(i, "Region") == region
+			if (tonumber(ds:GetCell(i, "Stage")) or 0) ~= stage then return false end
+			if ds:GetCell(i, "Region") ~= region then return false end
+			local pl = ds:GetCell(i, "Placement")
+			if pl == "last" and isLastVillage == false then return false end
+			if pl == "notlast" and isLastVillage == true then return false end
+			return true
 		end
 		local total = 0
 		for i = 1, rows do
@@ -68,8 +73,9 @@ script VillageEventFlowManager extends Logic
 	end
 
 	@ExecSpace("ServerOnly")
-	method string RollEventForArrival(integer stage, string region)
+	method string RollEventForArrival(integer stage, string region, boolean isLastVillage)
 		-- 마을 타일 도착 시 호출. 스테이지1의 '첫' 마을 이벤트는 1번 플로우로 고정, 그 외엔 가중치 추첨.
+		-- isLastVillage: 이 타일이 해당 지역의 마지막 마을칸인지(리멘 최종칸 고정/제외 배치용).
 		if stage == 1 and self._stage1FirstDone == false then
 			local forced = self:FirstFlowEvent(1, region)
 			if forced ~= "" then
@@ -84,7 +90,7 @@ script VillageEventFlowManager extends Logic
 			log("[VillageEventFlow] 골드리치 특별 이벤트 발생(0.6%) region=" .. tostring(region))
 			return "ALL_GOLDRICH_01"
 		end
-		return self:RollEvent(stage, region)
+		return self:RollEvent(stage, region, isLastVillage)
 	end
 
 	method integer FirstScene(string eventId)
@@ -124,6 +130,7 @@ script VillageEventFlowManager extends Logic
 					nextSeq     = ds:GetCell(i, "Next"),
 					branchGroup = ds:GetCell(i, "BranchGroup"),
 					reward      = ds:GetCell(i, "Reward"),
+					npcKey      = ds:GetCell(i, "NpcKey"),
 					text        = self:DecodeText(ds:GetCell(i, "Text")),
 				}
 			end

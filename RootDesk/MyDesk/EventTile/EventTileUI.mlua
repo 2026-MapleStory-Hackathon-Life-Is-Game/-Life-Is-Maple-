@@ -1,95 +1,191 @@
 @Logic
 script EventTileUI extends Logic
 
-	-- 이벤트 타일 UI(EventTileGroup) 클라 컨트롤러.
-	-- UI 그룹 바깥의 @Logic 이라 그룹을 켜고/끄는 동안 자기 자신이 비활성화되지 않는다.
-	-- 모든 텍스트 진행은 NextButton 클릭으로만 넘어간다(자동 5초 타이머 없음).
-	-- 선택지: 2개 이하 → 수락/거절(BinaryChoice) 양쪽 버튼 / 3~4개 → MultipleChoice(Select_1~4).
-
-	-- EventTileGroup 루트(표시/숨김 토글 대상).
 	property Entity EventGroup = "707f4eb6-99f6-4e7d-878c-c3a90cec9a81"
-	-- 문구 출력 UIText 경로(TextComponent).
+
 	property string TextPath = "/ui/EventTileGroup/EventBack/UISprite/UIText"
-	-- 초상화(아바타) 경로.
+
 	property string PortraitPath = "/ui/EventTileGroup/EventBack/BackgroundMap/PlayerPortrait"
 
-	-- 턴 매니저가 비인터랙티브 이벤트 대기시간으로 읽는 값(현재는 모두 NextButton이라 직접 쓰이진 않음). 유지.
 	property number AutoHideSeconds = 5.0
+
 	property number VillageStepSeconds = 5.0
 
-	-- 진행(다음) 버튼.
 	property Entity NextButton = "838ae8b4-920f-4448-bc4b-b551594cba6d"
-	-- 바이너리 선택(수락/거절) 버튼.
+
 	property Entity AcceptButton = "2a91f613-50ec-455f-8610-6fdc36bfeca4"
+
 	property Entity DeclineButton = "27c567d9-0abf-44ed-8536-a916699f3a8b"
-	-- 다지선다(3~4개) 버튼.
+
 	property Entity Select1 = "1133513f-3c5f-4ef4-9337-e9f58927f966"
+
 	property Entity Select2 = "bdb47787-7623-4726-a035-5afa3988538a"
+
 	property Entity Select3 = "ac376b97-7fd7-43e1-a21b-479b07b556d0"
+
 	property Entity Select4 = "8f602fd0-5463-4623-b668-5679886ede36"
+
 	property Entity MultipleChoiceGroup = "9018a713-b23b-47c7-ad4a-88528a2c739d"
+
 	property Entity BinaryChoiceGroup = "ca641946-c4e3-4c21-8cae-82ae38baef34"
-	-- 사냥 이벤트 몬스터 이미지(Monsters 하위 3개, 모두 같은 RUID 적용).
+
 	property Entity MonstersGroup = "afb70a6e-4248-43fb-a58f-d1e88f00cbef"
+
 	property Entity MonsterImage1 = "eb5c3997-2c03-4c8c-bd2f-e817bd2ca486"
+
 	property Entity MonsterImage2 = "419c949d-bc4a-4821-801a-89b796cd6053"
+
 	property Entity MonsterImage3 = "f3c7cd32-8ab8-4fd4-859c-6c3513ea8853"
-	-- NPC 이미지(마을/사냥+ 이벤트에서 표시). 기본 숨김, 해당 이벤트에서만 켠다.
+
 	property Entity NPCImage = "1fbf3532-d2e1-452f-8796-3a990a65660e"
 
-	-- 진행 중인 타일 컴포넌트(진행/선택을 서버로 되돌릴 콜백 대상).
 	property any _activeTile = nil
-	-- 초상화 재적용 반복 타이머 + 현재 상태.
+
 	property integer _portraitTimer = 0
+
 	property string _portraitState = "idle"
-	-- 진행 버튼 핸들러 + 선택 버튼 핸들러 목록.
+
 	property any _nextHandler = nil
+
 	property table _choiceHandlers = {}
-	-- roll 씬: 결과 문구 + 확률게임 주사위 연출 파라미터 보관.
+
 	property string _rollResult = ""
+
 	property integer _rollD1 = 0
+
 	property integer _rollD2 = 0
+
 	property integer _rollTotal = 0
-	-- roll 씬 확률(대성공/성공/실패 %) — 클라가 SetProbabilities로 결과판을 구성할 때 사용.
+
 	property number _rollGreat = 0
+
 	property number _rollSuccess = 0
+
 	property number _rollFail = 0
+
 	property string _rollOutcome = ""
-	-- 텍스트의 '\n\n'(빈 줄)을 '다음'으로 한 페이지씩 끊어 출력하기 위한 상태.
+
 	property table _pages = {}
+
 	property integer _pageIdx = 0
+
 	property any _pageDone = nil
-	-- 선택지 프롬프트가 여러 페이지일 때 마지막 페이지에서 노출할 선택지 라벨.
+
 	property table _choiceLabels = {}
-	-- 페이지별 이미지 전환(사냥+ 등): 페이지1은 몬스터 이미지, _imgNpcFromPage 페이지부터 NPC 이미지로 전환.
-	--   0이면 전환 없음(단일 이미지). _imgNpcRUID = 전환 시 켤 NPC 이미지 RUID.
+
 	property integer _imgNpcFromPage = 0
+
 	property string _imgNpcRUID = ""
+
+	property table _pageNpcRUIDs = {}
+
+	property number TypeInterval = 0.03
+
+	property integer _typeTimer = 0
+
+	property table _typeChars = {}
+
+	property integer _typeIdx = 0
+
+	property string _typeBuf = ""
+
+	property boolean _typing = false
+
+	property any _textComp = nil
 
 	@ExecSpace("ClientOnly")
 	method void OnBeginPlay()
 		-- 평소엔 그룹 숨김 + 모든 버튼 비활성.
 		if isvalid(self.EventGroup) then self.EventGroup.Enable = false end
+		self:StopTyping()
 		self:HideAllButtons()
 	end
 
 	@ExecSpace("ClientOnly")
 	method void OnEndPlay()
+		self:StopTyping()
 		self:ClearPortrait()
 		self:HideAllButtons()
 	end
 
-	-- ===== 공통 표시 헬퍼 =====
+	@ExecSpace("ClientOnly")
+	method any GetTextComp()
+		-- 출력 대상 UIText의 TextComponent를 조회(실패 시 nil).
+		local e = _EntityService:GetEntityByPath(self.TextPath)
+		if isvalid(e) and isvalid(e.TextComponent) then return e.TextComponent end
+		return nil
+	end
+
+	@ExecSpace("ClientOnly")
+	method table Utf8Chars(string s)
+		-- 문자열을 UTF-8 문자 단위 목록으로 분리한다(한글=3바이트 안전 처리).
+		-- 선행 바이트 값으로 문자 길이를 판별: <0x80 1B / >=0xF0 4B / >=0xE0 3B / >=0xC0 2B.
+		local chars = {}
+		if s == nil then return chars end
+		local i = 1
+		local n = #s
+		while i <= n do
+			local b = string.byte(s, i)
+			local len = 1
+			if b >= 0xF0 then len = 4
+			elseif b >= 0xE0 then len = 3
+			elseif b >= 0xC0 then len = 2
+			end
+			table.insert(chars, string.sub(s, i, i + len - 1))
+			i = i + len
+		end
+		return chars
+	end
+
+	@ExecSpace("ClientOnly")
+	method void StopTyping()
+		-- 진행 중인 타이핑 타이머만 정리한다(이미 출력된 텍스트는 건드리지 않는다).
+		if self._typeTimer ~= 0 then
+			_TimerService:ClearTimer(self._typeTimer)
+			self._typeTimer = 0
+		end
+		self._typing = false
+	end
+
+	@ExecSpace("ClientOnly")
+	method void FinishTyping()
+		-- 타이핑 중인 문장을 즉시 전부 출력하고 종료한다(‘다음’ 클릭 스킵용).
+		self:StopTyping()
+		local comp = self._textComp
+		if isvalid(comp) == false then comp = self:GetTextComp() end
+		if comp ~= nil then comp.Text = table.concat(self._typeChars) end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void TypeStep()
+		-- 타이머 콜백: 한 글자씩 누적 출력. 마지막 글자에 도달하면 타이머를 멈춘다.
+		local comp = self._textComp
+		if isvalid(comp) == false then self:StopTyping() return end
+		self._typeIdx = self._typeIdx + 1
+		self._typeBuf = self._typeBuf .. (self._typeChars[self._typeIdx] or "")
+		comp.Text = self._typeBuf
+		if self._typeIdx >= #self._typeChars then
+			self:StopTyping()
+		end
+	end
 
 	@ExecSpace("ClientOnly")
 	method void SetText(string message)
-		-- UIText 엔티티에 문구를 출력한다.
-		local textEntity = _EntityService:GetEntityByPath(self.TextPath)
-		if isvalid(textEntity) and isvalid(textEntity.TextComponent) then
-			textEntity.TextComponent.Text = message
-		else
+		-- UIText에 문구를 '한 글자씩' 타이핑 연출로 출력한다. 새 문장이 오면 이전 타이핑은 취소하고 처음부터 시작.
+		self:StopTyping()
+		local comp = self:GetTextComp()
+		if comp == nil then
 			log_warning("[EventTileUI] UIText/TextComponent 를 찾을 수 없습니다: " .. self.TextPath)
+			return
 		end
+		self._textComp = comp
+		self._typeChars = self:Utf8Chars(message or "")
+		self._typeIdx = 0
+		self._typeBuf = ""
+		comp.Text = ""
+		if #self._typeChars == 0 then return end
+		self._typing = true
+		self._typeTimer = _TimerService:SetTimerRepeat(function() self:TypeStep() end, self.TypeInterval)
 	end
 
 	@ExecSpace("ClientOnly")
@@ -99,6 +195,7 @@ script EventTileUI extends Logic
 		self:SetMonsterImages("")
 		self:SetNPCImage(false, "")
 		self._imgNpcFromPage = 0   -- 페이지별 이미지 전환 상태 초기화(이번 표시에서만 재설정).
+		self._pageNpcRUIDs = {}    -- 페이지별 NPC 목록도 초기화.
 	end
 
 	@ExecSpace("ClientOnly")
@@ -160,8 +257,6 @@ script EventTileUI extends Logic
 		end
 	end
 
-	-- ===== 버튼 표시 / 해제 =====
-
 	@ExecSpace("ClientOnly")
 	method void ClearNext()
 		-- 진행(NextButton) 핸들러 해제 + 숨김.
@@ -192,10 +287,17 @@ script EventTileUI extends Logic
 	@ExecSpace("ClientOnly")
 	method void ShowNext(any onClick)
 		-- 진행(NextButton)만 표시하고 클릭 시 onClick(self) 실행.
+		-- 단, 아직 타이핑이 끝나지 않았다면 첫 클릭은 '현재 문장 즉시 완성(스킵)'으로 동작하고 넘어가지 않는다.
 		self:HideAllButtons()
 		if isvalid(self.NextButton) then
 			self.NextButton.Enable = true
-			self._nextHandler = self.NextButton:ConnectEvent(ButtonClickEvent, function() onClick(self) end)
+			self._nextHandler = self.NextButton:ConnectEvent(ButtonClickEvent, function()
+				if self._typing then
+					self:FinishTyping()
+					return
+				end
+				onClick(self)
+			end)
 		end
 	end
 
@@ -209,8 +311,6 @@ script EventTileUI extends Logic
 		local hd = btn:ConnectEvent(ButtonClickEvent, function() self:OnChoicePick(idx) end)
 		table.insert(self._choiceHandlers, { entity = btn, hd = hd })
 	end
-
-	-- ===== 텍스트 페이지 처리(\n\n = 페이지 경계, '다음'으로 한 장씩) =====
 
 	@ExecSpace("ClientOnly")
 	method string TrimText(string s)
@@ -262,6 +362,12 @@ script EventTileUI extends Logic
 				self:SetNPCImage(true, self._imgNpcRUID)
 				self._imgNpcFromPage = 0
 			end
+			-- 페이지별 NPC 교체(불행 씬 등): 이 페이지 지정 NPC RUID가 있으면 적용(부족하면 마지막 값 유지).
+			if #self._pageNpcRUIDs > 0 then
+				local r = self._pageNpcRUIDs[self._pageIdx]
+				if r == nil then r = self._pageNpcRUIDs[#self._pageNpcRUIDs] end
+				if r ~= nil and r ~= "" then self:SetNPCImage(true, r) end
+			end
 		else
 			local cb = self._pageDone
 			if cb ~= nil then cb(self) end
@@ -270,26 +376,30 @@ script EventTileUI extends Logic
 
 	@ExecSpace("ClientOnly")
 	method void Hide()
-		-- 이벤트 UI 닫기: 버튼/타이머 정리 후 그룹 숨김.
+		-- 이벤트 UI 닫기: 타이핑/버튼/타이머 정리 후 그룹 숨김.
+		self:StopTyping()
 		self:HideAllButtons()
 		self:ClearPortrait()
 		if isvalid(self.EventGroup) then self.EventGroup.Enable = false end
 	end
 
-	-- ===== 사냥 등 단순 이벤트(텍스트 1장 + 다음) =====
-
 	@ExecSpace("ClientOnly")
-	method void ShowEventText(string message, string anim, string monsterRUID, string imageKind, string npcKey, integer npcFromPage, Component tile)
+	method void ShowEventText(string message, string anim, string monsterRUID, string imageKind, string npcKey, integer npcFromPage, string page2Ruid, Component tile)
 		-- EventTileBase(사냥/세금/사냥+/불행 등): 텍스트(페이지 단위) + 초상화(타일 지정 anim) + 이미지.
 		-- imageKind = "npc"(사냥+·불행 → NPC 이미지) / 그 외(사냥 → 몬스터 이미지). anim은 칸의 기본값.
 		-- npcKey = 등장 NPC 이름 키(NpcInfo 조회용, 없으면 ""). 마지막 장 '다음' → 종료.
-		-- npcFromPage > 0 이면 '분할 이미지' 모드: 페이지1은 몬스터 이미지(monsterRUID), 그 페이지부터 NPC 이미지로 전환.
-		--   (사냥+ 타일: 페이지1=기본 사냥 몬스터, 페이지2+=사냥+ NPC)
+		-- npcFromPage > 0 이면 '분할 이미지' 모드: 페이지1은 몬스터 이미지(monsterRUID), 그 페이지부터 사냥+ 이미지로 전환.
+		--   (사냥+ 타일: 페이지1=기본 사냥 몬스터, 페이지2+=사냥+ 이미지)
+		-- page2Ruid = 페이지2 이미지의 이미 해석된 RUID(엘리트 몬스터/NPC). 있으면 npcKey 조회보다 우선.
 		self._activeTile = tile
 		self:ShowGroup()
 		if npcFromPage > 0 then
 			self._imgNpcFromPage = npcFromPage
-			self._imgNpcRUID = _NpcInfoManager:GetNpcRUID(npcKey)
+			if page2Ruid ~= nil and page2Ruid ~= "" then
+				self._imgNpcRUID = page2Ruid   -- 이미 해석된 RUID(엘리트 몬스터/NPC) 우선
+			else
+				self._imgNpcRUID = _NpcInfoManager:GetNpcRUID(npcKey)
+			end
 			self:SetMonsterImages(monsterRUID)   -- 시작(페이지1)은 몬스터 이미지
 		elseif imageKind == "npc" then
 			self:SetNPCImage(true, _NpcInfoManager:GetNpcRUID(npcKey))
@@ -308,6 +418,36 @@ script EventTileUI extends Logic
 	end
 
 	@ExecSpace("ClientOnly")
+	method void ShowPagedNpcEvent(string message, string anim, string npcRuidsCsv, Component tile)
+		-- 불행 등 '씬(페이지)별 NPC 교체' 이벤트 표시. npcRuidsCsv = ';'로 구분한 페이지별 NPC RUID 목록(서버에서 해석 완료).
+		--   페이지1은 목록[1], 이후 '다음'마다 목록[i]로 교체(목록보다 페이지가 많으면 마지막 값 유지, 목록이 비면 NPC 숨김).
+		-- 문구는 '\n\n'(빈 줄) 기준 페이지 분할(ShowPagedText 재사용). 마지막 장 '다음' → OnEventDone → 종료.
+		self._activeTile = tile
+		self:ShowGroup()
+		self._pageNpcRUIDs = self:SplitSemi(npcRuidsCsv)
+		self:SetPortrait(anim)
+		local first = ""
+		if #self._pageNpcRUIDs > 0 then first = self._pageNpcRUIDs[1] end
+		if first ~= "" then
+			self:SetNPCImage(true, first)
+		else
+			self:SetNPCImage(false, "")   -- NPC 없는 불행(예: 리멘)은 초상 숨김.
+		end
+		self:ShowPagedText(message, self.OnEventDone)
+	end
+
+	@ExecSpace("ClientOnly")
+	method table SplitSemi(string s)
+		-- ';'로 구분된 문자열을 목록으로 나눈다(빈 값이면 빈 목록).
+		local list = {}
+		if s == nil or s == "" then return list end
+		for part in string.gmatch(s, "[^;]+") do
+			table.insert(list, part)
+		end
+		return list
+	end
+
+	@ExecSpace("ClientOnly")
 	method void ShowPlain(string message)
 		-- 버튼 없이 문구만 표시(보스 선택 안내 등).
 		self:HideAllButtons()
@@ -315,8 +455,6 @@ script EventTileUI extends Logic
 		self:SetText(message)
 		self:SetPortrait("attack")
 	end
-
-	-- ===== 마을 씬 재생(VillageTile 연동) =====
 
 	@ExecSpace("ClientOnly")
 	method void SceneText(string text, string anim, string npcKey, Component tile)
@@ -427,8 +565,6 @@ script EventTileUI extends Logic
 		self:Hide()
 		self._activeTile = nil
 	end
-
-	-- ===== 보스 도전 연출(BossTile 연동) — 5초 자동 → NextButton =====
 
 	@ExecSpace("ClientOnly")
 	method void VillageQuestText(string questText, Component villageTile)

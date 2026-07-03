@@ -1,16 +1,37 @@
 @Component
 script UnluckyTile extends EventTileBase
 
-	-- 불행(부정) 이벤트 타일. 마을/사냥 이벤트와 동일한 흐름(텍스트 팝업 + '다음'으로 진행)이지만
-	-- 보상이 부정적(스탯 하락)이다.
-	-- 이벤트 값(지역/등장NPC/애니/스탯 감소/문구)은 스크립트 밖 데이터셋 'UnluckyEvent'
+	-- 불행(부정) 이벤트 타일. 텍스트 팝업 + '다음'으로 진행(페이지=씬). 보상은 주로 스탯 하락(음수).
+	-- 이벤트 값(지역/등장NPC/애니/보상/문구)은 스크립트 밖 데이터셋 'UnluckyEvent'
 	--   (UnluckyEvent.userdataset + .csv)에서 관리한다. 도착 타일의 (Stage,Region)과 일치하는 행 중
 	--   Weight 가중치로 1개를 추첨한다. 값/문구 추가·수정은 CSV만 편집하면 된다.
-	--   CSV 컬럼: Stage / Region / NPC / Weight / PlayerAnim / StatKind / StatMode / StatValue / Text
-	--     · StatKind : 감소 스탯 종류 — "all"(올스탯) / "main"(주스탯) 등 (EventTileBase.ApplyReward 키와 동일)
-	--     · StatMode : "flat"(고정 수치)
-	--     · StatValue: 증감 수치(불행이므로 음수, 예: -1)
-	--     · Text     : 문구. 줄바꿈은 '\n', 페이지(다음) 경계는 '\n\n' 리터럴로 저장(런타임에 복원)
+	--   CSV 컬럼: Stage / Region / NPC / Weight / PlayerAnim / Reward / Text
+	--     · NPC      : 등장 NPC 이름 키. '씬(페이지)별 교체'는 ';'로 나열(예: 'Helena;Helena;Nineheart' → 페이지1/2/3).
+	--                  단일 키면 모든 페이지 동일. NPC 없으면 빈 값. NpcInfo에서 RUID 조회.
+	--     · Reward   : 보상 인코딩('main:-10' / 'main:10;attack:-5' / 'main:-10;cube:3' 등). VillageEventFlow와 동일 문법.
+	--                  음수=감소, 다중 보상은 ';'로 나열, 큐브는 'cube:N'. ApplyRewardString이 파싱·적용한다.
+	--     · Text     : 문구. 줄바꿈은 '\n', 페이지(씬 경계)는 '\n\n' 리터럴로 저장(런타임에 복원)
+
+	@ExecSpace("ServerOnly")
+	method void OnArrive(Entity piece)
+		-- 불행 이벤트: (Stage,Region) 가중 추첨 → 보상 적용(RollEvent) → 씬(페이지)별 NPC로 표시.
+		-- (베이스 OnArrive의 단일-이미지 흐름 대신, 페이지별 NPC 교체를 위해 재정의한다.)
+		self._eventPiece = piece
+		local ev = self:RollEvent(piece)   -- 내부에서 ApplyRewardString로 보상 적용
+		if ev == nil then
+			self:FinishEventTile()
+			return
+		end
+		local ownerId = self:OwnerUserId(piece)
+		if ownerId == "" then
+			self:FinishEventTile()
+			return
+		end
+		-- NPC 이름 키 목록(';' 구분)을 페이지별 RUID 목록으로 해석해 클라에 전달한다.
+		local npcCsv = self:ResolvePageNpcRUIDs(ev.npcKey)
+		self:ClientShowUnlucky(ev.message, ev.anim or "idle", npcCsv, ownerId)
+		log("[UnluckyTile] 불행 이벤트 발생 tile=" .. self.Entity.Name)
+	end
 
 	method table RollEvent(Entity piece)
 		-- 도착 타일의 (Stage,Region)으로 UnluckyEvent에서 가중 추첨해 이벤트를 반환한다.
@@ -57,12 +78,13 @@ script UnluckyTile extends EventTileBase
 
 		local anim = ds:GetCell(pick, "PlayerAnim")
 		if anim == "" then anim = "idle" end
+		-- 보상 적용: Reward 문자열('main:-10;attack:-5;cube:3' 등)을 이 자리에서 직접 적용하고,
+		-- 반환 table의 statKind는 비워 OnArrive의 ApplyReward가 중복 적용하지 않도록 한다(다중 보상/큐브 지원).
+		self:ApplyRewardString(piece, ds:GetCell(pick, "Reward"))
 		return {
 			eventType = "Unlucky",
 			message   = self:DecodeText(ds:GetCell(pick, "Text")),
-			statKind  = ds:GetCell(pick, "StatKind"),          -- "all"(올스탯) 등
-			statMode  = ds:GetCell(pick, "StatMode"),          -- "flat"
-			statValue = tonumber(ds:GetCell(pick, "StatValue")) or 0,  -- 음수 = 하락
+			statKind  = "",                                     -- 보상은 위 ApplyRewardString에서 이미 적용(중복 방지)
 			imageKind = "npc",                                  -- 불행 이벤트: NPC 이미지 표시
 			npcKey    = ds:GetCell(pick, "NPC"),                -- 등장 NPC 이름 키 → NpcInfo에서 RUID 조회
 			anim      = anim,
@@ -87,6 +109,29 @@ script UnluckyTile extends EventTileBase
 		local piece = self._eventPiece
 		if isvalid(piece) and senderUserId ~= self:OwnerUserId(piece) then return end
 		self:FinishEventTile()
+	end
+
+	@ExecSpace("Client")
+	method void ClientShowUnlucky(string message, string anim, string npcRuidsCsv)
+		-- 도착 플레이어 클라: 씬(페이지)별 NPC 교체 불행 이벤트 표시.
+		_EventTileUI:ShowPagedNpcEvent(message, anim, npcRuidsCsv, self)
+	end
+
+	method string ResolvePageNpcRUIDs(string npcList)
+		-- "Helena;Helena;Nineheart" → "ruid1;ruid2;ruid3" (각 키를 NpcInfo에서 RUID로 해석). 빈 키/목록이면 "".
+		if npcList == nil or npcList == "" then return "" end
+		local out = ""
+		local started = false
+		for key in string.gmatch(npcList, "[^;]+") do
+			local ruid = _NpcInfoManager:GetNpcRUID(key)
+			if started then
+				out = out .. ";" .. ruid
+			else
+				out = ruid
+				started = true
+			end
+		end
+		return out
 	end
 
 end

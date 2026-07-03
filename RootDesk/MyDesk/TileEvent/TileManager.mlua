@@ -186,6 +186,34 @@ script TileManager extends Logic
 		return 0
 	end
 
+	method integer TileIndexOf(string tileName)
+		-- "Tile_132" / "Tile_132_A" → 132. 첫 숫자열을 인덱스로 파싱(실패 시 -1).
+		local digits = ""
+		for d in string.gmatch(tileName, "%d+") do
+			if digits == "" then digits = d end
+		end
+		if digits == "" then return -1 end
+		return tonumber(digits) or -1
+	end
+
+	method boolean IsLastVillageTile(string mapName, string tileName)
+		-- 이 타일이 '자기 지역의 마지막(최고 인덱스) 마을 타일'인지 반환한다.
+		-- (리멘 최종칸 고정/제외 배치 판정에 사용. 마을 타일이 아니면 false.)
+		local myData = self.tileGraph[mapName .. "_" .. tileName]
+		if myData == nil or myData.type ~= "Village" then return false end
+		local region = myData.region or ""
+		local myIdx = self:TileIndexOf(tileName)
+		if myIdx < 0 then return false end
+		local prefix = mapName .. "_"
+		for key, data in pairs(self.tileGraph) do
+			if string.sub(key, 1, #prefix) == prefix and data.type == "Village" and (data.region or "") == region then
+				local otherName = string.sub(key, #prefix + 1)
+				if self:TileIndexOf(otherName) > myIdx then return false end
+			end
+		end
+		return true
+	end
+
 	method string GetTileBranchText(string mapName, string tileName)
 		-- 해당 타일의 BranchText(기획자 지정 분기 문자열) 반환(없으면 "").
 		local data = self.tileGraph[mapName .. "_" .. tileName]

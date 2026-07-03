@@ -188,6 +188,20 @@ script BaseTile extends Component
 		self:GrantItem(piece, equipName)
 	end
 
+	@ExecSpace("ServerOnly")
+	method void GrantCube(Entity piece, integer count)
+		-- 도착 플레이어에게 미라클 큐브 count개를 지급한다(마을 이벤트 보상 "cube:N").
+		if count == nil or count <= 0 then return end
+		if isvalid(piece) == false then return end
+		local bag = piece:GetComponent("script.CubeInventory")
+		if isvalid(bag) then
+			bag:AddMiracleCube(count)
+			log("[BaseTile] 미라클 큐브 지급 → " .. tostring(count))
+		else
+			log_warning("[BaseTile] CubeInventory 없음 → 큐브 지급 스킵")
+		end
+	end
+
 	method string ClassOfPiece(Entity piece)
 		-- 도착 플레이어의 직업 클래스(Warrior/Mage/Archer/Thief/Pirate)를 현재 장착 무기로 판별. 없으면 "".
 		if isvalid(piece) == false then return "" end
