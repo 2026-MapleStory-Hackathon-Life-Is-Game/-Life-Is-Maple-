@@ -577,6 +577,8 @@ script EventTileUI extends Logic
 
 	@ExecSpace("ClientOnly")
 	method void OnQuestNext()
+		-- '다음' 클릭 즉시 버튼을 숨겨 주사위 UI가 뜨기까지의 서버 왕복 동안 재클릭(중복 굴림)을 막는다.
+		self:HideAllButtons()
 		if isvalid(self._activeTile) then self._activeTile:RequestQuestRoll() end
 	end
 
@@ -584,6 +586,7 @@ script EventTileUI extends Logic
 	method void VillageDice(integer d1, integer d2, integer total, table resultTable, string outcome, string outcomeText, Component villageTile)
 		-- 결과 주사위 연출 → 결과 문구 + '다음' 클릭 시 종료 신호.
 		self._activeTile = villageTile
+		self:HideAllButtons()   -- 주사위 UI가 뜬 동안 밑의 EventTileGroup 버튼이 눌리지 않도록 방어적으로 재차 숨김.
 		_RollResultDiceAnimationUI:Show(d1, d2, total, resultTable, outcome, function()
 			self:ShowPagedText(outcomeText, self.OnDiceNext)
 		end)
