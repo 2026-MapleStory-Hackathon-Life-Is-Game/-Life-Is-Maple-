@@ -1,0 +1,189 @@
+@Component
+script HelpPanel extends Component
+
+	-- '?' 토글 버튼(패널 밖, InGameUIGroup 직속). 열림/닫힘을 토글한다.
+	property Entity helpButton = "7df1641c-9d1a-407e-ad9a-222fcc7864ce"
+
+	-- 도움말 패널 루트(DimBlack + 탭 + 내용). Enable로 표시/숨김.
+	property Entity helpPanel = "9938b5c9-8b6b-4147-933a-51ce89c4ebda"
+
+	-- 우하단 닫기 버튼.
+	property Entity closeButton = "2cbdcc29-feab-4680-94b3-19a44249c11f"
+
+	-- 좌측 탭 버튼 3종.
+	property Entity tabBasicBtn = "67de956c-8352-4dbb-8684-59a6c43d7431"   -- 기본 조작
+	property Entity tabTileBtn  = "7084f5c9-2a75-4e27-b48c-1b70e3bf1a11"   -- 타일의 종류
+	property Entity tabEquipBtn = "aedca9c3-4273-4742-8d45-a1640c928ac4"   -- 장비 장착&강화
+
+	-- 각 탭의 내용 그룹(WholePanel 하위). 활성 탭만 Enable=true.
+	property Entity groupBasic = "feaf2270-dbe2-46bb-aa0e-da2ea89d2541"
+	property Entity groupTile  = "2c6d759e-fbd9-4c25-a829-fd3ba32432c6"
+	property Entity groupEquip = "33cb323e-5ec1-4392-9af1-d884813abbde"
+
+	property boolean isOpen = false
+	property integer activeTab = 1        -- 1=기본조작 2=타일종류 3=장비장착강화
+	property any handlers = nil           -- { {entity, evtH}, ... }
+
+	method void OnBeginPlay()
+		-- 클라 전용: 버튼 이벤트 배선 + 패널 시작 숨김.
+		if self:IsClient() == false then return end
+		self.handlers = {}
+		self.isOpen = false
+		self.activeTab = 1
+
+		-- 탭별 설정: 내용 그룹 / 페이지 컨테이너 이름 / 좌·우 화살표 이름 / 현재 페이지.
+		self._T.tabs = {
+			{ group = self.groupBasic, panels = "Panels",   left = "UIButton_2", right = "UIButton_3", page = 1 },
+			{ group = self.groupTile,  panels = "Panels_1", left = "UIButton_2", right = "UIButton_3", page = 1 },
+			{ group = self.groupEquip, panels = "Panels_2", left = "UIButton",   right = "UIButton_1", page = 1 },
+		}
+
+		-- '?' 토글 / 닫기 / 탭 버튼 배선.
+		self:Connect(self.helpButton, function() self:Toggle() end)
+		self:Connect(self.closeButton, function() self:Close() end)
+		self:Connect(self.tabBasicBtn, function() self:SelectTab(1) end)
+		self:Connect(self.tabTileBtn,  function() self:SelectTab(2) end)
+		self:Connect(self.tabEquipBtn, function() self:SelectTab(3) end)
+
+		-- 각 탭의 좌/우 화살표 배선(그룹 자식에서 이름으로 조회).
+		for i = 1, #self._T.tabs do
+			local t = self._T.tabs[i]
+			local g = t.group
+			if isvalid(g) then
+				local lb = g:GetChildByName(t.left, false)
+				local rb = g:GetChildByName(t.right, false)
+				local idx = i
+				if isvalid(lb) then self:Connect(lb, function() self:ChangePage(idx, -1) end) end
+				if isvalid(rb) then self:Connect(rb, function() self:ChangePage(idx, 1) end) end
+			end
+		end
+
+		-- 시작 시 숨김(.ui 기본이 켜져 있어도 명시적으로 내린다).
+		if isvalid(self.helpPanel) then self.helpPanel.Enable = false end
+
+		log("[HelpPanel] OnBeginPlay OK")
+	end
+
+	method void Connect(Entity e, any fn)
+		-- 버튼 클릭에 핸들러를 연결하고 OnEndPlay 해제용으로 보관. 클릭음도 함께 재생.
+		if isvalid(e) == false then return end
+		local h = e:ConnectEvent(ButtonClickEvent, function()
+			if _SFXManager ~= nil then _SFXManager:PlayClick() end
+			fn()
+		end)
+		table.insert(self.handlers, { entity = e, evtH = h })
+	end
+
+	method void Toggle()
+		-- '?' 클릭: 열려 있으면 닫고, 닫혀 있으면 연다.
+		if self.isOpen then self:Close() else self:Open() end
+	end
+
+	method void Open()
+		-- 도움말 열기: 패널 표시 + 최상단으로 올리고, '?'는 그 위에 유지(다시 눌러 닫기 위해).
+		if self:IsClient() == false then return end
+		self.isOpen = true
+		if isvalid(self.helpPanel) then self.helpPanel.Enable = true end
+		-- HelpPanel을 형제 중 맨 앞으로(DimBlack가 HUD를 덮게). '?' 버튼은 그보다 더 앞으로 유지.
+		self:BringFront(self.helpPanel, 1000000)
+		self:BringFront(self.helpButton, 1000001)
+		self:ShowTab(self.activeTab)
+		log("[HelpPanel] Open tab=" .. tostring(self.activeTab))
+	end
+
+	method void Close()
+		-- 도움말 닫기.
+		if self:IsClient() == false then return end
+		self.isOpen = false
+		if isvalid(self.helpPanel) then self.helpPanel.Enable = false end
+		log("[HelpPanel] Close")
+	end
+
+	method void BringFront(Entity e, integer idx)
+		-- 엔티티를 같은 부모 형제 중 idx 위치(클수록 앞)로 올린다.
+		if isvalid(e) == false then return end
+		local ut = e.UITransformComponent
+		if isvalid(ut) then _UILogic:SetSiblingIndex(ut, idx) end
+	end
+
+	method void SelectTab(integer tab)
+		-- 탭 버튼 클릭: 해당 탭으로 전환(닫혀 있으면 열면서 전환).
+		self.activeTab = tab
+		if self.isOpen == false then
+			self:Open()
+			return
+		end
+		self:ShowTab(tab)
+	end
+
+	method void ShowTab(integer tab)
+		-- 활성 탭 그룹만 표시하고 나머지는 숨긴 뒤, 그 탭의 현재 페이지를 그린다.
+		self.activeTab = tab
+		for i = 1, #self._T.tabs do
+			local t = self._T.tabs[i]
+			if isvalid(t.group) then t.group.Enable = (i == tab) end
+		end
+		self:ShowPage(tab, self._T.tabs[tab].page)
+	end
+
+	method integer PageCount(integer tab)
+		-- 탭의 페이지 수(페이지 컨테이너의 자식 수).
+		local t = self._T.tabs[tab]
+		if t == nil or isvalid(t.group) == false then return 1 end
+		local panels = t.group:GetChildByName(t.panels, false)
+		if isvalid(panels) == false then return 1 end
+		return #panels.Children:ToTable()
+	end
+
+	method void ChangePage(integer tab, integer delta)
+		-- 화살표: 현재 페이지에서 delta(±1)만큼 이동(양끝에서 고정).
+		local t = self._T.tabs[tab]
+		if t == nil then return end
+		local total = self:PageCount(tab)
+		local np = t.page + delta
+		if np < 1 then np = 1 end
+		if np > total then np = total end
+		self:ShowPage(tab, np)
+	end
+
+	method void ShowPage(integer tab, integer page)
+		-- 지정 페이지만 Enable=true로 하고, "현재 / 전체" 텍스트를 갱신한다.
+		local t = self._T.tabs[tab]
+		if t == nil then return end
+		local g = t.group
+		if isvalid(g) == false then return end
+		local panels = g:GetChildByName(t.panels, false)
+		if isvalid(panels) == false then return end
+		local list = panels.Children:ToTable()
+		local total = #list
+		if page < 1 then page = 1 end
+		if page > total then page = total end
+		t.page = page
+
+		-- 페이지 엔티티 이름은 "1".."N". 대상 페이지만 켠다.
+		for _, pg in ipairs(list) do
+			if isvalid(pg) then pg.Enable = (pg.Name == tostring(page)) end
+		end
+
+		-- 현재/전체 페이지 표시 텍스트(화살표 사이).
+		local pt = g:GetChildByName("PageText", false)
+		if isvalid(pt) then
+			local tc = pt:GetComponent("MOD.Core.TextComponent")
+			if tc ~= nil then tc.Text = tostring(page) .. " / " .. tostring(total) end
+		end
+
+		log("[HelpPanel] tab=" .. tostring(tab) .. " page=" .. tostring(page) .. "/" .. tostring(total))
+	end
+
+	method void OnEndPlay()
+		-- 모든 버튼 핸들러 해제.
+		if self.handlers ~= nil then
+			for _, r in ipairs(self.handlers) do
+				if isvalid(r.entity) and r.evtH ~= nil then
+					r.entity:DisconnectEvent(ButtonClickEvent, r.evtH)
+				end
+			end
+		end
+	end
+
+end
