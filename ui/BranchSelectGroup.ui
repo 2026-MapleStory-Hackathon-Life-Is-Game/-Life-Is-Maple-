@@ -24,7 +24,7 @@
           "enable": true,
           "visible": true,
           "localize": true,
-          "displayOrder": 12,
+          "displayOrder": 14,
           "pathConstraints": "//",
           "revision": 1,
           "origin": {
@@ -182,15 +182,16 @@
             {
               "@type": "MOD.Core.SpriteGUIRendererComponent",
               "ImageRUID": {
-                "DataId": "4fea64a3307cda641809ad8be0d4890b"
+                "DataId": "e852ae4052c14b1b8e4457504aabfd86"
               },
               "OverrideSorting": false,
+              "PreserveSprite": 2,
               "SortingLayer": "MapLayer0",
               "Color": {
-                "r": 0.08,
-                "g": 0.08,
-                "b": 0.16,
-                "a": 0.95
+                "r": 1.0,
+                "g": 1.0,
+                "b": 1.0,
+                "a": 1.0
               },
               "Enable": true
             }
@@ -236,11 +237,11 @@
               "MobileOnly": false,
               "OffsetMax": {
                 "x": 229.0874,
-                "y": 341.3241
+                "y": 199.8
               },
               "OffsetMin": {
                 "x": -210.9126,
-                "y": 285.3241
+                "y": 143.8
               },
               "Pivot": {
                 "x": 0.5,
@@ -259,11 +260,11 @@
               "UIVersion": 2,
               "anchoredPosition": {
                 "x": 9.0874,
-                "y": 341.3241
+                "y": 199.8
               },
               "Position": {
                 "x": 9.0874,
-                "y": 341.3241,
+                "y": 199.8,
                 "z": 0.0
               },
               "QuaternionRotation": {
@@ -304,9 +305,9 @@
               "StartFrameIndex": 0,
               "Color": {
                 "r": 1.0,
-                "g": 0.703125,
-                "b": 0.0,
-                "a": 1.0
+                "g": 1.0,
+                "b": 1.0,
+                "a": 0.0
               },
               "DropShadow": false,
               "DropShadowAngle": 120.0,
@@ -358,28 +359,28 @@
               "DropShadowDistance": 3.0,
               "Font": 1,
               "FontColor": {
-                "r": 0.0,
-                "g": 0.0,
-                "b": 0.0,
+                "r": 1.0,
+                "g": 1.0,
+                "b": 1.0,
                 "a": 1.0
               },
-              "FontSize": 28,
+              "FontSize": 48,
               "IgnoreMapLayerCheck": false,
               "IsLocalizationKey": false,
-              "MaxSize": 40,
+              "MaxSize": 58,
               "MinSize": 10,
               "OrderInLayer": 0,
               "OutlineColor": {
-                "r": 0.698039234,
-                "g": 0.698039234,
-                "b": 0.698039234,
+                "r": 0.168627456,
+                "g": 0.254901975,
+                "b": 0.784313738,
                 "a": 1.0
               },
               "OutlineDistance": {
                 "x": 1.0,
                 "y": -1.0
               },
-              "OutlineWidth": 1.0,
+              "OutlineWidth": 5.0,
               "Overflow": 0,
               "OverrideSorting": false,
               "Padding": {
@@ -393,7 +394,7 @@
               "Text": "어느 쪽으로 갈까?",
               "UseConstraintX": false,
               "UseConstraintY": false,
-              "UseOutLine": false,
+              "UseOutLine": true,
               "Enable": true
             }
           ],
@@ -524,20 +525,20 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 285.0,
-                "y": -25.0
+                "x": 270.0,
+                "y": -175.0
               },
               "OffsetMin": {
-                "x": 35.0,
-                "y": -575.0
+                "x": 10.0,
+                "y": -425.0
               },
               "Pivot": {
                 "x": 0.5,
                 "y": 0.5
               },
               "RectSize": {
-                "x": 250.0,
-                "y": 550.0
+                "x": 260.0,
+                "y": 250.0
               },
               "UIMode": 1,
               "UIScale": {
@@ -547,7 +548,7 @@
               },
               "UIVersion": 2,
               "anchoredPosition": {
-                "x": 160.0,
+                "x": 140.0,
                 "y": -300.0
               },
               "Rotation": {
@@ -556,7 +557,7 @@
                 "z": 0.0
               },
               "Position": {
-                "x": 160.0,
+                "x": 140.0,
                 "y": -300.0,
                 "z": 0.0
               },
@@ -580,7 +581,7 @@
               "EndFrameIndex": 2147483647,
               "IgnoreMapLayerCheck": false,
               "ImageRUID": {
-                "DataId": "4fea64a3307cda641809ad8be0d4890b"
+                "DataId": "c3591c31725c4e859a51b5c20ce2c930"
               },
               "LocalPosition": {
                 "x": 0.0,
@@ -594,13 +595,13 @@
               "OrderInLayer": 0,
               "OverrideSorting": false,
               "PlayRate": 1.0,
-              "PreserveSprite": 0,
+              "PreserveSprite": 2,
               "SortingLayer": "MapLayer0",
               "StartFrameIndex": 0,
               "Color": {
-                "r": 0.75,
-                "g": 0.22,
-                "b": 0.22,
+                "r": 1.0,
+                "g": 1.0,
+                "b": 1.0,
                 "a": 1.0
               },
               "DropShadow": false,
@@ -689,7 +690,7 @@
               "Alignment": 4,
               "AllowAutomaticTranslation": true,
               "BestFit": false,
-              "Bold": false,
+              "Bold": true,
               "ConstraintX": 100.0,
               "ConstraintY": 100.0,
               "DropShadow": false,
@@ -708,7 +709,7 @@
                 "b": 1.0,
                 "a": 1.0
               },
-              "FontSize": 50,
+              "FontSize": 36,
               "IgnoreMapLayerCheck": false,
               "IsLocalizationKey": false,
               "MaxSize": 50,
@@ -782,20 +783,20 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 555.0,
-                "y": -25.0
+                "x": 550.0,
+                "y": -175.0
               },
               "OffsetMin": {
-                "x": 305.0,
-                "y": -575.0
+                "x": 290.0,
+                "y": -425.0
               },
               "Pivot": {
                 "x": 0.5,
                 "y": 0.5
               },
               "RectSize": {
-                "x": 250.0,
-                "y": 550.0
+                "x": 260.0,
+                "y": 250.0
               },
               "UIMode": 1,
               "UIScale": {
@@ -805,7 +806,7 @@
               },
               "UIVersion": 2,
               "anchoredPosition": {
-                "x": 430.0,
+                "x": 420.0,
                 "y": -300.0
               },
               "Rotation": {
@@ -814,7 +815,7 @@
                 "z": 0.0
               },
               "Position": {
-                "x": 430.0,
+                "x": 420.0,
                 "y": -300.0,
                 "z": 0.0
               },
@@ -838,7 +839,7 @@
               "EndFrameIndex": 2147483647,
               "IgnoreMapLayerCheck": false,
               "ImageRUID": {
-                "DataId": "4fea64a3307cda641809ad8be0d4890b"
+                "DataId": "c3591c31725c4e859a51b5c20ce2c930"
               },
               "LocalPosition": {
                 "x": 0.0,
@@ -852,13 +853,13 @@
               "OrderInLayer": 0,
               "OverrideSorting": false,
               "PlayRate": 1.0,
-              "PreserveSprite": 0,
+              "PreserveSprite": 2,
               "SortingLayer": "MapLayer0",
               "StartFrameIndex": 0,
               "Color": {
-                "r": 0.22,
-                "g": 0.65,
-                "b": 0.22,
+                "r": 1.0,
+                "g": 1.0,
+                "b": 1.0,
                 "a": 1.0
               },
               "DropShadow": false,
@@ -947,7 +948,7 @@
               "Alignment": 4,
               "AllowAutomaticTranslation": true,
               "BestFit": false,
-              "Bold": false,
+              "Bold": true,
               "ConstraintX": 100.0,
               "ConstraintY": 100.0,
               "DropShadow": false,
@@ -966,7 +967,7 @@
                 "b": 1.0,
                 "a": 1.0
               },
-              "FontSize": 50,
+              "FontSize": 36,
               "IgnoreMapLayerCheck": false,
               "IsLocalizationKey": false,
               "MaxSize": 50,
@@ -1040,20 +1041,20 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 825.0,
-                "y": -25.0
+                "x": 830.0,
+                "y": -175.0
               },
               "OffsetMin": {
-                "x": 575.0,
-                "y": -575.0
+                "x": 570.0,
+                "y": -425.0
               },
               "Pivot": {
                 "x": 0.5,
                 "y": 0.5
               },
               "RectSize": {
-                "x": 250.0,
-                "y": 550.0
+                "x": 260.0,
+                "y": 250.0
               },
               "UIMode": 1,
               "UIScale": {
@@ -1096,7 +1097,7 @@
               "EndFrameIndex": 2147483647,
               "IgnoreMapLayerCheck": false,
               "ImageRUID": {
-                "DataId": "4fea64a3307cda641809ad8be0d4890b"
+                "DataId": "c3591c31725c4e859a51b5c20ce2c930"
               },
               "LocalPosition": {
                 "x": 0.0,
@@ -1110,13 +1111,13 @@
               "OrderInLayer": 0,
               "OverrideSorting": false,
               "PlayRate": 1.0,
-              "PreserveSprite": 0,
+              "PreserveSprite": 2,
               "SortingLayer": "MapLayer0",
               "StartFrameIndex": 0,
               "Color": {
-                "r": 0.22,
-                "g": 0.35,
-                "b": 0.8,
+                "r": 1.0,
+                "g": 1.0,
+                "b": 1.0,
                 "a": 1.0
               },
               "DropShadow": false,
@@ -1224,7 +1225,7 @@
                 "b": 1.0,
                 "a": 1.0
               },
-              "FontSize": 50,
+              "FontSize": 36,
               "IgnoreMapLayerCheck": false,
               "IsLocalizationKey": false,
               "MaxSize": 50,
@@ -1298,20 +1299,20 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 1095.0,
-                "y": -25.0
+                "x": 1110.0,
+                "y": -175.0
               },
               "OffsetMin": {
-                "x": 845.0,
-                "y": -575.0
+                "x": 850.0,
+                "y": -425.0
               },
               "Pivot": {
                 "x": 0.5,
                 "y": 0.5
               },
               "RectSize": {
-                "x": 250.0,
-                "y": 550.0
+                "x": 260.0,
+                "y": 250.0
               },
               "UIMode": 1,
               "UIScale": {
@@ -1321,7 +1322,7 @@
               },
               "UIVersion": 2,
               "anchoredPosition": {
-                "x": 970.0,
+                "x": 980.0,
                 "y": -300.0
               },
               "Rotation": {
@@ -1330,7 +1331,7 @@
                 "z": 0.0
               },
               "Position": {
-                "x": 970.0,
+                "x": 980.0,
                 "y": -300.0,
                 "z": 0.0
               },
@@ -1354,7 +1355,7 @@
               "EndFrameIndex": 2147483647,
               "IgnoreMapLayerCheck": false,
               "ImageRUID": {
-                "DataId": "4fea64a3307cda641809ad8be0d4890b"
+                "DataId": "c3591c31725c4e859a51b5c20ce2c930"
               },
               "LocalPosition": {
                 "x": 0.0,
@@ -1368,13 +1369,13 @@
               "OrderInLayer": 0,
               "OverrideSorting": false,
               "PlayRate": 1.0,
-              "PreserveSprite": 0,
+              "PreserveSprite": 2,
               "SortingLayer": "MapLayer0",
               "StartFrameIndex": 0,
               "Color": {
-                "r": 0.45,
-                "g": 0.22,
-                "b": 0.65,
+                "r": 1.0,
+                "g": 1.0,
+                "b": 1.0,
                 "a": 1.0
               },
               "DropShadow": false,
@@ -1463,7 +1464,7 @@
               "Alignment": 4,
               "AllowAutomaticTranslation": true,
               "BestFit": false,
-              "Bold": false,
+              "Bold": true,
               "ConstraintX": 100.0,
               "ConstraintY": 100.0,
               "DropShadow": false,
@@ -1482,7 +1483,7 @@
                 "b": 1.0,
                 "a": 1.0
               },
-              "FontSize": 50,
+              "FontSize": 36,
               "IgnoreMapLayerCheck": false,
               "IsLocalizationKey": false,
               "MaxSize": 50,
@@ -1556,20 +1557,20 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 1365.0,
-                "y": -25.0
+                "x": 1390.0,
+                "y": -175.0
               },
               "OffsetMin": {
-                "x": 1115.0,
-                "y": -575.0
+                "x": 1130.0,
+                "y": -425.0
               },
               "Pivot": {
                 "x": 0.5,
                 "y": 0.5
               },
               "RectSize": {
-                "x": 250.0,
-                "y": 550.0
+                "x": 260.0,
+                "y": 250.0
               },
               "UIMode": 1,
               "UIScale": {
@@ -1579,7 +1580,7 @@
               },
               "UIVersion": 2,
               "anchoredPosition": {
-                "x": 1240.0,
+                "x": 1260.0,
                 "y": -300.0
               },
               "Rotation": {
@@ -1588,7 +1589,7 @@
                 "z": 0.0
               },
               "Position": {
-                "x": 1240.0,
+                "x": 1260.0,
                 "y": -300.0,
                 "z": 0.0
               },
@@ -1612,7 +1613,7 @@
               "EndFrameIndex": 2147483647,
               "IgnoreMapLayerCheck": false,
               "ImageRUID": {
-                "DataId": "4fea64a3307cda641809ad8be0d4890b"
+                "DataId": "c3591c31725c4e859a51b5c20ce2c930"
               },
               "LocalPosition": {
                 "x": 0.0,
@@ -1626,13 +1627,13 @@
               "OrderInLayer": 0,
               "OverrideSorting": false,
               "PlayRate": 1.0,
-              "PreserveSprite": 0,
+              "PreserveSprite": 2,
               "SortingLayer": "MapLayer0",
               "StartFrameIndex": 0,
               "Color": {
-                "r": 0.8,
-                "g": 0.55,
-                "b": 0.1,
+                "r": 1.0,
+                "g": 1.0,
+                "b": 1.0,
                 "a": 1.0
               },
               "DropShadow": false,
@@ -1721,7 +1722,7 @@
               "Alignment": 4,
               "AllowAutomaticTranslation": true,
               "BestFit": false,
-              "Bold": false,
+              "Bold": true,
               "ConstraintX": 100.0,
               "ConstraintY": 100.0,
               "DropShadow": false,
@@ -1740,7 +1741,7 @@
                 "b": 1.0,
                 "a": 1.0
               },
-              "FontSize": 50,
+              "FontSize": 36,
               "IgnoreMapLayerCheck": false,
               "IsLocalizationKey": false,
               "MaxSize": 50,
