@@ -18,6 +18,8 @@ script EndTile extends BaseTile
 	method boolean IsFinalBattle()
 		-- 이 종료칸이 스테이지3(마지막) End 인지 → 검은 마법사 최종 결전. (Stage 1·2 End은 false)
 		if isvalid(self.Entity) == false then return false end
+		-- [테스트] TileEventTester로 BlackMage를 강제하면 어느 칸이든 검은 마법사 결전으로 취급.
+		if isvalid(_TileEventTester) and _TileEventTester.ForceEvent == "BlackMage" then return true end
 		local stage = _TileManager:GetTileStage(self.Entity.CurrentMapName, self.Entity.Name)
 		return stage == 3
 	end

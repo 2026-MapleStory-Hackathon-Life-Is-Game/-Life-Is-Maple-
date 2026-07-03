@@ -16,6 +16,11 @@ script BossUI extends Logic
 	property Entity BossCard3 = "c2ea2ceb-18e7-4462-a7e2-a1649e2b39b8"
 	property Entity BossCard4 = "e8a4749f-02f4-4b9e-a068-328744594bf7"
 
+	-- 1번 카드 이름 텍스트(BossCard1/NameBack/NameText). 단일 모드(검은 마법사)에서만 런타임으로 교체한다.
+	property Entity BossCard1Name = "b4aca9e8-cc7a-45fe-8215-354ed8fa4170"
+	-- 1번 카드 이름의 기본값(일반 보스칸 복원용). OnBeginPlay에서 .ui 실제 값으로 갱신.
+	property string _card1DefaultName = "4카루타"
+
 	property Entity DetailBossName = "36060171-5658-42a6-b756-204cdd114f62"
 
 	-- 난이도 버튼(ScrollLayout 자식). 값은 UIBuilder 바인딩 주입으로 채워진다.
@@ -50,6 +55,11 @@ script BossUI extends Logic
 		-- 보스 키는 BossProbability.csv의 BossName(영문키)과 일치시킨다 → RollByBossTable이 바로 매칭.
 		self._bossKeys = { "Root_Abyss", "Papulatus", "Lotus", "Damien" }
 		self._bossNames = { "루타비스", "파풀라투스", "스우", "데미안" }
+
+		-- 1번 카드 이름 기본값 저장(단일 모드(검은 마법사) 후 일반 보스칸에서 복원용).
+		if isvalid(self.BossCard1Name) and isvalid(self.BossCard1Name.TextComponent) then
+			self._card1DefaultName = self.BossCard1Name.TextComponent.Text
+		end
 
 		-- 난이도 버튼 구성(고정 4종). 순서 = 이지 → 노말 → 하드 → 카오스.
 		self._diffButtons = {
@@ -128,6 +138,14 @@ script BossUI extends Logic
 	end
 
 	@ExecSpace("ClientOnly")
+	method void SetCard1Name(string name)
+		-- 1번 카드 이름 텍스트(BossCard1/NameBack/NameText)를 런타임으로 설정한다.
+		if isvalid(self.BossCard1Name) and isvalid(self.BossCard1Name.TextComponent) then
+			self.BossCard1Name.TextComponent.Text = name
+		end
+	end
+
+	@ExecSpace("ClientOnly")
 	method void Show(Component bossTile, string introText)
 		-- 보스 선택 화면 표시. 도착 BossTile을 콜백용으로 보관하고 안내 문구를 세팅한다.
 		self._bossTile = bossTile
@@ -139,6 +157,7 @@ script BossUI extends Logic
 		for i = 1, 4 do
 			if isvalid(dcards[i]) then dcards[i].Enable = true end
 		end
+		self:SetCard1Name(self._card1DefaultName)   -- 1번 카드 이름 기본값 복원(단일 모드 뒤 정상화)
 		self:HideOtherUIs()
 		if isvalid(self.BossGroup) then self.BossGroup.Enable = true end
 		if isvalid(self.SelectionPanel) then self.SelectionPanel.Enable = true end
@@ -169,10 +188,7 @@ script BossUI extends Logic
 		for i = 1, 4 do
 			if isvalid(cards[i]) then cards[i].Enable = (i == 1) end
 		end
-		-- 1번 카드 라벨을 보스명으로(카드에 TextComponent가 있으면).
-		if isvalid(self.BossCard1) and isvalid(self.BossCard1.TextComponent) then
-			self.BossCard1.TextComponent.Text = bossName
-		end
+		self:SetCard1Name(bossName)   -- 1번 카드 이름을 보스명(검은 마법사)으로 런타임 교체
 		log("[BossUI] 단일 보스 선택 표시: " .. tostring(bossName))
 	end
 

@@ -2,12 +2,23 @@
 script TileEventTester extends Logic
 
 	@DisplayName("강제 이벤트")
-	@Description("None / Hunt / HuntPlus / Village / Boss / Unlucky / Guild / Romance")
-	property string ForceEvent = "None"
+	@Description("None / Hunt / HuntPlus / Village / Boss / Unlucky / Guild / Romance / BlackMage")
+	property string ForceEvent = "BlackMage"
+
+	-- ─────────── 강제 이벤트(ForceEvent) 인덱스: 설정 가능한 값 → 부착되는 타일 컴포넌트 ───────────
+	--   None(빈 값) → (강제 없음, 정상 동작)
+	--   Hunt        → HuntTile      (사냥)
+	--   HuntPlus    → HuntPlusTile  (사냥+)
+	--   Village     → VillageTile   (마을)
+	--   Boss        → BossTile      (보스)
+	--   Unlucky     → UnluckyTile   (불행)
+	--   Guild       → GuildTile     (길드)
+	--   Romance     → RomanceTile   (연애)
+	--   BlackMage   → EndTile       (검은 마법사 최종 결전 — 스테이지 무관 강제 발동)
+	-- ────────────────────────────────────────────────────────────────────────────
 
 	method string CompNameFor(string key)
 		-- 이벤트 키 → 부착할 타일 컴포넌트 이름. 미설정/None이면 "".
-		-- 인덱스(유효 키): Hunt / HuntPlus / Village / Boss / Unlucky / Guild / Romance
 		if key == "Hunt" then return "HuntTile"
 		elseif key == "HuntPlus" then return "HuntPlusTile"
 		elseif key == "Village" then return "VillageTile"
@@ -15,6 +26,7 @@ script TileEventTester extends Logic
 		elseif key == "Unlucky" then return "UnluckyTile"
 		elseif key == "Guild" then return "GuildTile"
 		elseif key == "Romance" then return "RomanceTile"
+		elseif key == "BlackMage" then return "EndTile"
 		end
 		return ""
 	end
