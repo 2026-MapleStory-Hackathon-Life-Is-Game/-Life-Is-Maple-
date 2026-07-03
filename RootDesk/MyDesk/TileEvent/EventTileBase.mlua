@@ -104,6 +104,8 @@ script EventTileBase extends BaseTile
 			self:AddDamage(piece, value)
 		elseif kind == "crit" then
 			self:AddCritical(piece, value)
+		elseif kind == "boss" then
+			self:AddBossDamage(piece, value)
 		elseif kind == "str" or kind == "dex" or kind == "int" or kind == "luk" then
 			self:AddSpecificStat(piece, kind, value)
 		else
@@ -122,7 +124,17 @@ script EventTileBase extends BaseTile
 		-- 대성공처럼 보상이 복수일 때도 전부 반영(기존 ApplyReward를 항목마다 재사용).
 		local rewards = _VillageEventFlowManager:ParseReward(rewardStr)
 		for i = 1, #rewards do
-			self:ApplyReward(piece, { statKind = rewards[i].kind, statMode = "flat", statValue = rewards[i].value })
+			local r = rewards[i]
+			if r.kind == "item" then
+				-- 정해진 장비 지급: "item:EquipName" (예: item:Tenth_Anniversary_White_Hat).
+				self:GrantItem(piece, r.raw)
+			elseif r.kind == "weapon" then
+				-- 직업별 무기 지급: "weapon:Family" (예: weapon:Fafnir / weapon:Challenger).
+				self:GrantClassWeapon(piece, r.raw)
+			else
+				-- 스탯 보상. mode = "flat"(기본) / "percent"('%' 접미사가 있던 경우). ParseReward가 판별해 담아준다.
+				self:ApplyReward(piece, { statKind = r.kind, statMode = r.mode or "flat", statValue = r.value })
+			end
 		end
 	end
 

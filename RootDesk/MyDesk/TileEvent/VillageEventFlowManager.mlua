@@ -78,6 +78,12 @@ script VillageEventFlowManager extends Logic
 				return forced
 			end
 		end
+		-- 골드리치 특별 이벤트: 스테이지2의 '모든 마을칸'에서 지역 무관 0.6% 확률로 등장(지역 추첨보다 우선).
+		--   ALL_GOLDRICH_01 은 Region="All"(실제 타일 지역과 겹치지 않음) + Weight=0 이라 일반 지역 추첨엔 절대 안 뽑힌다.
+		if stage == 2 and _UtilLogic:RandomDouble() < 0.006 then
+			log("[VillageEventFlow] 골드리치 특별 이벤트 발생(0.6%) region=" .. tostring(region))
+			return "ALL_GOLDRICH_01"
+		end
 		return self:RollEvent(stage, region)
 	end
 
@@ -131,6 +137,9 @@ script VillageEventFlowManager extends Logic
 		local t = {
 			SUGAR01_TRAIN  = { great = 30, success = 70, fail = 0 },   -- 맵1 슈가: 성공70 / 대성공30
 			HELENA01_TRAIN = { great = 20, success = 70, fail = 10 },  -- 맵2 헬레나: 대성공20 / 성공70 / 실패10
+			-- 스테이지2 마을 확률게임(기획: 실패20 / 성공60 / 대성공20).
+			IPHIA01_HELP      = { great = 20, success = 60, fail = 20 },  -- 사자왕성 이피아 호위
+			ALISIA01_GUARDIAN = { great = 20, success = 60, fail = 20 },  -- 루타비스 봉인의 수호자
 		}
 		return t[branchGroup]
 	end
@@ -216,8 +225,11 @@ script VillageEventFlowManager extends Logic
 	end
 
 	method table ParseReward(string rewardStr)
-		-- 보상 인코딩 "all:10;attack:10" → { {kind="all", value=10}, {kind="attack", value=10} }.
-		-- 빈 문자열이면 빈 목록. kind 는 main/all/attack/damage/crit (EventTileBase.ApplyReward 와 동일).
+		-- 보상 인코딩 "all:10;attack:10" → { {kind="all", mode="flat", value=10, raw="10"}, ... }.
+		-- 빈 문자열이면 빈 목록. kind 는 main/all/attack/damage/crit/boss/str/dex/int/luk (EventTileBase.ApplyReward 와 동일).
+		-- 퍼센트 보상은 kind 뒤에 '%'를 붙인다: "attack%:5" → mode="percent"(공격력 5% 증가), "main%:5;attack%:5" 등.
+		--   (main/all/attack 만 percent 모드를 실제 지원 — BaseTile.AddMainStat/AddAllStat/AddMainAttack.)
+		-- 아이템 지급: "item:EquipName"(정해진 장비) / "weapon:Family"(직업별 무기, 예 weapon:Fafnir). 이때 raw에 문자열이 담긴다.
 		local list = {}
 		if rewardStr == nil or rewardStr == "" then return list end
 		for pair in string.gmatch(rewardStr, "[^;]+") do
@@ -225,7 +237,14 @@ script VillageEventFlowManager extends Logic
 			if sep ~= nil then
 				local kind = string.sub(pair, 1, sep - 1)
 				local val = string.sub(pair, sep + 1)
-				table.insert(list, { kind = kind, value = tonumber(val) or 0 })
+				local mode = "flat"
+				-- kind 끝의 '%' → 퍼센트 모드(그리고 '%' 제거해 순수 kind로).
+				if #kind > 0 and string.sub(kind, #kind, #kind) == "%" then
+					mode = "percent"
+					kind = string.sub(kind, 1, #kind - 1)
+				end
+				-- raw = 콜론 뒤 원문(아이템/무기 지급용 문자열). 스탯 보상은 value(number)를 쓴다.
+				table.insert(list, { kind = kind, mode = mode, value = tonumber(val) or 0, raw = val })
 			end
 		end
 		return list

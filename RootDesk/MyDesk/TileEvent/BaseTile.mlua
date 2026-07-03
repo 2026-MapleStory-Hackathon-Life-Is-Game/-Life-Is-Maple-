@@ -95,6 +95,14 @@ script BaseTile extends Component
 	end
 
 	@ExecSpace("ServerOnly")
+	method void AddBossDamage(Entity piece, number value)
+		-- 보스 공격력(보스 대미지%) 동적 증감. (BuffManager.bossDamagePct 누적)
+		local buff = self:Buff(piece)
+		if isvalid(buff) == false then return end
+		buff:AddRawModifier({ bossDamagePct = value })
+	end
+
+	@ExecSpace("ServerOnly")
 	method void AddSpecificStat(Entity piece, string statName, number value)
 		-- 지정 스탯(str/dex/int/luk) 보상 → CombatPowerManager의 해당 스탯 필드에 직접 가산.
 		-- (모든 이벤트 타일이 공유하도록 BaseTile에 둔다. statName은 소문자로 넘겨도 내부에서 대문자화.)
@@ -144,6 +152,73 @@ script BaseTile extends Component
 				_QuickEquipPopup:Show(picked, piece.PlayerComponent.UserId)
 			end
 		end
+	end
+
+	@ExecSpace("ServerOnly")
+	method void GrantItem(Entity piece, string equipName)
+		-- 특정 장비(EquipName)를 도착 플레이어에게 지급(보유). 전투력이 오르면 빠른장착 팝업.
+		-- (AddItems의 드롭풀 방식과 달리, 마을 이벤트 보상처럼 '정해진 아이템'을 바로 줄 때 쓴다.)
+		if equipName == nil or equipName == "" then return end
+		if isvalid(piece) == false then return end
+		_EquipmentRouter:Acquire(piece, equipName)
+		local cp = self:CP(piece)
+		if isvalid(cp) and isvalid(piece.PlayerComponent) then
+			local delta = cp:PreviewPowerWithSwap(equipName) - cp.CombatPower
+			if delta > 0 then
+				_QuickEquipPopup:Show(equipName, piece.PlayerComponent.UserId)
+			end
+		end
+		log("[BaseTile] 아이템 지급 → " .. equipName)
+	end
+
+	@ExecSpace("ServerOnly")
+	method void GrantClassWeapon(Entity piece, string family)
+		-- 도착 플레이어의 '직업 클래스'에 맞는 무기(family = "Fafnir"/"Challenger" 등)를 지급한다.
+		-- 클래스는 현재 장착 무기(WeaponEquipment.Equipped)의 EquipmentData.Class로 판별한다(per-piece).
+		local cls = self:ClassOfPiece(piece)
+		if cls == "" or cls == "Common" then
+			-- 폴백: 무기 미착용/공용 무기 상태면 전역 현재 직업으로 보정.
+			cls = _JobWeaponManager.currentJob
+		end
+		local equipName = self:ClassWeaponFor(family, cls)
+		if equipName == "" then
+			log_warning("[BaseTile] 직업 무기 없음 family=" .. tostring(family) .. " class=" .. tostring(cls))
+			return
+		end
+		self:GrantItem(piece, equipName)
+	end
+
+	method string ClassOfPiece(Entity piece)
+		-- 도착 플레이어의 직업 클래스(Warrior/Mage/Archer/Thief/Pirate)를 현재 장착 무기로 판별. 없으면 "".
+		if isvalid(piece) == false then return "" end
+		---@type WeaponEquipment
+		local we = piece:GetComponent("script.WeaponEquipment")
+		if isvalid(we) == false then return "" end
+		local equipped = we.Equipped
+		if equipped == nil or equipped == "" then return "" end
+		local ds = _DataService:GetTable("EquipmentData")
+		if isvalid(ds) == false then return "" end
+		for i = 1, ds:GetRowCount() do
+			if ds:GetCell(i, "EquipName") == equipped then
+				return ds:GetCell(i, "Class")
+			end
+		end
+		return ""
+	end
+
+	method string ClassWeaponFor(string family, string class)
+		-- EquipmentData에서 (Category=Weapon, Class 일치, EquipName이 family로 시작) 무기 1개의 EquipName.
+		-- 예: family="Fafnir", class="Archer" → "Fafnir_Wind_Chaser". 없으면 "".
+		if family == nil or family == "" or class == nil or class == "" then return "" end
+		local ds = _DataService:GetTable("EquipmentData")
+		if isvalid(ds) == false then return "" end
+		for i = 1, ds:GetRowCount() do
+			if ds:GetCell(i, "Category") == "Weapon" and ds:GetCell(i, "Class") == class then
+				local en = ds:GetCell(i, "EquipName")
+				if #en >= #family and string.sub(en, 1, #family) == family then return en end
+			end
+		end
+		return ""
 	end
 
 	method string RollItem(string category, string source, string rarity)
