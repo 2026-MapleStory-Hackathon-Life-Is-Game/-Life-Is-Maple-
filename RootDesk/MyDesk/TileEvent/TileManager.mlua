@@ -186,6 +186,13 @@ script TileManager extends Logic
 		return 0
 	end
 
+	method string GetTileType(string mapName, string tileName)
+		-- 해당 타일의 Type(Hunt/HuntPlus/Village/Boss/Guild 등) 반환(없으면 "").
+		local data = self.tileGraph[mapName .. "_" .. tileName]
+		if data ~= nil and data.type ~= nil then return data.type end
+		return ""
+	end
+
 	method integer TileIndexOf(string tileName)
 		-- "Tile_132" / "Tile_132_A" → 132. 첫 숫자열을 인덱스로 파싱(실패 시 -1).
 		local digits = ""
@@ -661,6 +668,24 @@ script TileManager extends Logic
 							add(self:MonsterStandRUID(target))
 						else
 							add(_NpcInfoManager:GetNpcRUID(target))
+						end
+					end
+				end
+			end
+		end
+		-- 보스: (Stage,Region) BossSpawn 로스터의 보스별 선택/디테일 이미지(BossImage).
+		if t == "Boss" then
+			local spawn = _DataService:GetTable("BossSpawn")
+			local img = _DataService:GetTable("BossImage")
+			if isvalid(spawn) and isvalid(img) then
+				for i = 1, spawn:GetRowCount() do
+					if (tonumber(spawn:GetCell(i, "Stage")) or 0) == stage and spawn:GetCell(i, "Region") == region then
+						local key = spawn:GetCell(i, "BossName")
+						for j = 1, img:GetRowCount() do
+							if img:GetCell(j, "BossName") == key then
+								add(img:GetCell(j, "BossSelectRUID"))
+								add(img:GetCell(j, "DetailPanelRUID"))
+							end
 						end
 					end
 				end

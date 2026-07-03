@@ -29,23 +29,53 @@ script BossTile extends EventTileBase
 	@ExecSpace("ServerOnly")
 	method void OnArrive(Entity piece)
 		-- 보스 이벤트 시작: EventTileGroup 안내 문구 + BossUI 선택 화면 표시.
+		-- 등장 보스는 이 타일의 (Stage,Region)으로 BossSpawn 데이터셋에서 조회한다(지역별 상이).
 		self._currentPiece = piece
 		local ownerId = self:OwnerUserId(piece)
 		if ownerId == "" then
 			_GameModeManager:NotifyTileEventDone()
 			return
 		end
+		local mapName = self.Entity.CurrentMapName
+		local stage = _TileManager:GetTileStage(mapName, self.Entity.Name)
+		local region = _TileManager:GetTileRegion(mapName, self.Entity.Name)
+		local roster = self:BuildBossRoster(stage, region)
+		if #roster.keys == 0 then
+			-- 이 지역엔 등장 보스가 없다(BossSpawn 미등록). 이벤트 없이 턴만 진행.
+			log_warning("[BossTile] 등장 보스 없음 stage=" .. tostring(stage) .. " region=" .. tostring(region) .. " — 이벤트 스킵")
+			self._currentPiece = nil
+			_GameModeManager:NotifyTileEventDone()
+			return
+		end
 		local intro = self:BossText("all", "intro", "", "")
 		if intro == "" then intro = self.introText end
-		self:OpenBossSelection(intro, ownerId)
-		log("[BossTile] 보스 선택 표시 tile=" .. self.Entity.Name)
+		self:OpenBossSelection(intro, roster.keys, roster.diffs, ownerId)
+		log("[BossTile] 보스 선택 표시 tile=" .. self.Entity.Name
+			.. " region=" .. tostring(region) .. " 보스수=" .. tostring(#roster.keys))
+	end
+
+	method table BuildBossRoster(integer stage, string region)
+		-- BossSpawn에서 (Stage,Region) 일치 행을 표 순서대로 모아 { keys={...}, diffs={...} } 반환.
+		--   keys[i]  = 보스 키(BossProbability.BossName 영문키)
+		--   diffs[i] = 이 지역에서 허용하는 난이도 CSV("Normal/Chaos"). 카드 표시/난이도 제한에 사용.
+		local keys = {}
+		local diffs = {}
+		local ds = _DataService:GetTable("BossSpawn")
+		if isvalid(ds) == false then return { keys = keys, diffs = diffs } end
+		for i = 1, ds:GetRowCount() do
+			if (tonumber(ds:GetCell(i, "Stage")) or 0) == stage and ds:GetCell(i, "Region") == region then
+				table.insert(keys, ds:GetCell(i, "BossName"))
+				table.insert(diffs, ds:GetCell(i, "Difficulties"))
+			end
+		end
+		return { keys = keys, diffs = diffs }
 	end
 
 	@ExecSpace("Client")
-	method void OpenBossSelection(string introMessage)
+	method void OpenBossSelection(string introMessage, table bossKeys, table bossDiffs)
 		-- 도착 플레이어 클라: 보스 선택 중에는 BossUI 그룹만 사용(EventTileGroup은 꺼둔다).
-		-- 안내 문구는 BossUI 자체 UIText로 표시한다.
-		_BossUI:Show(self, introMessage)
+		-- 지역 로스터(bossKeys/bossDiffs)를 넘겨 카드/난이도를 구성한다. 안내 문구는 BossUI 자체 UIText로 표시.
+		_BossUI:ShowRoster(self, introMessage, bossKeys, bossDiffs)
 	end
 
 	@ExecSpace("Server")
@@ -95,11 +125,15 @@ script BossTile extends EventTileBase
 		elseif outcome == "대성공" then key = "great" end
 		local line = self:BossLine("all", key)
 		if line ~= nil and line.reward ~= "" then self:ApplyBossReward(piece, line.reward) end
+		-- 장비 드랍은 대성공(great)에서만. 드랍 후보(DropReward)가 여러 종류면 그중 한 종류만 랜덤 지급한다.
+		local drop = ""
 		if key == "great" then
-			-- 대성공: 보스 드랍 장비 지급(기존 config 경로 재사용).
-			self:AddItems(piece, self:ItemCategory(self._selectedDiff), self._selectedBossKey, self._selectedDiff)
+			local one = self:PickOneDrop(self:DropRewardTokens(self._selectedBossKey, self._selectedDiff))
+			if one ~= "" then
+				self:ApplyRewardString(piece, one)          -- item:EquipName / weapon:Family 한 종류만 지급
+				drop = self:ResolveDropName(piece, one)      -- 결과 문구 {drop}에 실제 지급 장비명 표시
+			end
 		end
-		local drop = self:DropEquip(self._selectedBossKey, self._selectedDiff)
 		local outcomeText = self:BossText("all", key, self._selectedBossName, drop)
 		log("[BossTile] 도전 " .. outcome .. " → " .. key)
 
@@ -124,28 +158,73 @@ script BossTile extends EventTileBase
 	-- ===== 보스/난이도 설정 (임시값 — 추후 table 연동) =====
 
 	method string BossName(string key)
-		-- 보스 키(BossProbability.csv BossName) → 표시명.
-		if key == "Root_Abyss" then return "루타비스"
-		elseif key == "Papulatus" then return "파풀라투스"
-		elseif key == "Lotus" then return "스우"
-		elseif key == "Damien" then return "데미안"
+		-- 보스 키 → 표시명(BossProbability.BossNameKR). 없으면 키 그대로.
+		local bp = _DataService:GetTable("BossProbability")
+		if isvalid(bp) then
+			for i = 1, bp:GetRowCount() do
+				if bp:GetCell(i, "BossName") == key then
+					local nm = bp:GetCell(i, "BossNameKR")
+					if nm ~= nil and nm ~= "" then return nm end
+				end
+			end
 		end
 		return key
 	end
 
 	method string DiffLabel(string diff)
 		-- 난이도 키 → 표시 라벨.
+		if diff == "Easy" then return "이지" end
 		if diff == "Hard" then return "하드" end
+		if diff == "Chaos" then return "카오스" end
 		return "노말"
 	end
 
-	method string DropEquip(string bossKey, string diff)
-		-- BossProbability에서 (보스, 난이도)의 드랍 장비 표시명. 없으면 "".
+	method string PickOneDrop(string dropReward)
+		-- DropReward의 ';'로 구분된 장비 토큰 중 한 종류만 랜덤 선택해 반환. 비었으면 "".
+		if dropReward == nil or dropReward == "" then return "" end
+		local tokens = {}
+		for part in string.gmatch(dropReward, "[^;]+") do
+			table.insert(tokens, part)
+		end
+		if #tokens == 0 then return "" end
+		if #tokens == 1 then return tokens[1] end
+		return tokens[_UtilLogic:RandomIntegerRange(1, #tokens)]
+	end
+
+	method string ResolveDropName(Entity piece, string token)
+		-- 지급된 보상 토큰 1개("item:EquipName" / "weapon:Family")를 실제 지급 장비의 표시명(EquipmentData.Name)으로 변환.
+		-- weapon은 도착 플레이어 직업에 맞는 실제 무기로 해석한다.
+		if token == nil or token == "" then return "" end
+		local colon, _e = string.find(token, ":", 1, true)
+		if colon == nil then return token end
+		local kind = string.sub(token, 1, colon - 1)
+		local equipName = string.sub(token, colon + 1)
+		if kind == "weapon" then
+			local cls = self:ClassOfPiece(piece)
+			if cls == "" or cls == "Common" then cls = _JobWeaponManager.currentJob end
+			local w = self:ClassWeaponFor(equipName, cls)
+			if w ~= "" then equipName = w end
+		end
+		local ds = _DataService:GetTable("EquipmentData")
+		if isvalid(ds) then
+			for i = 1, ds:GetRowCount() do
+				if ds:GetCell(i, "EquipName") == equipName then
+					local nm = ds:GetCell(i, "Name")
+					if nm ~= nil and nm ~= "" then return nm end
+				end
+			end
+		end
+		return equipName
+	end
+
+	method string DropRewardTokens(string bossKey, string diff)
+		-- BossProbability에서 (보스, 난이도)의 실제 지급용 보상 토큰(DropReward). 없으면 "".
+		-- 예: "item:Highness_Warrior_Helm;weapon:Fafnir;item:Dominator_Pendant".
 		local ds = _DataService:GetTable("BossProbability")
 		if isvalid(ds) == false then return "" end
 		for i = 1, ds:GetRowCount() do
 			if ds:GetCell(i, "BossName") == bossKey and ds:GetCell(i, "Difficulty") == diff then
-				return ds:GetCell(i, "DropEquip")
+				return ds:GetCell(i, "DropReward")
 			end
 		end
 		return ""
@@ -192,12 +271,6 @@ script BossTile extends EventTileBase
 				self:ApplyReward(piece, { statKind = r.kind, statMode = r.mode or "flat", statValue = r.value })
 			end
 		end
-	end
-
-	method string ItemCategory(string diff)
-		-- AddItems 호출용 카테고리(placeholder — ItemDropTable 데이터 채우면 동작).
-		if diff == "Hard" then return "Accessory" end
-		return "Armor"
 	end
 
 end

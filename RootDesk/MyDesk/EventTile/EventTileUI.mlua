@@ -247,9 +247,11 @@ script EventTileUI extends Logic
 				self.BackgroundMap.SpriteGUIRendererComponent.ImageRUID = DataRef(bg)
 			end
 		end
-		-- NPC/몬스터 후보(롤 확정 없이 후보 전체를 캐시).
+		-- NPC/몬스터/보스 후보(롤 확정 없이 후보 전체를 캐시).
 		local cands = _TileManager:GatherArrivalRUIDs(mapName, tileName)
 		for i = 1, #cands do table.insert(list, cands[i]) end
+		-- 보스칸이면 선택 카드 이미지를 미리 카드에 올려둔다(도착 시 pop-in 방지).
+		_BossUI:PrefetchForTile(mapName, tileName)
 		if #list == 0 then return end
 		_ResourceService:PreloadAsync(list, function(_results) end)
 	end
