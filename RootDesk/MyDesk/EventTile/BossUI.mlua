@@ -276,7 +276,8 @@ script BossUI extends Logic
 		if isvalid(self.SelectionPanel) then self.SelectionPanel.Enable = true end
 		if isvalid(self.DetailPanel) then self.DetailPanel.Enable = false end
 		if isvalid(self.SelectionText) and isvalid(self.SelectionText.TextComponent) then
-			self.SelectionText.TextComponent.Text = introText
+			-- 대사 색칠(스탯 이름=파랑 / 숫자=빨강)은 EventTileUI.Colorize로 일원화한다.
+			self.SelectionText.TextComponent.Text = _EventTileUI:Colorize(introText)
 		end
 		-- N개 카드만 노출 + 이름/보스 선택 이미지 설정. 나머지 카드는 숨김.
 		local cards = { self.BossCard1, self.BossCard2, self.BossCard3, self.BossCard4 }
@@ -304,7 +305,8 @@ script BossUI extends Logic
 		if isvalid(self.SelectionPanel) then self.SelectionPanel.Enable = true end
 		if isvalid(self.DetailPanel) then self.DetailPanel.Enable = false end
 		if isvalid(self.SelectionText) and isvalid(self.SelectionText.TextComponent) then
-			self.SelectionText.TextComponent.Text = introText
+			-- 대사 색칠(스탯 이름=파랑 / 숫자=빨강)은 EventTileUI.Colorize로 일원화한다.
+			self.SelectionText.TextComponent.Text = _EventTileUI:Colorize(introText)
 		end
 		-- 1번 카드만 노출(선택지 1개), 2~4번 숨김.
 		local cards = { self.BossCard1, self.BossCard2, self.BossCard3, self.BossCard4 }

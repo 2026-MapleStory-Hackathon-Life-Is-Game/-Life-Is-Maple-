@@ -156,6 +156,110 @@ script EventTileUI extends Logic
 	end
 
 	@ExecSpace("ClientOnly")
+	method string Colorize(string s)
+		-- 대사 리치텍스트 색칠: 증가 스탯 '이름'(장비/주스탯/올스탯/공격력 등)은 파란색,
+		-- '증가량' 숫자만 빨간색, 그 외 글자·숫자는 기본색(검은색) 그대로 둔다.
+		-- 숫자를 빨강으로 칠하는 경우:
+		--   (a) %로 끝나는 숫자, 또는
+		--   (b) 스탯 키워드 문맥(키워드+조사/공백) 바로 뒤 & 뒤에 단위어(턴/시간/마리 …)가 안 붙은 숫자, 또는
+		--   (c) 개수 키워드(길드원/가족/구성원/수) 문맥 바로 뒤 숫자(단위어 무관 — '1명'도 포함).
+		--   → '3턴', '100마리', '큐브 x5' 등 스탯·개수와 무관한 숫자는 빨강 제외.
+		-- 좌→우 1회 스캔. 타이핑 연출과 함께 쓰도록 '평문'을 받아 매 렌더마다 새로 태깅한다(태그가 한 글자씩 노출 안 됨).
+		if s == nil or s == "" then return s end
+		local blue = "#2E6BFF"
+		local red = "#E53935"
+		-- 스탯 이름 키워드(파랑). 긴/구체 키워드를 먼저(같은 시작 위치에서 더 긴 이름 우선 매칭).
+		local kws = {
+			"공격력/마력", "보스 공격력", "보스 대미지", "추가 대미지", "크리티컬 대미지",
+			"올스탯", "주스탯", "크리티컬", "공격력", "마력", "대미지", "전투력", "장비", "스탯"
+		}
+		-- 개수 키워드(색칠 안 함·검정). 뒤따르는 숫자를 '개수 증가량'으로 보고 빨강 처리하는 문맥만 연다.
+		local countKws = { "길드원", "가족", "구성원", "수" }
+		-- 키워드와 숫자 사이에 올 수 있는 조사/공백(이것만 지나면 문맥 유지).
+		local josa = { ["이"] = true, ["가"] = true, ["은"] = true, ["는"] = true,
+			["을"] = true, ["를"] = true, ["의"] = true, [" "] = true }
+		-- 숫자 뒤에 붙으면 '스탯 증가량이 아님'으로 보는 단위어(기간/개수 등). 개수 문맥에는 적용 안 함.
+		local units = { "턴", "시간", "마리", "명", "일", "초", "분", "개", "번", "년", "살", "회", "층" }
+		local out = {}
+		local i = 1
+		local n = #s
+		local statCtx = false    -- 직전에 스탯 키워드(+조사/공백)가 이어지는 중.
+		local countCtx = false   -- 직전에 개수 키워드(+조사/공백)가 이어지는 중.
+		while i <= n do
+			local matched = false
+			-- (1a) 스탯 이름 키워드(파랑) → 스탯 증가량 문맥 시작.
+			for k = 1, #kws do
+				local kw = kws[k]
+				local L = #kw
+				if i + L - 1 <= n and string.sub(s, i, i + L - 1) == kw then
+					table.insert(out, "<color=" .. blue .. ">" .. kw .. "</color>")
+					i = i + L
+					matched = true
+					statCtx = true
+					countCtx = false
+					break
+				end
+			end
+			-- (1b) 개수 키워드(검정) → 개수 증가량 문맥 시작.
+			if matched == false then
+				for k = 1, #countKws do
+					local kw = countKws[k]
+					local L = #kw
+					if i + L - 1 <= n and string.sub(s, i, i + L - 1) == kw then
+						table.insert(out, kw)
+						i = i + L
+						matched = true
+						countCtx = true
+						statCtx = false
+						break
+					end
+				end
+			end
+			if matched == false then
+				-- (2) 숫자: 선택적 +/- 부호 → 숫자 → 선택적 %.
+				local num = string.match(s, "^[%+%-]?%d+%%?", i)
+				if num ~= nil and num ~= "" then
+					local afterPos = i + #num
+					local isPercent = string.sub(num, #num) == "%"
+					local followedByUnit = false
+					for u = 1, #units do
+						local ul = #units[u]
+						if afterPos + ul - 1 <= n and string.sub(s, afterPos, afterPos + ul - 1) == units[u] then
+							followedByUnit = true
+							break
+						end
+					end
+					-- 증가량(스탯 %/스탯 문맥/개수 문맥)이면 빨강, 그 외는 기본색.
+					if isPercent or (statCtx and followedByUnit == false) or countCtx then
+						table.insert(out, "<color=" .. red .. ">" .. num .. "</color>")
+					else
+						table.insert(out, num)
+					end
+					i = afterPos
+					statCtx = false
+					countCtx = false
+				else
+					-- (3) 그 외: UTF-8 한 글자 통과(한글 3바이트 안전). 조사/공백이 아니면 문맥 해제.
+					local b = string.byte(s, i)
+					local len = 1
+					if b >= 0xF0 then len = 4
+					elseif b >= 0xE0 then len = 3
+					elseif b >= 0xC0 then len = 2
+					end
+					local ch = string.sub(s, i, i + len - 1)
+					if josa[ch] ~= true then
+						statCtx = false
+						countCtx = false
+					end
+					table.insert(out, ch)
+					i = i + len
+				end
+			end
+		end
+		return table.concat(out)
+	end
+
+	@ExecSpace("ClientOnly")
 	method void StopTyping()
 		-- 진행 중인 타이핑 타이머만 정리한다(이미 출력된 텍스트는 건드리지 않는다).
 		if self._typeTimer ~= 0 then
@@ -171,7 +275,7 @@ script EventTileUI extends Logic
 		self:StopTyping()
 		local comp = self._textComp
 		if isvalid(comp) == false then comp = self:GetTextComp() end
-		if comp ~= nil then comp.Text = table.concat(self._typeChars) end
+		if comp ~= nil then comp.Text = self:Colorize(table.concat(self._typeChars)) end
 	end
 
 	@ExecSpace("ClientOnly")
@@ -181,7 +285,7 @@ script EventTileUI extends Logic
 		if isvalid(comp) == false then self:StopTyping() return end
 		self._typeIdx = self._typeIdx + 1
 		self._typeBuf = self._typeBuf .. (self._typeChars[self._typeIdx] or "")
-		comp.Text = self._typeBuf
+		comp.Text = self:Colorize(self._typeBuf)
 		if self._typeIdx >= #self._typeChars then
 			self:StopTyping()
 		end
