@@ -345,7 +345,7 @@ script RomanceTile extends BaseTile
 	@ExecSpace("Client")
 	method void ClientShowText(string message)
 		-- 결혼/데이트: 이미지 없는 텍스트 팝업 + '다음'(RequestDone).
-		_EventTileUI:ShowEventText(message, "idle", "", "", "", 0, self)
+		_EventTileUI:ShowEventText(message, "idle", "", "", "", 0, "", self)
 	end
 
 	@ExecSpace("Client")
