@@ -219,6 +219,27 @@ script EventTileUI extends Logic
 	end
 
 	@ExecSpace("ClientOnly")
+	method void PrefetchForTile(string mapName, string tileName)
+		-- 도착 '전'(이동 중/분기 선택 시) 호출. 목적지 타일의 배경을 미리 적용하고,
+		-- 배경 + 그 칸에서 나올 수 있는 NPC/몬스터 RUID 후보를 프리로드해 도착 시 pop-in을 없앤다.
+		local list = {}
+		-- 배경(지역 결정적): 숨겨진 상태에서 미리 적용 + 프리로드(도착 시 ApplyRegionBackground가 같은 값 재적용).
+		local region = _TileManager:GetTileRegion(mapName, tileName)
+		local bg = self:RegionBackgroundRUID(region)
+		if bg ~= "" then
+			table.insert(list, bg)
+			if isvalid(self.BackgroundMap) and isvalid(self.BackgroundMap.SpriteGUIRendererComponent) then
+				self.BackgroundMap.SpriteGUIRendererComponent.ImageRUID = DataRef(bg)
+			end
+		end
+		-- NPC/몬스터 후보(롤 확정 없이 후보 전체를 캐시).
+		local cands = _TileManager:GatherArrivalRUIDs(mapName, tileName)
+		for i = 1, #cands do table.insert(list, cands[i]) end
+		if #list == 0 then return end
+		_ResourceService:PreloadAsync(list, function(_results) end)
+	end
+
+	@ExecSpace("ClientOnly")
 	method void ApplyRegionBackground()
 		-- 로컬 플레이어(=이벤트 도착자)의 현재 타일 지역으로 BackgroundMap 스프라이트를 교체한다.
 		-- 이벤트 UI는 도착 플레이어의 클라에만 뜨므로 LocalPlayer.currentTile이 곧 이 이벤트의 타일이다.

@@ -611,6 +611,63 @@ script TileManager extends Logic
 		return self:MonsterStandRUID(mn)
 	end
 
+	method table GatherArrivalRUIDs(string mapName, string tileName)
+		-- 도착 예정 타일에서 '표시될 수 있는' NPC/몬스터 RUID 후보를 모은다(도착 전 프리로드용).
+		-- 롤 결과를 미리 확정하지 않고 후보 전체를 프리로드 → 도착 시 어떤 게 나와도 이미 캐시됨(pop-in 방지).
+		-- 배경(지역 결정적)은 EventTileUI.PrefetchForTile에서 따로 처리한다.
+		local out = {}
+		local data = self.tileGraph[mapName .. "_" .. tileName]
+		if data == nil then return out end
+		local t = data.type or ""
+		local stage = data.stage or 0
+		local region = data.region or ""
+		local function add(r)
+			if r ~= nil and r ~= "" then table.insert(out, r) end
+		end
+
+		-- 사냥/사냥+: 맵 시작 시 확정된 기본 사냥 몬스터(결정적).
+		if t == "Hunt" or t == "HuntPlus" then
+			add(self:GetTileMonsterRUID(mapName, tileName))
+		end
+		-- 사냥+: (Stage,Region) HuntPlusEvent 후보들의 페이지2 이미지(monster→TierMonster / npc→NpcInfo).
+		if t == "HuntPlus" then
+			local ds = _DataService:GetTable("HuntPlusEvent")
+			if isvalid(ds) then
+				for i = 1, ds:GetRowCount() do
+					if (tonumber(ds:GetCell(i, "Stage")) or 0) == stage and ds:GetCell(i, "Region") == region then
+						local target = ds:GetCell(i, "TargetKey")
+						if ds:GetCell(i, "ImageKind") == "monster" then
+							add(self:MonsterStandRUID(target))
+						else
+							add(_NpcInfoManager:GetNpcRUID(target))
+						end
+					end
+				end
+			end
+		end
+		-- 마을: (Stage,Region) VillageEventFlow 이벤트들의 등장 NPC + 씬별 NpcKey.
+		if t == "Village" then
+			local flow = _DataService:GetTable("VillageEventFlow")
+			local scene = _DataService:GetTable("VillageEventFlowScene")
+			if isvalid(flow) then
+				for i = 1, flow:GetRowCount() do
+					if (tonumber(flow:GetCell(i, "Stage")) or 0) == stage and flow:GetCell(i, "Region") == region then
+						local eventId = flow:GetCell(i, "EventId")
+						add(_NpcInfoManager:GetNpcRUID(flow:GetCell(i, "NPC")))
+						if isvalid(scene) then
+							for j = 1, scene:GetRowCount() do
+								if scene:GetCell(j, "EventId") == eventId then
+									add(_NpcInfoManager:GetNpcRUID(scene:GetCell(j, "NpcKey")))
+								end
+							end
+						end
+					end
+				end
+			end
+		end
+		return out
+	end
+
 	@ExecSpace("ClientOnly")
 	method void RequestCampVisuals()
 		self._visualRetries = 0
