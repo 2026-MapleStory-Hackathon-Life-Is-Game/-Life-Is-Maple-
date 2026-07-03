@@ -29,6 +29,9 @@ script GameModeManager extends Logic
 		        local ids = {}
 		        table.insert(ids, senderUserId)
 		        _MatchManager:TeleportPlayersToGame(ids)
+		        -- 게임 시작 시 기본 무기 '몽둥이(Cudgel)'를 지급+장착한다(아직 직업 선택 전의 시작 무기).
+		        local starter = _UserService:GetUserEntityByUserId(senderUserId)
+		        if isvalid(starter) then _JobWeaponManager:EquipStarterCudgel(starter) end
 		        _VillageEventFlowManager:ResetStage1Lock()
 		        _SingleTurnManager:Start()
 	end
@@ -47,6 +50,11 @@ script GameModeManager extends Logic
 		        self._activeMode = "MULTI"
 		        self._isGameActive = true
 		        _VillageEventFlowManager:ResetStage1Lock()
+		        -- 게임 시작 시 각 플레이어에게 기본 무기 '몽둥이(Cudgel)'를 지급+장착한다.
+		        for _, uid in ipairs(userIds) do
+		        	local pe = _UserService:GetUserEntityByUserId(uid)
+		        	if isvalid(pe) then _JobWeaponManager:EquipStarterCudgel(pe) end
+		        end
 		        _MultiTurnManager:Start(userIds)
 	end
 
