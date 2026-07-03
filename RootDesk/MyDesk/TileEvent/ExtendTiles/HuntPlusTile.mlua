@@ -15,11 +15,12 @@ script HuntPlusTile extends HuntTile
 	-- 이벤트 값(지역/가중치/이미지/스탯/문구)은 스크립트 밖 데이터셋
 	--   'HuntPlusEvent'(HuntPlusEvent.userdataset + .csv)에서 관리한다. 도착 타일의 (Stage,Region)과
 	--   일치하는 행 중 Weight 가중치로 하나를 뽑는다. 일치 행이 없으면 FallbackPlusEvent로 대체.
-	--   CSV 컬럼: Stage / Region / Weight / ImageKind / NpcKey / StatKind / StatMode / StatGain / Text
+	--   CSV 컬럼: Stage / Region / Weight / ImageKind / TargetKey / StatKind / StatMode / StatGain / Text
 	--     · Stage/Region: 이 이벤트가 붙는 타일의 단계/지역(HuntEvent와 동일 키)
 	--     · Weight      : (Stage,Region) 내 가중치(같은 지역에 여러 개면 가중 추첨)
-	--     · ImageKind   : "monster"(엘리트 몬스터 조우) / "npc"(NPC 조우) — 초상화 애니 결정용
-	--     · NpcKey      : 페이지2 이미지로 띄울 대상의 NpcInfo 이름 키(몬스터/NPC 공용, NpcInfo에서 RUID 조회)
+	--     · ImageKind   : "monster"(엘리트 몬스터 조우) / "npc"(NPC 조우) — 초상화 애니 + 이미지 조회처 결정
+	--     · TargetKey   : 페이지2 이미지 대상 키. monster면 TierMonster.MonsterName(STAND 조회), npc면 NpcInfo.Name(스프라이트 조회)
+	--       (몬스터 스프라이트의 정식 원본은 TierMonster, NPC는 NpcInfo — 각 엔티티는 자기 저장소에서만 관리한다.)
 	--     · StatKind    : 보상 종류 — "main"(주스탯) / "attack"(공/마) 등 (EventTileBase.ApplyReward 키와 동일)
 	--     · StatMode    : "flat"(고정) / "percent"(%)
 	--     · StatGain    : 증가량(문구에 표시한 값과 동일)
@@ -57,7 +58,7 @@ script HuntPlusTile extends HuntTile
 			statValue   = 0,
 			monsterRUID = huntEv.monsterRUID or "",     -- 페이지1: 기본 사냥 몬스터 이미지
 			imageKind   = "monster",                    -- 시작 이미지 = 몬스터
-			npcKey      = plusEv.npcKey or "",          -- 페이지2+: 사냥+ 이미지(엘리트 몬스터/NPC) — NpcInfo 조회 키
+			page2Ruid   = plusEv.plusImageRUID or "",   -- 페이지2+: 사냥+ 이미지 RUID(엘리트 몬스터/NPC, 이미 해석됨)
 			npcFromPage = 2,                            -- 2번째 페이지부터 사냥+ 이미지로 전환
 			anim        = plusEv.anim or "idle",
 		}
@@ -108,7 +109,7 @@ script HuntPlusTile extends HuntTile
 
 		-- 선택된 행의 값 읽기.
 		local imageKind = ds:GetCell(pick, "ImageKind")
-		local npcKey    = ds:GetCell(pick, "NpcKey")
+		local targetKey = ds:GetCell(pick, "TargetKey")
 		local statKind  = ds:GetCell(pick, "StatKind")
 		local statMode  = ds:GetCell(pick, "StatMode")
 		local statGain  = tonumber(ds:GetCell(pick, "StatGain")) or 0
@@ -117,15 +118,21 @@ script HuntPlusTile extends HuntTile
 		-- 초상화 애니: 몬스터 조우=attack / NPC 조우=idle.
 		local anim = "idle"
 		if imageKind == "monster" then anim = "attack" end
-
+		-- 페이지2 이미지 RUID 해석: 몬스터=TierMonster(STAND), NPC=NpcInfo. 각 엔티티의 정식 저장소에서 조회.
+		local imageRUID = ""
+		if imageKind == "monster" then
+			imageRUID = _TileManager:MonsterStandRUID(targetKey)
+		else
+			imageRUID = _NpcInfoManager:GetNpcRUID(targetKey)
+		end
 		return {
-			eventType  = "HuntPlus",
-			message    = text,
-			statKind   = statKind,       -- "main"/"attack" 등
-			statMode   = statMode,       -- "flat"/"percent"
-			statValue  = statGain,
-			npcKey     = npcKey,         -- 페이지2 이미지 = NpcInfo에서 조회할 이름 키(몬스터/NPC 공용)
-			anim       = anim,
+			eventType     = "HuntPlus",
+			message       = text,
+			statKind      = statKind,       -- "main"/"attack" 등
+			statMode      = statMode,       -- "flat"/"percent"
+			statValue     = statGain,
+			plusImageRUID = imageRUID,      -- 페이지2 이미지 RUID(레지스트리에서 해석 완료)
+			anim          = anim,
 		}
 	end
 
@@ -135,11 +142,11 @@ script HuntPlusTile extends HuntTile
 		return {
 			eventType     = "HuntPlus",
 			message       = huntingGround .. "에서 어두운 기운과 함께 강력한 몬스터가 출현했다!\n강력한 몬스터를 처치하여 공격력/마력이 10만큼 올랐다.",
-			statKind   = "attack",
-			statMode   = "flat",
-			statValue  = 10,
-			npcKey     = "",
-			anim       = "attack",
+			statKind      = "attack",
+			statMode      = "flat",
+			statValue     = 10,
+			plusImageRUID = "",
+			anim          = "attack",
 		}
 	end
 

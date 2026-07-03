@@ -44,7 +44,9 @@ script EventTileBase extends BaseTile
 		local npcKey = ev.npcKey or ""
 		-- 페이지별 이미지 전환 시작 페이지(사냥+ 등). 0이면 단일 이미지(imageKind 기준). RollEvent가 지정.
 		local npcFromPage = ev.npcFromPage or 0
-		self:ShowEventUI(ev.message, anim, monsterRUID, imageKind, npcKey, npcFromPage, ownerId)
+		-- 페이지2 이미지의 이미 해석된 RUID(엘리트 몬스터/NPC). 있으면 npcKey 조회보다 우선.
+		local page2Ruid = ev.page2Ruid or ""
+		self:ShowEventUI(ev.message, anim, monsterRUID, imageKind, npcKey, npcFromPage, page2Ruid, ownerId)
 
 		log("[EventTileBase] 이벤트 발생 tile=" .. self.Entity.Name
 			.. " type=" .. tostring(ev.eventType))
@@ -156,12 +158,13 @@ script EventTileBase extends BaseTile
 	end
 
 	@ExecSpace("Client")
-	method void ShowEventUI(string message, string anim, string monsterRUID, string imageKind, string npcKey, integer npcFromPage)
+	method void ShowEventUI(string message, string anim, string monsterRUID, string imageKind, string npcKey, integer npcFromPage, string page2Ruid)
 		-- 도착한 플레이어의 클라에서 실행(타깃 호출). 텍스트 + 초상화(anim) + 이미지(NPC/몬스터) + '다음' 표시를 위임.
 		-- imageKind = "npc"(사냥+·불행 → NPC 이미지) / 그 외(사냥 → 몬스터 이미지). npcKey = 등장 NPC 이름 키(없으면 "").
-		-- npcFromPage > 0 이면 페이지별 이미지 전환(페이지1 몬스터 → npcFromPage부터 NPC). 0이면 단일 이미지.
+		-- npcFromPage > 0 이면 페이지별 이미지 전환(페이지1 몬스터 → npcFromPage부터 사냥+ 이미지). 0이면 단일 이미지.
+		-- page2Ruid = 페이지2 이미지의 이미 해석된 RUID(있으면 npcKey 조회보다 우선). 없으면 "".
 		-- (콜백용으로 self 전달 → '다음' 클릭 시 self:RequestDone() 으로 종료 신호)
-		_EventTileUI:ShowEventText(message, anim, monsterRUID, imageKind, npcKey, npcFromPage, self)
+		_EventTileUI:ShowEventText(message, anim, monsterRUID, imageKind, npcKey, npcFromPage, page2Ruid, self)
 	end
 
 	method boolean IsEventTile()

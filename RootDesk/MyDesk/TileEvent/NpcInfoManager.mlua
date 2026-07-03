@@ -13,6 +13,7 @@ script NpcInfoManager extends Logic
 
 	method string GetNpcRUID(string name)
 		-- NPC 이름 키로 SpriteRUID를 반환. 없거나 빈 값이면 "".
+		-- (몬스터 스프라이트는 TierMonster가 원본 — 사냥+ 엘리트 등은 HuntPlusTile이 MonsterStandRUID로 직접 해석해 넘긴다.)
 		if name == nil or name == "" then return "" end
 		local ds = _DataService:GetTable("NpcInfo")
 		if isvalid(ds) == false then return "" end
