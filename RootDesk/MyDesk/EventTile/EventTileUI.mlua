@@ -450,9 +450,61 @@ script EventTileUI extends Logic
 	method void SetPortrait(string anim)
 		-- 초상화 애니(idle→Stand / attack→Attack) 적용 + 로딩 타이밍 대비 1초마다 재적용.
 		self._portraitState = anim
+		-- 모션보다 먼저 외형을 로컬 플레이어와 동일하게 고정한다(기본 아바타=토벤머리 폴백 방지).
+		self:EnsurePortraitIdentity()
 		self:ApplyPortrait()
 		self:ClearPortrait()
 		self._portraitTimer = _TimerService:SetTimerRepeat(function() self:ApplyPortrait() end, 1.0)
+	end
+
+	method table PortraitSlotDefs()
+		-- 라이브 플레이어 코스튬 → 초상화로 복사할 슬롯(속성명 p, SetEquip 카테고리 c). 무기 등 런타임 CustomEquip 반영용.
+		return {
+			{ p = "CustomBodyEquip",            c = MapleAvatarItemCategory.Body },
+			{ p = "CustomHairEquip",            c = MapleAvatarItemCategory.Hair },
+			{ p = "CustomFaceEquip",            c = MapleAvatarItemCategory.Face },
+			{ p = "CustomCapEquip",             c = MapleAvatarItemCategory.Cap },
+			{ p = "CustomCapeEquip",            c = MapleAvatarItemCategory.Cape },
+			{ p = "CustomCoatEquip",            c = MapleAvatarItemCategory.Coat },
+			{ p = "CustomLongcoatEquip",        c = MapleAvatarItemCategory.Longcoat },
+			{ p = "CustomPantsEquip",           c = MapleAvatarItemCategory.Pants },
+			{ p = "CustomGloveEquip",           c = MapleAvatarItemCategory.Glove },
+			{ p = "CustomShoesEquip",           c = MapleAvatarItemCategory.Shoes },
+			{ p = "CustomOneHandedWeaponEquip", c = MapleAvatarItemCategory.OneHandedWeapon },
+			{ p = "CustomTwoHandedWeaponEquip", c = MapleAvatarItemCategory.TwoHandedWeapon },
+			{ p = "CustomSubWeaponEquip",       c = MapleAvatarItemCategory.SubWeapon },
+			{ p = "CustomFaceAccessoryEquip",   c = MapleAvatarItemCategory.FaceAccessory },
+			{ p = "CustomEyeAccessoryEquip",    c = MapleAvatarItemCategory.EyeAccessory },
+			{ p = "CustomEarAccessoryEquip",    c = MapleAvatarItemCategory.EarAccessory },
+			{ p = "CustomEarEquip",             c = MapleAvatarItemCategory.Ear },
+		}
+	end
+
+	@ExecSpace("ClientOnly")
+	method void EnsurePortraitIdentity()
+		-- 초상화 아바타를 로컬 플레이어와 동일 외형으로 맞춘다.
+		-- 빈 DefaultEquipUserId면 계정 아바타 로드 전 순간에 MSW 기본 아바타(토벤머리)로 폴백 → 이벤트마다 정체성을 다시 고정한다.
+		local portrait = _EntityService:GetEntityByPath(self.PortraitPath)
+		if isvalid(portrait) == false then return end
+		local cm = portrait.CostumeManagerComponent
+		if isvalid(cm) == false then return end
+		local me = _UserService.LocalPlayer
+		if isvalid(me) == false or me.PlayerComponent == nil then
+			log_warning("[EventTileUI] EnsurePortraitIdentity: LocalPlayer 미확보 — 초상화 외형 고정 실패")
+			return
+		end
+		-- 계정 기본 체형/헤어/얼굴을 DefaultEquipUserId로 깔고,
+		cm.UseCustomEquipOnly = false
+		cm.DefaultEquipUserId = tostring(me.PlayerComponent.UserId)
+		-- 그 위에 라이브 플레이어의 런타임 코디(직업 무기 등)를 슬롯별로 덮어써 공격 모션이 실제 무기 스윙으로 나오게 한다.
+		local pcm = me.CostumeManagerComponent
+		if isvalid(pcm) then
+			for _, d in ipairs(self:PortraitSlotDefs()) do
+				local v = pcm[d.p]
+				if v ~= nil and v ~= "" then cm:SetEquip(d.c, v) end
+			end
+		end
+		log("[EventTileUI] 초상화 외형 고정 완료 user=" .. tostring(me.PlayerComponent.UserId))
 	end
 
 	@ExecSpace("ClientOnly")
