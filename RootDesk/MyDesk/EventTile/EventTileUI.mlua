@@ -469,6 +469,8 @@ script EventTileUI extends Logic
 	@ExecSpace("ClientOnly")
 	method void OnTextAdvance()
 		-- 텍스트 씬 '다음' → 서버에 진행 요청.
+		-- 클릭 즉시 버튼을 숨겨 서버 왕복(다음 씬/주사위 도착 전) 동안 재클릭(중복 진행)을 막는다.
+		self:HideAllButtons()
 		if isvalid(self._activeTile) then self._activeTile:RequestAdvance() end
 	end
 
@@ -556,6 +558,8 @@ script EventTileUI extends Logic
 	@ExecSpace("ClientOnly")
 	method void OnChoicePick(integer index)
 		-- 선택지 클릭 → 서버에 선택 인덱스 전달.
+		-- 클릭 즉시 버튼을 숨겨 서버 왕복(주사위/다음 씬 도착 전) 동안 다른 선택지 재클릭(중복 굴림)을 막는다.
+		self:HideAllButtons()
 		if isvalid(self._activeTile) then self._activeTile:RequestChoice(index) end
 	end
 
