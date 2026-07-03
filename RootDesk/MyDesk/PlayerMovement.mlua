@@ -154,7 +154,7 @@ script PlayerMovement extends Component
 		
 				-- 걷는 애니메이션으로 전환 후 Tween 이동
 				self:ChangePlayerState("MOVE")
-				local tween = _TweenLogic:MoveTo(self.Entity, dest2D, 0.5, EaseType.Linear)
+				local tween = _TweenLogic:MoveTo(self.Entity, dest2D, 0.1, EaseType.Linear)
 				tween:SetOnEndCallback(function()
 					self:MoveNextStep()   -- 한 칸 도착 → 다음 칸 시도(서버에서 실행)
 				end)
