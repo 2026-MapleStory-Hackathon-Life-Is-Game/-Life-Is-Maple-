@@ -446,12 +446,12 @@
         }
       },
       {
-        "id": "81c3c4e4-83ea-4c11-8f35-60ac2cc4f5b4",
-        "path": "/ui/EventTileGroup/EventBack/BackgroundMap",
+        "id": "457329dc-889a-4d8a-84b1-f911f64a608f",
+        "path": "/ui/EventTileGroup/EventBack/BGFrame",
         "componentNames": "MOD.Core.UITransformComponent,MOD.Core.SpriteGUIRendererComponent",
         "jsonString": {
-          "name": "BackgroundMap",
-          "path": "/ui/EventTileGroup/EventBack/BackgroundMap",
+          "name": "BGFrame",
+          "path": "/ui/EventTileGroup/EventBack/BGFrame",
           "nameEditable": true,
           "enable": true,
           "visible": true,
@@ -463,7 +463,7 @@
             "type": "Model",
             "entry_id": "uisprite",
             "sub_entity_id": null,
-            "root_entity_id": "81c3c4e4-83ea-4c11-8f35-60ac2cc4f5b4",
+            "root_entity_id": "457329dc-889a-4d8a-84b1-f911f64a608f",
             "replaced_model_id": null
           },
           "modelId": "uisprite",
@@ -481,20 +481,20 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 847.094238,
+                "x": 847.0943,
                 "y": 352.687
               },
               "OffsetMin": {
-                "x": -782.6266,
-                "y": -208.59642
+                "x": -782.626648,
+                "y": -208.59639
               },
               "Pivot": {
                 "x": 0.5,
                 "y": 0.5
               },
               "RectSize": {
-                "x": 1629.72083,
-                "y": 561.283447
+                "x": 1629.721,
+                "y": 561.2834
               },
               "UIMode": 1,
               "UIScale": {
@@ -535,6 +535,105 @@
               "@type": "MOD.Core.SpriteGUIRendererComponent",
               "ImageRUID": {
                 "DataId": "84c302d5478e46639fd9fa602a000d20"
+              },
+              "OverrideSorting": false,
+              "PreserveSprite": 2,
+              "Enable": true
+            }
+          ],
+          "@version": 1
+        }
+      },
+      {
+        "id": "81c3c4e4-83ea-4c11-8f35-60ac2cc4f5b4",
+        "path": "/ui/EventTileGroup/EventBack/BackgroundMap",
+        "componentNames": "MOD.Core.UITransformComponent,MOD.Core.SpriteGUIRendererComponent",
+        "jsonString": {
+          "name": "BackgroundMap",
+          "path": "/ui/EventTileGroup/EventBack/BackgroundMap",
+          "nameEditable": true,
+          "enable": true,
+          "visible": true,
+          "localize": true,
+          "displayOrder": 2,
+          "pathConstraints": "////",
+          "revision": 1,
+          "origin": {
+            "type": "Model",
+            "entry_id": "uisprite",
+            "sub_entity_id": null,
+            "root_entity_id": "81c3c4e4-83ea-4c11-8f35-60ac2cc4f5b4",
+            "replaced_model_id": null
+          },
+          "modelId": "uisprite",
+          "@components": [
+            {
+              "@type": "MOD.Core.UITransformComponent",
+              "AlignmentOption": 0,
+              "AnchorsMax": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "AnchorsMin": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "MobileOnly": false,
+              "OffsetMax": {
+                "x": 847.0943,
+                "y": 352.687
+              },
+              "OffsetMin": {
+                "x": -782.626648,
+                "y": -208.59639
+              },
+              "Pivot": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "RectSize": {
+                "x": 1629.721,
+                "y": 561.2834
+              },
+              "UIMode": 1,
+              "UIScale": {
+                "x": 1.0,
+                "y": 1.0,
+                "z": 1.0
+              },
+              "UIVersion": 2,
+              "anchoredPosition": {
+                "x": 32.2338,
+                "y": 72.0453
+              },
+              "Rotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+              },
+              "Position": {
+                "x": 32.2338,
+                "y": 72.0453,
+                "z": 0.0
+              },
+              "QuaternionRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": -1.0
+              },
+              "Scale": {
+                "x": 1.0,
+                "y": 1.0,
+                "z": 1.0
+              },
+              "ZRotation": 0.0,
+              "Enable": true
+            },
+            {
+              "@type": "MOD.Core.SpriteGUIRendererComponent",
+              "ImageRUID": {
+                "DataId": "3e9d52ed52d64794bbd6f72bab8ee3d9"
               },
               "OverrideSorting": false,
               "PreserveSprite": 2,
@@ -1195,7 +1294,7 @@
           "enable": false,
           "visible": true,
           "localize": true,
-          "displayOrder": 2,
+          "displayOrder": 3,
           "pathConstraints": "////",
           "revision": 1,
           "origin": {
@@ -1789,7 +1888,7 @@
           "enable": true,
           "visible": true,
           "localize": true,
-          "displayOrder": 3,
+          "displayOrder": 4,
           "pathConstraints": "////",
           "revision": 0,
           "origin": {
@@ -2041,7 +2140,7 @@
           "enable": true,
           "visible": true,
           "localize": true,
-          "displayOrder": 4,
+          "displayOrder": 5,
           "pathConstraints": "////",
           "revision": 1,
           "origin": {
