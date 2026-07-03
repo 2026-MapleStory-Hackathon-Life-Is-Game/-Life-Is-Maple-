@@ -24,7 +24,7 @@
           "enable": true,
           "visible": true,
           "localize": true,
-          "displayOrder": 14,
+          "displayOrder": 4,
           "pathConstraints": "//",
           "revision": 0,
           "origin": {
@@ -265,7 +265,7 @@
           "name": "Panel",
           "path": "/ui/JobSelectGroup/Panel",
           "nameEditable": true,
-          "enable": true,
+          "enable": false,
           "visible": true,
           "localize": true,
           "displayOrder": 1,
@@ -1926,7 +1926,7 @@
           "name": "ResultPanel",
           "path": "/ui/JobSelectGroup/ResultPanel",
           "nameEditable": true,
-          "enable": false,
+          "enable": true,
           "visible": true,
           "localize": true,
           "displayOrder": 2,
@@ -1955,20 +1955,20 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 380.0,
-                "y": 210.0
+                "x": 960.0,
+                "y": 540.0
               },
               "OffsetMin": {
-                "x": -380.0,
-                "y": -210.0
+                "x": -960.0,
+                "y": -540.0
               },
               "Pivot": {
                 "x": 0.5,
                 "y": 0.5
               },
               "RectSize": {
-                "x": 760.0,
-                "y": 420.0
+                "x": 1920.0,
+                "y": 1080.0
               },
               "UIMode": 1,
               "UIScale": {
@@ -2005,7 +2005,7 @@
               "EndFrameIndex": 2147483647,
               "IgnoreMapLayerCheck": false,
               "ImageRUID": {
-                "DataId": "4fea64a3307cda641809ad8be0d4890b"
+                "DataId": "b8380acf1bf148cc82c84a40167f5890"
               },
               "LocalPosition": {
                 "x": 0.0,
@@ -2019,13 +2019,13 @@
               "OrderInLayer": 0,
               "OverrideSorting": false,
               "PlayRate": 1.0,
-              "PreserveSprite": 0,
+              "PreserveSprite": 2,
               "SortingLayer": "UI",
               "StartFrameIndex": 0,
               "Color": {
-                "r": 0.109803922,
-                "g": 0.129411772,
-                "b": 0.2,
+                "r": 1.0,
+                "g": 1.0,
+                "b": 1.0,
                 "a": 0.97
               },
               "DropShadow": false,
@@ -2100,20 +2100,20 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 100.0,
-                "y": 190.0
+                "x": 102.463661,
+                "y": 165.435638
               },
               "OffsetMin": {
-                "x": -100.0,
-                "y": -10.0
+                "x": -102.463661,
+                "y": -48.4956436
               },
               "Pivot": {
                 "x": 0.5,
                 "y": 0.5
               },
               "RectSize": {
-                "x": 200.0,
-                "y": 200.0
+                "x": 204.927322,
+                "y": 213.93129
               },
               "UIMode": 1,
               "UIScale": {
@@ -2124,11 +2124,11 @@
               "UIVersion": 2,
               "anchoredPosition": {
                 "x": 0.0,
-                "y": 90.0
+                "y": 58.47
               },
               "Position": {
                 "x": 0.0,
-                "y": 90.0,
+                "y": 58.47,
                 "z": 0.0
               },
               "QuaternionRotation": {
@@ -2150,7 +2150,7 @@
               "EndFrameIndex": 2147483647,
               "IgnoreMapLayerCheck": false,
               "ImageRUID": {
-                "DataId": "4fea64a3307cda641809ad8be0d4890b"
+                "DataId": "87ba231c2b6d47b2b3e265df1fbf8649"
               },
               "LocalPosition": {
                 "x": 0.0,
@@ -2164,7 +2164,7 @@
               "OrderInLayer": 0,
               "OverrideSorting": false,
               "PlayRate": 1.0,
-              "PreserveSprite": 0,
+              "PreserveSprite": 2,
               "SortingLayer": "UI",
               "StartFrameIndex": 0,
               "Color": {
@@ -2245,20 +2245,20 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 350.0,
-                "y": -45.0
+                "x": 358.622833,
+                "y": -297.565765
               },
               "OffsetMin": {
-                "x": -350.0,
-                "y": -195.0
+                "x": -358.622833,
+                "y": -458.014252
               },
               "Pivot": {
                 "x": 0.5,
                 "y": 0.5
               },
               "RectSize": {
-                "x": 700.0,
-                "y": 150.0
+                "x": 717.245667,
+                "y": 160.448486
               },
               "UIMode": 1,
               "UIScale": {
@@ -2269,11 +2269,11 @@
               "UIVersion": 2,
               "anchoredPosition": {
                 "x": 0.0,
-                "y": -120.0
+                "y": -377.79
               },
               "Position": {
                 "x": 0.0,
-                "y": -120.0,
+                "y": -377.79,
                 "z": 0.0
               },
               "QuaternionRotation": {
@@ -2295,7 +2295,7 @@
               "EndFrameIndex": 2147483647,
               "IgnoreMapLayerCheck": false,
               "ImageRUID": {
-                "DataId": ""
+                "DataId": "b2223252b42d4fbe91e571e66a5c4da7"
               },
               "LocalPosition": {
                 "x": 0.0,
@@ -2309,14 +2309,14 @@
               "OrderInLayer": 0,
               "OverrideSorting": false,
               "PlayRate": 1.0,
-              "PreserveSprite": 0,
+              "PreserveSprite": 2,
               "SortingLayer": "UI",
               "StartFrameIndex": 0,
               "Color": {
                 "r": 1.0,
                 "g": 1.0,
                 "b": 1.0,
-                "a": 0.0
+                "a": 1.0
               },
               "DropShadow": false,
               "DropShadowAngle": 120.0,
@@ -2366,14 +2366,14 @@
                 "a": 0.72
               },
               "DropShadowDistance": 3.0,
-              "Font": 0,
+              "Font": 1,
               "FontColor": {
-                "r": 1.0,
-                "g": 1.0,
-                "b": 1.0,
+                "r": 0.168627456,
+                "g": 0.254901975,
+                "b": 0.784313738,
                 "a": 1.0
               },
-              "FontSize": 32,
+              "FontSize": 36,
               "IgnoreMapLayerCheck": false,
               "IsLocalizationKey": false,
               "MaxSize": 44,
@@ -2400,7 +2400,7 @@
               },
               "SizeFit": false,
               "SortingLayer": "UI",
-              "Text": " ",
+              "Text": "모험가의 의지가 차오릅니다",
               "UseConstraintX": false,
               "UseConstraintY": false,
               "UseOutLine": false,
