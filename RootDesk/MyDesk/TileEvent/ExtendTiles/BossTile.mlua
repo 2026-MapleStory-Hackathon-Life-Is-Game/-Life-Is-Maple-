@@ -5,17 +5,14 @@ script BossTile extends EventTileBase
 	-- 흐름: 도착 → EventTileGroup 안내 문구 + BossUI 보스 선택(4종) →
 	--        카드 클릭 시 상세(난이도/적정전투력/드랍 + 뒤로가기) → 난이도 선택 시 RequestSelect →
 	--        BossUI 닫고 EventTileGroup 도전 문구(5초) → 결과 주사위 →
-	--        대성공/성공(동일): 주스탯·공격력·난이도별 보호구 보상 + 결과 문구 / 실패: 종료.
+	--        실패/성공/대성공별 보상·결과 문구.
+	-- 대사·보상은 BossDialog 데이터셋(Group=all)에서 관리한다: intro/challenge/fail/success/great.
+	--   Text에 {boss}(선택 보스명)·{drop}(BossProbability.DropEquip) 치환자, Reward에 보상 토큰(main%/attack%/cube).
+	--   실패=주스탯3% / 성공=미라클큐브x5+주스탯6%+공격력6% / 대성공=드랍장비+주스탯9%+공격력9%.
 	-- 완료 시 _GameModeManager:NotifyTileEventDone()으로 턴 진행을 신호한다.
 
-	-- 선택 전 EventTileGroup에 표시할 안내 문구.
+	-- 선택 전 EventTileGroup에 표시할 안내 문구(BossDialog가 없을 때의 폴백).
 	@Sync property string introText = "신규 장비를 모아 더 강해지고 싶다! \n 어떤 보스를 처치하러 갈까?"
-
-	-- 보상 수치 범위(양 끝 포함).
-	@Sync property integer mainStatMin = 10
-	@Sync property integer mainStatMax = 100
-	@Sync property integer attackMin = 5
-	@Sync property integer attackMax = 20
 
 	-- 진행 중인 도착 플레이어(서버 상태). 턴제라 동시 1명.
 	property any _currentPiece = nil
@@ -38,7 +35,9 @@ script BossTile extends EventTileBase
 			_GameModeManager:NotifyTileEventDone()
 			return
 		end
-		self:OpenBossSelection(self.introText, ownerId)
+		local intro = self:BossText("all", "intro", "", "")
+		if intro == "" then intro = self.introText end
+		self:OpenBossSelection(intro, ownerId)
 		log("[BossTile] 보스 선택 표시 tile=" .. self.Entity.Name)
 	end
 
@@ -59,15 +58,16 @@ script BossTile extends EventTileBase
 		self._selectedDiff = diffKey
 		self._selectedBossName = self:DiffLabel(diffKey) .. self:BossName(bossKey)
 		local ownerId = self:OwnerUserId(piece)
-		self:StartChallenge(self._selectedBossName, ownerId)
+		local challengeText = self:BossText("all", "challenge", self._selectedBossName, "")
+		if challengeText == "" then challengeText = self._selectedBossName .. " 처치에 도전하였다!\n각오해라!" end
+		self:StartChallenge(challengeText, ownerId)
 		log("[BossTile] 선택: " .. self._selectedBossName)
 	end
 
 	@ExecSpace("Client")
-	method void StartChallenge(string bossName)
+	method void StartChallenge(string challengeText)
 		-- 도착 플레이어 클라: BossUI 닫고 EventTileGroup에 도전 문구 표시(공용 연출 재사용).
 		_BossUI:Hide()
-		local challengeText = bossName .. " 처치에 도전하였다! \n 각오해라!"
 		_EventTileUI:VillageQuestText(challengeText, self)
 	end
 
@@ -89,22 +89,19 @@ script BossTile extends EventTileBase
 		local outcome = _ResultDiceManager.GameOutcome
 		local resultTable = _ResultDiceManager:GetResultTable()
 
-		local outcomeText = ""
-		if outcome == "실패" then
-			outcomeText = self._selectedBossName .. " 처치에 실패했다..."
-			log("[BossTile] 도전 실패 — " .. self._selectedBossName)
-		else
-			-- 대성공/성공 동일 결과: 주스탯 + 공격력 + 난이도별 보호구.
-			local mainGain = _UtilLogic:RandomIntegerRange(self.mainStatMin, self.mainStatMax)
-			local atkGain  = _UtilLogic:RandomIntegerRange(self.attackMin, self.attackMax)
-			self:AddMainStat(piece, "flat", mainGain)
-			self:AddMainAttack(piece, "flat", atkGain)
-			-- 난이도별 보호구 (config 호출 — ItemDropTable 데이터는 추후 연동, 지금은 매칭 없으면 드롭 X).
+		-- 결과 등급 → BossDialog(all) 키. 등급별 보상 토큰 적용 + 대성공은 드랍 장비 지급.
+		local key = "fail"
+		if outcome == "성공" then key = "success"
+		elseif outcome == "대성공" then key = "great" end
+		local line = self:BossLine("all", key)
+		if line ~= nil and line.reward ~= "" then self:ApplyBossReward(piece, line.reward) end
+		if key == "great" then
+			-- 대성공: 보스 드랍 장비 지급(기존 config 경로 재사용).
 			self:AddItems(piece, self:ItemCategory(self._selectedDiff), self._selectedBossKey, self._selectedDiff)
-			outcomeText = self._selectedBossName .. "를(을) 처치하였다! \n 보상으로 주스탯+" .. tostring(mainGain)
-				.. ", 공격력/마력 +" .. tostring(atkGain) .. ", " .. self:DropName(self._selectedDiff) .. "를 얻었다!"
-			log("[BossTile] 도전 " .. outcome .. " — 주스탯+" .. tostring(mainGain) .. " 공격력+" .. tostring(atkGain))
 		end
+		local drop = self:DropEquip(self._selectedBossKey, self._selectedDiff)
+		local outcomeText = self:BossText("all", key, self._selectedBossName, drop)
+		log("[BossTile] 도전 " .. outcome .. " → " .. key)
 
 		local ownerId = self:OwnerUserId(piece)
 		self:ShowChallengeDice(d1, d2, total, resultTable, outcome, outcomeText, ownerId)
@@ -142,10 +139,59 @@ script BossTile extends EventTileBase
 		return "노말"
 	end
 
-	method string DropName(string diff)
-		-- 난이도별 드랍 보호구 표시명(결과 문구용).
-		if diff == "Hard" then return "칠흑의 보스 장신구 세트(9)" end
-		return "앱솔랩스 보호구 세트"
+	method string DropEquip(string bossKey, string diff)
+		-- BossProbability에서 (보스, 난이도)의 드랍 장비 표시명. 없으면 "".
+		local ds = _DataService:GetTable("BossProbability")
+		if isvalid(ds) == false then return "" end
+		for i = 1, ds:GetRowCount() do
+			if ds:GetCell(i, "BossName") == bossKey and ds:GetCell(i, "Difficulty") == diff then
+				return ds:GetCell(i, "DropEquip")
+			end
+		end
+		return ""
+	end
+
+	-- ===== BossDialog(대사·보상 데이터) =====
+
+	method table BossLine(string group, string key)
+		-- BossDialog에서 (Group,Key) 행 → { reward, text }. 없으면 nil.
+		local ds = _DataService:GetTable("BossDialog")
+		if isvalid(ds) == false then return nil end
+		for i = 1, ds:GetRowCount() do
+			if ds:GetCell(i, "Group") == group and ds:GetCell(i, "Key") == key then
+				return {
+					reward = ds:GetCell(i, "Reward"),
+					text   = _VillageEventFlowManager:DecodeText(ds:GetCell(i, "Text")),
+				}
+			end
+		end
+		return nil
+	end
+
+	method string BossText(string group, string key, string bossName, string drop)
+		-- BossDialog 문구 + 치환자({boss}=보스명, {drop}=드랍 장비명) 적용. 없으면 "".
+		local line = self:BossLine(group, key)
+		if line == nil then return "" end
+		local t = line.text
+		local _c1
+		t, _c1 = string.gsub(t, "{boss}", bossName)
+		t, _c1 = string.gsub(t, "{drop}", drop)
+		return t
+	end
+
+	@ExecSpace("ServerOnly")
+	method void ApplyBossReward(Entity piece, string rewardStr)
+		-- 보상 토큰(main%/attack%/cube 등) 파싱·적용. 스탯은 베이스 ApplyReward, 큐브는 GrantCube.
+		if rewardStr == nil or rewardStr == "" then return end
+		local rewards = _VillageEventFlowManager:ParseReward(rewardStr)
+		for i = 1, #rewards do
+			local r = rewards[i]
+			if r.kind == "cube" then
+				self:GrantCube(piece, r.value)
+			else
+				self:ApplyReward(piece, { statKind = r.kind, statMode = r.mode or "flat", statValue = r.value })
+			end
+		end
 	end
 
 	method string ItemCategory(string diff)
