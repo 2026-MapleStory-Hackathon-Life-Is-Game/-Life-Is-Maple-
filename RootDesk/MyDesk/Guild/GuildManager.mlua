@@ -9,15 +9,19 @@ script GuildManager extends Component
 	--     2 = 부길마 완료      (다음 방문 → 길드원영입 반복)
 	--   Tier : 0 없음 / 1 초보 길드 / 2 마스터 길드
 	--   GeneralMembers : 부길마를 제외한 일반 길드원 수(초보→마스터 승급 조건: 2명)
+	--   PromotionPending : 승급 조건을 충족했으나 아직 '길드 승급' 이벤트를 안 본 상태.
+	--     true면 다음 길드 타일 방문에서 승급 이벤트가 뜬다(Tier 상승/축복 강화는 그때 적용).
 	property integer Stage = 0
 	property integer Tier = 0
 	property integer GeneralMembers = 0
+	property boolean PromotionPending = false
 
 	method void OnBeginPlay()
 		-- @Component라 인스턴스(플레이어)마다 상태를 새로 초기화한다(공유 방지).
 		self.Stage = 0
 		self.Tier = 0
 		self.GeneralMembers = 0
+		self.PromotionPending = false
 	end
 
 	@ExecSpace("ServerOnly")
@@ -37,16 +41,24 @@ script GuildManager extends Component
 
 	@ExecSpace("ServerOnly")
 	method boolean AddMember()
-		-- 일반 길드원 1명 영입. 초보 길드(Tier==1)가 2명에 도달하면 마스터로 승급하고 true 반환.
-		-- (마스터로 시작했거나 이미 마스터면 승급 없음 → false)
+		-- 일반 길드원 1명 영입. 초보 길드(Tier==1)가 2명에 도달하면 '승급 대기'로 표시하고 true 반환.
+		-- (실제 Tier 상승/축복 강화는 다음 방문의 '길드 승급' 이벤트(Promote)에서 처리한다.)
 		self.GeneralMembers += 1
 		log("[GuildManager] 일반 길드원 영입 → " .. tostring(self.GeneralMembers) .. "명")
-		if self.Tier == 1 and self.GeneralMembers >= 2 then
-			self.Tier = 2
-			log("[GuildManager] 초보→마스터 승급 조건 충족")
+		if self.Tier == 1 and self.GeneralMembers >= 2 and self.PromotionPending == false then
+			self.PromotionPending = true
+			log("[GuildManager] 초보→마스터 승급 조건 충족 → 승급 대기")
 			return true
 		end
 		return false
+	end
+
+	@ExecSpace("ServerOnly")
+	method void Promote()
+		-- 길드 승급 이벤트에서 호출: 초보→마스터로 Tier를 올리고 승급 대기를 해제한다.
+		self.Tier = 2
+		self.PromotionPending = false
+		log("[GuildManager] 마스터 길드로 승급 완료")
 	end
 
 	@ExecSpace("ServerOnly")
@@ -55,6 +67,7 @@ script GuildManager extends Component
 		self.Stage = 0
 		self.Tier = 0
 		self.GeneralMembers = 0
+		self.PromotionPending = false
 		log("[GuildManager] 상태 전체 초기화")
 	end
 
