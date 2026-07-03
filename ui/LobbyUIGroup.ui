@@ -120,7 +120,7 @@
           "name": "PlayerPanel",
           "path": "/ui/LobbyUIGroup/PlayerPanel",
           "nameEditable": true,
-          "enable": true,
+          "enable": false,
           "visible": true,
           "localize": true,
           "displayOrder": 0,
@@ -267,9 +267,10 @@
             {
               "@type": "MOD.Core.SpriteGUIRendererComponent",
               "ImageRUID": {
-                "DataId": "cc3457b8e97b3e14f9d5c39ccdd640bf"
+                "DataId": "ca813286102242e48641ac4b8e6e614c"
               },
               "OverrideSorting": false,
+              "PreserveSprite": 2,
               "Enable": true
             }
           ],
@@ -313,11 +314,11 @@
               "MobileOnly": false,
               "OffsetMax": {
                 "x": 178.8125,
-                "y": 251.1038
+                "y": 265.26
               },
               "OffsetMin": {
                 "x": -185.521515,
-                "y": 201.1038
+                "y": 215.26
               },
               "Pivot": {
                 "x": 0.5,
@@ -331,11 +332,11 @@
               "UIVersion": 2,
               "anchoredPosition": {
                 "x": -3.3545,
-                "y": 226.1038
+                "y": 240.26
               },
               "Position": {
                 "x": -3.3545,
-                "y": 226.1038,
+                "y": 240.26,
                 "z": 0.0
               },
               "QuaternionRotation": {
@@ -348,6 +349,7 @@
             },
             {
               "@type": "MOD.Core.TextGUIRendererComponent",
+              "Font": "Maple",
               "FontColor": {
                 "r": 1.0,
                 "g": 1.0,
@@ -355,6 +357,7 @@
                 "a": 1.0
               },
               "FontSize": 25.0,
+              "FontStyle": 1,
               "MaxSize": 50.0,
               "MinSize": 10.0,
               "OverrideSorting": false,
@@ -437,12 +440,16 @@
             },
             {
               "@type": "MOD.Core.SpriteGUIRendererComponent",
+              "ImageRUID": {
+                "DataId": "1b637f8cafbc48778a6daa9e45487832"
+              },
               "OverrideSorting": false,
+              "PreserveSprite": 2,
               "Color": {
-                "r": 0.0,
-                "g": 0.0,
-                "b": 0.0,
-                "a": 0.5
+                "r": 1.0,
+                "g": 1.0,
+                "b": 1.0,
+                "a": 0.486328125
               },
               "Enable": true
             }
@@ -596,7 +603,7 @@
               "Alignment": 4,
               "AllowAutomaticTranslation": true,
               "BestFit": false,
-              "Bold": true,
+              "Bold": false,
               "ConstraintX": 100.0,
               "ConstraintY": 100.0,
               "DropShadow": false,
@@ -610,9 +617,9 @@
               "DropShadowDistance": 3.0,
               "Font": 0,
               "FontColor": {
-                "r": 1.0,
-                "g": 0.9137255,
-                "b": 0.65882355,
+                "r": 0.168627456,
+                "g": 0.254901975,
+                "b": 0.784313738,
                 "a": 1.0
               },
               "FontSize": 15,
@@ -798,7 +805,7 @@
               "Alignment": 4,
               "AllowAutomaticTranslation": true,
               "BestFit": false,
-              "Bold": true,
+              "Bold": false,
               "ConstraintX": 100.0,
               "ConstraintY": 100.0,
               "DropShadow": false,
@@ -812,9 +819,9 @@
               "DropShadowDistance": 3.0,
               "Font": 0,
               "FontColor": {
-                "r": 1.0,
-                "g": 0.9137255,
-                "b": 0.65882355,
+                "r": 0.168627456,
+                "g": 0.254901975,
+                "b": 0.784313738,
                 "a": 1.0
               },
               "FontSize": 15,
@@ -1000,7 +1007,7 @@
               "Alignment": 4,
               "AllowAutomaticTranslation": true,
               "BestFit": false,
-              "Bold": true,
+              "Bold": false,
               "ConstraintX": 100.0,
               "ConstraintY": 100.0,
               "DropShadow": false,
@@ -1014,9 +1021,9 @@
               "DropShadowDistance": 3.0,
               "Font": 0,
               "FontColor": {
-                "r": 1.0,
-                "g": 0.9137255,
-                "b": 0.65882355,
+                "r": 0.168627456,
+                "g": 0.254901975,
+                "b": 0.784313738,
                 "a": 1.0
               },
               "FontSize": 15,
@@ -1202,7 +1209,7 @@
               "Alignment": 4,
               "AllowAutomaticTranslation": true,
               "BestFit": false,
-              "Bold": true,
+              "Bold": false,
               "ConstraintX": 100.0,
               "ConstraintY": 100.0,
               "DropShadow": false,
@@ -1216,9 +1223,9 @@
               "DropShadowDistance": 3.0,
               "Font": 0,
               "FontColor": {
-                "r": 1.0,
-                "g": 0.9137255,
-                "b": 0.65882355,
+                "r": 0.168627456,
+                "g": 0.254901975,
+                "b": 0.784313738,
                 "a": 1.0
               },
               "FontSize": 15,
@@ -1404,7 +1411,7 @@
               "Alignment": 4,
               "AllowAutomaticTranslation": true,
               "BestFit": false,
-              "Bold": true,
+              "Bold": false,
               "ConstraintX": 100.0,
               "ConstraintY": 100.0,
               "DropShadow": false,
@@ -1418,9 +1425,9 @@
               "DropShadowDistance": 3.0,
               "Font": 0,
               "FontColor": {
-                "r": 1.0,
-                "g": 0.9137255,
-                "b": 0.65882355,
+                "r": 0.168627456,
+                "g": 0.254901975,
+                "b": 0.784313738,
                 "a": 1.0
               },
               "FontSize": 15,
@@ -1872,9 +1879,9 @@
               "DropShadowDistance": 3.0,
               "Font": 0,
               "FontColor": {
-                "r": 1.0,
-                "g": 1.0,
-                "b": 1.0,
+                "r": 0.270588249,
+                "g": 0.3254902,
+                "b": 0.443137258,
                 "a": 1.0
               },
               "FontSize": 15,
@@ -2019,9 +2026,9 @@
               "SortingLayer": "UI",
               "StartFrameIndex": 0,
               "Color": {
-                "r": 1.0,
-                "g": 1.0,
-                "b": 1.0,
+                "r": 0.270588249,
+                "g": 0.3254902,
+                "b": 0.443137258,
                 "a": 0.0
               },
               "DropShadow": false,
@@ -2074,9 +2081,9 @@
               "DropShadowDistance": 3.0,
               "Font": 0,
               "FontColor": {
-                "r": 1.0,
-                "g": 1.0,
-                "b": 1.0,
+                "r": 0.270588249,
+                "g": 0.3254902,
+                "b": 0.443137258,
                 "a": 1.0
               },
               "FontSize": 15,
@@ -2221,9 +2228,9 @@
               "SortingLayer": "UI",
               "StartFrameIndex": 0,
               "Color": {
-                "r": 1.0,
-                "g": 1.0,
-                "b": 1.0,
+                "r": 0.270588249,
+                "g": 0.3254902,
+                "b": 0.443137258,
                 "a": 0.0
               },
               "DropShadow": false,
@@ -2276,9 +2283,9 @@
               "DropShadowDistance": 3.0,
               "Font": 0,
               "FontColor": {
-                "r": 1.0,
-                "g": 1.0,
-                "b": 1.0,
+                "r": 0.270588249,
+                "g": 0.3254902,
+                "b": 0.443137258,
                 "a": 1.0
               },
               "FontSize": 15,
@@ -2423,9 +2430,9 @@
               "SortingLayer": "UI",
               "StartFrameIndex": 0,
               "Color": {
-                "r": 1.0,
-                "g": 1.0,
-                "b": 1.0,
+                "r": 0.270588249,
+                "g": 0.3254902,
+                "b": 0.443137258,
                 "a": 0.0
               },
               "DropShadow": false,
@@ -2478,9 +2485,9 @@
               "DropShadowDistance": 3.0,
               "Font": 0,
               "FontColor": {
-                "r": 1.0,
-                "g": 1.0,
-                "b": 1.0,
+                "r": 0.270588249,
+                "g": 0.3254902,
+                "b": 0.443137258,
                 "a": 1.0
               },
               "FontSize": 15,
@@ -2625,9 +2632,9 @@
               "SortingLayer": "UI",
               "StartFrameIndex": 0,
               "Color": {
-                "r": 1.0,
-                "g": 1.0,
-                "b": 1.0,
+                "r": 0.270588249,
+                "g": 0.3254902,
+                "b": 0.443137258,
                 "a": 0.0
               },
               "DropShadow": false,
@@ -2680,9 +2687,9 @@
               "DropShadowDistance": 3.0,
               "Font": 0,
               "FontColor": {
-                "r": 1.0,
-                "g": 1.0,
-                "b": 1.0,
+                "r": 0.270588249,
+                "g": 0.3254902,
+                "b": 0.443137258,
                 "a": 1.0
               },
               "FontSize": 15,
@@ -3079,9 +3086,9 @@
               "SortingLayer": "UI",
               "StartFrameIndex": 0,
               "Color": {
-                "r": 1.0,
-                "g": 1.0,
-                "b": 1.0,
+                "r": 0.270588249,
+                "g": 0.3254902,
+                "b": 0.443137258,
                 "a": 0.0
               },
               "DropShadow": false,
@@ -3134,9 +3141,9 @@
               "DropShadowDistance": 3.0,
               "Font": 0,
               "FontColor": {
-                "r": 1.0,
-                "g": 1.0,
-                "b": 1.0,
+                "r": 0.270588249,
+                "g": 0.3254902,
+                "b": 0.443137258,
                 "a": 1.0
               },
               "FontSize": 15,
@@ -3281,9 +3288,9 @@
               "SortingLayer": "UI",
               "StartFrameIndex": 0,
               "Color": {
-                "r": 1.0,
-                "g": 1.0,
-                "b": 1.0,
+                "r": 0.270588249,
+                "g": 0.3254902,
+                "b": 0.443137258,
                 "a": 0.0
               },
               "DropShadow": false,
@@ -3336,9 +3343,9 @@
               "DropShadowDistance": 3.0,
               "Font": 0,
               "FontColor": {
-                "r": 1.0,
-                "g": 1.0,
-                "b": 1.0,
+                "r": 0.270588249,
+                "g": 0.3254902,
+                "b": 0.443137258,
                 "a": 1.0
               },
               "FontSize": 15,
@@ -3483,9 +3490,9 @@
               "SortingLayer": "UI",
               "StartFrameIndex": 0,
               "Color": {
-                "r": 1.0,
-                "g": 1.0,
-                "b": 1.0,
+                "r": 0.270588249,
+                "g": 0.3254902,
+                "b": 0.443137258,
                 "a": 0.0
               },
               "DropShadow": false,
@@ -3538,9 +3545,9 @@
               "DropShadowDistance": 3.0,
               "Font": 0,
               "FontColor": {
-                "r": 1.0,
-                "g": 1.0,
-                "b": 1.0,
+                "r": 0.270588249,
+                "g": 0.3254902,
+                "b": 0.443137258,
                 "a": 1.0
               },
               "FontSize": 15,
@@ -3685,9 +3692,9 @@
               "SortingLayer": "UI",
               "StartFrameIndex": 0,
               "Color": {
-                "r": 1.0,
-                "g": 1.0,
-                "b": 1.0,
+                "r": 0.270588249,
+                "g": 0.3254902,
+                "b": 0.443137258,
                 "a": 0.0
               },
               "DropShadow": false,
@@ -3740,9 +3747,9 @@
               "DropShadowDistance": 3.0,
               "Font": 0,
               "FontColor": {
-                "r": 1.0,
-                "g": 1.0,
-                "b": 1.0,
+                "r": 0.270588249,
+                "g": 0.3254902,
+                "b": 0.443137258,
                 "a": 1.0
               },
               "FontSize": 15,
@@ -3887,9 +3894,9 @@
               "SortingLayer": "UI",
               "StartFrameIndex": 0,
               "Color": {
-                "r": 1.0,
-                "g": 1.0,
-                "b": 1.0,
+                "r": 0.270588249,
+                "g": 0.3254902,
+                "b": 0.443137258,
                 "a": 0.0
               },
               "DropShadow": false,
@@ -3942,9 +3949,9 @@
               "DropShadowDistance": 3.0,
               "Font": 0,
               "FontColor": {
-                "r": 1.0,
-                "g": 1.0,
-                "b": 1.0,
+                "r": 0.270588249,
+                "g": 0.3254902,
+                "b": 0.443137258,
                 "a": 1.0
               },
               "FontSize": 15,
@@ -4341,9 +4348,9 @@
               "SortingLayer": "UI",
               "StartFrameIndex": 0,
               "Color": {
-                "r": 1.0,
-                "g": 1.0,
-                "b": 1.0,
+                "r": 0.270588249,
+                "g": 0.3254902,
+                "b": 0.443137258,
                 "a": 0.0
               },
               "DropShadow": false,
@@ -4396,9 +4403,9 @@
               "DropShadowDistance": 3.0,
               "Font": 0,
               "FontColor": {
-                "r": 1.0,
-                "g": 1.0,
-                "b": 1.0,
+                "r": 0.270588249,
+                "g": 0.3254902,
+                "b": 0.443137258,
                 "a": 1.0
               },
               "FontSize": 15,
@@ -4598,9 +4605,9 @@
               "DropShadowDistance": 3.0,
               "Font": 0,
               "FontColor": {
-                "r": 1.0,
-                "g": 1.0,
-                "b": 1.0,
+                "r": 0.270588249,
+                "g": 0.3254902,
+                "b": 0.443137258,
                 "a": 1.0
               },
               "FontSize": 15,
@@ -4800,9 +4807,9 @@
               "DropShadowDistance": 3.0,
               "Font": 0,
               "FontColor": {
-                "r": 1.0,
-                "g": 1.0,
-                "b": 1.0,
+                "r": 0.270588249,
+                "g": 0.3254902,
+                "b": 0.443137258,
                 "a": 1.0
               },
               "FontSize": 15,
@@ -5002,9 +5009,9 @@
               "DropShadowDistance": 3.0,
               "Font": 0,
               "FontColor": {
-                "r": 1.0,
-                "g": 1.0,
-                "b": 1.0,
+                "r": 0.270588249,
+                "g": 0.3254902,
+                "b": 0.443137258,
                 "a": 1.0
               },
               "FontSize": 15,
@@ -5204,9 +5211,9 @@
               "DropShadowDistance": 3.0,
               "Font": 0,
               "FontColor": {
-                "r": 1.0,
-                "g": 1.0,
-                "b": 1.0,
+                "r": 0.270588249,
+                "g": 0.3254902,
+                "b": 0.443137258,
                 "a": 1.0
               },
               "FontSize": 15,
@@ -5658,9 +5665,9 @@
               "DropShadowDistance": 3.0,
               "Font": 0,
               "FontColor": {
-                "r": 1.0,
-                "g": 1.0,
-                "b": 1.0,
+                "r": 0.270588249,
+                "g": 0.3254902,
+                "b": 0.443137258,
                 "a": 1.0
               },
               "FontSize": 15,
@@ -5860,9 +5867,9 @@
               "DropShadowDistance": 3.0,
               "Font": 0,
               "FontColor": {
-                "r": 1.0,
-                "g": 1.0,
-                "b": 1.0,
+                "r": 0.270588249,
+                "g": 0.3254902,
+                "b": 0.443137258,
                 "a": 1.0
               },
               "FontSize": 15,
@@ -6062,9 +6069,9 @@
               "DropShadowDistance": 3.0,
               "Font": 0,
               "FontColor": {
-                "r": 1.0,
-                "g": 1.0,
-                "b": 1.0,
+                "r": 0.270588249,
+                "g": 0.3254902,
+                "b": 0.443137258,
                 "a": 1.0
               },
               "FontSize": 15,
@@ -6264,9 +6271,9 @@
               "DropShadowDistance": 3.0,
               "Font": 0,
               "FontColor": {
-                "r": 1.0,
-                "g": 1.0,
-                "b": 1.0,
+                "r": 0.270588249,
+                "g": 0.3254902,
+                "b": 0.443137258,
                 "a": 1.0
               },
               "FontSize": 15,
@@ -6466,9 +6473,9 @@
               "DropShadowDistance": 3.0,
               "Font": 0,
               "FontColor": {
-                "r": 1.0,
-                "g": 1.0,
-                "b": 1.0,
+                "r": 0.270588249,
+                "g": 0.3254902,
+                "b": 0.443137258,
                 "a": 1.0
               },
               "FontSize": 15,
@@ -6920,9 +6927,9 @@
               "DropShadowDistance": 3.0,
               "Font": 0,
               "FontColor": {
-                "r": 1.0,
-                "g": 1.0,
-                "b": 1.0,
+                "r": 0.270588249,
+                "g": 0.3254902,
+                "b": 0.443137258,
                 "a": 1.0
               },
               "FontSize": 15,
@@ -7122,9 +7129,9 @@
               "DropShadowDistance": 3.0,
               "Font": 0,
               "FontColor": {
-                "r": 1.0,
-                "g": 1.0,
-                "b": 1.0,
+                "r": 0.270588249,
+                "g": 0.3254902,
+                "b": 0.443137258,
                 "a": 1.0
               },
               "FontSize": 15,
@@ -7324,9 +7331,9 @@
               "DropShadowDistance": 3.0,
               "Font": 0,
               "FontColor": {
-                "r": 1.0,
-                "g": 1.0,
-                "b": 1.0,
+                "r": 0.270588249,
+                "g": 0.3254902,
+                "b": 0.443137258,
                 "a": 1.0
               },
               "FontSize": 15,
@@ -7526,9 +7533,9 @@
               "DropShadowDistance": 3.0,
               "Font": 0,
               "FontColor": {
-                "r": 1.0,
-                "g": 1.0,
-                "b": 1.0,
+                "r": 0.270588249,
+                "g": 0.3254902,
+                "b": 0.443137258,
                 "a": 1.0
               },
               "FontSize": 15,
@@ -7728,9 +7735,9 @@
               "DropShadowDistance": 3.0,
               "Font": 0,
               "FontColor": {
-                "r": 1.0,
-                "g": 1.0,
-                "b": 1.0,
+                "r": 0.270588249,
+                "g": 0.3254902,
+                "b": 0.443137258,
                 "a": 1.0
               },
               "FontSize": 15,
@@ -8182,9 +8189,9 @@
               "DropShadowDistance": 3.0,
               "Font": 0,
               "FontColor": {
-                "r": 1.0,
-                "g": 1.0,
-                "b": 1.0,
+                "r": 0.270588249,
+                "g": 0.3254902,
+                "b": 0.443137258,
                 "a": 1.0
               },
               "FontSize": 15,
@@ -8384,9 +8391,9 @@
               "DropShadowDistance": 3.0,
               "Font": 0,
               "FontColor": {
-                "r": 1.0,
-                "g": 1.0,
-                "b": 1.0,
+                "r": 0.270588249,
+                "g": 0.3254902,
+                "b": 0.443137258,
                 "a": 1.0
               },
               "FontSize": 15,
@@ -8586,9 +8593,9 @@
               "DropShadowDistance": 3.0,
               "Font": 0,
               "FontColor": {
-                "r": 1.0,
-                "g": 1.0,
-                "b": 1.0,
+                "r": 0.270588249,
+                "g": 0.3254902,
+                "b": 0.443137258,
                 "a": 1.0
               },
               "FontSize": 15,
@@ -8788,9 +8795,9 @@
               "DropShadowDistance": 3.0,
               "Font": 0,
               "FontColor": {
-                "r": 1.0,
-                "g": 1.0,
-                "b": 1.0,
+                "r": 0.270588249,
+                "g": 0.3254902,
+                "b": 0.443137258,
                 "a": 1.0
               },
               "FontSize": 15,
@@ -8990,9 +8997,9 @@
               "DropShadowDistance": 3.0,
               "Font": 0,
               "FontColor": {
-                "r": 1.0,
-                "g": 1.0,
-                "b": 1.0,
+                "r": 0.270588249,
+                "g": 0.3254902,
+                "b": 0.443137258,
                 "a": 1.0
               },
               "FontSize": 15,
@@ -9444,9 +9451,9 @@
               "DropShadowDistance": 3.0,
               "Font": 0,
               "FontColor": {
-                "r": 1.0,
-                "g": 1.0,
-                "b": 1.0,
+                "r": 0.270588249,
+                "g": 0.3254902,
+                "b": 0.443137258,
                 "a": 1.0
               },
               "FontSize": 15,
@@ -9646,9 +9653,9 @@
               "DropShadowDistance": 3.0,
               "Font": 0,
               "FontColor": {
-                "r": 1.0,
-                "g": 1.0,
-                "b": 1.0,
+                "r": 0.270588249,
+                "g": 0.3254902,
+                "b": 0.443137258,
                 "a": 1.0
               },
               "FontSize": 15,
@@ -9848,9 +9855,9 @@
               "DropShadowDistance": 3.0,
               "Font": 0,
               "FontColor": {
-                "r": 1.0,
-                "g": 1.0,
-                "b": 1.0,
+                "r": 0.270588249,
+                "g": 0.3254902,
+                "b": 0.443137258,
                 "a": 1.0
               },
               "FontSize": 15,
@@ -10050,9 +10057,9 @@
               "DropShadowDistance": 3.0,
               "Font": 0,
               "FontColor": {
-                "r": 1.0,
-                "g": 1.0,
-                "b": 1.0,
+                "r": 0.270588249,
+                "g": 0.3254902,
+                "b": 0.443137258,
                 "a": 1.0
               },
               "FontSize": 15,
@@ -10252,9 +10259,9 @@
               "DropShadowDistance": 3.0,
               "Font": 0,
               "FontColor": {
-                "r": 1.0,
-                "g": 1.0,
-                "b": 1.0,
+                "r": 0.270588249,
+                "g": 0.3254902,
+                "b": 0.443137258,
                 "a": 1.0
               },
               "FontSize": 15,
@@ -10706,9 +10713,9 @@
               "DropShadowDistance": 3.0,
               "Font": 0,
               "FontColor": {
-                "r": 1.0,
-                "g": 1.0,
-                "b": 1.0,
+                "r": 0.270588249,
+                "g": 0.3254902,
+                "b": 0.443137258,
                 "a": 1.0
               },
               "FontSize": 15,
@@ -10908,9 +10915,9 @@
               "DropShadowDistance": 3.0,
               "Font": 0,
               "FontColor": {
-                "r": 1.0,
-                "g": 1.0,
-                "b": 1.0,
+                "r": 0.270588249,
+                "g": 0.3254902,
+                "b": 0.443137258,
                 "a": 1.0
               },
               "FontSize": 15,
@@ -11110,9 +11117,9 @@
               "DropShadowDistance": 3.0,
               "Font": 0,
               "FontColor": {
-                "r": 1.0,
-                "g": 1.0,
-                "b": 1.0,
+                "r": 0.270588249,
+                "g": 0.3254902,
+                "b": 0.443137258,
                 "a": 1.0
               },
               "FontSize": 15,
@@ -11312,9 +11319,9 @@
               "DropShadowDistance": 3.0,
               "Font": 0,
               "FontColor": {
-                "r": 1.0,
-                "g": 1.0,
-                "b": 1.0,
+                "r": 0.270588249,
+                "g": 0.3254902,
+                "b": 0.443137258,
                 "a": 1.0
               },
               "FontSize": 15,
@@ -11514,9 +11521,9 @@
               "DropShadowDistance": 3.0,
               "Font": 0,
               "FontColor": {
-                "r": 1.0,
-                "g": 1.0,
-                "b": 1.0,
+                "r": 0.270588249,
+                "g": 0.3254902,
+                "b": 0.443137258,
                 "a": 1.0
               },
               "FontSize": 15,
@@ -11968,9 +11975,9 @@
               "DropShadowDistance": 3.0,
               "Font": 0,
               "FontColor": {
-                "r": 1.0,
-                "g": 1.0,
-                "b": 1.0,
+                "r": 0.270588249,
+                "g": 0.3254902,
+                "b": 0.443137258,
                 "a": 1.0
               },
               "FontSize": 15,
@@ -12170,9 +12177,9 @@
               "DropShadowDistance": 3.0,
               "Font": 0,
               "FontColor": {
-                "r": 1.0,
-                "g": 1.0,
-                "b": 1.0,
+                "r": 0.270588249,
+                "g": 0.3254902,
+                "b": 0.443137258,
                 "a": 1.0
               },
               "FontSize": 15,
@@ -12372,9 +12379,9 @@
               "DropShadowDistance": 3.0,
               "Font": 0,
               "FontColor": {
-                "r": 1.0,
-                "g": 1.0,
-                "b": 1.0,
+                "r": 0.270588249,
+                "g": 0.3254902,
+                "b": 0.443137258,
                 "a": 1.0
               },
               "FontSize": 15,
@@ -12574,9 +12581,9 @@
               "DropShadowDistance": 3.0,
               "Font": 0,
               "FontColor": {
-                "r": 1.0,
-                "g": 1.0,
-                "b": 1.0,
+                "r": 0.270588249,
+                "g": 0.3254902,
+                "b": 0.443137258,
                 "a": 1.0
               },
               "FontSize": 15,
@@ -12776,9 +12783,9 @@
               "DropShadowDistance": 3.0,
               "Font": 0,
               "FontColor": {
-                "r": 1.0,
-                "g": 1.0,
-                "b": 1.0,
+                "r": 0.270588249,
+                "g": 0.3254902,
+                "b": 0.443137258,
                 "a": 1.0
               },
               "FontSize": 15,
@@ -13230,9 +13237,9 @@
               "DropShadowDistance": 3.0,
               "Font": 0,
               "FontColor": {
-                "r": 1.0,
-                "g": 1.0,
-                "b": 1.0,
+                "r": 0.270588249,
+                "g": 0.3254902,
+                "b": 0.443137258,
                 "a": 1.0
               },
               "FontSize": 15,
@@ -13432,9 +13439,9 @@
               "DropShadowDistance": 3.0,
               "Font": 0,
               "FontColor": {
-                "r": 1.0,
-                "g": 1.0,
-                "b": 1.0,
+                "r": 0.270588249,
+                "g": 0.3254902,
+                "b": 0.443137258,
                 "a": 1.0
               },
               "FontSize": 15,
@@ -13634,9 +13641,9 @@
               "DropShadowDistance": 3.0,
               "Font": 0,
               "FontColor": {
-                "r": 1.0,
-                "g": 1.0,
-                "b": 1.0,
+                "r": 0.270588249,
+                "g": 0.3254902,
+                "b": 0.443137258,
                 "a": 1.0
               },
               "FontSize": 15,
@@ -13836,9 +13843,9 @@
               "DropShadowDistance": 3.0,
               "Font": 0,
               "FontColor": {
-                "r": 1.0,
-                "g": 1.0,
-                "b": 1.0,
+                "r": 0.270588249,
+                "g": 0.3254902,
+                "b": 0.443137258,
                 "a": 1.0
               },
               "FontSize": 15,
@@ -14038,9 +14045,9 @@
               "DropShadowDistance": 3.0,
               "Font": 0,
               "FontColor": {
-                "r": 1.0,
-                "g": 1.0,
-                "b": 1.0,
+                "r": 0.270588249,
+                "g": 0.3254902,
+                "b": 0.443137258,
                 "a": 1.0
               },
               "FontSize": 15,
@@ -14152,7 +14159,12 @@
             },
             {
               "@type": "MOD.Core.SpriteGUIRendererComponent",
+              "ImageRUID": {
+                "DataId": "c1d90bfe79f94ede97b02243998d4b26"
+              },
               "OverrideSorting": false,
+              "PreserveSprite": 2,
+              "FlipY": false,
               "Enable": true
             },
             {
@@ -14202,6 +14214,7 @@
             },
             {
               "@type": "MOD.Core.TextGUIRendererComponent",
+              "Font": "Maple",
               "FontColor": {
                 "r": 1.0,
                 "g": 1.0,
@@ -14209,6 +14222,7 @@
                 "a": 1.0
               },
               "FontSize": 40.0,
+              "FontStyle": 1,
               "MaxSize": 40.0,
               "MinSize": 10.0,
               "OverrideSorting": false,
@@ -22459,12 +22473,12 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 208.0,
-                "y": 0.0
+                "x": 420.0,
+                "y": -19.0
               },
               "OffsetMin": {
-                "x": 8.0,
-                "y": -300.0
+                "x": 220.0,
+                "y": -319.0
               },
               "Pivot": {
                 "x": 0.5,
@@ -22482,8 +22496,8 @@
               },
               "UIVersion": 2,
               "anchoredPosition": {
-                "x": 108.0,
-                "y": -150.0
+                "x": 320.0,
+                "y": -169.0
               },
               "Rotation": {
                 "x": 0.0,
@@ -22491,8 +22505,8 @@
                 "z": 0.0
               },
               "Position": {
-                "x": 108.000008,
-                "y": -150.0,
+                "x": 320.0,
+                "y": -169.0,
                 "z": 0.0
               },
               "QuaternionRotation": {
@@ -23143,12 +23157,12 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 423.0,
-                "y": 0.0
+                "x": 644.0,
+                "y": -19.0
               },
               "OffsetMin": {
-                "x": 223.0,
-                "y": -300.0
+                "x": 444.0,
+                "y": -319.0
               },
               "Pivot": {
                 "x": 0.5,
@@ -23166,8 +23180,8 @@
               },
               "UIVersion": 2,
               "anchoredPosition": {
-                "x": 323.0,
-                "y": -150.0
+                "x": 544.0,
+                "y": -169.0
               },
               "Rotation": {
                 "x": 0.0,
@@ -23175,8 +23189,8 @@
                 "z": 0.0
               },
               "Position": {
-                "x": 323.0,
-                "y": -150.0,
+                "x": 544.0,
+                "y": -169.0,
                 "z": 0.0
               },
               "QuaternionRotation": {
@@ -23843,12 +23857,12 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 638.0,
-                "y": 0.0
+                "x": 868.0,
+                "y": -19.0
               },
               "OffsetMin": {
-                "x": 438.0,
-                "y": -300.0
+                "x": 668.0,
+                "y": -319.0
               },
               "Pivot": {
                 "x": 0.5,
@@ -23866,8 +23880,8 @@
               },
               "UIVersion": 2,
               "anchoredPosition": {
-                "x": 538.0,
-                "y": -150.0
+                "x": 768.0,
+                "y": -169.0
               },
               "Rotation": {
                 "x": 0.0,
@@ -23875,8 +23889,8 @@
                 "z": 0.0
               },
               "Position": {
-                "x": 538.0,
-                "y": -150.0,
+                "x": 768.0,
+                "y": -169.0,
                 "z": 0.0
               },
               "QuaternionRotation": {
@@ -24528,12 +24542,12 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 853.0,
-                "y": 0.0
+                "x": 420.0,
+                "y": -331.0
               },
               "OffsetMin": {
-                "x": 653.0,
-                "y": -300.0
+                "x": 220.0,
+                "y": -631.0
               },
               "Pivot": {
                 "x": 0.5,
@@ -24551,8 +24565,8 @@
               },
               "UIVersion": 2,
               "anchoredPosition": {
-                "x": 753.0,
-                "y": -150.0
+                "x": 320.0,
+                "y": -481.0
               },
               "Rotation": {
                 "x": 0.0,
@@ -24560,8 +24574,8 @@
                 "z": 0.0
               },
               "Position": {
-                "x": 753.0,
-                "y": -150.0,
+                "x": 320.0,
+                "y": -481.0,
                 "z": 0.0
               },
               "QuaternionRotation": {
@@ -25212,12 +25226,12 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 1068.0,
-                "y": 0.0
+                "x": 644.0,
+                "y": -331.0
               },
               "OffsetMin": {
-                "x": 868.0,
-                "y": -300.0
+                "x": 444.0,
+                "y": -631.0
               },
               "Pivot": {
                 "x": 0.5,
@@ -25235,8 +25249,8 @@
               },
               "UIVersion": 2,
               "anchoredPosition": {
-                "x": 968.0,
-                "y": -150.0
+                "x": 544.0,
+                "y": -481.0
               },
               "Rotation": {
                 "x": 0.0,
@@ -25244,8 +25258,8 @@
                 "z": 0.0
               },
               "Position": {
-                "x": 968.0,
-                "y": -150.0,
+                "x": 544.0,
+                "y": -481.0,
                 "z": 0.0
               },
               "QuaternionRotation": {
@@ -25896,12 +25910,12 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 1283.0,
-                "y": -1.52587891E-05
+                "x": 868.0,
+                "y": -331.0
               },
               "OffsetMin": {
-                "x": 1083.0,
-                "y": -300.0
+                "x": 668.0,
+                "y": -631.0
               },
               "Pivot": {
                 "x": 0.5,
@@ -25909,7 +25923,7 @@
               },
               "RectSize": {
                 "x": 200.0,
-                "y": 299.999969
+                "y": 300.0
               },
               "UIMode": 1,
               "UIScale": {
@@ -25919,8 +25933,8 @@
               },
               "UIVersion": 2,
               "anchoredPosition": {
-                "x": 1183.0,
-                "y": -150.0
+                "x": 768.0,
+                "y": -481.0
               },
               "Rotation": {
                 "x": 0.0,
@@ -25928,8 +25942,8 @@
                 "z": 0.0
               },
               "Position": {
-                "x": 1183.0,
-                "y": -150.0,
+                "x": 768.0,
+                "y": -481.0,
                 "z": 0.0
               },
               "QuaternionRotation": {
