@@ -129,6 +129,11 @@ script UnderButton extends Component
 		-- openExclusive가 "BAG"/"CHAR"로 남아 주사위 차단·토글 오작동을 일으킨다.
 		-- 매 프레임 실제 패널 isOpen과 동기화해 desync를 제거한다.
 		if self:IsClient() == false then return end
+
+		-- 캐릭터 정보 패널(Ctrl)은 숨겨진 UIGroup 내부라 자체 OnUpdate가 tick되지 않는다.
+		-- 항상 tick하는 이 HUD가 열린 동안의 라이브 갱신(스탯/장비 변경 폴링, 우클릭 메뉴 엣지)을 대신 구동한다.
+		-- → 올스탯 +10 같은 이벤트가 패널이 열린 채로 발생해도 즉시 반영된다.
+		if isvalid(self.charPanel) then self.charPanel:TickWhileOpen(delta) end
 		if self.openExclusive == "BAG" then
 			if isvalid(self.invPanel) and self.invPanel.isOpen == false then
 				self.openExclusive = ""
