@@ -61,6 +61,10 @@ script EventTileUI extends Logic
 	property any _pageDone = nil
 	-- 선택지 프롬프트가 여러 페이지일 때 마지막 페이지에서 노출할 선택지 라벨.
 	property table _choiceLabels = {}
+	-- 페이지별 이미지 전환(사냥+ 등): 페이지1은 몬스터 이미지, _imgNpcFromPage 페이지부터 NPC 이미지로 전환.
+	--   0이면 전환 없음(단일 이미지). _imgNpcRUID = 전환 시 켤 NPC 이미지 RUID.
+	property integer _imgNpcFromPage = 0
+	property string _imgNpcRUID = ""
 
 	@ExecSpace("ClientOnly")
 	method void OnBeginPlay()
@@ -94,6 +98,7 @@ script EventTileUI extends Logic
 		if isvalid(self.EventGroup) then self.EventGroup.Enable = true end
 		self:SetMonsterImages("")
 		self:SetNPCImage(false, "")
+		self._imgNpcFromPage = 0   -- 페이지별 이미지 전환 상태 초기화(이번 표시에서만 재설정).
 	end
 
 	@ExecSpace("ClientOnly")
@@ -251,6 +256,12 @@ script EventTileUI extends Logic
 		if self._pageIdx < #self._pages then
 			self._pageIdx = self._pageIdx + 1
 			self:SetText(self._pages[self._pageIdx])
+			-- 분할 이미지 모드: 지정 페이지(_imgNpcFromPage)에 도달하면 몬스터 이미지를 끄고 NPC 이미지로 전환(1회).
+			if self._imgNpcFromPage > 0 and self._pageIdx >= self._imgNpcFromPage then
+				self:SetMonsterImages("")
+				self:SetNPCImage(true, self._imgNpcRUID)
+				self._imgNpcFromPage = 0
+			end
 		else
 			local cb = self._pageDone
 			if cb ~= nil then cb(self) end
@@ -268,13 +279,19 @@ script EventTileUI extends Logic
 	-- ===== 사냥 등 단순 이벤트(텍스트 1장 + 다음) =====
 
 	@ExecSpace("ClientOnly")
-	method void ShowEventText(string message, string anim, string monsterRUID, string imageKind, string npcKey, Component tile)
+	method void ShowEventText(string message, string anim, string monsterRUID, string imageKind, string npcKey, integer npcFromPage, Component tile)
 		-- EventTileBase(사냥/세금/사냥+/불행 등): 텍스트(페이지 단위) + 초상화(타일 지정 anim) + 이미지.
 		-- imageKind = "npc"(사냥+·불행 → NPC 이미지) / 그 외(사냥 → 몬스터 이미지). anim은 칸의 기본값.
 		-- npcKey = 등장 NPC 이름 키(NpcInfo 조회용, 없으면 ""). 마지막 장 '다음' → 종료.
+		-- npcFromPage > 0 이면 '분할 이미지' 모드: 페이지1은 몬스터 이미지(monsterRUID), 그 페이지부터 NPC 이미지로 전환.
+		--   (사냥+ 타일: 페이지1=기본 사냥 몬스터, 페이지2+=사냥+ NPC)
 		self._activeTile = tile
 		self:ShowGroup()
-		if imageKind == "npc" then
+		if npcFromPage > 0 then
+			self._imgNpcFromPage = npcFromPage
+			self._imgNpcRUID = _NpcInfoManager:GetNpcRUID(npcKey)
+			self:SetMonsterImages(monsterRUID)   -- 시작(페이지1)은 몬스터 이미지
+		elseif imageKind == "npc" then
 			self:SetNPCImage(true, _NpcInfoManager:GetNpcRUID(npcKey))
 		else
 			self:SetMonsterImages(monsterRUID)
