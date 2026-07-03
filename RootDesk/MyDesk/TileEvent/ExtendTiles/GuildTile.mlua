@@ -103,7 +103,7 @@ script GuildTile extends BaseTile
 			resultText = "아쉽게도 길드 창설에 실패했다...\n다음 기회에 다시 도전하자."
 		end
 		log("[GuildTile] 창설 롤 " .. tostring(d1) .. "+" .. tostring(d2) .. "=" .. tostring(total) .. " → " .. outcomeLabel)
-		self:ClientShowRoll(lead, "idle", resultText, d1, d2, total, greatPct, successPct, failPct, outcomeLabel, "Guild", ownerId)
+		self:ClientShowRoll(lead, "idle", resultText, d1, d2, total, greatPct, successPct, failPct, outcomeLabel, "", ownerId)
 	end
 
 	@ExecSpace("ServerOnly")
@@ -202,7 +202,7 @@ script GuildTile extends BaseTile
 			resultText = "영입시험에 실패했다...\n이번엔 새 길드원을 받지 못했다."
 		end
 		log("[GuildTile] 영입시험 " .. tostring(d1) .. "+" .. tostring(d2) .. "=" .. tostring(total) .. " → " .. outcomeLabel)
-		self:ClientShowRoll(lead, "idle", resultText, d1, d2, total, greatPct, successPct, failPct, outcomeLabel, "Guild", ownerId)
+		self:ClientShowRoll(lead, "idle", resultText, d1, d2, total, greatPct, successPct, failPct, outcomeLabel, "", ownerId)
 	end
 
 	@ExecSpace("Client")
