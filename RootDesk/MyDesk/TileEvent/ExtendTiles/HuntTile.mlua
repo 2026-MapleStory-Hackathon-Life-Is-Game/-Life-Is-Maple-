@@ -14,6 +14,12 @@ script HuntTile extends EventTileBase
 	--     · Times / Values: '|' 구분 티어. 서로 1:1 대응(예: 30분|1시간|2시간 ↔ 5|10|20). 시간=표시, 수치=적용
 
 	method table RollEvent(Entity piece)
+		-- 일반 사냥 타일: 사냥 결과를 굴려 반환(EventTileBase.OnArrive가 보상/표시 처리).
+		-- (사냥+ 타일이 기본 사냥 결과를 재사용할 수 있도록 실제 롤 로직은 RollHuntEvent로 분리했다.)
+		return self:RollHuntEvent(piece)
+	end
+
+	method table RollHuntEvent(Entity piece)
 		-- 서버에서 HuntEvent 데이터셋 기반으로 사냥 이벤트를 굴린다(없으면 폴백).
 		local map = self.Entity.CurrentMapName
 		local tile = self.Entity.Name
