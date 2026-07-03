@@ -3,7 +3,7 @@ script TileEventTester extends Logic
 
 	@DisplayName("강제 이벤트")
 	@Description("None / Hunt / HuntPlus / Village / Boss / Unlucky / Guild / Romance")
-	property string ForceEvent = "Romance"
+	property string ForceEvent = ""
 
 	method string CompNameFor(string key)
 		-- 이벤트 키 → 부착할 타일 컴포넌트 이름. 미설정/None이면 "".
