@@ -39,6 +39,9 @@ script EventTileUI extends Logic
 
 	property Entity NPCImage = "1fbf3532-d2e1-452f-8796-3a990a65660e"
 
+	-- 이벤트 배경(EventBack/BackgroundMap). 이벤트 표시(ShowGroup) 때 현재 지역 배경 RUID로 항상 교체한다.
+	property Entity BackgroundMap = "81c3c4e4-83ea-4c11-8f35-60ac2cc4f5b4"
+
 	property any _activeTile = nil
 
 	property integer _portraitTimer = 0
@@ -192,10 +195,44 @@ script EventTileUI extends Logic
 	method void ShowGroup()
 		-- 이벤트 그룹을 켠다. (몬스터/NPC 이미지는 기본 숨김 — 각 이벤트에서 필요한 쪽만 켠다.)
 		if isvalid(self.EventGroup) then self.EventGroup.Enable = true end
+		self:ApplyRegionBackground()   -- 모든 이벤트 공통: 현재 지역 배경으로 BackgroundMap 교체.
 		self:SetMonsterImages("")
 		self:SetNPCImage(false, "")
 		self._imgNpcFromPage = 0   -- 페이지별 이미지 전환 상태 초기화(이번 표시에서만 재설정).
 		self._pageNpcRUIDs = {}    -- 페이지별 NPC 목록도 초기화.
+	end
+
+	@ExecSpace("ClientOnly")
+	method string RegionBackgroundRUID(string region)
+		-- EventBackground에서 Region 일치 행의 RUID를 반환. 없으면 "".
+		if region == nil or region == "" then return "" end
+		local ds = _DataService:GetTable("EventBackground")
+		if isvalid(ds) == false then return "" end
+		for i = 1, ds:GetRowCount() do
+			if ds:GetCell(i, "Region") == region then
+				local ruid = ds:GetCell(i, "RUID")
+				if ruid == nil then return "" end
+				return ruid
+			end
+		end
+		return ""
+	end
+
+	@ExecSpace("ClientOnly")
+	method void ApplyRegionBackground()
+		-- 로컬 플레이어(=이벤트 도착자)의 현재 타일 지역으로 BackgroundMap 스프라이트를 교체한다.
+		-- 이벤트 UI는 도착 플레이어의 클라에만 뜨므로 LocalPlayer.currentTile이 곧 이 이벤트의 타일이다.
+		-- 지역 배경이 미등록(예: 사자왕성)이면 기존 배경을 그대로 둔다.
+		local me = _UserService.LocalPlayer
+		if isvalid(me) == false then return end
+		local pm = me:GetComponent("script.PlayerMovement")
+		if isvalid(pm) == false then return end
+		local region = _TileManager:GetTileRegion(me.CurrentMapName, pm.currentTile)
+		local ruid = self:RegionBackgroundRUID(region)
+		if ruid == "" then return end
+		if isvalid(self.BackgroundMap) and isvalid(self.BackgroundMap.SpriteGUIRendererComponent) then
+			self.BackgroundMap.SpriteGUIRendererComponent.ImageRUID = DataRef(ruid)
+		end
 	end
 
 	@ExecSpace("ClientOnly")
