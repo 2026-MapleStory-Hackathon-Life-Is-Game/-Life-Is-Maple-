@@ -39,6 +39,9 @@ script PlayerStatInit extends Logic
 			return
 		end
 		self:AddIfMissing(p, "script.BuffManager")
+		self:AddIfMissing(p, "script.GuildManager")
+		self:AddIfMissing(p, "script.RomanceManager")
+		self:AddIfMissing(p, "script.LifePathManager")
 		self:AddIfMissing(p, "script.WeaponEquipment")
 		self:AddIfMissing(p, "script.ArmorEquipment")
 		self:AddIfMissing(p, "script.AccessoryEquipment")

@@ -94,6 +94,15 @@ script BaseTile extends Component
 		buff:AddRawModifier({ critPct = value })
 	end
 
+	@ExecSpace("ServerOnly")
+	method void AddSpecificStat(Entity piece, string statName, number value)
+		-- 지정 스탯(str/dex/int/luk) 보상 → CombatPowerManager의 해당 스탯 필드에 직접 가산.
+		-- (모든 이벤트 타일이 공유하도록 BaseTile에 둔다. statName은 소문자로 넘겨도 내부에서 대문자화.)
+		local cp = self:CP(piece)
+		if isvalid(cp) == false then return end
+		cp:AddSpecificStat(string.upper(statName), value)
+	end
+
 	method string RollOutcome(string tableName)
 		-- Weight 합으로 1~합 정수를 굴려 누적 가중치 구간에 해당하는 Outcome을 반환한다.
 		local ds = _DataService:GetTable(tableName)

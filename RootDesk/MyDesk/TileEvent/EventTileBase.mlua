@@ -38,7 +38,11 @@ script EventTileBase extends BaseTile
 		local monsterRUID = ev.monsterRUID or ""
 		-- 초상화 애니메이션 = 칸의 기본값(없으면 idle). 사냥 칸만 RollEvent에서 attack을 지정한다.
 		local anim = ev.anim or "idle"
-		self:ShowEventUI(ev.message, anim, monsterRUID, ownerId)
+		-- 표시할 이미지 종류: "npc"(사냥+·불행 → NPC 이미지) / 그 외(사냥 → 몬스터 이미지). RollEvent가 지정.
+		local imageKind = ev.imageKind or "monster"
+		-- 등장 NPC 이름 키(NpcInfo 조회용). RollEvent가 지정하지 않으면 "" → UI 기본 이미지 사용.
+		local npcKey = ev.npcKey or ""
+		self:ShowEventUI(ev.message, anim, monsterRUID, imageKind, npcKey, ownerId)
 
 		log("[EventTileBase] 이벤트 발생 tile=" .. self.Entity.Name
 			.. " type=" .. tostring(ev.eventType))
@@ -47,7 +51,7 @@ script EventTileBase extends BaseTile
 	@ExecSpace("Server")
 	method void RequestDone()
 		-- 클라가 '다음'을 눌러 이벤트 종료를 요청. 도착 플레이어만 허용.
-		-- ⚠ 이 RPC는 '실제로 사용하는 서브클래스(HuntTile/TaxTile)에 동일하게 재정의'해야 한다.
+		-- ⚠ 이 RPC는 '실제로 사용하는 서브클래스(HuntTile/UnluckyTile)에 동일하게 재정의'해야 한다.
 		--   mlua에서 베이스에만 둔 @ExecSpace("Server") RPC는 서브클래스 인스턴스에서 라우팅되지 않아
 		--   클라의 self._activeTile:RequestDone() 호출이 서버에 닿지 않는다(턴이 TILE에 멈춤).
 		local piece = self._eventPiece
@@ -120,13 +124,7 @@ script EventTileBase extends BaseTile
 		end
 	end
 
-	@ExecSpace("ServerOnly")
-	method void AddSpecificStat(Entity piece, string statName, number value)
-		-- 지정 스탯(str/dex/int/luk) 보상 → CombatPowerManager의 해당 스탯 필드에 직접 가산.
-		local cp = self:CP(piece)
-		if isvalid(cp) == false then return end
-		cp:AddSpecificStat(string.upper(statName), value)
-	end
+	-- AddSpecificStat(piece, statName, value)은 BaseTile로 이동(모든 타일 공유). 여기서는 상속으로 사용.
 
 	method string OwnerUserId(Entity piece)
 		-- 말(piece)의 소유 유저 ID를 반환한다. 플레이어 엔티티가 아니면 "".
@@ -141,10 +139,11 @@ script EventTileBase extends BaseTile
 	end
 
 	@ExecSpace("Client")
-	method void ShowEventUI(string message, string anim, string monsterRUID)
-		-- 도착한 플레이어의 클라에서 실행(타깃 호출). 텍스트 + 초상화(anim) + 몬스터 이미지 + '다음' 표시를 위임.
+	method void ShowEventUI(string message, string anim, string monsterRUID, string imageKind, string npcKey)
+		-- 도착한 플레이어의 클라에서 실행(타깃 호출). 텍스트 + 초상화(anim) + 이미지(NPC/몬스터) + '다음' 표시를 위임.
+		-- imageKind = "npc"(사냥+·불행 → NPC 이미지) / 그 외(사냥 → 몬스터 이미지). npcKey = 등장 NPC 이름 키(없으면 "").
 		-- (콜백용으로 self 전달 → '다음' 클릭 시 self:RequestDone() 으로 종료 신호)
-		_EventTileUI:ShowEventText(message, anim, monsterRUID, self)
+		_EventTileUI:ShowEventText(message, anim, monsterRUID, imageKind, npcKey, self)
 	end
 
 	method boolean IsEventTile()

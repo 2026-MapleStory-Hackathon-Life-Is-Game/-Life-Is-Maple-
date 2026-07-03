@@ -9,8 +9,13 @@ script PlayerInfoPanel extends Component
 	-- 별도 프로퍼티로 정확히 바인딩한다.
 	property TextGUIRendererComponent powerText = "05b6f041-e1ba-4f09-a677-e21e0429fe46"
 
+	-- 진영/직업 라벨 텍스트(content/UIText, 예전 "모험가/해적"). 실제 진영/직업을 반영한다.
+	property TextGUIRendererComponent campJobText = "b38deec1-0973-4ad3-9ab8-f3bff963349d"
+
 	property any combatComp = nil      -- 로컬 플레이어의 CombatPowerManager (지연 캐시)
 	property number lastShownPower = -1 -- 마지막으로 표시한 전투력(값이 바뀔 때만 텍스트 갱신)
+	property any buffComp = nil          -- 로컬 플레이어의 BuffManager (진영 라벨용, 지연 캐시)
+	property string lastShownCampJob = "" -- 마지막으로 표시한 진영/직업(값이 바뀔 때만 갱신)
 
 	method void OnBeginPlay()
 		if self:IsClient() then
@@ -47,9 +52,57 @@ script PlayerInfoPanel extends Component
 		if power ~= self.lastShownPower then
 			self.lastShownPower = power
 			if isvalid(self.powerText) then
-				self.powerText.Text = "전투력: " .. self:FormatPower(power)
+				-- 위에 "전투력" 라벨(Title_capability)이 따로 있으므로 값 줄은 수치만 표시.
+				self.powerText.Text = self:FormatPower(power)
 			end
 		end
+
+		-- 진영/직업 라벨 갱신(진영=로컬 플레이어 BuffManager.CampName, 직업=전역 currentJob).
+		local campJob = self:CampKo(self:LocalCampKey()) .. "/" .. self:JobKo(self:CurrentJobKey())
+		if campJob ~= self.lastShownCampJob then
+			self.lastShownCampJob = campJob
+			if isvalid(self.campJobText) then
+				self.campJobText.Text = campJob
+			end
+			log("[PlayerInfoPanel] 진영/직업 라벨 = " .. campJob)
+		end
+	end
+
+	method string LocalCampKey()
+		-- 로컬 플레이어의 진영 키(BuffManager.CampName, @TargetUserSync). 미선택/미부착 시 "".
+		if isvalid(self.buffComp) == false then
+			local player = _UserService.LocalPlayer
+			if isvalid(player) then self.buffComp = player:GetComponent("script.BuffManager") end
+		end
+		if isvalid(self.buffComp) and self.buffComp.CampName ~= nil then return self.buffComp.CampName end
+		return ""
+	end
+
+	method string CurrentJobKey()
+		-- 전역 직업 키(_JobWeaponManager.currentJob, @Sync). 기본값은 "Beginner".
+		if _JobWeaponManager ~= nil and _JobWeaponManager.currentJob ~= nil then return _JobWeaponManager.currentJob end
+		return ""
+	end
+
+	method string CampKo(string camp)
+		-- 진영 영문 키 → 한글. 미선택("") → '없음'.
+		if camp == nil or camp == "" then return "없음" end
+		if camp == "Adventurer" then return "모험가"
+		elseif camp == "Cygnus" then return "시그너스"
+		elseif camp == "Resistance" then return "레지스탕스"
+		elseif camp == "Nova" then return "노바" end
+		return camp
+	end
+
+	method string JobKo(string job)
+		-- 직업 영문 키 → 한글. 미선택("" 또는 Beginner=초기 직업) → '없음'.
+		if job == nil or job == "" or job == "Beginner" then return "없음" end
+		if job == "Warrior" then return "전사"
+		elseif job == "Archer" then return "궁수"
+		elseif job == "Mage" then return "마법사"
+		elseif job == "Thief" then return "도적"
+		elseif job == "Pirate" then return "해적" end
+		return job
 	end
 
 	method string FormatPower(number value)

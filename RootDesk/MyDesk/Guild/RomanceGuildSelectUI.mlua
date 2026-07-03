@@ -1,0 +1,107 @@
+@Logic
+script RomanceGuildSelectUI extends Logic
+
+	-- 연애/길드 공용 '5지선다 선택 창' 컨트롤러. 각 카드는 사진 + 이름만 표시하며, 도착 시 데이터가 런타임 주입된다.
+	-- 부길마 영입(길드) / (추후)연애 상대 선택 등에서 공통으로 재사용한다.
+	-- 카드 클릭 → 도착 타일(_activeTile)의 RequestChoice(index)로 선택 인덱스를 되돌린다(서버가 보상/진행 처리).
+	-- UIGroup 바깥의 @Logic이라 그룹을 켜고/끄는 동안 자기 자신이 비활성화되지 않는다.
+
+	-- 선택 창 루트(표시/숨김 토글 대상).
+	property Entity Group = "63d52b0c-e148-480e-bc86-9d56692f26f8"
+	-- 상단 제목 텍스트(Show에서 문구 설정).
+	property TextComponent TitleText = "7f27d8ef-ceae-414f-8659-7f0019f08689"
+	-- 카드 5개(클릭 영역 = 버튼 엔티티).
+	property Entity Card1 = "8796a556-9cdc-4b51-8a88-da6b6590e475"
+	property Entity Card2 = "aeb8367d-6060-40b2-9df1-1ebb049c8144"
+	property Entity Card3 = "e79aacee-a5b5-4d7a-9911-f0f7858bca01"
+	property Entity Card4 = "5351ce99-79d7-4076-940a-b87513c56221"
+	property Entity Card5 = "0ae3a2f2-5bca-43ed-9396-0d742a2f6c69"
+	-- 카드별 사진(SpriteGUIRenderer) — ImageRUID 런타임 설정.
+	property SpriteGUIRendererComponent Photo1 = "1a1f812a-cea8-499b-a2cd-5d404f4c85f3"
+	property SpriteGUIRendererComponent Photo2 = "1f6e61f2-8e36-4da4-b5f3-3d830966f606"
+	property SpriteGUIRendererComponent Photo3 = "2205b294-7206-40b1-aba2-e7489a63f3c5"
+	property SpriteGUIRendererComponent Photo4 = "5d1ad1b0-6d23-43d0-9b18-685bca95886e"
+	property SpriteGUIRendererComponent Photo5 = "9a666c43-2f42-47d9-b972-887c32951699"
+	-- 카드별 이름(Text).
+	property TextComponent Name1 = "71a40741-6149-4c32-968f-fb49654d1703"
+	property TextComponent Name2 = "21e07f1d-445a-45bd-a2cc-420c3591571a"
+	property TextComponent Name3 = "d431e61a-e3db-4744-a2f1-b7fe68329b93"
+	property TextComponent Name4 = "cf7b891a-2aad-4484-a3fd-de1ff5f7b643"
+	property TextComponent Name5 = "9d141a6d-7529-46a5-8569-86c288391bc3"
+
+	-- 선택 결과를 되돌릴 도착 타일(콜백 대상) + 버튼 클릭 핸들러 목록.
+	property any _activeTile = nil
+	property table _handlers = {}
+
+	@ExecSpace("ClientOnly")
+	method void OnBeginPlay()
+		-- 평소엔 선택 창을 숨긴다.
+		if isvalid(self.Group) then self.Group.Enable = false end
+	end
+
+	method table Cards()
+		-- 카드(버튼) 엔티티 5개를 배열로.
+		return { self.Card1, self.Card2, self.Card3, self.Card4, self.Card5 }
+	end
+
+	method table Photos()
+		-- 사진 렌더러 5개를 배열로.
+		return { self.Photo1, self.Photo2, self.Photo3, self.Photo4, self.Photo5 }
+	end
+
+	method table NameTexts()
+		-- 이름 텍스트 5개를 배열로.
+		return { self.Name1, self.Name2, self.Name3, self.Name4, self.Name5 }
+	end
+
+	@ExecSpace("ClientOnly")
+	method void Show(string title, table names, table ruids, Component tile)
+		-- 5장 카드에 (이름, 사진RUID)를 주입하고 창을 연다. 카드 클릭 시 tile:RequestChoice(index) 호출.
+		-- ruids[i]가 빈 값이면 카드 사진은 UI 기본 이미지를 유지한다(사진 미기입 폴백).
+		self._activeTile = tile
+		self:ClearHandlers()
+		if isvalid(self.TitleText) then self.TitleText.Text = title end
+
+		local cards = self:Cards()
+		local photos = self:Photos()
+		local nameTexts = self:NameTexts()
+		for i = 1, 5 do
+			local nm = names[i] or ""
+			local ruid = ruids[i] or ""
+			if isvalid(nameTexts[i]) then nameTexts[i].Text = nm end
+			if isvalid(photos[i]) and ruid ~= "" then photos[i].ImageRUID = DataRef(ruid) end
+			local btn = cards[i]
+			if isvalid(btn) then
+				local idx = i
+				local hd = btn:ConnectEvent(ButtonClickEvent, function() self:OnPick(idx) end)
+				table.insert(self._handlers, { entity = btn, hd = hd })
+			end
+		end
+
+		if isvalid(self.Group) then self.Group.Enable = true end
+	end
+
+	method void OnPick(integer index)
+		-- 카드 선택 → 중복 클릭 방지로 즉시 핸들러 해제 후 도착 타일에 인덱스 반환(서버가 처리·종료).
+		self:ClearHandlers()
+		if isvalid(self._activeTile) then self._activeTile:RequestChoice(index) end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void Hide()
+		-- 선택 창 닫기: 핸들러 해제 + 그룹 숨김 + 상태 초기화.
+		self:ClearHandlers()
+		if isvalid(self.Group) then self.Group.Enable = false end
+		self._activeTile = nil
+	end
+
+	method void ClearHandlers()
+		-- 등록된 카드 클릭 핸들러를 모두 해제한다.
+		for i = 1, #self._handlers do
+			local rec = self._handlers[i]
+			if isvalid(rec.entity) then rec.entity:DisconnectEvent(ButtonClickEvent, rec.hd) end
+		end
+		self._handlers = {}
+	end
+
+end

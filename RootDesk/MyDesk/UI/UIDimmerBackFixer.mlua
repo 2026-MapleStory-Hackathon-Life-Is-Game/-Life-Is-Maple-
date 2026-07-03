@@ -1,0 +1,50 @@
+@Logic
+script UIDimmerBackFixer extends Logic
+
+	-- 에디터에서 딤(어두운 배경) 엔티티의 형제 순서가 자꾸 앞으로 초기화되어 패널/버튼을 가려 클릭을 막는 문제를,
+	-- 런타임에서 형제 맨 앞(SiblingIndex 0 = 가장 먼저 렌더 = 맨 뒤)으로 되돌린다.
+	-- 대상: 이름에 'dim'(대소문자 무관)이 포함된 모든 UI 엔티티(DimBack / Dim / Dimmer 등).
+	-- 재초기화에 대비해 시작 시 + 지연 2회 재적용한다.
+
+	@ExecSpace("ClientOnly")
+	method void OnBeginPlay()
+		-- 시작 시 1회 + 로드 타이밍 대비 지연 재적용.
+		self:FixAll()
+		_TimerService:SetTimerOnce(function() self:FixAll() end, 0.5)
+		_TimerService:SetTimerOnce(function() self:FixAll() end, 1.5)
+	end
+
+	@ExecSpace("ClientOnly")
+	method void FixAll()
+		-- /ui의 모든 그룹 루트 서브트리를 순회하며 딤 엔티티를 형제 맨 뒤로 보낸다.
+		local uiRoot = _EntityService:GetEntityByPath("/ui")
+		if isvalid(uiRoot) == false then return end
+		local kids = uiRoot.Children
+		if kids == nil then return end
+		local list = kids:ToTable()
+		for i = 1, #list do
+			self:FixInEntity(list[i])
+		end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void FixInEntity(Entity e)
+		-- e의 직계 자식 중 이름에 'dim'이 포함되면 형제 맨 앞(index 0 = 맨 뒤 렌더)으로 이동. 이후 재귀.
+		if isvalid(e) == false then return end
+		local kids = e.Children
+		if kids == nil then return end
+		local list = kids:ToTable()
+		for i = 1, #list do
+			local c = list[i]
+			if isvalid(c) then
+				local nm = string.lower(c.Name)
+				if string.find(nm, "dim", 1, true) ~= nil and isvalid(c.UITransformComponent) then
+					_UILogic:SetSiblingIndex(c.UITransformComponent, 0)
+					log("[UIDimmerBackFixer] 딤 맨 뒤로: " .. tostring(c.Name))
+				end
+				self:FixInEntity(c)
+			end
+		end
+	end
+
+end

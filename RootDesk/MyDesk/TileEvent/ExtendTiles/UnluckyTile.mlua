@@ -1,0 +1,92 @@
+@Component
+script UnluckyTile extends EventTileBase
+
+	-- 불행(부정) 이벤트 타일. 마을/사냥 이벤트와 동일한 흐름(텍스트 팝업 + '다음'으로 진행)이지만
+	-- 보상이 부정적(스탯 하락)이다.
+	-- 이벤트 값(지역/등장NPC/애니/스탯 감소/문구)은 스크립트 밖 데이터셋 'UnluckyEvent'
+	--   (UnluckyEvent.userdataset + .csv)에서 관리한다. 도착 타일의 (Stage,Region)과 일치하는 행 중
+	--   Weight 가중치로 1개를 추첨한다. 값/문구 추가·수정은 CSV만 편집하면 된다.
+	--   CSV 컬럼: Stage / Region / NPC / Weight / PlayerAnim / StatKind / StatMode / StatValue / Text
+	--     · StatKind : 감소 스탯 종류 — "all"(올스탯) / "main"(주스탯) 등 (EventTileBase.ApplyReward 키와 동일)
+	--     · StatMode : "flat"(고정 수치)
+	--     · StatValue: 증감 수치(불행이므로 음수, 예: -1)
+	--     · Text     : 문구. 줄바꿈은 '\n', 페이지(다음) 경계는 '\n\n' 리터럴로 저장(런타임에 복원)
+
+	method table RollEvent(Entity piece)
+		-- 도착 타일의 (Stage,Region)으로 UnluckyEvent에서 가중 추첨해 이벤트를 반환한다.
+		local map = self.Entity.CurrentMapName
+		local tile = self.Entity.Name
+		local region = _TileManager:GetTileRegion(map, tile)
+		local stage = _TileManager:GetTileStage(map, tile)
+
+		local ds = _DataService:GetTable("UnluckyEvent")
+		if isvalid(ds) == false then
+			log_error("[UnluckyTile] UnluckyEvent 데이터셋 없음")
+			return nil
+		end
+		local rows = ds:GetRowCount()
+		local function match(i)
+			return (tonumber(ds:GetCell(i, "Stage")) or 0) == stage
+				and ds:GetCell(i, "Region") == region
+		end
+
+		-- (Stage,Region) 일치 행 가중치 합.
+		local total = 0
+		for i = 1, rows do
+			if match(i) then total += (tonumber(ds:GetCell(i, "Weight")) or 0) end
+		end
+		if total <= 0 then
+			log_warning("[UnluckyTile] 해당 (Stage,Region) 불행 이벤트 없음 stage=" .. tostring(stage) .. " region=" .. tostring(region))
+			return nil
+		end
+
+		-- 가중 추첨.
+		local roll = _UtilLogic:RandomIntegerRange(1, total)
+		local acc = 0
+		local pick = 0
+		for i = 1, rows do
+			if match(i) then
+				acc += (tonumber(ds:GetCell(i, "Weight")) or 0)
+				if roll <= acc then
+					pick = i
+					break
+				end
+			end
+		end
+		if pick == 0 then return nil end
+
+		local anim = ds:GetCell(pick, "PlayerAnim")
+		if anim == "" then anim = "idle" end
+		return {
+			eventType = "Unlucky",
+			message   = self:DecodeText(ds:GetCell(pick, "Text")),
+			statKind  = ds:GetCell(pick, "StatKind"),          -- "all"(올스탯) 등
+			statMode  = ds:GetCell(pick, "StatMode"),          -- "flat"
+			statValue = tonumber(ds:GetCell(pick, "StatValue")) or 0,  -- 음수 = 하락
+			imageKind = "npc",                                  -- 불행 이벤트: NPC 이미지 표시
+			npcKey    = ds:GetCell(pick, "NPC"),                -- 등장 NPC 이름 키 → NpcInfo에서 RUID 조회
+			anim      = anim,
+		}
+	end
+
+	method string DecodeText(string raw)
+		-- CSV에 '\n' 리터럴로 저장한 줄바꿈을 실제 개행으로 복원한다(셀을 한 물리 행으로 유지하기 위함).
+		-- 셀 양끝을 통째로 감싼 따옴표 1쌍이 남아있으면 제거한다.
+		if raw == nil then return "" end
+		local s = raw
+		if #s >= 2 and string.sub(s, 1, 1) == "\"" and string.sub(s, #s, #s) == "\"" then
+			s = string.sub(s, 2, #s - 1)
+		end
+		local out, _cnt = string.gsub(s, "\\n", "\n")
+		return out
+	end
+
+	@ExecSpace("Server")
+	method void RequestDone()
+		-- '다음' 클릭 시 이벤트 종료 RPC. (베이스 상속 RPC가 서브클래스에서 라우팅 안 되므로 리프에 재정의)
+		local piece = self._eventPiece
+		if isvalid(piece) and senderUserId ~= self:OwnerUserId(piece) then return end
+		self:FinishEventTile()
+	end
+
+end

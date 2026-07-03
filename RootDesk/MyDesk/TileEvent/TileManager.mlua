@@ -96,7 +96,7 @@ script TileManager extends Logic
 							self:BuildTileGraph()
 						end
 						self:CollectTiles()
-						-- 수집 완료 후 '현재 맵' 기준으로 캠프/몬스터 비주얼을 재적용한다.
+						-- 수집 완료 후 '현재 맵' 기준으로 진영/몬스터 비주얼을 재적용한다.
 						-- (맵 전환 시 ApplyPhysicsForMap의 즉시 호출은 이 지연 수집보다 빨라서
 						--  이전 맵 타일에 적용하고 끝나버려 새 맵 사냥타일이 빈 채로 남는 버그가 있었음.)
 						self:RequestCampVisuals()
@@ -114,11 +114,11 @@ script TileManager extends Logic
 		if tileType == "Start" then return "StartTile"
 				elseif tileType == "Hunt" then return "HuntTile"
 				elseif tileType == "HuntPlus" then return "HuntPlusTile"
-				elseif tileType == "Tax" then return "TaxTile"
+				elseif tileType == "Unlucky" then return "UnluckyTile"
 				elseif tileType == "Boss" then return "BossTile"
 				elseif tileType == "Village" then return "VillageTile"
 				elseif tileType == "Guild" then return "GuildTile"
-				elseif tileType == "Union" then return "UnionTile"
+				elseif tileType == "Union" then return "RomanceTile"
 				elseif tileType == "End" then return "EndTile"
 				end
 				return ""
@@ -233,6 +233,28 @@ script TileManager extends Logic
 	end
 
 	@ExecSpace("ServerOnly")
+	method any LifePathComp(string key, Entity piece, any defaultComp)
+		-- 인생 분기(Stage3): 'Guild' 타입 타일을 도착 플레이어의 LifePath에 따라 교체한다.
+		--   Guild/미선택 → 기존 GuildTile(defaultComp) / Romance → 이 엔티티의 RomanceTile을 보장해 반환.
+		-- (Guild 타입이 아니면 그대로 defaultComp. Stage1~2엔 Guild 타일이 없어 영향 없음.)
+		local data = self.tileGraph[key]
+		if data == nil or data.type ~= "Guild" then return defaultComp end
+		local lp = piece:GetComponent("script.LifePathManager")
+		local path = ""
+		if isvalid(lp) then path = lp.LifePath end
+		if path ~= "Romance" then return defaultComp end
+		local entity = self.tileEntities[key]
+		if isvalid(entity) == false then return defaultComp end
+		local rt = entity:GetComponent("script.RomanceTile")
+		if isvalid(rt) == false then
+			entity:AddComponent("RomanceTile")
+			rt = entity:GetComponent("script.RomanceTile")
+		end
+		if isvalid(rt) == false then return defaultComp end
+		return rt
+	end
+
+	@ExecSpace("ServerOnly")
 	method boolean TriggerArrive(string mapName, string tileName, Entity piece)
 		-- 도착 타일 효과를 실행하고 '이벤트 UI를 띄우는 타일이었는지'를 반환한다.
 		-- 반환 true면 호출측(턴 매니저)이 UI 표시 시간만큼 대기한 뒤 다음 단계로 진행한다.
@@ -261,6 +283,8 @@ script TileManager extends Logic
 			comp = self.tileComponents[key]
 		end
 
+		-- 인생 분기: Stage3 'Guild' 타일은 플레이어 LifePath로 GuildTile↔RomanceTile 교체.
+		comp = self:LifePathComp(key, piece, comp)
 		if comp == nil then return false end
 		comp:OnArrive(piece)
 		return comp:IsEventTile()
@@ -283,6 +307,7 @@ script TileManager extends Logic
 		else
 			comp = self.tileComponents[key]
 		end
+		comp = self:LifePathComp(key, piece, comp)
 		if comp == nil then return false end
 		return comp:IsEventTile()
 	end
@@ -304,6 +329,7 @@ script TileManager extends Logic
 		else
 			comp = self.tileComponents[key]
 		end
+		comp = self:LifePathComp(key, piece, comp)
 		if comp == nil then return false end
 		return comp:IsInteractiveTile()
 	end
@@ -403,13 +429,17 @@ script TileManager extends Logic
 	method boolean ApplyTileArtLocal()
 		-- 각 타일의 'TileType_TileSprite' 자식(y+0.5)에 Type별 스프라이트 적용.
 		--   Hunt/HuntPlus → 서버가 롤한 몬스터 STAND(@Sync TileMonster) — 동기화 도착 전이면 false 반환(재시도).
-		--   그 외(Start/End/Village/Guild/Union/Tax) → TileArt.csv의 Type별 고정 스프라이트(이정표/제단/NPC, 로컬 조회).
+		--   그 외(Start/End/Village/Guild/Union/Unlucky) → TileArt.csv의 Type별 고정 스프라이트(이정표/제단/NPC, 로컬 조회).
 		if self:CountTiles() == 0 then return false end
 		local pendingHunt = false
 		for key, entity in pairs(self.tileEntities) do
 			if isvalid(entity) then
 				local data = self.tileGraph[key]
 				if data ~= nil then
+					-- 칸 표시 아이콘(Dummy_TileSprite): 타일 유형별 아이콘을 적용한다.
+					-- (몬스터 @Sync와 무관 → 매 재시도 패스마다 idempotent하게 적용해도 무방.)
+					self:ApplyTileTypeIcon(entity, data.type)
+
 					local ruid = ""
 					if data.type == "Hunt" or data.type == "HuntPlus" then
 						local mn = self.TileMonster[key]
@@ -420,7 +450,7 @@ script TileManager extends Logic
 							pendingHunt = true
 						end
 					else
-						ruid = self:TileArtRUID(data.type)
+						ruid = self:LifePathTileArt(data.type)
 					end
 					if ruid ~= "" then
 						local child = self:FindChild(entity, "TileType_TileSprite")
@@ -443,12 +473,64 @@ script TileManager extends Logic
 		return true
 	end
 
+	method string LocalLifePathArtType()
+		-- 내(LocalPlayer) 인생 분기에 따라 'Guild' 타일의 표시 타입을 결정한다. Romance면 "Union", 아니면 "Guild".
+		local me = _UserService.LocalPlayer
+		if isvalid(me) == false then return "Guild" end
+		local lp = me:GetComponent("script.LifePathManager")
+		if isvalid(lp) and lp.LifePath == "Romance" then return "Union" end
+		return "Guild"
+	end
+
+	method string LifePathTileArt(string tileType)
+		-- 'Guild' 타일은 내 LifePath에 맞춰 Guild/Union 스프라이트로(per-player), 그 외는 타입 스프라이트 그대로.
+		if tileType == "Guild" then
+			return self:TileArtRUID(self:LocalLifePathArtType())
+		end
+		return self:TileArtRUID(tileType)
+	end
+
 	method string TileArtRUID(string tileType)
 		-- TileTypeSprite에서 Type 일치 행의 SpriteRUID 반환(이정표/제단/NPC 등 고정 표현). 아트가 채우기 전엔 "".
 		local ds = _DataService:GetTable("TileTypeSprite")
 		if isvalid(ds) == false then return "" end
 		for i = 1, ds:GetRowCount() do
 			if ds:GetCell(i, "Type") == tileType then
+				return ds:GetCell(i, "SpriteRUID")
+			end
+		end
+		return ""
+	end
+
+	@ExecSpace("ClientOnly")
+	method void ApplyTileTypeIcon(Entity entity, string tileType)
+		-- 타일 유형에 맞는 '칸 표시 아이콘'을 Dummy_TileSprite 자식 스프라이트에 적용한다.
+		-- 아이콘 없는 유형(Start/End 등)은 건너뛴다.
+		local iconRuid = self:TileTypeIconRUID(tileType)
+		if iconRuid == "" then return end
+		local dummy = self:FindChild(entity, "Dummy_TileSprite")
+		if isvalid(dummy) == false then return end
+		local sr = dummy.SpriteRendererComponent
+		if isvalid(sr) == false then return end
+		sr.SpriteRUID = iconRuid
+		-- 지형(MapLayer0)에 가려지지 않도록 플레이어와 같은 "Default" 레이어로 올린다.
+		-- (지형 위 / 플레이어(3)·타일 대형아트(2) 아래 = Order 1). z가 큰 값(999.999)이면 카메라에서
+		-- 잘릴 수 있어 타일 중심(0,0,0)으로 리셋한다.
+		sr.SortingLayer = "Default"
+		sr.OrderInLayer = 1
+		local dtf = dummy.TransformComponent
+		if isvalid(dtf) then dtf.Position = Vector3(0, 0, 0) end
+	end
+
+	method string TileTypeIconRUID(string tileType)
+		-- 타일 유형 → 칸 표시 아이콘 RUID(TileTypeIcon 데이터셋).
+		-- Guild 타일은 내 인생분기가 Romance면 Union(연애) 아이콘으로 표시(TileType_TileSprite와 동일 규칙).
+		local resolved = tileType
+		if tileType == "Guild" then resolved = self:LocalLifePathArtType() end
+		local ds = _DataService:GetTable("TileTypeIcon")
+		if isvalid(ds) == false then return "" end
+		for i = 1, ds:GetRowCount() do
+			if ds:GetCell(i, "Type") == resolved then
 				return ds:GetCell(i, "SpriteRUID")
 			end
 		end

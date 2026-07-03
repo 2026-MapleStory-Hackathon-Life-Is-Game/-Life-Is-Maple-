@@ -1,24 +1,332 @@
 @Component
 script GuildTile extends BaseTile
 
+	-- 길드 이벤트 타일. 지역과 무관하게 플레이어별로 길드창설 → 부길마영입 → 길드원영입(반복) 순으로 진행한다.
+	-- per-player 진행 상태는 말(piece)의 GuildManager가 보유하고, 이 타일은 상태에 따라 UI/보상만 구동한다.
+	--   창설    : dicepanel(실패:성공:대성공 = 0:70:30). 성공→초보 길드+길드의 축복(공+20),
+	--             대성공→마스터 길드+더 큰 길드의 축복(공+30).
+	--   부길마영입: 텍스트 팝업(자동 진행). 부길마는 일반 길드원 수에 포함하지 않는다.
+	--   길드원영입(반복): 일반 길드원 +1. 초보 길드가 2명 도달 시 마스터 승급 → 축복이 '더 큰 축복'으로 교체.
+	-- 인터랙티브 타일: 창설은 SceneRoll(주사위), 나머지는 ShowEventText(텍스트)를 재사용하고,
+	-- '다음' 클릭(RequestAdvance/RequestDone)에서 _GameModeManager:NotifyTileEventDone()로 턴 진행을 신호한다.
+
+	-- 진행 중인 도착 플레이어(서버 상태). 턴제라 동시 1명.
+	property any _piece = nil
+	-- 이번 부길마 선택 창의 슬롯별 확정 후보 Key(직업군당 1명을 랜덤 선택해 채운다). 선택 인덱스 → Key 매핑용.
+	property table _viceChoices = {}
+
+	method boolean IsEventTile()
+		-- 이벤트 팝업 UI를 띄우는 타일 → 턴 매니저가 완료 신호를 기다린다.
+		return true
+	end
+
+	method boolean IsInteractiveTile()
+		-- '다음' 클릭으로 완료되는 인터랙티브 타일 → 5초 고정 대기 대신 완료 신호를 기다린다.
+		return true
+	end
+
+	method any Guild(Entity piece)
+		-- 말(piece)의 GuildManager 컴포넌트를 반환한다.
+		return piece:GetComponent("script.GuildManager")
+	end
+
+	method string OwnerUserId(Entity piece)
+		-- 말(piece)의 소유 유저 ID를 반환한다. 플레이어 엔티티가 아니면 "".
+		if isvalid(piece.PlayerComponent) == false then return "" end
+		local uid = piece.PlayerComponent.UserId
+		if uid == nil then return "" end
+		return uid
+	end
+
+	method number GuildPct(string outcome)
+		-- GuildProbability에서 Outcome 행의 Weight를 % 확률로 읽는다(합 100 전제). 없으면 0.
+		local ds = _DataService:GetTable("GuildProbability")
+		if isvalid(ds) == false then return 0 end
+		for i = 1, ds:GetRowCount() do
+			if ds:GetCell(i, "Outcome") == outcome then
+				return tonumber(ds:GetCell(i, "Weight")) or 0
+			end
+		end
+		return 0
+	end
+
 	@ExecSpace("ServerOnly")
 	method void OnArrive(Entity piece)
-		if self:RollOutcome("GuildProbability") ~= "Success" then
-			log("[GuildTile] 길드 임무 실패")
+		-- 길드 타일 도착: 플레이어의 GuildManager 단계로 분기해 해당 이벤트를 구동한다.
+		self._piece = piece
+		local ownerId = self:OwnerUserId(piece)
+		local gm = self:Guild(piece)
+		if ownerId == "" or isvalid(gm) == false then
+			log_warning("[GuildTile] 소유자/GuildManager 없음 → 즉시 종료")
+			self:FinishEvent()
 			return
 		end
-		
-		-- 성공: 길드 버프(Guild 슬롯)가 없으면 소형 축복, 이미 있으면 대형 축복으로 성장.
-		local buff = self:Buff(piece)
-		if isvalid(buff) == false then return end
-		local cur = buff:GetSlotBuffName("Guild")
-		if cur == "" then
-			log("[GuildTile] 길드 임무 성공 → 길드의 축복 획득")
-			buff:SetBuff("The_Guild's_Blessing")
+
+		if gm.Stage == 0 then
+			self:DoCreation(piece, gm, ownerId)
+		elseif gm.Stage == 1 then
+			self:DoVice(piece, gm, ownerId)
 		else
-			log("[GuildTile] 길드 임무 성공 → 길드의 더 큰 축복으로 성장")
-			buff:SetBuff("The_Guild's_Greater_Blessing")
+			self:DoMember(piece, gm, ownerId)
 		end
+	end
+
+	@ExecSpace("ServerOnly")
+	method void DoCreation(Entity piece, any gm, string ownerId)
+		-- 길드창설: dicepanel 롤(0:70:30)로 초보/마스터를 결정하고 그에 맞는 축복을 부여한다.
+		local failPct = self:GuildPct("Fail")
+		local successPct = self:GuildPct("Success")
+		local greatPct = self:GuildPct("Great")
+		-- 확률 → 2d6 결과판(실패0/성공1/대성공2) + 실제 주사위 롤.
+		local board = _ResultDiceManager:PlaceOutcomes(failPct, successPct, greatPct)
+		local d1 = _UtilLogic:RandomIntegerRange(1, 6)
+		local d2 = _UtilLogic:RandomIntegerRange(1, 6)
+		local total = d1 + d2
+		local tier = board[total] or 1
+
+		local buff = self:Buff(piece)
+		local lead = "길드를 창설하기 위해 주사위를 굴린다!"
+		local resultText = ""
+		local outcomeLabel = "성공"
+		if tier == 2 then
+			outcomeLabel = "대성공"
+			gm:CreateGuild(2)
+			if isvalid(buff) then buff:SetBuff("The_Guild's_Greater_Blessing") end
+			resultText = "대성공! 처음부터 마스터 길드를 창설했다.\n더 큰 길드의 축복을 받아 공격력이 크게 올랐다!"
+		elseif tier == 1 then
+			outcomeLabel = "성공"
+			gm:CreateGuild(1)
+			if isvalid(buff) then buff:SetBuff("The_Guild's_Blessing") end
+			resultText = "성공! 초보 길드를 창설했다.\n길드의 축복을 받아 공격력이 올랐다!"
+		else
+			outcomeLabel = "실패"
+			resultText = "아쉽게도 길드 창설에 실패했다...\n다음 기회에 다시 도전하자."
+		end
+		log("[GuildTile] 창설 롤 " .. tostring(d1) .. "+" .. tostring(d2) .. "=" .. tostring(total) .. " → " .. outcomeLabel)
+		self:ClientShowRoll(lead, "idle", resultText, d1, d2, total, greatPct, successPct, failPct, outcomeLabel, "Guild", ownerId)
+	end
+
+	@ExecSpace("ServerOnly")
+	method void DoVice(Entity piece, any gm, string ownerId)
+		-- 부길마영입: 항상 5칸(전사/마법사/궁수/도적/해적). 각 직업군에 속한 후보 중 1명을 랜덤 선택해 채운다.
+		-- (후보군이 늘어도 선택지는 늘 5개 — 예: 전사군에 히어로·아델이 있으면 그중 하나만 슬롯에 뜬다.)
+		-- 실제 진행/스탯은 선택(RequestChoice)에서 슬롯 Key로 확정한다.
+		local ds = _DataService:GetTable("ViceMaster")
+		if isvalid(ds) == false then
+			log_error("[GuildTile] ViceMaster 데이터셋 없음 → 부길마 스킵")
+			gm:CompleteVice()
+			self:FinishEvent()
+			return
+		end
+		-- 고정 직업군 5개(표시 순서). ViceMaster.JobGroup 값과 일치해야 한다.
+		local groups = { "전사", "마법사", "궁수", "도적", "해적" }
+		local names = {}
+		local ruids = {}
+		self._viceChoices = {}
+		for gi = 1, #groups do
+			-- 이 직업군에 속한 행 인덱스 수집 → 그중 1명 랜덤 선택.
+			local pool = {}
+			for i = 1, ds:GetRowCount() do
+				if ds:GetCell(i, "JobGroup") == groups[gi] then table.insert(pool, i) end
+			end
+			if #pool > 0 then
+				local pick = pool[_UtilLogic:RandomIntegerRange(1, #pool)]
+				self._viceChoices[gi] = ds:GetCell(pick, "Key")
+				names[gi] = ds:GetCell(pick, "DisplayName")
+				ruids[gi] = ds:GetCell(pick, "ImageRUID")
+			else
+				-- 해당 직업군 후보가 없으면 빈 슬롯(선택 불가).
+				self._viceChoices[gi] = ""
+				names[gi] = ""
+				ruids[gi] = ""
+			end
+		end
+		log("[GuildTile] 부길마 선택 창 표시 (직업군별 1명, 총 " .. tostring(#groups) .. "칸)")
+		self:ClientShowViceSelect("부길드마스터를 영입하세요", names, ruids, ownerId)
+	end
+
+	method string GuildMemberCell(string outcome, string column)
+		-- GuildMemberProbability에서 Outcome 행의 지정 컬럼 값을 반환. 없으면 "".
+		local ds = _DataService:GetTable("GuildMemberProbability")
+		if isvalid(ds) == false then return "" end
+		for i = 1, ds:GetRowCount() do
+			if ds:GetCell(i, "Outcome") == outcome then
+				return ds:GetCell(i, column)
+			end
+		end
+		return ""
+	end
+
+	@ExecSpace("ServerOnly")
+	method void DoMember(Entity piece, any gm, string ownerId)
+		-- 길드원영입(반복): 영입시험(dicepanel 20:60:20). 성공/대성공 시 길드원+1 & 주스탯·공/마 % 영구 증가, 실패는 무효.
+		-- 확률과 등급별 보상(%)은 GuildMemberProbability 데이터셋에서 관리한다.
+		local failPct = tonumber(self:GuildMemberCell("Fail", "Weight")) or 0
+		local successPct = tonumber(self:GuildMemberCell("Success", "Weight")) or 0
+		local greatPct = tonumber(self:GuildMemberCell("Great", "Weight")) or 0
+		local board = _ResultDiceManager:PlaceOutcomes(failPct, successPct, greatPct)
+		local d1 = _UtilLogic:RandomIntegerRange(1, 6)
+		local d2 = _UtilLogic:RandomIntegerRange(1, 6)
+		local total = d1 + d2
+		local tier = board[total] or 0
+
+		local lead = "새 길드원을 맞이하기 위한 영입시험을 시작한다!\n주사위를 굴려 합격 여부가 갈린다."
+		local resultText = ""
+		local outcomeLabel = "실패"
+		if tier >= 1 then
+			-- 합격(성공/대성공): 등급 키 결정 → 보상 % 조회.
+			local key = "Success"
+			outcomeLabel = "성공"
+			if tier == 2 then
+				key = "Great"
+				outcomeLabel = "대성공"
+			end
+			local atkPct = tonumber(self:GuildMemberCell(key, "AttackPct")) or 0
+			local statPct = tonumber(self:GuildMemberCell(key, "StatPct")) or 0
+			-- 길드원 수를 먼저 올린다(이후 스탯 적용의 버프 UI 갱신이 최신 인원수를 반영하도록). 승급 시 축복 교체.
+			local promoted = gm:AddMember()
+			if promoted then
+				local buff = self:Buff(piece)
+				if isvalid(buff) then buff:SetBuff("The_Guild's_Greater_Blessing") end
+				log("[GuildTile] 마스터 길드 승급 → 축복 교체")
+			end
+			-- 주스탯/공·마 % 영구 증가(동적 수치).
+			if statPct ~= 0 then self:AddMainStat(piece, "percent", statPct) end
+			if atkPct ~= 0 then self:AddMainAttack(piece, "percent", atkPct) end
+			resultText = outcomeLabel .. "! 새 길드원을 영입했다.\n주스탯이 " .. tostring(statPct) .. "%, 공격력/마력이 " .. tostring(atkPct) .. "% 영구 증가했다."
+			if promoted then
+				resultText = resultText .. "\n일반 길드원 2명을 모아 마스터 길드로 승급! 길드의 축복이 강화되었다!"
+			end
+		else
+			outcomeLabel = "실패"
+			resultText = "영입시험에 실패했다...\n이번엔 새 길드원을 받지 못했다."
+		end
+		log("[GuildTile] 영입시험 " .. tostring(d1) .. "+" .. tostring(d2) .. "=" .. tostring(total) .. " → " .. outcomeLabel)
+		self:ClientShowRoll(lead, "idle", resultText, d1, d2, total, greatPct, successPct, failPct, outcomeLabel, "Guild", ownerId)
+	end
+
+	@ExecSpace("Client")
+	method void ClientShowRoll(string leadText, string anim, string resultText, integer d1, integer d2, integer diceTotal, number greatPct, number successPct, number failPct, string outcomeLabel, string npcKey)
+		-- 창설 dicepanel: 리드텍스트 → 주사위 연출 → 결과텍스트 → '다음'(RequestAdvance). (VillageTile 롤 흐름 재사용)
+		_EventTileUI:SceneRoll(leadText, anim, resultText, d1, d2, diceTotal, greatPct, successPct, failPct, outcomeLabel, npcKey, self)
+	end
+
+	@ExecSpace("Client")
+	method void ClientShowText(string message)
+		-- 부길마/길드원: 이미지 없는 텍스트 팝업 + '다음'(RequestDone).
+		_EventTileUI:ShowEventText(message, "idle", "", "", "", self)
+	end
+
+	@ExecSpace("Client")
+	method void ClientHide()
+		-- 도착 플레이어 클라: 이벤트 UI 그룹을 닫는다.
+		_EventTileUI:SceneHide()
+	end
+
+	@ExecSpace("Client")
+	method void ClientShowViceSelect(string title, table names, table ruids)
+		-- 부길마 선택 창(연애/길드 공용 UI) 표시. 카드 클릭 → self:RequestChoice(index).
+		_RomanceGuildSelectUI:Show(title, names, ruids, self)
+	end
+
+	@ExecSpace("Client")
+	method void ClientHideViceSelect()
+		-- 부길마 선택 창 닫기.
+		_RomanceGuildSelectUI:Hide()
+	end
+
+	@ExecSpace("Server")
+	method void RequestAdvance()
+		-- 창설 dicepanel '다음' → 이벤트 종료. 도착 플레이어만 허용.
+		local piece = self._piece
+		if isvalid(piece) and senderUserId ~= self:OwnerUserId(piece) then return end
+		self:FinishEvent()
+	end
+
+	@ExecSpace("Server")
+	method void RequestDone()
+		-- 부길마/길드원 텍스트 '다음' → 이벤트 종료. 도착 플레이어만 허용.
+		local piece = self._piece
+		if isvalid(piece) and senderUserId ~= self:OwnerUserId(piece) then return end
+		self:FinishEvent()
+	end
+
+	method string StatLabel(string kind)
+		-- 스탯 키 → 표시용 라벨(결과 문구용).
+		if kind == "str" then return "STR"
+		elseif kind == "dex" then return "DEX"
+		elseif kind == "int" then return "INT"
+		elseif kind == "luk" then return "LUK"
+		end
+		return kind
+	end
+
+	method integer FindViceRow(string key)
+		-- ViceMaster에서 Key 일치 행 인덱스를 반환한다. 없으면 0.
+		local ds = _DataService:GetTable("ViceMaster")
+		if isvalid(ds) == false or key == nil or key == "" then return 0 end
+		for i = 1, ds:GetRowCount() do
+			if ds:GetCell(i, "Key") == key then return i end
+		end
+		return 0
+	end
+
+	@ExecSpace("Server")
+	method void RequestChoice(integer index)
+		-- 부길마 선택 콜백(RomanceGuildSelectUI에서 호출). 슬롯 index → 확정 후보 Key로 스탯 적용 + 진행 + 결과 안내.
+		local piece = self._piece
+		if isvalid(piece) == false then return end
+		if senderUserId ~= self:OwnerUserId(piece) then return end
+
+		-- 슬롯 index에 이번에 뽑힌 후보 Key(직업군당 랜덤 선택 결과)로 실제 행을 찾는다.
+		local key = ""
+		if self._viceChoices ~= nil and index >= 1 and index <= #self._viceChoices then
+			key = self._viceChoices[index]
+		end
+		local row = self:FindViceRow(key)
+		if row == 0 then
+			log_warning("[GuildTile] 부길마 선택 인덱스 무효(index=" .. tostring(index) .. ") → 종료")
+			self:FinishEvent()
+			return
+		end
+		local ds = _DataService:GetTable("ViceMaster")
+
+		local displayName = ds:GetCell(row, "DisplayName")
+		local statKind = ds:GetCell(row, "StatKind")
+		local statGain = tonumber(ds:GetCell(row, "StatGain")) or 0
+		local attackGain = tonumber(ds:GetCell(row, "AttackGain")) or 0
+
+		-- 스탯 적용: str/dex/int/luk → CombatPowerManager(BaseTile.AddSpecificStat가 대문자화),
+		--            공/마 → BuffManager 동적 수치(BaseTile.AddMainAttack). 게임종료 시 기존 ResetAll로 초기화됨.
+		if statKind ~= "" and statGain ~= 0 then
+			self:AddSpecificStat(piece, statKind, statGain)
+		end
+		if attackGain ~= 0 then
+			self:AddMainAttack(piece, "flat", attackGain)
+		end
+
+		local gm = self:Guild(piece)
+		if isvalid(gm) then gm:CompleteVice() end
+		log("[GuildTile] 부길마 영입 = " .. tostring(displayName)
+			.. " (" .. tostring(statKind) .. "+" .. tostring(statGain) .. ", 공/마+" .. tostring(attackGain) .. ")")
+
+		local ownerId = self:OwnerUserId(piece)
+		self:ClientHideViceSelect(ownerId)
+		local msg = displayName .. "을(를) 부길드마스터로 영입했다!\n"
+			.. self:StatLabel(statKind) .. "이(가) " .. tostring(statGain)
+			.. ", 공격력/마력이 " .. tostring(attackGain) .. " 올랐다."
+		self:ClientShowText(msg, ownerId)
+	end
+
+	@ExecSpace("ServerOnly")
+	method void FinishEvent()
+		-- 이벤트 종료: 도착 플레이어 클라 UI 닫기 + 상태 정리 + 턴 진행 신호.
+		local ownerId = ""
+		if isvalid(self._piece) then ownerId = self:OwnerUserId(self._piece) end
+		self._piece = nil
+		if ownerId ~= "" then self:ClientHide(ownerId) end
+		_GameModeManager:NotifyTileEventDone()
+		log("[GuildTile] 이벤트 종료")
 	end
 
 end

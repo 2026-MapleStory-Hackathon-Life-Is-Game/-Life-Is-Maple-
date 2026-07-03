@@ -1,0 +1,107 @@
+@Logic
+script LifePathSelectUI extends Logic
+
+	-- 인생 분기(길드/연애) 선택 UI. 3스테이지(Map_03) 진입 시 표시된다.
+	-- CampSelectUI와 동일 패턴: selectPanel(2택 버튼+설명) → 선택 → resultPanel(안내, 2초 자동종료) → dimBack.
+	-- @ExecSpace("Client")/ClientOnly라 각 클라에서 개별 표시(per-player). 서버는 OnPathSelected에서 senderUserId로 분기 세팅.
+
+	property Entity selectPanel = "373df2f6-e2f3-4ce0-8df4-17ad0c68bb27"
+	property ButtonComponent BtnGuild = "91ff35b7-f788-47ac-b140-5fa687430bdd"
+	property ButtonComponent BtnRomance = "e6226a1a-09e1-4df2-b2df-7c7cb336fc82"
+	property any handlerGuild = nil
+	property any handlerRomance = nil
+
+	property Entity resultPanel = "839bed6c-d99a-4f0e-a811-feab1f34ab7e"
+	property TextComponent resultText = "fa623cee-aba5-40df-8795-30afa2b34a5b"
+	property Entity dimBack = "f67da57c-86ad-472d-8016-455485c2622b"
+
+	@ExecSpace("ClientOnly")
+	method void OnBeginPlay()
+		-- 시작 시 패널은 숨겨둔다(Map_03 진입에서 ShowSelectPanel로 연다).
+		if isvalid(self.selectPanel) then self.selectPanel.Enable = false end
+		if isvalid(self.resultPanel) then self.resultPanel.Enable = false end
+		if isvalid(self.dimBack) then self.dimBack.Enable = false end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void OnEndPlay()
+		-- 연결한 버튼 핸들러를 모두 해제한다.
+		self:DisconnectAll()
+	end
+
+	@ExecSpace("Client")
+	method void ShowSelectPanel()
+		-- 인생 분기 선택 패널을 열고 2개 버튼 클릭 이벤트를 연결한다.
+		if isvalid(self.selectPanel) == false then return end
+		if isvalid(self.dimBack) then self.dimBack.Enable = true end
+		self.selectPanel.Enable = true
+		-- 재오픈 시 중복 구독 방지: 기존 핸들러를 먼저 끊고 다시 연결한다.
+		self:DisconnectAll()
+		if isvalid(self.BtnGuild) then
+			self.handlerGuild = self.BtnGuild.Entity:ConnectEvent(ButtonClickEvent, function() self:SelectPath("Guild") end)
+		end
+		if isvalid(self.BtnRomance) then
+			self.handlerRomance = self.BtnRomance.Entity:ConnectEvent(ButtonClickEvent, function() self:SelectPath("Romance") end)
+		end
+	end
+
+	@ExecSpace("Client")
+	method void HideSelectPanel()
+		-- 선택 패널을 닫고 핸들러를 해제한다.
+		self:DisconnectAll()
+		if isvalid(self.selectPanel) then self.selectPanel.Enable = false end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void SelectPath(string path)
+		-- 선택한 분기를 서버로 보내고, 결과 패널을 2초간 보여준다.
+		self:OnPathSelected(path)
+		self:ShowResultPanel(path)
+		_TimerService:SetTimerOnce(function() self:HideResultPanel() end, 2.0)
+	end
+
+	@ExecSpace("Server")
+	method void OnPathSelected(string path)
+		-- 요청 플레이어의 LifePathManager에 분기 설정 + 패널 닫기.
+		local p = _UserService:GetUserEntityByUserId(senderUserId)
+		if isvalid(p) then
+			local lp = p:GetComponent("script.LifePathManager")
+			if isvalid(lp) then lp:SetLifePath(path) end
+		end
+		self:HideSelectPanel(senderUserId)
+	end
+
+	method void DisconnectAll()
+		-- 모든 버튼 핸들러 해제(nil이어도 안전).
+		if self.handlerGuild ~= nil and isvalid(self.BtnGuild) then
+			self.BtnGuild.Entity:DisconnectEvent(ButtonClickEvent, self.handlerGuild)
+			self.handlerGuild = nil
+		end
+		if self.handlerRomance ~= nil and isvalid(self.BtnRomance) then
+			self.BtnRomance.Entity:DisconnectEvent(ButtonClickEvent, self.handlerRomance)
+			self.handlerRomance = nil
+		end
+	end
+
+	@ExecSpace("Client")
+	method void ShowResultPanel(string path)
+		-- 선택한 분기 안내 문구를 결과 패널에 표시한다.
+		if isvalid(self.resultPanel) then self.resultPanel.Enable = true end
+		if isvalid(self.resultText) then
+			if path == "Guild" then
+				self.resultText.Text = "많은 길드 원을 영입하여 나만의 길드를 운영해봅시다!"
+			else
+				self.resultText.Text = "연애에 성공하여 강력한 유니온을 결성해봅시다!"
+			end
+		end
+	end
+
+	@ExecSpace("Client")
+	method void HideResultPanel()
+		-- 결과 패널/디머 닫기 + 내 분기에 맞춰 타일 겉모습을 로컬 재적용(동기화 도착 후이므로 새 LifePath 반영).
+		if isvalid(self.resultPanel) then self.resultPanel.Enable = false end
+		if isvalid(self.dimBack) then self.dimBack.Enable = false end
+		_TileManager:RequestTileMonsters()
+	end
+
+end

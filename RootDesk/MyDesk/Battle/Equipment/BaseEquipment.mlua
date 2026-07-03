@@ -153,10 +153,19 @@ script BaseEquipment extends Component
 	@ExecSpace("ServerOnly")
 	method void ResetAll()
 		-- 슬롯/보유/잠재 비움(게임 종료 초기화). 아이템별 잠재도 함께 제거해야 다음 판에 누적되지 않는다.
+		-- ⚠ SyncTable에는 :Clear()가 없다(런타임 nil 호출 → 예외). 키를 모아 하나씩 nil로 비운다.
 		self.Equipped = ""
-		self.Owned:Clear()
-		self.PotentialByEquip:Clear()
+		self:ClearSyncTable(self.Owned)
+		self:ClearSyncTable(self.PotentialByEquip)
 		self:Recalc()
+	end
+
+	method void ClearSyncTable(any st)
+		-- SyncTable(딕셔너리형)를 비운다: 키를 먼저 수집한 뒤(순회 중 변형 방지) 각 키를 nil 대입.
+		if st == nil then return end
+		local keys = {}
+		for k in pairs(st) do table.insert(keys, k) end
+		for _, k in ipairs(keys) do st[k] = nil end
 	end
 
 end

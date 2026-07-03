@@ -125,6 +125,16 @@ script VillageEventFlowManager extends Logic
 		return nil
 	end
 
+	method table GetRollProbabilities(string branchGroup)
+		-- 확률게임 분기 그룹별 대성공/성공/실패 확률(%) 테이블. 없으면 nil(→ 분기 Weight 폴백).
+		-- 합이 100이 아니어도 RollResultDiceUI.NormalizeProbabilities가 실패를 조정해 100에 맞춘다.
+		local t = {
+			SUGAR01_TRAIN  = { great = 30, success = 70, fail = 0 },   -- 맵1 슈가: 성공70 / 대성공30
+			HELENA01_TRAIN = { great = 20, success = 70, fail = 10 },  -- 맵2 헬레나: 대성공20 / 성공70 / 실패10
+		}
+		return t[branchGroup]
+	end
+
 	method string RollBranch(string branchGroup)
 		-- VillageEventFlowBranch에서 BranchGroup 일치 행을 Weight 가중치로 추첨 → BranchKey.
 		-- (선택지 행은 Weight=0 으로 두어 확률 추첨에서 제외된다.) 없으면 "".
