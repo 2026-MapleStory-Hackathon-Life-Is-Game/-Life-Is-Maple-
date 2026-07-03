@@ -1,0 +1,55 @@
+--[[
+    PetFollow
+    ----------------------------------------------------------------------------
+    구매한 펫(스폰된 Pet.model 인스턴스)에 붙는 팔로워 컴포넌트.
+    소유 플레이어(OwnerUserId)를 매 프레임 부드럽게 따라간다.
+
+    이동은 서버에서 처리(권위) → 스폰 엔티티의 Transform이 모든 클라로 동기화된다.
+    (플레이어 이동 tween이 클라에서 돌지만, 플레이어 엔티티 위치는 서버로 동기화되므로
+     서버에서 그 위치를 읽어 따라가면 모든 화면에서 일관되게 보인다.)
+--]]
+@Component
+script PetFollow extends Component
+
+	-- 소유 유저 Id (스폰 시 서버가 설정).
+	property string OwnerUserId = ""
+
+	-- 따라가는 속도(클수록 빠르게 붙음), 플레이어 기준 오프셋(살짝 왼쪽/위).
+	property number FollowSpeed = 8.0
+	property number OffsetX = -0.55
+	property number OffsetY = 0.15
+
+	@ExecSpace("ServerOnly")
+	method void OnUpdate(number delta)
+		-- 서버에서 소유 플레이어 위치로 지수적 보간 이동(+간단 좌우 반전).
+		if self.OwnerUserId == "" then return end
+		local owner = _UserService:GetUserEntityByUserId(self.OwnerUserId)
+		if isvalid(owner) == false then return end
+
+		local ot = owner.TransformComponent
+		local mt = self.Entity.TransformComponent
+		if isvalid(ot) == false or isvalid(mt) == false then return end
+
+		local op = ot.WorldPosition
+		local cur = mt.WorldPosition
+		local tx = op.x + self.OffsetX
+		local ty = op.y + self.OffsetY
+
+		local t = self.FollowSpeed * delta
+		if t > 1 then t = 1 end
+		local nx = cur.x + (tx - cur.x) * t
+		local ny = cur.y + (ty - cur.y) * t
+		mt.WorldPosition = Vector3(nx, ny, cur.z)
+
+		-- 진행 방향으로 바라보기(펫 스프라이트 기본은 왼쪽 방향).
+		local sr = self.Entity.SpriteRendererComponent
+		if isvalid(sr) then
+			if tx > cur.x + 0.02 then
+				sr.FlipX = true
+			elseif tx < cur.x - 0.02 then
+				sr.FlipX = false
+			end
+		end
+	end
+
+end
