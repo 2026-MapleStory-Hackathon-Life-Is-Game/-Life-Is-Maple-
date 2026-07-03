@@ -35,7 +35,8 @@ script VillageTile extends EventTileBase
 
 		local region = _TileManager:GetTileRegion(self.Entity.CurrentMapName, self.Entity.Name)
 		local stage = _TileManager:GetTileStage(self.Entity.CurrentMapName, self.Entity.Name)
-		local eventId = _VillageEventFlowManager:RollEventForArrival(stage, region)
+		local isLast = _TileManager:IsLastVillageTile(self.Entity.CurrentMapName, self.Entity.Name)
+		local eventId = _VillageEventFlowManager:RollEventForArrival(stage, region, isLast)
 		if eventId == "" then
 			log_warning("[VillageTile] 해당 (Stage,Region) 마을 이벤트 없음 stage=" .. tostring(stage) .. " region=" .. tostring(region))
 			self:FinishEvent()
@@ -68,8 +69,9 @@ script VillageTile extends EventTileBase
 		end
 
 		local ownerId = self:OwnerUserId(piece)
-		-- 이 이벤트의 등장 NPC 이름 키(VillageEventFlow.NPC). 클라가 NpcInfo에서 RUID를 조회해 표시한다.
-		local npcKey = _VillageEventFlowManager:EventNPC(self._eventId)
+		-- 등장 NPC 이름 키: 씬에 지정된 NpcKey가 있으면 우선(씬별 교체), 없으면 이벤트 기본 NPC(VillageEventFlow.NPC).
+		local npcKey = scene.npcKey
+		if npcKey == nil or npcKey == "" then npcKey = _VillageEventFlowManager:EventNPC(self._eventId) end
 
 		if scene.nodeType == "choice" then
 			self._choiceGroup = scene.branchGroup
