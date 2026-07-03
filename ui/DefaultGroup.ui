@@ -21,10 +21,10 @@
           "name": "DefaultGroup",
           "path": "/ui/DefaultGroup",
           "nameEditable": true,
-          "enable": false,
+          "enable": true,
           "visible": true,
           "localize": true,
-          "displayOrder": 0,
+          "displayOrder": 1,
           "pathConstraints": "//",
           "revision": 0,
           "origin": {
@@ -916,7 +916,7 @@
           "name": "UIChat",
           "path": "/ui/DefaultGroup/UIChat",
           "nameEditable": true,
-          "enable": false,
+          "enable": true,
           "visible": true,
           "localize": true,
           "displayOrder": 3,
@@ -933,23 +933,23 @@
           "@components": [
             {
               "@type": "MOD.Core.UITransformComponent",
-              "AlignmentOption": 4,
+              "AlignmentOption": 0,
               "AnchorsMax": {
-                "x": 0.0,
-                "y": 1.0
+                "x": 0.5,
+                "y": 0.5
               },
               "AnchorsMin": {
-                "x": 0.0,
-                "y": 1.0
+                "x": 0.5,
+                "y": 0.5
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 717.8341,
-                "y": -32.4276428
+                "x": -220.042053,
+                "y": 497.877869
               },
               "OffsetMin": {
-                "x": 20.1109619,
-                "y": -471.1826
+                "x": -917.7652,
+                "y": 59.1229248
               },
               "Pivot": {
                 "x": 0.5,
@@ -967,12 +967,12 @@
               },
               "UIVersion": 2,
               "anchoredPosition": {
-                "x": 368.972534,
-                "y": -251.805115
+                "x": -568.9036,
+                "y": 278.5004
               },
               "Position": {
-                "x": -591.027466,
-                "y": 288.1949,
+                "x": -568.9036,
+                "y": 278.5004,
                 "z": 0.0
               },
               "QuaternionRotation": {
