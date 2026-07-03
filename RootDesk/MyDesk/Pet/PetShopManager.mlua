@@ -158,6 +158,51 @@ script PetShopManager extends Logic
 		end
 	end
 
+	@ExecSpace("ServerOnly")
+	method void GrantAllPets(string userId)
+		-- 모든 펫을 소유목록에 기록하고 대표펫(첫 펫)을 장착·소환.
+		local pets = self:PetList()
+		if #pets == 0 then return end
+		local pids = {}
+		for _, p in ipairs(pets) do table.insert(pids, p.pid) end
+		self:SaveOwned(userId, pids)
+		-- 대표펫 = 목록 첫 번째. GrantPet가 EquippedPet 저장 + 소환 처리.
+		self:GrantPet(userId, pets[1].pid)
+		log("[PetShop] 전체 펫 지급 완료: user=" .. tostring(userId) .. " 소유=" .. tostring(#pids) .. "종 대표=" .. pets[1].name)
+	end
+
+	@ExecSpace("ServerOnly")
+	method void ResetAllPets(string userId)
+		-- 소유목록 + 장착 펫 데이터 제거 + 소환 펫 제거.
+		self:ClearPetData(userId)
+		self:DespawnPet(userId)
+		log("[PetShop] 펫 데이터 전부 제거 완료: user=" .. tostring(userId))
+	end
+
+	@ExecSpace("ServerOnly")
+	method void SaveOwned(string userId, table pids)
+		-- 소유 펫 productId 목록을 콤마 조인 문자열로 저장(productId는 영숫자라 콤마 충돌 없음).
+		local st = _DataStorageService:GetUserDataStorage(userId)
+		if isvalid(st) == false then return end
+		local joined = table.concat(pids, ",")
+		st:SetAsync("OwnedPets", joined, function(ec, key)
+			if ec ~= 0 then log_warning("[PetShop] 소유목록 저장 오류코드=" .. tostring(ec)) end
+		end)
+	end
+
+	@ExecSpace("ServerOnly")
+	method void ClearPetData(string userId)
+		-- EquippedPet / OwnedPets 키를 빈 문자열로 초기화(재입장 시 자동 소환 안 됨).
+		local st = _DataStorageService:GetUserDataStorage(userId)
+		if isvalid(st) == false then return end
+		st:SetAsync("EquippedPet", "", function(ec, key)
+			if ec ~= 0 then log_warning("[PetShop] 장착 초기화 오류코드=" .. tostring(ec)) end
+		end)
+		st:SetAsync("OwnedPets", "", function(ec, key)
+			if ec ~= 0 then log_warning("[PetShop] 소유목록 초기화 오류코드=" .. tostring(ec)) end
+		end)
+	end
+
 	-- ================= 클라: 상점 UI =================
 
 	@ExecSpace("ClientOnly")
@@ -177,6 +222,10 @@ script PetShopManager extends Logic
 			local pnl = _EntityService:GetEntityByPath(self.shopPanelPath .. "/" .. c.panel)
 			if isvalid(pnl) then pnl.Enable = false end
 		end
+
+		-- 개발/테스트용 버튼(ShopPanel 직속): 전체 펫 지급 / 전체 펫 데이터 제거.
+		self:WireBtn(self.shopPanelPath .. "/GetAllPetData_Btn", function() self:OnGetAllClick() end)
+		self:WireBtn(self.shopPanelPath .. "/ResetAllPetData_Btn", function() self:OnResetAllClick() end)
 
 		-- 펫 카드: 이름/아이콘(움직이는 펫 애니) 세팅 + 구매 버튼.
 		local pets = self:PetList()
@@ -240,6 +289,38 @@ script PetShopManager extends Logic
 		_SFXManager:PlayClick()
 		log("[PetShop] 구매창 요청: " .. tostring(pid))
 		_WorldShopService:PromptPurchase(pid)
+	end
+
+	@ExecSpace("ClientOnly")
+	method void OnGetAllClick()
+		-- 모든 펫 구매처리 요청(본인). 실제 소유 저장/소환은 서버에서 처리.
+		_SFXManager:PlayClick()
+		log("[PetShop] 전체 펫 구매처리 요청")
+		self:RequestGrantAll()
+	end
+
+	@ExecSpace("ClientOnly")
+	method void OnResetAllClick()
+		-- 펫 구매 데이터 전부 제거 요청(본인). 실제 삭제/디스폰은 서버에서 처리.
+		_SFXManager:PlayClick()
+		log("[PetShop] 전체 펫 데이터 제거 요청")
+		self:RequestResetAll()
+	end
+
+	@ExecSpace("Server")
+	method void RequestGrantAll()
+		-- 클라→서버 RPC. 요청한 클라(senderUserId)에게 모든 펫 지급.
+		local userId = senderUserId
+		if userId == nil or userId == "" then return end
+		self:GrantAllPets(userId)
+	end
+
+	@ExecSpace("Server")
+	method void RequestResetAll()
+		-- 클라→서버 RPC. 요청한 클라(senderUserId)의 펫 데이터 전부 제거.
+		local userId = senderUserId
+		if userId == nil or userId == "" then return end
+		self:ResetAllPets(userId)
 	end
 
 	@ExecSpace("ClientOnly")
