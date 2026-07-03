@@ -430,7 +430,9 @@ script RankingManager extends Logic
 		-- 캐릭터 정보 팝업: 좌측 아바타 + 우측 분리 스펙 텍스트.
 		local info = _EntityService:GetEntityByPath(self.infoPath)
 		if isvalid(info) == false then return end
-		self:SetInfoText("RankBig", tostring(rank) .. "위")
+		local rankBig = "순위 없음"
+		if rank ~= nil and rank > 0 then rankBig = tostring(rank) .. "위" end
+		self:SetInfoText("RankBig", rankBig)
 		self:SetInfoText("Val_Name", tostring(rec.name))
 		self:SetInfoText("Val_Power", self:FormatPower(rec.power))
 		self:SetInfoText("Val_Job", self:JobKo(tostring(rec.job)))
