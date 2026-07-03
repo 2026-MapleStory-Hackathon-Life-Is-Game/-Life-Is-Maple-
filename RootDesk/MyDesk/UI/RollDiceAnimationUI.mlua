@@ -9,7 +9,9 @@ script RollDiceAnimationUI extends Logic
 
 	property TextGUIRendererComponent resultText = "0746379f-0e16-4898-93ff-a8363188d3d0"
 
-	property table diceSprites = {}
+	property table leftDiceSprites = {}
+
+	property table rightDiceSprites = {}
 
 	property Entity DiceBuffPanel = "14dc1c11-16ef-43d8-a888-d767279dd4a0"
 
@@ -17,17 +19,20 @@ script RollDiceAnimationUI extends Logic
 
 	property Entity diceParticle = "81437709-abea-4122-a8fb-4a3311a5c881"
 
-	-- 주사위 굴릴 때 흐리게 처리할 HUD 패널(나머지 UI). CanvasGroup으로 일괄 투명/입력차단.
 	property Entity hudPlayerInfo = "d22ebf6b-d4f8-44fa-a804-2dd726ed608e"
 
 	property Entity hudUnderButton = "907c4883-c6af-4ab6-bd5d-b4601633e5f2"
 
 	@ExecSpace("ClientOnly")
 	method void OnBeginPlay()
-		-- 눈금별 RUID 등록 (실제 RUID로 교체)
-		        self.diceSprites = {
-		            "a16cdbe6f0c545238c182da21f12b8b5", "4ecb111c2b2749b8af2ff2f581787163", "cca8ae22a4e84eba8572c2279d4661e7",
-		            "84dd7ba746a0476181a007321c0fc7e0", "4a770d8eec474a0da194f559e00eb112", "187ea1dc9d2b456595c1b69ac6ab60a6",
+		-- 눈금별 RUID 등록 (실제 RUID로 교체) — LeftDice / RightDice 각각 1~6눈금
+		        self.leftDiceSprites = {
+		            "a845b51c2f9042beaa3ddd56271cd229", "51c3a4b122454b298e444bbbbb481b1e", "60b6f522d5464f38b2b06eb8b13bca76",
+		            "5ba9922fc7a2443b8a5320b3a1876003", "33d2278d1f3f47ef9d5c88ca37eaee3e", "20fe7d816a7d44e5a99c9ad3ef0c4730",
+		        }
+		        self.rightDiceSprites = {
+		            "e642d65f3d67419c801c08516b7b69a5", "ec5598f45f53451ab697568b2f0e7aa9", "b6c30d82ca16418baf1d3bdda7e82ada",
+		            "d557425e976c470fa6892ac37c37cf36", "8fe157aa853a45f78703e04bb5cb7894", "277ab24a74b14b1d84ed6c588c47d060",
 		        }
 		        if isvalid(self.panel) then
 		            self.panel.Enable = false   -- 평소엔 숨김
@@ -57,19 +62,21 @@ script RollDiceAnimationUI extends Logic
 	method void Show(integer d1, integer d2, integer total, any onComplete)
 		if isvalid(self.panel) == false then return end
 		_SFXManager:PlayDice()   -- 주사위 굴림 효과음
-
+		
 		        -- 나머지 HUD를 흐리게(50%) + 입력 차단
 		        self:SetHudDimmed(true)
-
+		
 		        -- 패널 켜고, 주사위 눈 스프라이트 교체
 		        self.panel.Enable = true
 		        if isvalid(self.diceParticle) then self.diceParticle.Enable = true end   -- 반짝임 시작(play_on_enable)
-		        self.leftDice.ImageRUID  = self.diceSprites[d1]
-		        self.rightDice.ImageRUID = self.diceSprites[d2]
+		        self.leftDice.ImageRUID  = self.leftDiceSprites[d1]
+		        self.rightDice.ImageRUID = self.rightDiceSprites[d2]
 		
 		        -- 결과 텍스트
-		        self.resultText.Text =
-		            "주사위 결과: " .. tostring(d1) .. " + " .. tostring(d2) .. " = " .. tostring(total)
+				self.resultText.FontSize = 60
+				self.resultText.FontStyle = FontStyleType.Bold
+		        self.resultText.Text = tostring(total) .. "칸"
+		
 		
 		        -- 타이머 중첩: (애니메이션 시간) 뒤 1초 더 대기 → 패널 끄고 onComplete
 		        -- 여기선 애니메이션 1초 + 추가 1초로 가정 (실제 연출 길이에 맞춰 조정)
@@ -77,7 +84,7 @@ script RollDiceAnimationUI extends Logic
 		            _TimerService:SetTimerOnce(function()
 		                self.panel.Enable = false
 		                if isvalid(self.diceParticle) then self.diceParticle.Enable = false end   -- 반짝임 종료
-                self:SetHudDimmed(false)   -- HUD 투명도/입력 원복
+		                self:SetHudDimmed(false)   -- HUD 투명도/입력 원복
 		                if onComplete ~= nil then
 		                    onComplete()
 		                end
