@@ -120,7 +120,7 @@
           "name": "SelectionPanel",
           "path": "/ui/BossUIGroup/SelectionPanel",
           "nameEditable": true,
-          "enable": true,
+          "enable": false,
           "visible": true,
           "localize": true,
           "displayOrder": 0,
@@ -3144,7 +3144,7 @@
           "name": "DetailPanel",
           "path": "/ui/BossUIGroup/DetailPanel",
           "nameEditable": true,
-          "enable": false,
+          "enable": true,
           "visible": true,
           "localize": true,
           "displayOrder": 1,
@@ -3258,11 +3258,11 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": -540.9088,
+                "x": -745.346863,
                 "y": 477.5026
               },
               "OffsetMin": {
-                "x": -860.9088,
+                "x": -860.909363,
                 "y": 377.5026
               },
               "Pivot": {
@@ -3270,7 +3270,7 @@
                 "y": 0.5
               },
               "RectSize": {
-                "x": 320.0,
+                "x": 115.562485,
                 "y": 100.0
               },
               "UIMode": 1,
@@ -3281,11 +3281,11 @@
               },
               "UIVersion": 2,
               "anchoredPosition": {
-                "x": -700.9088,
+                "x": -803.1281,
                 "y": 427.5026
               },
               "Position": {
-                "x": -700.9088,
+                "x": -803.1281,
                 "y": 427.5026,
                 "z": 0.0
               },
@@ -3308,7 +3308,7 @@
               "EndFrameIndex": 2147483647,
               "IgnoreMapLayerCheck": false,
               "ImageRUID": {
-                "DataId": "4fea64a3307cda641809ad8be0d4890b"
+                "DataId": "cfddf8b6b29b417396e89d2719d1c939"
               },
               "LocalPosition": {
                 "x": 0.0,
@@ -3322,13 +3322,13 @@
               "OrderInLayer": 0,
               "OverrideSorting": false,
               "PlayRate": 1.0,
-              "PreserveSprite": 0,
+              "PreserveSprite": 2,
               "SortingLayer": "UI",
               "StartFrameIndex": 0,
               "Color": {
-                "r": 0.25,
-                "g": 0.25,
-                "b": 0.3,
+                "r": 1.0,
+                "g": 1.0,
+                "b": 1.0,
                 "a": 1.0
               },
               "DropShadow": false,
@@ -3378,9 +3378,9 @@
                   "a": 1.0
                 },
                 "PressedColor": {
-                  "r": 0.784313738,
-                  "g": 0.784313738,
-                  "b": 0.784313738,
+                  "r": 1.0,
+                  "g": 1.0,
+                  "b": 1.0,
                   "a": 1.0
                 },
                 "SelectedColor": {
@@ -3467,7 +3467,7 @@
               "UseConstraintX": false,
               "UseConstraintY": false,
               "UseOutLine": false,
-              "Enable": true
+              "Enable": false
             }
           ],
           "@version": 1
