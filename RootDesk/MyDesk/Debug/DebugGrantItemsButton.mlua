@@ -1,0 +1,59 @@
+@Logic
+script DebugGrantItemsButton extends Logic
+
+	-- [임시/디버그] 인게임 HUD의 '테스트 아이템 지급' 토글 버튼 컨트롤러.
+	-- ON  → 더미 아이템(전체 장비 + 미라클 큐브 999) 즉시 지급.
+	-- OFF → 지급된 더미 아이템(장비/큐브) 즉시 회수.
+	-- 개발자 버튼(게임종료(TEST)/다음스테이지(TEST)) 바로 아래에 배치한다.
+	-- 입장 시 PlayerStatInit.debugGrantTestItems=true로 기본 지급되므로 토글도 ON으로 시작한다.
+	-- ⚠️ 출시 전 제거: 이 스크립트 + InGameUIGroup의 DebugGrantItemsButton 엔티티.
+
+	property Entity DebugBtn = "6919bc17-79d5-469f-a1c2-5d2fb8d1786a"
+	property any _handler = nil
+	-- 로컬 토글 상태(클라 표시용). 기본 지급 상태와 맞춰 ON으로 시작.
+	property boolean _on = true
+
+	@ExecSpace("ClientOnly")
+	method void OnBeginPlay()
+		-- 버튼 클릭 연결 + 초기 표시(ON) 세팅.
+		if isvalid(self.DebugBtn) then
+			self._handler = self.DebugBtn:ConnectEvent(ButtonClickEvent, self.OnClick)
+			self:UpdateVisual()
+		end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void OnEndPlay()
+		-- 핸들러 해제.
+		if isvalid(self.DebugBtn) and self._handler ~= nil then
+			self.DebugBtn:DisconnectEvent(ButtonClickEvent, self._handler)
+		end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void OnClick(ButtonClickEvent event)
+		-- 토글 뒤집기 → 서버에 지급/회수 요청 → 버튼 표시 갱신.
+		self._on = not self._on
+		log("[DebugGrantItemsButton] 테스트 아이템 토글 → " .. tostring(self._on))
+		_PlayerStatInit:SetTestItems(self._on)
+		self:UpdateVisual()
+	end
+
+	@ExecSpace("ClientOnly")
+	method void UpdateVisual()
+		-- ON=초록/'테스트 아이템: ON', OFF=회색/'테스트 아이템: OFF'.
+		local tc = self.DebugBtn:GetComponent("MOD.Core.TextComponent")
+		if tc ~= nil then
+			if self._on then tc.Text = "테스트 아이템: ON" else tc.Text = "테스트 아이템: OFF" end
+		end
+		local sr = self.DebugBtn:GetComponent("MOD.Core.SpriteGUIRendererComponent")
+		if sr ~= nil then
+			if self._on then
+				sr.Color = Color(0.16, 0.55, 0.30, 1)
+			else
+				sr.Color = Color(0.42, 0.44, 0.48, 1)
+			end
+		end
+	end
+
+end

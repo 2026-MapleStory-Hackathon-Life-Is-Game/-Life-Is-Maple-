@@ -377,6 +377,21 @@ script TileManager extends Logic
 		end
 	end
 
+	@ExecSpace("ServerOnly")
+	method void ApplyStartTileLevel(Entity piece, string mapName)
+		-- 맵 시작 시: 플레이어가 처음 서 있는 시작 타일(currentTile, 보통 Tile_1)의 (Stage,Tier) 레벨을 즉시 적용한다.
+		-- 시작 타일은 이동으로 '도착'하지 않아 TriggerArrive→ApplyTileLevel이 걸리지 않으므로 맵 진입 시 여기서 직접 건다.
+		-- mapName을 명시로 받는다: 텔레포트 직후에는 piece.CurrentMapName이 아직 이전 맵일 수 있어 신뢰할 수 없기 때문.
+		-- tileGraph는 월드 시작(OnBeginPlay)에 전 맵이 빌드되므로 맵 로드 타이밍과 무관하게 안전하다.
+		if isvalid(piece) == false then return end
+		local tileName = "Tile_1"
+		local pm = piece:GetComponent("script.PlayerMovement")
+		if isvalid(pm) and pm.currentTile ~= nil and pm.currentTile ~= "" then
+			tileName = pm.currentTile
+		end
+		self:ApplyTileLevel(mapName .. "_" .. tileName, piece)
+	end
+
 	method integer LevelForStageTier(integer stage, integer tier)
 		-- (Stage,Tier)→Level. Stage 1은 Tier 무관 Lv.10. 미일치 시 10 폴백.
 		if stage == 1 then return 10 end

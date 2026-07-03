@@ -98,11 +98,9 @@ script JobSelectUI extends Logic
 		if isvalid(self.panel) then self.panel.Enable = false end
 		if isvalid(self.dimBack) then self.dimBack.Enable = true end
 
-		-- 결과 이미지: 선택한 직업 버튼의 스프라이트를 그대로 복사(별도 아트 불필요).
-		local btn = self:BtnFor(jobName)
-		if isvalid(self.jobImage) and isvalid(btn) then
-			local sr = btn.Entity.SpriteGUIRendererComponent
-			if isvalid(sr) then self.jobImage.ImageRUID = sr.ImageRUID end
+		-- 결과 이미지: 직업별 지정 스프라이트 RUID를 적용.
+		if isvalid(self.jobImage) then
+			self.jobImage.ImageRUID = self:JobImageRUID(jobName)
 		end
 		if isvalid(self.resultPanel) then self.resultPanel.Enable = true end
 
@@ -148,16 +146,16 @@ script JobSelectUI extends Logic
 		return "무기"
 	end
 
-	method any BtnFor(string jobName)
-		-- 직업 → 해당 버튼 컴포넌트(결과 이미지 스프라이트 복사용).
+	method string JobImageRUID(string jobName)
+		-- 직업 → 결과 이미지 스프라이트 RUID(지정 아트).
 		local j = string.lower(jobName)
-		if j == "warrior" then return self.btnWarrior
-		elseif j == "mage" then return self.btnMage
-		elseif j == "archer" then return self.btnArcher
-		elseif j == "thief" then return self.btnThief
-		elseif j == "pirate" then return self.btnPirate
+		if j == "warrior" then return "87ba231c2b6d47b2b3e265df1fbf8649"
+		elseif j == "archer" then return "3d52302e8013408283910384439d34b4"
+		elseif j == "mage" then return "7a3f8f82748046cbb0d872020ba2553d"
+		elseif j == "thief" then return "13ce31ee4c1d4f149114e75b61788ed0"
+		elseif j == "pirate" then return "6bbadb800f6149fca1d22e5a6781ddfa"
 		end
-		return nil
+		return ""
 	end
 
 	method void DisconnectAll()

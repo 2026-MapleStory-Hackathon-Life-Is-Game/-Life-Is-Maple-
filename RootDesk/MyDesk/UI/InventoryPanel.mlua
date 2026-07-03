@@ -194,6 +194,11 @@ script InventoryPanel extends Component
 		self:UpdateBanner()
 	end
 
+	method boolean IsCubeUseMode()
+		-- 큐브 사용(재설정 대상 선택) 모드 여부. 다른 UI 패널이 우클릭 메뉴 억제 판단에 참조한다.
+		return self._cubeUseMode
+	end
+
 	method string ListSig(table items)
 		-- 목록 변경 감지용 시그니처. Item 탭(비큐브모드)은 큐브 보유수도 반영해 수량 변동 시 갱신되게.
 		local s = table.concat(items, ",")
@@ -439,9 +444,12 @@ script InventoryPanel extends Component
 			_EquipTooltip:ShowCompare(equipName, cur)
 		elseif ev.state == ButtonState.Pressed then
 			-- 우클릭이면 컨텍스트 메뉴(좌클릭 장착 로직은 타지 않음 → 메뉴 즉시 닫힘 경합 방지).
+			-- 큐브 사용 모드(재설정 대상 선택 중)에는 우클릭 메뉴를 열지 않는다.
 			if _InputService:IsKeyPressed(KeyboardKey.Mouse1) then
-				self._hoverEquip = equipName
-				self:OpenContextMenu(equipName)
+				if self._cubeUseMode == false then
+					self._hoverEquip = equipName
+					self:OpenContextMenu(equipName)
+				end
 			else
 				self:OnCellClicked(equipName)
 			end

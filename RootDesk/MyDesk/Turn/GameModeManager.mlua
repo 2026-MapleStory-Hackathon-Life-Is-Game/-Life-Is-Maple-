@@ -375,7 +375,11 @@ script GameModeManager extends Logic
 					pm.remainingSteps = 0
 					pm:ChangePlayerState("IDLE")
 				end
-		
+
+				-- 새 맵(스테이지) 시작 시 서 있는 시작 타일의 레벨을 즉시 적용(진입 즉시 반영, 이동 불필요).
+				-- nextMapName을 명시 전달: 텔레포트 직후 piece.CurrentMapName은 아직 이전 맵일 수 있음.
+				_TileManager:ApplyStartTileLevel(piece, nextMapName)
+
 				-- 만약 바로 시작하면 TileManager의 타일 수집이 덜 끝날 수 있으므로 타이머 사용 권장
 				    _TimerService:SetTimerOnce(function()
 				        _SingleTurnManager:Start() -- 여기서 Start()가 호출되면 다시 TURN_START 단계부터 시작함

@@ -299,7 +299,8 @@ script CharacterInfoPanel extends Component
 		-- 슬롯에 장착품이 있을 때만 연다.
 		local down = _InputService:IsKeyPressed(KeyboardKey.Mouse1)
 		if down and self._lastMouse1 == false then
-			if self._hoverCat ~= "" then
+			-- 큐브 사용 모드(인벤에서 재설정 대상 선택 중)에는 우클릭 메뉴를 열지 않는다.
+			if self:IsCubeUseModeActive() == false and self._hoverCat ~= "" then
 				local eq = self:EquippedOf(self._hoverCat)
 				if eq ~= "" then
 					self:OpenContextMenu(self._hoverCat)
@@ -307,6 +308,16 @@ script CharacterInfoPanel extends Component
 			end
 		end
 		self._lastMouse1 = down
+	end
+
+	method boolean IsCubeUseModeActive()
+		-- 인벤토리 패널의 큐브 사용 모드 여부(우클릭 메뉴 억제용). invPanel은 지연 해석 후 캐시.
+		if isvalid(self.invPanel) == false then
+			local ie = _EntityService:GetEntityByPath("/ui/InGameUIGroup/Inventory_Panel/Ctrl")
+			if isvalid(ie) then self.invPanel = ie:GetComponent("script.InventoryPanel") end
+		end
+		if isvalid(self.invPanel) then return self.invPanel:IsCubeUseMode() end
+		return false
 	end
 
 	method void OpenContextMenu(string category)
