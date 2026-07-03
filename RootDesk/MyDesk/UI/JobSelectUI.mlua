@@ -158,6 +158,16 @@ script JobSelectUI extends Logic
 		return ""
 	end
 
+	method table GetJobImageRUIDs()
+		-- 프리로드용: 5개 직업 결과 이미지 RUID 목록(JobImageRUID 단일 소스를 재사용).
+		local jobs = { "warrior", "archer", "mage", "thief", "pirate" }
+		local out = {}
+		for i = 1, #jobs do
+			table.insert(out, self:JobImageRUID(jobs[i]))
+		end
+		return out
+	end
+
 	method void DisconnectAll()
 		-- Disconnect all button handlers. Safe to call when handlers are nil.
 		if self.handlerWarrior ~= nil then

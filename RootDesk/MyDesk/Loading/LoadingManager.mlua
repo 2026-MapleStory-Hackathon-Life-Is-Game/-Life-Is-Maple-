@@ -1,0 +1,164 @@
+@Logic
+script LoadingManager extends Logic
+
+	property Entity loadingGroup = "ffd4b3e1-3f7e-46d0-a2ed-002138928b1d"
+
+	property Entity loadingBackdrop = "af202086-de85-409f-812f-f93998e1fd47"
+
+	property SpriteGUIRendererComponent loadingSprite = "ce6bf9ef-b815-4151-b486-2f5c633bf063"
+
+	property TextComponent loadingText = "40f590fe-50a4-4495-b7e1-0e0cb691684e"
+
+	property string loadingBackgroundRUID = "3864db48f177422aadd68a74a19897df"
+
+	property number minShowSeconds = 3.0
+
+	property number dotInterval = 0.4
+
+	property number _shownAt = 0
+
+	property integer _dotTimer = 0
+
+	property integer _dotCount = 0
+
+	@ExecSpace("ClientOnly")
+	method void OnBeginPlay()
+		-- 시작 시 로딩 오버레이는 숨겨 둔다(게임 시작 시 ShowLoadingAndPreload에서 켠다).
+		self:SetOverlayEnable(false)
+	end
+
+	@ExecSpace("ClientOnly")
+	method void SetOverlayEnable(boolean on)
+		-- 백드롭/이미지/텍스트는 그룹 직속 형제(평탄 구조: Maker refresh가 중첩 자식을 드롭하는 문제 회피)라 함께 토글한다.
+		if isvalid(self.loadingBackdrop) then self.loadingBackdrop.Enable = on end
+		if isvalid(self.loadingSprite) and isvalid(self.loadingSprite.Entity) then self.loadingSprite.Entity.Enable = on end
+		if isvalid(self.loadingText) and isvalid(self.loadingText.Entity) then self.loadingText.Entity.Enable = on end
+	end
+
+	@ExecSpace("Client")
+	method void ShowLoadingAndPreload()
+		-- 게임 시작(로비→Map_01 텔레포트) 시 서버가 각 클라로 호출. 무거운 RUID를 미리 캐시한다.
+		log("[LoadingManager] ShowLoadingAndPreload 진입")
+		self:ShowOverlay()
+		self._shownAt = _UtilLogic.ElapsedSeconds
+		
+		local list = self:GatherPreloadRUIDs()
+		if #list == 0 then
+			log_warning("[LoadingManager] 프리로드 목록이 비어있음 → 오버레이 즉시 종료")
+			self:HideOverlay()
+			return
+		end
+		
+		log("[LoadingManager] 프리로드 시작: " .. tostring(#list) .. "개")
+		_ResourceService:PreloadAsync(list, function(_results)
+			log("[LoadingManager] 프리로드 완료")
+			self:OnPreloadComplete()
+		end)
+	end
+
+	@ExecSpace("ClientOnly")
+	method void OnPreloadComplete()
+		-- 프리로드 완료 콜백. 최소 표시 시간을 채운 뒤 오버레이를 내린다.
+		local elapsed = _UtilLogic.ElapsedSeconds - self._shownAt
+		local remain = self.minShowSeconds - elapsed
+		if remain > 0 then
+			_TimerService:SetTimerOnce(function() self:HideOverlay() end, remain)
+		else
+			self:HideOverlay()
+		end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void ShowOverlay()
+		-- 풀스크린 로딩 이미지를 켜고 최상단으로 올린다(그 아래 맵/선택창 pop-in을 가린다).
+		if isvalid(self.loadingSprite) and self.loadingBackgroundRUID ~= "" then
+			self.loadingSprite.ImageRUID = self.loadingBackgroundRUID
+		end
+		self:SetOverlayEnable(true)
+		-- 선택창 그룹(UIType, GroupOrder 30~33)보다 확실히 위로: UIType + 더 높은 GroupOrder + 형제 최상단.
+		if isvalid(self.loadingGroup) then
+			if isvalid(self.loadingGroup.UIGroupComponent) then
+				self.loadingGroup.UIGroupComponent.GroupType = UIGroupType.UIType
+				self.loadingGroup.UIGroupComponent.GroupOrder = 100
+			end
+			if isvalid(self.loadingGroup.UITransformComponent) then
+				_UILogic:SetSiblingIndex(self.loadingGroup.UITransformComponent, 1000000)
+			end
+		end
+		-- 'loading...' 점 애니메이션 시작.
+		self:StartDotAnim()
+	end
+
+	@ExecSpace("ClientOnly")
+	method void HideOverlay()
+		-- 로딩 오버레이를 숨긴다.
+		self:StopDotAnim()
+		self:SetOverlayEnable(false)
+		log("[LoadingManager] 오버레이 종료")
+	end
+
+	@ExecSpace("ClientOnly")
+	method void StartDotAnim()
+		-- 'loading' 뒤 점을 1→2→3→1 로 반복시킨다.
+		self:StopDotAnim()
+		self._dotCount = 1
+		self:UpdateDotText()
+		self._dotTimer = _TimerService:SetTimerRepeat(function() self:TickDots() end, self.dotInterval)
+	end
+
+	@ExecSpace("ClientOnly")
+	method void TickDots()
+		-- 타이머 콜백: 점 개수를 1~3으로 순환시키며 텍스트를 갱신.
+		self._dotCount = self._dotCount + 1
+		if self._dotCount > 3 then self._dotCount = 1 end
+		self:UpdateDotText()
+	end
+
+	@ExecSpace("ClientOnly")
+	method void UpdateDotText()
+		-- 'loading' + 점(현재 개수)로 텍스트를 갱신.
+		if isvalid(self.loadingText) == false then return end
+		self.loadingText.Text = "loading" .. string.rep(".", self._dotCount)
+	end
+
+	@ExecSpace("ClientOnly")
+	method void StopDotAnim()
+		-- 점 애니메이션 타이머 해제(중복/누수 방지).
+		if self._dotTimer ~= 0 then
+			_TimerService:ClearTimer(self._dotTimer)
+			self._dotTimer = 0
+		end
+	end
+
+	method table GatherPreloadRUIDs()
+		-- 게임 시작 시 미리 캐시할 RUID 모음: 주사위(굴림 12 + 결과 6) + 직업(5) + 진영(4) = 27개.
+		-- 각 값은 원래 소스(단일 진실)에서 그대로 가져와 드리프트를 막는다.
+		local list = {}
+		if isvalid(_RollDiceAnimationUI) then
+			self:AppendAll(list, _RollDiceAnimationUI.leftDiceSprites)
+			self:AppendAll(list, _RollDiceAnimationUI.rightDiceSprites)
+		end
+		if isvalid(_RollResultDiceAnimationUI) then
+			self:AppendAll(list, _RollResultDiceAnimationUI.diceSprites)
+		end
+		if isvalid(_JobSelectUI) then
+			self:AppendAll(list, _JobSelectUI:GetJobImageRUIDs())
+		end
+		if isvalid(_CampSelectUI) then
+			self:AppendAll(list, _CampSelectUI:GetCampImageRUIDs())
+		end
+		return list
+	end
+
+	method void AppendAll(table dst, table src)
+		-- src의 비어있지 않은 RUID를 dst에 이어붙인다(nil/빈문자 제외).
+		if src == nil then return end
+		for i = 1, #src do
+			local r = src[i]
+			if r ~= nil and r ~= "" then
+				table.insert(dst, r)
+			end
+		end
+	end
+
+end

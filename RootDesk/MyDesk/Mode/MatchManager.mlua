@@ -159,6 +159,8 @@ script MatchManager extends Logic
 		        for _, uid in ipairs(userIds) do
 		            local userEntity = _UserService:GetUserEntityByUserId(uid)
 		            if isvalid(userEntity) then
+		                -- 게임 진입 직전, 해당 클라에 로딩 오버레이 + 무거운 RUID 프리로드를 지시(맵/선택창 pop-in 방지).
+		                _LoadingManager:ShowLoadingAndPreload(uid)
 		                _TeleportService:TeleportToMapPosition(userEntity, destPos, "Map_01")
 		                -- 보드 시작 칸으로 상태 리셋
 		                if userEntity.PlayerMovement ~= nil then
