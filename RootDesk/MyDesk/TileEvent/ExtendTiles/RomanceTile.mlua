@@ -325,11 +325,11 @@ script RomanceTile extends BaseTile
 			if tier <= 0 then return end
 			local buff = self:Buff(piece)
 			if tier == 2 then
-				-- 대성공: 장소별 대성공 버프(3턴) + 가족 +1 + 주스탯 +10.
+				-- 대성공: 장소별 대성공 버프(3턴) + 가족 +1 + 주스탯 +30%.
 				local gb = self:DateCell(self._selectedDateKey, "GreatBuff")
 				if isvalid(buff) then buff:SetBuff(gb) end
 				if isvalid(rm) then rm:SetDateBuff(gb, 3) rm:AddFamilyMember() end
-				self:AddMainStat(piece, "flat", 10)
+				self:AddMainStat(piece, "percent", 30)
 			else
 				-- 성공: 장소별 성공 버프(3턴).
 				local sb = self:DateCell(self._selectedDateKey, "SuccessBuff")
