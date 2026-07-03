@@ -42,6 +42,16 @@ script EventTileUI extends Logic
 	-- 이벤트 배경(EventBack/BackgroundMap). 이벤트 표시(ShowGroup) 때 현재 지역 배경 RUID로 항상 교체한다.
 	property Entity BackgroundMap = "81c3c4e4-83ea-4c11-8f35-60ac2cc4f5b4"
 
+	-- 사냥 몬스터 연출 상태(개별 오브젝트마다 방향/위상/처치 타이밍이 다르다).
+	property table _monAnims = {}          -- STAND RUID 역조회로 얻은 { move, stand, hit, die, attack }
+	property integer _monBobTimer = 0      -- 좌우 흔들림 반복 타이머(3개 이미지를 각기 다른 위상으로 갱신)
+	property number _monBobPhase = 0       -- 흔들림 공통 위상(이미지별로 오프셋을 더한다)
+	property table _monBaseXs = {}         -- 이미지별 기준 x(디자인 위치)
+	property boolean _monBaseSet = false   -- 기준 x 캡처 여부(첫 표시 전 위치 훼손 방지)
+	property table _monTimers = {}         -- 처치 시퀀스(이미지별 hit→die→사라짐) 타이머 목록
+	property boolean _monBusy = false      -- 처치 연출 시작(첫 사망) 여부 — 초상화 attack 1회 트리거용
+	property table _monDone = {}           -- 이미지별 '처치 시작' 여부(true면 흔들림 제외)
+
 	property any _activeTile = nil
 
 	property integer _portraitTimer = 0
@@ -270,18 +280,170 @@ script EventTileUI extends Logic
 	@ExecSpace("ClientOnly")
 	method void SetMonsterImages(string ruid)
 		-- 사냥 몬스터 RUID를 Monsters 하위 3개 이미지에 동일하게 적용. 빈 값이면 Monsters 숨김.
+		-- 애니 데이터(TierMonster)가 있으면 MOVE 재생 + 좌우 흔들림 + 자동 처치 연출을 시작한다.
 		if ruid == nil or ruid == "" then
+			self:StopMonsterAnim()
 			if isvalid(self.MonstersGroup) then self.MonstersGroup.Enable = false end
 			return
 		end
 		if isvalid(self.MonstersGroup) then self.MonstersGroup.Enable = true end
-		local imgs = { self.MonsterImage1, self.MonsterImage2, self.MonsterImage3 }
+		self:SetMonstersClip(ruid)     -- 우선 STAND(넘어온 RUID) 적용 — 연출 데이터 없으면 정적 그대로.
+		self:StartMonsterAnim(ruid)    -- 연출 데이터 있으면 MOVE + 흔들림 + 처치 연출.
+	end
+
+	method table MonImgs()
+		-- 몬스터 이미지 3개를 배열로.
+		return { self.MonsterImage1, self.MonsterImage2, self.MonsterImage3 }
+	end
+
+	@ExecSpace("ClientOnly")
+	method void SetMonstersClip(string ruid)
+		-- Monsters 하위 3개 이미지에 동일 클립(sprite/animationclip RUID) 적용 + (이전 처치로 꺼졌으면) 재활성.
+		local imgs = self:MonImgs()
 		for i = 1, #imgs do
 			local e = imgs[i]
-			if isvalid(e) and isvalid(e.SpriteGUIRendererComponent) then
-				e.SpriteGUIRendererComponent.ImageRUID = DataRef(ruid)
+			if isvalid(e) then
+				e.Enable = true
+				if isvalid(e.SpriteGUIRendererComponent) then
+					e.SpriteGUIRendererComponent.ImageRUID = DataRef(ruid)
+				end
 			end
 		end
+	end
+
+	method void ClearMonTimers()
+		-- 처치 시퀀스 타이머 전부 정리.
+		for i = 1, #self._monTimers do
+			if self._monTimers[i] ~= 0 then _TimerService:ClearTimer(self._monTimers[i]) end
+		end
+		self._monTimers = {}
+	end
+
+	@ExecSpace("ClientOnly")
+	method void StopMonsterAnim()
+		-- 몬스터 연출 타이머 정리 + 이미지별 흔들림 위치 원복.
+		if self._monBobTimer ~= 0 then _TimerService:ClearTimer(self._monBobTimer) self._monBobTimer = 0 end
+		self:ClearMonTimers()
+		self._monBusy = false
+		self._monDone = {}
+		if self._monBaseSet then
+			local imgs = self:MonImgs()
+			for i = 1, #imgs do
+				local e = imgs[i]
+				if isvalid(e) and isvalid(e.UITransformComponent) and self._monBaseXs[i] ~= nil then
+					local ut = e.UITransformComponent
+					ut.anchoredPosition = Vector2(self._monBaseXs[i], ut.anchoredPosition.y)
+				end
+			end
+		end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void StartMonsterAnim(string standRUID)
+		-- 사냥 몬스터 연출 시작: MOVE 재생 + (이미지별 방향/위상/진폭) 좌우 흔들림 + (이미지별 엇갈린) 자동 처치.
+		if self._monBobTimer ~= 0 then _TimerService:ClearTimer(self._monBobTimer) self._monBobTimer = 0 end
+		self:ClearMonTimers()
+		self._monBusy = false
+		self._monDone = {}
+		self._monAnims = {}
+
+		local anims = _TileManager:MonsterAnimsByStand(standRUID)
+		if anims == nil then return end   -- 연출 데이터 없으면 정적 STAND 유지.
+		self._monAnims = anims
+
+		-- 이미지별 기준 x(디자인 위치) 캡처.
+		local imgs = self:MonImgs()
+		self._monBaseXs = {}
+		for i = 1, #imgs do
+			local e = imgs[i]
+			if isvalid(e) and isvalid(e.UITransformComponent) then
+				self._monBaseXs[i] = e.UITransformComponent.anchoredPosition.x
+			end
+		end
+		self._monBaseSet = true
+
+		-- MOVE(없으면 STAND) 재생.
+		local moveClip = anims.move
+		if moveClip == nil or moveClip == "" then moveClip = anims.stand end
+		if moveClip ~= nil and moveClip ~= "" then self:SetMonstersClip(moveClip) end
+
+		-- 좌우 흔들림 시작(한 타이머로 3개를 각기 다른 위상/방향/진폭으로 갱신).
+		self._monBobPhase = 0
+		self._monBobTimer = _TimerService:SetTimerRepeat(function() self:MonBob() end, 0.05)
+
+		-- 문구 표시 후 자동 처치: 처치 순서를 랜덤으로 섞고, 세 마리를 최대 ~5초에 걸쳐
+		-- 랜덤 간격으로 '한 마리씩' 순차 처치한다.
+		local order = {}
+		for i = 1, #imgs do order[i] = i end
+		for i = #order, 2, -1 do
+			local j = _UtilLogic:RandomIntegerRange(1, i)
+			local tmp = order[i]
+			order[i] = order[j]
+			order[j] = tmp
+		end
+		local at = 0.8 + _UtilLogic:RandomDouble() * 0.7   -- 첫 마리: 0.8~1.5초
+		for k = 1, #order do
+			if k > 1 then
+				at = at + 1.1 + _UtilLogic:RandomDouble() * 0.9   -- 마리 사이 간격: 1.1~2.0초
+			end
+			if at > 5.0 then at = 5.0 end   -- 처치 시작은 최대 5초.
+			local idx = order[k]
+			local h = _TimerService:SetTimerOnce(function() self:MonDefeatOne(idx) end, at)
+			table.insert(self._monTimers, h)
+		end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void MonBob()
+		-- 3개 이미지를 각기 다른 위상/방향/진폭으로 좌우로 흔든다. 이미 처치 시작된 이미지는 건너뛴다.
+		self._monBobPhase = self._monBobPhase + 0.18
+		local imgs = self:MonImgs()
+		for i = 1, #imgs do
+			local e = imgs[i]
+			if self._monDone[i] ~= true and isvalid(e) and isvalid(e.UITransformComponent) and self._monBaseXs[i] ~= nil then
+				local phase = self._monBobPhase + i * 2.1      -- 위상 차
+				local amp = 16 + i * 7                          -- 진폭 차(23/30/37)
+				local dir = 1
+				if i % 2 == 0 then dir = -1 end                 -- 짝수 이미지는 반대 방향
+				local ut = e.UITransformComponent
+				local x = self._monBaseXs[i] + dir * amp * math.sin(phase)
+				ut.anchoredPosition = Vector2(x, ut.anchoredPosition.y)
+			end
+		end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void MonDefeatOne(integer index)
+		-- 개별 몬스터 처치: 첫 처치 순간에만 초상화 attack. 이 이미지는 흔들림 제외 후 HIT → DIE → 사라짐.
+		if self._monBusy == false then
+			self._monBusy = true
+			self:SetPortrait("attack")   -- 첫 사망 순간 플레이어 공격 포즈.
+		end
+		self._monDone[index] = true
+		local e = self:MonImgs()[index]
+		if isvalid(e) == false then return end
+		-- 흔들림 제외 → 기준 위치로 정렬.
+		if isvalid(e.UITransformComponent) and self._monBaseXs[index] ~= nil then
+			local ut = e.UITransformComponent
+			ut.anchoredPosition = Vector2(self._monBaseXs[index], ut.anchoredPosition.y)
+		end
+		-- HIT.
+		local hit = self._monAnims.hit
+		if hit ~= nil and hit ~= "" and isvalid(e.SpriteGUIRendererComponent) then
+			e.SpriteGUIRendererComponent.ImageRUID = DataRef(hit)
+		end
+		-- 0.5초 뒤 DIE, 다시 0.85초 뒤 이 이미지만 사라짐.
+		local t1 = _TimerService:SetTimerOnce(function()
+			local die = self._monAnims.die
+			if isvalid(e) and die ~= nil and die ~= "" and isvalid(e.SpriteGUIRendererComponent) then
+				e.SpriteGUIRendererComponent.ImageRUID = DataRef(die)
+			end
+			local t2 = _TimerService:SetTimerOnce(function()
+				if isvalid(e) then e.Enable = false end
+			end, 0.85)
+			table.insert(self._monTimers, t2)
+		end, 0.5)
+		table.insert(self._monTimers, t1)
 	end
 
 	@ExecSpace("ClientOnly")
@@ -434,8 +596,9 @@ script EventTileUI extends Logic
 
 	@ExecSpace("ClientOnly")
 	method void Hide()
-		-- 이벤트 UI 닫기: 타이핑/버튼/타이머 정리 후 그룹 숨김.
+		-- 이벤트 UI 닫기: 타이핑/버튼/몬스터연출/타이머 정리 후 그룹 숨김.
 		self:StopTyping()
+		self:StopMonsterAnim()
 		self:HideAllButtons()
 		self:ClearPortrait()
 		if isvalid(self.EventGroup) then self.EventGroup.Enable = false end
