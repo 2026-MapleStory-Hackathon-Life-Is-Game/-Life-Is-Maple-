@@ -17,6 +17,11 @@ script EventTileUI extends Logic
 
 	property Entity DeclineButton = "27c567d9-0abf-44ed-8536-a916699f3a8b"
 
+	-- 2지선다 버튼 배경 이미지 RUID. 파랑=수락/중립 공용, 회색=거절 전용.
+	property string BinaryBlueRUID = "a1f11905b0b742abb57aacce3ca36539"
+
+	property string BinaryGrayRUID = "c7cad644979244cfb2dbce2aeb6e81e4"
+
 	property Entity Select1 = "1133513f-3c5f-4ef4-9337-e9f58927f966"
 
 	property Entity Select2 = "bdb47787-7623-4726-a035-5afa3988538a"
@@ -756,14 +761,41 @@ script EventTileUI extends Logic
 	end
 
 	@ExecSpace("ClientOnly")
+	method void SetButtonImage(Entity btn, string ruid)
+		-- 버튼 배경 이미지(SpriteGUIRendererComponent.ImageRUID) 교체. 파랑/회색 선택지 버튼 구분용.
+		if isvalid(btn) == false then return end
+		if isvalid(btn.SpriteGUIRendererComponent) then
+			btn.SpriteGUIRendererComponent.ImageRUID = DataRef(ruid)
+		end
+	end
+
+	@ExecSpace("ClientOnly")
+	method boolean IsAcceptDeclineLabels(table labels)
+		-- 수락/거절형 2지선다 판별: 라벨에 '수락' 또는 '거절'이 하나라도 있으면 참.
+		-- ('거절'은 오직 거절 선택지에만, '수락'은 수락 선택지에만 등장하므로 중립 선지와 확실히 구분된다.)
+		for i = 1, #labels do
+			if labels[i] ~= nil and (string.find(labels[i], "수락") ~= nil or string.find(labels[i], "거절") ~= nil) then
+				return true
+			end
+		end
+		return false
+	end
+
+	@ExecSpace("ClientOnly")
 	method void RevealChoices(table labels)
-		-- 선택 버튼 노출: 2개 이하 → 수락/거절(BinaryChoice) 양쪽 / 3개 이상 → MultipleChoice.
+		-- 선택 버튼 노출: 2개 이하 → 2지선다(BinaryChoice) / 3개 이상 → MultipleChoice.
 		self:HideAllButtons()
 		local n = #labels
 		if n <= 2 then
 			if isvalid(self.BinaryChoiceGroup) then self.BinaryChoiceGroup.Enable = true end
 			local bbtns = { self.AcceptButton, self.DeclineButton }
+			-- 수락/거절형이면 1번=파랑, 2번(거절)=회색. 그 외 중립 2지선다는 둘 다 파랑.
+			local acceptDecline = self:IsAcceptDeclineLabels(labels)
+			log("[EventTileUI] 2지선다 노출 n=" .. tostring(n) .. " 수락/거절형=" .. tostring(acceptDecline))
 			for i = 1, n do
+				local ruid = self.BinaryBlueRUID
+				if i == 2 and acceptDecline then ruid = self.BinaryGrayRUID end
+				self:SetButtonImage(bbtns[i], ruid)
 				self:WireChoiceButton(bbtns[i], labels[i], i)
 			end
 		else
