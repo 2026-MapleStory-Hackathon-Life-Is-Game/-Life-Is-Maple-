@@ -1,0 +1,598 @@
+@Logic
+script FriendManager extends Logic
+
+	-- 친구 저장소: key=내 userId → 친구 userId 목록(FS 구분). 일방향 팔로우(상대 동의 불필요).
+	property any _friendStore = nil
+	-- 랭킹 저장소 재사용: 친구의 전투력/전체순위(RankScore) + 이름/직업/진영/코디(RankMeta).
+	property any _scoreStore = nil
+	property any _metaStore = nil
+	-- 서버 캐시: ownerUserId → {친구 userId 배열}. 변경 시에만 저장.
+	property any _cache = nil
+	-- 클라 렌더용 친구 랭킹 레코드.
+	property any _clientFriends = nil
+	-- 친구 상한(값 4KB 이내 유지 목적).
+	property integer MaxFriends = 50
+
+	-- 클라 UI 경로/상태.
+	property string panelBase = "/ui/LobbyUIGroup/FriendPanel/"
+	property boolean _panelOpen = false
+	property integer RowCount = 8
+	property any _rowUserIds = nil   -- row(1..N) → userId(삭제용)
+	property any _btnH = nil          -- 클릭 버튼 이벤트 핸들 보관(OnEndPlay 해제용)
+
+	-- 우클릭 컨텍스트 메뉴(캐릭터 정보/친구 삭제/닫기).
+	property string ctxPath = "/ui/LobbyUIGroup/FriendCtx"
+	property integer _hoverRow = 0
+	property boolean _lastMouse1 = false
+	property integer _ctxRow = 0
+	property any _rowH = nil          -- 행 호버 이벤트 핸들 보관
+
+	method void OnBeginPlay()
+		-- 서버: 저장소 확보 + 캐시 초기화. 클라: UI 배선 + 패널 숨김.
+		if self:IsServer() then
+			self._cache = {}
+			self:AcquireStores()
+		else
+			self._clientFriends = {}
+			self._rowUserIds = {}
+			self._panelOpen = false
+			self._hoverRow = 0
+			self._lastMouse1 = false
+			self._ctxRow = 0
+			self:WireClient()
+			self:SetPanelEnable(false)
+		end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void WireClient()
+		-- 로비 열기/패널 닫기/코드추가 + 행 호버추적 + 컨텍스트 메뉴 배선. 컨텍스트는 기본 숨김.
+		self._btnH = {}
+		self._rowH = {}
+		local ctx = _EntityService:GetEntityByPath(self.ctxPath)
+		if isvalid(ctx) then ctx.Enable = false end
+		self:WireBtn("/ui/LobbyUIGroup/FriendOpenBtn", function() self:OpenFriendPanel() end)
+		self:WireBtn(self.panelBase .. "BtnClose", function() self:CloseFriendPanel() end)
+		self:WireBtn(self.panelBase .. "BtnAddByCode", function() self:OnCodeSubmit() end)
+		-- 행 배경 버튼: 호버 진입/이탈 추적(우클릭 열기는 OnUpdate 엣지 감지).
+		for i = 1, self.RowCount do
+			local capturedRow = i
+			local e = _EntityService:GetEntityByPath(self.panelBase .. "Row" .. tostring(i) .. "Bg")
+			if isvalid(e) then
+				local h = e:ConnectEvent(ButtonStateChangeEvent, function(ev)
+					self:OnRowState(capturedRow, ev)
+				end)
+				table.insert(self._rowH, { entity = e, evtH = h })
+			end
+		end
+		-- 컨텍스트 메뉴 3버튼.
+		self:WireBtn(self.ctxPath .. "/BtnInfo", function() self:OnCtxInfo() end)
+		self:WireBtn(self.ctxPath .. "/BtnRemove", function() self:OnCtxRemove() end)
+		self:WireBtn(self.ctxPath .. "/BtnClose", function() self:OnCtxClose() end)
+	end
+
+	@ExecSpace("ClientOnly")
+	method void WireBtn(string path, any fn)
+		-- 경로 버튼에 ButtonClickEvent 연결 + 핸들 보관.
+		local e = _EntityService:GetEntityByPath(path)
+		if isvalid(e) == false then return end
+		local h = e:ConnectEvent(ButtonClickEvent, fn)
+		table.insert(self._btnH, { entity = e, evtH = h })
+	end
+
+	@ExecSpace("ClientOnly")
+	method void SetPanelEnable(boolean on)
+		-- 패널 표시/숨김. 표시 시 맨 앞으로.
+		local panel = _EntityService:GetEntityByPath("/ui/LobbyUIGroup/FriendPanel")
+		if isvalid(panel) == false then return end
+		panel.Enable = on
+		if on then
+			local ut = panel.UITransformComponent
+			if isvalid(ut) then _UILogic:SetSiblingIndex(ut, 1000000) end
+		end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void OpenFriendPanel()
+		-- 친구 패널 열기 → 서버에서 최신 친구 랭킹 요청.
+		_SFXManager:PlayClick()
+		self._panelOpen = true
+		self:SetPanelEnable(true)
+		self:RequestFriendRanking()
+	end
+
+	@ExecSpace("ClientOnly")
+	method void CloseFriendPanel()
+		-- 친구 패널 닫기(컨텍스트/호버 상태도 정리).
+		_SFXManager:PlayClick()
+		self._panelOpen = false
+		self._hoverRow = 0
+		self:CloseFriendContext()
+		self:SetPanelEnable(false)
+	end
+
+	@ExecSpace("ClientOnly")
+	method void OnCodeSubmit()
+		-- 코드 입력창 텍스트로 친구 추가 요청 후 입력창 비우기.
+		_SFXManager:PlayClick()
+		local inp = _EntityService:GetEntityByPath(self.panelBase .. "FriendCodeInput")
+		if isvalid(inp) == false then return end
+		local tc = inp.TextInputComponent
+		if isvalid(tc) == false then return end
+		local code = tc.Text
+		if code == nil or code == "" then return end
+		self:RequestAddFriendByCode(code)
+		tc.Text = ""
+	end
+
+	method void OnRowState(integer row, ButtonStateChangeEvent ev)
+		-- 행 호버 진입 → 하이라이트+대상 추적, 이탈 → 해제.
+		if ev.state == ButtonState.Hover then
+			self._hoverRow = row
+			self:SetRowHighlight(row, true)
+		elseif ev.state == ButtonState.Normal then
+			if self._hoverRow == row then self._hoverRow = 0 end
+			self:SetRowHighlight(row, false)
+		end
+	end
+
+	method void OnUpdate(number delta)
+		-- 클라: 친구 패널이 열려 있을 때만 우클릭 눌림 엣지에서 호버 행의 컨텍스트 메뉴를 연다.
+		if self:IsClient() == false then return end
+		local down = _InputService:IsKeyPressed(KeyboardKey.Mouse1)
+		if self._panelOpen == false then
+			self._lastMouse1 = down
+			return
+		end
+		if down and self._lastMouse1 == false then
+			if self._hoverRow > 0 then self:OpenFriendContext(self._hoverRow) end
+		end
+		self._lastMouse1 = down
+	end
+
+	@ExecSpace("ClientOnly")
+	method void SetRowHighlight(integer row, boolean on)
+		-- 행 배경 밝기로 호버 하이라이트.
+		local e = _EntityService:GetEntityByPath(self.panelBase .. "Row" .. tostring(row) .. "Bg")
+		if isvalid(e) == false then return end
+		local sr = e.SpriteGUIRendererComponent
+		if isvalid(sr) == false then return end
+		if on then sr.Color = Color(1, 1, 1, 0.20) else sr.Color = Color(1, 1, 1, 0.06) end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void OpenFriendContext(integer row)
+		-- 해당 행에 친구가 있으면 커서 왼쪽에 컨텍스트 메뉴를 띄운다(패널이 우측이라 왼쪽 배치).
+		if self._panelOpen == false then return end
+		if self._clientFriends == nil or self._clientFriends[row] == nil then return end
+		self._ctxRow = row
+		local ctx = _EntityService:GetEntityByPath(self.ctxPath)
+		if isvalid(ctx) == false then return end
+		local cur = _InputService:GetCursorPosition()
+		local uiPos = _UILogic:ScreenToUIPosition(cur)
+		local ut = ctx.UITransformComponent
+		if isvalid(ut) then ut.anchoredPosition = Vector2(uiPos.x - 100, uiPos.y - 20) end
+		ctx.Enable = true
+		if isvalid(ut) then _UILogic:SetSiblingIndex(ut, 1000000) end
+		_SFXManager:PlayClick()
+	end
+
+	@ExecSpace("ClientOnly")
+	method void CloseFriendContext()
+		-- 컨텍스트 메뉴 숨김.
+		local ctx = _EntityService:GetEntityByPath(self.ctxPath)
+		if isvalid(ctx) and ctx.Enable then ctx.Enable = false end
+		self._ctxRow = 0
+	end
+
+	method void OnCtxInfo()
+		-- '캐릭터 정보': 선택 행 친구를 RankInfoBox(랭킹 정보창)로 표시. 아바타+스펙 재사용.
+		_SFXManager:PlayClick()
+		local row = self._ctxRow
+		self:CloseFriendContext()
+		if self._clientFriends == nil then return end
+		local rec = self._clientFriends[row]
+		if rec == nil then return end
+		if _RankingManager ~= nil then
+			local gr = math.floor(rec.globalRank or 0)
+			_RankingManager:ShowInfo(gr, rec)
+		end
+	end
+
+	method void OnCtxRemove()
+		-- '친구 삭제': 선택 행 친구 삭제 요청.
+		_SFXManager:PlayClick()
+		local row = self._ctxRow
+		self:CloseFriendContext()
+		if self._rowUserIds == nil then return end
+		local uid = self._rowUserIds[row]
+		if uid == nil or uid == "" then return end
+		self:RequestRemoveFriend(uid)
+	end
+
+	method void OnCtxClose()
+		-- '닫기': 컨텍스트 메뉴만 닫는다.
+		_SFXManager:PlayClick()
+		self:CloseFriendContext()
+	end
+
+	@ExecSpace("ServerOnly")
+	method void AcquireStores()
+		-- 친구 저장소 + (재사용) 랭킹 점수/메타 저장소 확보.
+		self._friendStore = _DataStorageService:GetGlobalDataStorage("Friends")
+		self._scoreStore = _DataStorageService:GetSortableDataStorage("RankScore")
+		self._metaStore = _DataStorageService:GetGlobalDataStorage("RankMeta")
+		if isvalid(self._friendStore) == false then
+			log_warning("[FriendManager] 친구 저장소 획득 실패")
+		end
+	end
+
+	@ExecSpace("ServerOnly")
+	method table LoadFriends(string ownerUserId)
+		-- 캐시 우선. 없으면 저장소에서 1회 로드. 항상 배열(빈 배열 가능) 반환.
+		if self._cache == nil then self._cache = {} end
+		if self._cache[ownerUserId] ~= nil then return self._cache[ownerUserId] end
+		local list = {}
+		if isvalid(self._friendStore) then
+			local ec, raw = self._friendStore:GetAndWait(ownerUserId)
+			if ec == 0 and raw ~= nil and raw ~= "" then
+				for _, id in ipairs(self:SplitStr(raw, string.char(31))) do
+					if id ~= nil and id ~= "" then table.insert(list, id) end
+				end
+			elseif ec ~= 0 and ec ~= 1000002 then
+				log_warning("[FriendManager] 친구 로드 오류코드=" .. tostring(ec))
+			end
+		end
+		self._cache[ownerUserId] = list
+		return list
+	end
+
+	@ExecSpace("ServerOnly")
+	method void SaveFriends(string ownerUserId, table list)
+		-- 캐시 갱신 + 저장소 커밋. 추가/삭제는 드문 이벤트라 SetAndWait로 확실히 반영.
+		self._cache[ownerUserId] = list
+		if isvalid(self._friendStore) == false then return end
+		local raw = table.concat(list, string.char(31))
+		local ec = self._friendStore:SetAndWait(ownerUserId, raw)
+		if ec ~= 0 then log_warning("[FriendManager] 친구 저장 오류코드=" .. tostring(ec)) end
+	end
+
+	method boolean ListContains(table list, string v)
+		-- 배열에 값 존재 여부.
+		for _, x in ipairs(list) do
+			if x == v then return true end
+		end
+		return false
+	end
+
+	@ExecSpace("ServerOnly")
+	method string AddFriendInternal(string ownerUserId, string friendUserId)
+		-- 일방향 팔로우 추가. 반환 상태: ok/self/dup/full/invalid.
+		if friendUserId == nil or friendUserId == "" then return "invalid" end
+		if friendUserId == ownerUserId then return "self" end
+		local list = self:LoadFriends(ownerUserId)
+		if self:ListContains(list, friendUserId) then return "dup" end
+		if #list >= self.MaxFriends then return "full" end
+		table.insert(list, friendUserId)
+		self:SaveFriends(ownerUserId, list)
+		return "ok"
+	end
+
+	@ExecSpace("Server")
+	method void RequestAddFriend(string friendUserId, string targetName)
+		-- 랭킹 우클릭 '친구추가' 경로: 요청자 기준 대상 userId를 팔로우 추가.
+		local status = self:AddFriendInternal(senderUserId, friendUserId)
+		self:NotifyResult(status, targetName, senderUserId)
+		if status == "ok" then self:SendFriendRanking(senderUserId) end
+		log("[FriendManager] RequestAddFriend " .. tostring(senderUserId) .. "→" .. tostring(friendUserId) .. " : " .. status)
+	end
+
+	@ExecSpace("Server")
+	method void RequestAddFriendByCode(string code)
+		-- 코드 입력 경로: ProfileCode → User → userId 해석 후 팔로우 추가.
+		if code == nil or code == "" then
+			self:NotifyResult("invalid", "", senderUserId)
+			return
+		end
+		local user = _UserService:GetUserByProfileCode(code)
+		if user == nil or user.UserId == nil or user.UserId == "" then
+			self:NotifyResult("notfound", "", senderUserId)
+			log("[FriendManager] 코드 해석 실패: " .. tostring(code))
+			return
+		end
+		local status = self:AddFriendInternal(senderUserId, user.UserId)
+		self:NotifyResult(status, user.Nickname, senderUserId)
+		if status == "ok" then self:SendFriendRanking(senderUserId) end
+		log("[FriendManager] RequestAddFriendByCode " .. tostring(code) .. " : " .. status)
+	end
+
+	@ExecSpace("Server")
+	method void RequestRemoveFriend(string friendUserId)
+		-- 친구 삭제(일방향 목록에서 제거) 후 친구 랭킹 갱신 전송.
+		local list = self:LoadFriends(senderUserId)
+		local out = {}
+		for _, id in ipairs(list) do
+			if id ~= friendUserId then table.insert(out, id) end
+		end
+		self:SaveFriends(senderUserId, out)
+		self:NotifyResult("removed", "", senderUserId)
+		self:SendFriendRanking(senderUserId)
+		log("[FriendManager] RequestRemoveFriend " .. tostring(senderUserId) .. "→" .. tostring(friendUserId))
+	end
+
+	@ExecSpace("Server")
+	method void RequestFriendRanking()
+		-- 클라(친구 패널 열기)가 자신의 친구 랭킹 요청.
+		self:SendFriendRanking(senderUserId)
+	end
+
+	@ExecSpace("ServerOnly")
+	method void SendFriendRanking(string ownerUserId)
+		-- 친구 랭킹 집계 → 직렬화 → 요청자 클라로 전송.
+		local recs = self:BuildFriendRanking(ownerUserId)
+		self:PushFriendData(self:SerializeFriends(recs), ownerUserId)
+	end
+
+	@ExecSpace("ServerOnly")
+	method table BuildFriendRanking(string ownerUserId)
+		-- 친구 userId 목록 → 전체 점수맵(순위 포함) + 메타 병합 → 전투력 내림차순 정렬.
+		local recs = {}
+		local friends = self:LoadFriends(ownerUserId)
+		if #friends == 0 then return recs end
+
+		local isFriend = {}
+		for _, id in ipairs(friends) do isFriend[id] = true end
+
+		-- 전체 점수 1회 정렬 조회로 친구의 전투력 + 전체순위 수집(리스트정렬=1크레딧).
+		local powerMap = {}
+		local rankMap = {}
+		if isvalid(self._scoreStore) then
+			local ec, pages = self._scoreStore:GetSortedAndWait(SortDirection.Descending, 0, 2000000000)
+			if ec == 0 then
+				local rank = 0
+				local done = false
+				while done == false do
+					local items = pages:GetCurrentPageDatas()
+					for _, it in pairs(items) do
+						rank = rank + 1
+						local uid = it.KeyInfo.Key
+						if isFriend[uid] then
+							powerMap[uid] = it.Value
+							rankMap[uid] = rank
+						end
+					end
+					if pages.IsLastPage == true then done = true else pages:MoveToNextPageAndWait() end
+				end
+			elseif ec ~= 1000002 then
+				log_warning("[FriendManager] 점수 조회 오류코드=" .. tostring(ec))
+			end
+		end
+
+		-- 친구 메타 일괄 조회.
+		local metaMap = {}
+		if isvalid(self._metaStore) then
+			local mec, mpages = self._metaStore:BatchGetAndWait(friends)
+			if mec == 0 then
+				local mdone = false
+				while mdone == false do
+					local mitems = mpages:GetCurrentPageDatas()
+					for _, mit in pairs(mitems) do metaMap[mit.KeyInfo.Key] = mit.Value end
+					if mpages.IsLastPage == true then mdone = true else mpages:MoveToNextPageAndWait() end
+				end
+			elseif mec ~= 1000002 then
+				log_warning("[FriendManager] 메타 일괄조회 오류코드=" .. tostring(mec))
+			end
+		end
+
+		-- 레코드 조립(기록 없는 친구는 전투력 0 / 전체순위 0).
+		for _, uid in ipairs(friends) do
+			local m = self:ParseMeta(metaMap[uid])
+			table.insert(recs, {
+				userId = uid, name = m.name, job = m.job, camp = m.camp, avatar = m.avatar,
+				power = powerMap[uid] or 0, globalRank = rankMap[uid] or 0,
+			})
+		end
+
+		-- 전투력 내림차순. 동점이면 전체순위(0=기록없음은 뒤로), 그다음 이름.
+		table.sort(recs, function(a, b)
+			if a.power ~= b.power then return a.power > b.power end
+			local ar = a.globalRank == 0 and 2000000000 or a.globalRank
+			local br = b.globalRank == 0 and 2000000000 or b.globalRank
+			if ar ~= br then return ar < br end
+			return tostring(a.name) < tostring(b.name)
+		end)
+		return recs
+	end
+
+	@ExecSpace("Client")
+	method void PushFriendData(string raw)
+		-- 서버 → 요청자 클라. 친구 랭킹 데이터 반영 후 렌더.
+		self._clientFriends = self:DeserializeFriends(raw)
+		log("[FriendManager] 친구 랭킹 수신: " .. tostring(#self._clientFriends) .. "명")
+		self:RenderFriends()
+	end
+
+	@ExecSpace("ClientOnly")
+	method void RenderFriends()
+		-- 친구 랭킹 레코드로 각 행 셀을 채우고 기록 수만큼 행/삭제버튼을 활성화한다.
+		local recs = self._clientFriends
+		if recs == nil then recs = {} end
+		if self._rowUserIds == nil then self._rowUserIds = {} end
+		for i = 1, self.RowCount do
+			local rec = recs[i]
+			local bg = _EntityService:GetEntityByPath(self.panelBase .. "Row" .. tostring(i) .. "Bg")
+			if rec ~= nil then
+				self._rowUserIds[i] = rec.userId
+				if isvalid(bg) then bg.Enable = true end
+				self:SetRowHighlight(i, false)
+				local rankText = "-"
+				if rec.globalRank ~= nil and rec.globalRank > 0 then rankText = tostring(rec.globalRank) .. "위" end
+				self:SetCell(i, "Rank", rankText)
+				self:SetCell(i, "Name", tostring(rec.name))
+				self:SetCell(i, "Power", self:FormatPower(rec.power))
+				self:SetCell(i, "Job", self:JobKo(tostring(rec.job)))
+				self:SetCell(i, "Camp", self:CampKo(tostring(rec.camp)))
+			else
+				self._rowUserIds[i] = nil
+				if isvalid(bg) then bg.Enable = false end
+				self:SetCell(i, "Rank", "")
+				self:SetCell(i, "Name", "")
+				self:SetCell(i, "Power", "")
+				self:SetCell(i, "Job", "")
+				self:SetCell(i, "Camp", "")
+			end
+		end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void SetCell(integer row, string col, string text)
+		-- 셀 텍스트 설정 + 내용 유무로 활성/비활성.
+		local e = _EntityService:GetEntityByPath(self.panelBase .. "Cell" .. tostring(row) .. "_" .. col)
+		if isvalid(e) == false then return end
+		e.Enable = (text ~= nil and text ~= "")
+		if isvalid(e.TextComponent) then e.TextComponent.Text = text end
+	end
+
+	method string JobKo(string job)
+		-- 직업 영문 키 → 한글(RankingManager와 동일 규칙).
+		if job == "Warrior" then return "전사"
+		elseif job == "Archer" then return "궁수"
+		elseif job == "Mage" then return "마법사"
+		elseif job == "Thief" then return "도적"
+		elseif job == "Pirate" then return "해적"
+		elseif job == "Beginner" then return "초보자"
+		end
+		return job
+	end
+
+	method string CampKo(string camp)
+		-- 진영 영문 키 → 한글.
+		if camp == "Adventurer" then return "모험가"
+		elseif camp == "Cygnus" then return "시그너스"
+		elseif camp == "Resistance" then return "레지스탕스"
+		elseif camp == "Nova" then return "노바"
+		end
+		return camp
+	end
+
+	method string FormatPower(number value)
+		-- 전투력 표기(만 단위 구분).
+		local n = math.floor(value)
+		if n >= 10000 then
+			local man = math.floor(n / 10000)
+			local rest = n % 10000
+			return tostring(man) .. "만 " .. string.format("%04d", rest)
+		end
+		return tostring(n)
+	end
+
+	@ExecSpace("ClientOnly")
+	method void OnEndPlay()
+		-- 클릭 버튼 + 행 호버 이벤트 핸들 해제.
+		if self._btnH ~= nil then
+			for _, r in ipairs(self._btnH) do
+				if isvalid(r.entity) and r.evtH ~= nil then
+					r.entity:DisconnectEvent(ButtonClickEvent, r.evtH)
+				end
+			end
+		end
+		if self._rowH ~= nil then
+			for _, r in ipairs(self._rowH) do
+				if isvalid(r.entity) and r.evtH ~= nil then
+					r.entity:DisconnectEvent(ButtonStateChangeEvent, r.evtH)
+				end
+			end
+		end
+	end
+
+	@ExecSpace("Client")
+	method void NotifyResult(string status, string targetName)
+		-- 친구 추가/삭제 결과 피드백. 로비 RankNotice 팝업(RankingManager) 재사용.
+		local msg = self:ResultMessage(status, targetName)
+		if _RankingManager ~= nil then
+			_RankingManager:ShowNotice(msg)
+		end
+		log("[FriendManager] 결과: " .. status .. " (" .. tostring(targetName) .. ")")
+	end
+
+	method string ResultMessage(string status, string targetName)
+		-- 상태코드 → 사용자 표시 메시지.
+		local nm = targetName
+		if nm == nil or nm == "" then nm = "상대" end
+		if status == "ok" then return nm .. "님을\n친구로 추가했습니다."
+		elseif status == "dup" then return "이미 친구입니다."
+		elseif status == "self" then return "자기 자신은\n추가할 수 없습니다."
+		elseif status == "full" then return "친구가 가득 찼습니다."
+		elseif status == "notfound" then return "코드를 찾을 수 없습니다."
+		elseif status == "removed" then return "친구를 삭제했습니다."
+		else return "친구 추가에 실패했습니다."
+		end
+	end
+
+	method table ParseMeta(any raw)
+		-- RankMeta 직렬 문자열(name/job/camp/avatar, FS 구분) 역변환. RankingManager와 동일 포맷.
+		local out = { name = "?", job = "--", camp = "--", avatar = "" }
+		if raw == nil or raw == "" then return out end
+		local FS = string.char(31)
+		local f = self:SplitStr(tostring(raw), FS)
+		if f[1] ~= nil and f[1] ~= "" then out.name = f[1] end
+		if f[2] ~= nil then out.job = f[2] end
+		if f[3] ~= nil then out.camp = f[3] end
+		if f[4] ~= nil then out.avatar = f[4] end
+		return out
+	end
+
+	method string SerializeFriends(table recs)
+		-- 친구 랭킹 레코드 직렬화(필드=FS char31, 레코드=RS char30). 중첩 테이블 불가 → 수동.
+		local FS = string.char(31)
+		local RS = string.char(30)
+		local parts = {}
+		for _, r in ipairs(recs) do
+			local row = tostring(r.userId) .. FS .. tostring(r.name) .. FS .. tostring(r.job) .. FS
+				.. tostring(r.camp) .. FS .. tostring(math.floor(r.power)) .. FS .. tostring(r.globalRank)
+				.. FS .. tostring(r.avatar or "")
+			table.insert(parts, row)
+		end
+		return table.concat(parts, RS)
+	end
+
+	method table DeserializeFriends(string raw)
+		-- SerializeFriends 역변환. 필드 6개 이상만 채택.
+		local FS = string.char(31)
+		local RS = string.char(30)
+		local result = {}
+		if raw == nil or raw == "" then return result end
+		for _, row in ipairs(self:SplitStr(raw, RS)) do
+			if row ~= "" then
+				local f = self:SplitStr(row, FS)
+				if #f >= 6 then
+					table.insert(result, {
+						userId = f[1], name = f[2], job = f[3], camp = f[4],
+						power = tonumber(f[5]) or 0,
+						globalRank = tonumber(f[6]) or 0,
+						avatar = f[7] or "",
+					})
+				end
+			end
+		end
+		return result
+	end
+
+	method table SplitStr(string s, string delim)
+		-- 빈 필드까지 보존하는 평문 분리. Lua에 split이 없어 직접 구현(RankingManager와 동일).
+		local out = {}
+		local start = 1
+		local delimLen = #delim
+		while true do
+			local i = (string.find(s, delim, start, true))
+			if i == nil then
+				table.insert(out, string.sub(s, start))
+				break
+			end
+			table.insert(out, string.sub(s, start, i - 1))
+			start = i + delimLen
+		end
+		return out
+	end
+
+end
