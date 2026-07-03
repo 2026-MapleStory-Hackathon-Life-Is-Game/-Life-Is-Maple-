@@ -65,6 +65,8 @@ script EventTileUI extends Logic
 	--   0이면 전환 없음(단일 이미지). _imgNpcRUID = 전환 시 켤 NPC 이미지 RUID.
 	property integer _imgNpcFromPage = 0
 	property string _imgNpcRUID = ""
+	-- 불행 등 '페이지(씬)별 NPC 교체' 이벤트용: 페이지 인덱스별로 켤 NPC 이미지 RUID 목록(없으면 빈 목록).
+	property table _pageNpcRUIDs = {}
 
 	@ExecSpace("ClientOnly")
 	method void OnBeginPlay()
@@ -99,6 +101,7 @@ script EventTileUI extends Logic
 		self:SetMonsterImages("")
 		self:SetNPCImage(false, "")
 		self._imgNpcFromPage = 0   -- 페이지별 이미지 전환 상태 초기화(이번 표시에서만 재설정).
+		self._pageNpcRUIDs = {}    -- 페이지별 NPC 목록도 초기화.
 	end
 
 	@ExecSpace("ClientOnly")
@@ -262,6 +265,12 @@ script EventTileUI extends Logic
 				self:SetNPCImage(true, self._imgNpcRUID)
 				self._imgNpcFromPage = 0
 			end
+			-- 페이지별 NPC 교체(불행 씬 등): 이 페이지 지정 NPC RUID가 있으면 적용(부족하면 마지막 값 유지).
+			if #self._pageNpcRUIDs > 0 then
+				local r = self._pageNpcRUIDs[self._pageIdx]
+				if r == nil then r = self._pageNpcRUIDs[#self._pageNpcRUIDs] end
+				if r ~= nil and r ~= "" then self:SetNPCImage(true, r) end
+			end
 		else
 			local cb = self._pageDone
 			if cb ~= nil then cb(self) end
@@ -310,6 +319,36 @@ script EventTileUI extends Logic
 		-- 사냥 등 단순 이벤트 '다음' → UI 닫고 서버에 종료 신호.
 		self:Hide()
 		if isvalid(self._activeTile) then self._activeTile:RequestDone() end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void ShowPagedNpcEvent(string message, string anim, string npcRuidsCsv, Component tile)
+		-- 불행 등 '씬(페이지)별 NPC 교체' 이벤트 표시. npcRuidsCsv = ';'로 구분한 페이지별 NPC RUID 목록(서버에서 해석 완료).
+		--   페이지1은 목록[1], 이후 '다음'마다 목록[i]로 교체(목록보다 페이지가 많으면 마지막 값 유지, 목록이 비면 NPC 숨김).
+		-- 문구는 '\n\n'(빈 줄) 기준 페이지 분할(ShowPagedText 재사용). 마지막 장 '다음' → OnEventDone → 종료.
+		self._activeTile = tile
+		self:ShowGroup()
+		self._pageNpcRUIDs = self:SplitSemi(npcRuidsCsv)
+		self:SetPortrait(anim)
+		local first = ""
+		if #self._pageNpcRUIDs > 0 then first = self._pageNpcRUIDs[1] end
+		if first ~= "" then
+			self:SetNPCImage(true, first)
+		else
+			self:SetNPCImage(false, "")   -- NPC 없는 불행(예: 리멘)은 초상 숨김.
+		end
+		self:ShowPagedText(message, self.OnEventDone)
+	end
+
+	@ExecSpace("ClientOnly")
+	method table SplitSemi(string s)
+		-- ';'로 구분된 문자열을 목록으로 나눈다(빈 값이면 빈 목록).
+		local list = {}
+		if s == nil or s == "" then return list end
+		for part in string.gmatch(s, "[^;]+") do
+			table.insert(list, part)
+		end
+		return list
 	end
 
 	@ExecSpace("ClientOnly")
