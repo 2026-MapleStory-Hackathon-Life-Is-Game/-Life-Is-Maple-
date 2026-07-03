@@ -8626,6 +8626,11 @@
                 "z": 0.0,
                 "w": 1.0
               },
+              "Scale": {
+                "x": 1.0,
+                "y": 1.0,
+                "z": 1.0
+              },
               "Enable": true
             },
             {
@@ -8926,6 +8931,11 @@
                 "y": 0.0,
                 "z": 0.0,
                 "w": 1.0
+              },
+              "Scale": {
+                "x": 1.0,
+                "y": 1.0,
+                "z": 1.0
               },
               "Enable": true
             },
@@ -16588,186 +16598,6 @@
         }
       },
       {
-        "id": "0a82b573-0acc-4c44-8524-01877f5366a4",
-        "path": "/maps/Map_01/monster-3788",
-        "componentNames": "MOD.Core.TransformComponent,MOD.Core.StateAnimationComponent,MOD.Core.SpriteRendererComponent,MOD.Core.RigidbodyComponent,MOD.Core.MovementComponent,MOD.Core.AIChaseComponent,MOD.Core.StateComponent,MOD.Core.HitComponent,MOD.Core.DamageSkinSpawnerComponent,MOD.Core.KinematicbodyComponent",
-        "jsonString": {
-          "name": "monster-3788",
-          "path": "/maps/Map_01/monster-3788",
-          "nameEditable": true,
-          "enable": true,
-          "visible": true,
-          "localize": false,
-          "displayOrder": 8,
-          "pathConstraints": "///",
-          "revision": 1,
-          "origin": {
-            "type": "Model",
-            "entry_id": "ChaseMonster",
-            "sub_entity_id": null,
-            "root_entity_id": "0a82b573-0acc-4c44-8524-01877f5366a4",
-            "replaced_model_id": null
-          },
-          "modelId": "chasemonster",
-          "@components": [
-            {
-              "@type": "MOD.Core.TransformComponent",
-              "Position": {
-                "x": 1.96812153,
-                "y": -0.205214858,
-                "z": 999.999
-              },
-              "QuaternionRotation": {
-                "x": 0.0,
-                "y": 0.0,
-                "z": 0.0,
-                "w": 1.0
-              },
-              "Enable": true
-            },
-            {
-              "@type": "MOD.Core.StateAnimationComponent",
-              "ActionSheet": {
-                "stand": "c95a9a2fffed47bbb16594c40067b034",
-                "move": "21757254b8bd4090bbe01dfd60eec808",
-                "hit": "de2957c555b94eb8ad4b811bd0ebafa0",
-                "die": "3884b3c6ecaa4f6aa9314584ba6e33a5",
-                "jump": "21757254b8bd4090bbe01dfd60eec808",
-                "attack": "21757254b8bd4090bbe01dfd60eec808"
-              },
-              "Enable": true
-            },
-            {
-              "@type": "MOD.Core.SpriteRendererComponent",
-              "ActionSheet": {},
-              "EndFrameIndex": 0,
-              "FlipX": false,
-              "FlipY": false,
-              "RenderSetting": 1,
-              "SortingLayer": "MapLayer2",
-              "SpriteRUID": "f49d748a481d4dc496148df59b22d90e",
-              "StartFrameIndex": 0,
-              "Enable": true
-            },
-            {
-              "@type": "MOD.Core.RigidbodyComponent",
-              "MoveVelocity": {
-                "x": 0.0,
-                "y": 0.0
-              },
-              "RealMoveVelocity": {
-                "x": 0.0,
-                "y": 0.0
-              },
-              "Enable": false
-            },
-            {
-              "@type": "MOD.Core.MovementComponent",
-              "InputSpeed": 1.5,
-              "JumpForce": 6.0,
-              "Enable": false
-            },
-            {
-              "@type": "MOD.Core.AIChaseComponent",
-              "IsLegacy": false,
-              "Enable": false
-            },
-            {
-              "@type": "MOD.Core.StateComponent",
-              "IsLegacy": false,
-              "Enable": true
-            },
-            {
-              "@type": "MOD.Core.HitComponent",
-              "BoxSize": {
-                "x": 1.19,
-                "y": 1.1
-              },
-              "ColliderOffset": {
-                "x": 0.005000055,
-                "y": 0.55
-              },
-              "IsLegacy": false,
-              "Enable": false
-            },
-            {
-              "@type": "MOD.Core.DamageSkinSpawnerComponent",
-              "Enable": false
-            },
-            {
-              "@type": "MOD.Core.KinematicbodyComponent",
-              "MoveVelocity": {
-                "x": 0.0,
-                "y": 0.0
-              },
-              "Enable": false
-            }
-          ],
-          "@version": 1
-        }
-      },
-      {
-        "id": "25cf1b54-0a00-4217-93f5-45769e211ddc",
-        "path": "/maps/Map_01/monster-22",
-        "componentNames": "MOD.Core.TransformComponent,MOD.Core.StateAnimationComponent,MOD.Core.SpriteRendererComponent",
-        "jsonString": {
-          "name": "monster-22",
-          "path": "/maps/Map_01/monster-22",
-          "nameEditable": true,
-          "enable": true,
-          "visible": true,
-          "localize": false,
-          "displayOrder": 9,
-          "pathConstraints": "///",
-          "revision": 1,
-          "origin": {
-            "type": "Model",
-            "entry_id": "StaticMonster",
-            "sub_entity_id": null,
-            "root_entity_id": "25cf1b54-0a00-4217-93f5-45769e211ddc",
-            "replaced_model_id": null
-          },
-          "modelId": "staticmonster",
-          "@components": [
-            {
-              "@type": "MOD.Core.TransformComponent",
-              "Position": {
-                "x": 4.053583,
-                "y": -0.262929678,
-                "z": 999.999
-              },
-              "QuaternionRotation": {
-                "x": 0.0,
-                "y": 0.0,
-                "z": 0.0,
-                "w": 1.0
-              },
-              "Enable": true
-            },
-            {
-              "@type": "MOD.Core.StateAnimationComponent",
-              "ActionSheet": {
-                "stand": "8f085dcfa9a844df97f47a3a79c7bc03",
-                "hit": "bc144c2a492b47ac8d36d0000238155a",
-                "die": "e3f4d6344618421ab3fd276db85c44d6"
-              },
-              "Enable": true
-            },
-            {
-              "@type": "MOD.Core.SpriteRendererComponent",
-              "ActionSheet": {},
-              "EndFrameIndex": 0,
-              "RenderSetting": 1,
-              "SortingLayer": "MapLayer2",
-              "SpriteRUID": "232e643813d9444c9be0b8cb901692af",
-              "StartFrameIndex": 0,
-              "Enable": true
-            }
-          ],
-          "@version": 1
-        }
-      },
-      {
         "id": "5c5ad4b7-f1e2-4ac2-a810-81b482c8a6fa",
         "path": "/maps/Map_01/object-18",
         "componentNames": "MOD.Core.TransformComponent,MOD.Core.SpriteRendererComponent",
@@ -16778,7 +16608,7 @@
           "enable": true,
           "visible": true,
           "localize": false,
-          "displayOrder": 10,
+          "displayOrder": 8,
           "pathConstraints": "///",
           "revision": 1,
           "origin": {
@@ -16830,7 +16660,7 @@
           "enable": true,
           "visible": true,
           "localize": false,
-          "displayOrder": 11,
+          "displayOrder": 9,
           "pathConstraints": "///",
           "revision": 1,
           "origin": {
@@ -16882,7 +16712,7 @@
           "enable": true,
           "visible": true,
           "localize": false,
-          "displayOrder": 12,
+          "displayOrder": 10,
           "pathConstraints": "///",
           "revision": 1,
           "origin": {
@@ -16939,7 +16769,7 @@
           "enable": true,
           "visible": true,
           "localize": false,
-          "displayOrder": 13,
+          "displayOrder": 11,
           "pathConstraints": "///",
           "revision": 1,
           "origin": {
@@ -16996,7 +16826,7 @@
           "enable": true,
           "visible": true,
           "localize": false,
-          "displayOrder": 14,
+          "displayOrder": 12,
           "pathConstraints": "///",
           "revision": 1,
           "origin": {
@@ -17048,7 +16878,7 @@
           "enable": true,
           "visible": true,
           "localize": false,
-          "displayOrder": 15,
+          "displayOrder": 13,
           "pathConstraints": "///",
           "revision": 1,
           "origin": {
@@ -17100,7 +16930,7 @@
           "enable": true,
           "visible": true,
           "localize": false,
-          "displayOrder": 16,
+          "displayOrder": 14,
           "pathConstraints": "///",
           "revision": 1,
           "origin": {
@@ -17157,7 +16987,7 @@
           "enable": true,
           "visible": true,
           "localize": false,
-          "displayOrder": 17,
+          "displayOrder": 15,
           "pathConstraints": "///",
           "revision": 1,
           "origin": {
@@ -17214,7 +17044,7 @@
           "enable": true,
           "visible": true,
           "localize": false,
-          "displayOrder": 18,
+          "displayOrder": 16,
           "pathConstraints": "///",
           "revision": 1,
           "origin": {
@@ -17271,7 +17101,7 @@
           "enable": true,
           "visible": true,
           "localize": false,
-          "displayOrder": 19,
+          "displayOrder": 17,
           "pathConstraints": "///",
           "revision": 1,
           "origin": {
@@ -17328,7 +17158,7 @@
           "enable": true,
           "visible": true,
           "localize": false,
-          "displayOrder": 20,
+          "displayOrder": 18,
           "pathConstraints": "///",
           "revision": 1,
           "origin": {
@@ -17364,7 +17194,7 @@
           "enable": true,
           "visible": true,
           "localize": false,
-          "displayOrder": 21,
+          "displayOrder": 19,
           "pathConstraints": "///",
           "revision": 1,
           "origin": {
@@ -28974,7 +28804,7 @@
           "enable": true,
           "visible": true,
           "localize": false,
-          "displayOrder": 22,
+          "displayOrder": 20,
           "pathConstraints": "///",
           "revision": 1,
           "origin": {
@@ -29010,7 +28840,7 @@
           "enable": true,
           "visible": true,
           "localize": false,
-          "displayOrder": 23,
+          "displayOrder": 21,
           "pathConstraints": "///",
           "revision": 1,
           "origin": {
@@ -29076,7 +28906,7 @@
           "enable": true,
           "visible": true,
           "localize": false,
-          "displayOrder": 24,
+          "displayOrder": 22,
           "pathConstraints": "///",
           "revision": 1,
           "origin": {
@@ -29133,7 +28963,7 @@
           "enable": true,
           "visible": true,
           "localize": false,
-          "displayOrder": 25,
+          "displayOrder": 23,
           "pathConstraints": "///",
           "revision": 1,
           "origin": {
@@ -29185,7 +29015,7 @@
           "enable": true,
           "visible": true,
           "localize": false,
-          "displayOrder": 26,
+          "displayOrder": 24,
           "pathConstraints": "///",
           "revision": 1,
           "origin": {
@@ -29242,7 +29072,7 @@
           "enable": true,
           "visible": true,
           "localize": false,
-          "displayOrder": 27,
+          "displayOrder": 25,
           "pathConstraints": "///",
           "revision": 1,
           "origin": {
@@ -29294,7 +29124,7 @@
           "enable": true,
           "visible": true,
           "localize": false,
-          "displayOrder": 28,
+          "displayOrder": 26,
           "pathConstraints": "///",
           "revision": 1,
           "origin": {
@@ -29346,7 +29176,7 @@
           "enable": true,
           "visible": true,
           "localize": false,
-          "displayOrder": 29,
+          "displayOrder": 27,
           "pathConstraints": "///",
           "revision": 1,
           "origin": {
@@ -29403,7 +29233,7 @@
           "enable": true,
           "visible": true,
           "localize": false,
-          "displayOrder": 30,
+          "displayOrder": 28,
           "pathConstraints": "///",
           "revision": 1,
           "origin": {
@@ -29460,7 +29290,7 @@
           "enable": true,
           "visible": true,
           "localize": false,
-          "displayOrder": 31,
+          "displayOrder": 29,
           "pathConstraints": "///",
           "revision": 1,
           "origin": {
@@ -29512,7 +29342,7 @@
           "enable": true,
           "visible": true,
           "localize": false,
-          "displayOrder": 32,
+          "displayOrder": 30,
           "pathConstraints": "///",
           "revision": 1,
           "origin": {
@@ -29569,7 +29399,7 @@
           "enable": true,
           "visible": true,
           "localize": false,
-          "displayOrder": 33,
+          "displayOrder": 31,
           "pathConstraints": "///",
           "revision": 1,
           "origin": {
@@ -29621,7 +29451,7 @@
           "enable": true,
           "visible": true,
           "localize": false,
-          "displayOrder": 34,
+          "displayOrder": 32,
           "pathConstraints": "///",
           "revision": 1,
           "origin": {
@@ -29678,7 +29508,7 @@
           "enable": true,
           "visible": true,
           "localize": false,
-          "displayOrder": 35,
+          "displayOrder": 33,
           "pathConstraints": "///",
           "revision": 1,
           "origin": {
@@ -29735,7 +29565,7 @@
           "enable": true,
           "visible": true,
           "localize": false,
-          "displayOrder": 36,
+          "displayOrder": 34,
           "pathConstraints": "///",
           "revision": 1,
           "origin": {
@@ -29787,7 +29617,7 @@
           "enable": true,
           "visible": true,
           "localize": false,
-          "displayOrder": 37,
+          "displayOrder": 35,
           "pathConstraints": "///",
           "revision": 1,
           "origin": {
@@ -29839,7 +29669,7 @@
           "enable": true,
           "visible": true,
           "localize": false,
-          "displayOrder": 38,
+          "displayOrder": 36,
           "pathConstraints": "///",
           "revision": 1,
           "origin": {
@@ -29896,7 +29726,7 @@
           "enable": true,
           "visible": true,
           "localize": false,
-          "displayOrder": 39,
+          "displayOrder": 37,
           "pathConstraints": "///",
           "revision": 1,
           "origin": {
@@ -29948,7 +29778,7 @@
           "enable": true,
           "visible": true,
           "localize": false,
-          "displayOrder": 40,
+          "displayOrder": 38,
           "pathConstraints": "///",
           "revision": 1,
           "origin": {
@@ -30000,7 +29830,7 @@
           "enable": true,
           "visible": true,
           "localize": false,
-          "displayOrder": 41,
+          "displayOrder": 39,
           "pathConstraints": "///",
           "revision": 1,
           "origin": {
@@ -30036,7 +29866,7 @@
           "enable": true,
           "visible": true,
           "localize": false,
-          "displayOrder": 42,
+          "displayOrder": 40,
           "pathConstraints": "///",
           "revision": 1,
           "origin": {
@@ -30085,7 +29915,7 @@
           "enable": true,
           "visible": true,
           "localize": false,
-          "displayOrder": 43,
+          "displayOrder": 41,
           "pathConstraints": "///",
           "revision": 1,
           "origin": {
@@ -30137,7 +29967,7 @@
           "enable": true,
           "visible": true,
           "localize": false,
-          "displayOrder": 44,
+          "displayOrder": 42,
           "pathConstraints": "///",
           "revision": 1,
           "origin": {
@@ -30173,7 +30003,7 @@
           "enable": true,
           "visible": true,
           "localize": false,
-          "displayOrder": 45,
+          "displayOrder": 43,
           "pathConstraints": "///",
           "revision": 1,
           "origin": {
@@ -30222,7 +30052,7 @@
           "enable": true,
           "visible": true,
           "localize": false,
-          "displayOrder": 46,
+          "displayOrder": 44,
           "pathConstraints": "///",
           "revision": 1,
           "origin": {
@@ -30279,7 +30109,7 @@
           "enable": true,
           "visible": true,
           "localize": false,
-          "displayOrder": 47,
+          "displayOrder": 45,
           "pathConstraints": "///",
           "revision": 1,
           "origin": {
@@ -30336,7 +30166,7 @@
           "enable": true,
           "visible": true,
           "localize": false,
-          "displayOrder": 48,
+          "displayOrder": 46,
           "pathConstraints": "///",
           "revision": 1,
           "origin": {
@@ -30393,7 +30223,7 @@
           "enable": true,
           "visible": true,
           "localize": false,
-          "displayOrder": 49,
+          "displayOrder": 47,
           "pathConstraints": "///",
           "revision": 1,
           "origin": {
@@ -30450,7 +30280,7 @@
           "enable": true,
           "visible": true,
           "localize": false,
-          "displayOrder": 50,
+          "displayOrder": 48,
           "pathConstraints": "///",
           "revision": 1,
           "origin": {
@@ -30507,7 +30337,7 @@
           "enable": true,
           "visible": true,
           "localize": false,
-          "displayOrder": 51,
+          "displayOrder": 49,
           "pathConstraints": "///",
           "revision": 1,
           "origin": {
@@ -30564,7 +30394,7 @@
           "enable": true,
           "visible": true,
           "localize": false,
-          "displayOrder": 52,
+          "displayOrder": 50,
           "pathConstraints": "///",
           "revision": 1,
           "origin": {
@@ -30621,7 +30451,7 @@
           "enable": true,
           "visible": true,
           "localize": false,
-          "displayOrder": 53,
+          "displayOrder": 51,
           "pathConstraints": "///",
           "revision": 1,
           "origin": {
@@ -30678,7 +30508,7 @@
           "enable": true,
           "visible": true,
           "localize": false,
-          "displayOrder": 54,
+          "displayOrder": 52,
           "pathConstraints": "///",
           "revision": 1,
           "origin": {
@@ -30735,7 +30565,7 @@
           "enable": true,
           "visible": true,
           "localize": false,
-          "displayOrder": 55,
+          "displayOrder": 53,
           "pathConstraints": "///",
           "revision": 1,
           "origin": {
@@ -30792,7 +30622,7 @@
           "enable": true,
           "visible": true,
           "localize": false,
-          "displayOrder": 56,
+          "displayOrder": 54,
           "pathConstraints": "///",
           "revision": 1,
           "origin": {
@@ -30849,7 +30679,7 @@
           "enable": true,
           "visible": true,
           "localize": false,
-          "displayOrder": 57,
+          "displayOrder": 55,
           "pathConstraints": "///",
           "revision": 1,
           "origin": {

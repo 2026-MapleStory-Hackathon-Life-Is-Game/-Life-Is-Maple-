@@ -602,6 +602,27 @@ script TileManager extends Logic
 		return ""
 	end
 
+	method table MonsterAnimsByStand(string standRUID)
+		-- STAND RUID로 TierMonster 행을 역조회해 애니 클립 세트를 반환한다(사냥 몬스터 UI 연출용). 없으면 nil.
+		--   { move, stand, hit, die, attack } — 값이 빈 칸이면 "".
+		-- (사냥/사냥+ 몬스터 이미지는 STAND RUID로 넘어오므로, 그 값으로 MOVE/HIT/DIE를 역조회해 연출에 쓴다.)
+		if standRUID == nil or standRUID == "" then return nil end
+		local ds = _DataService:GetTable("TierMonster")
+		if isvalid(ds) == false then return nil end
+		for i = 1, ds:GetRowCount() do
+			if ds:GetCell(i, "STAND") == standRUID then
+				return {
+					move   = ds:GetCell(i, "MOVE"),
+					stand  = ds:GetCell(i, "STAND"),
+					hit    = ds:GetCell(i, "HIT"),
+					die    = ds:GetCell(i, "DIE"),
+					attack = ds:GetCell(i, "ATTACK"),
+				}
+			end
+		end
+		return nil
+	end
+
 	method string GetTileMonsterRUID(string mapName, string tileName)
 		-- 해당 사냥 타일에 (맵 시작 시) 정해진 몬스터의 STAND RUID. 없으면 "".
 		-- TileMonster(@Sync, 지역 가중 추첨 결과) + TierMonster(RUID 데이터)를 재사용한다.
