@@ -9,6 +9,14 @@ script RollResultDiceAnimationUI extends Logic
 
 	property SpriteGUIRendererComponent rightDice = "03c56c53-dbfe-44c6-a3de-98baf3d3aa1f"
 
+	property Entity leftDiceEntity = "5e5ae24c-e218-4e4c-a54b-a35ce41cb108"
+
+	property Entity leftOneDiceEntity = "ba870c13-a3fc-46ad-aa60-de31d4e3e0d5"
+
+	property Entity rightDiceEntity = "03c56c53-dbfe-44c6-a3de-98baf3d3aa1f"
+
+	property Entity rightOneDiceEntity = "a2882f64-00e3-4d68-a301-508f0fd16950"
+
 	property TextGUIRendererComponent resultText = "c65cf185-345f-41a1-a867-23e77171d5fb"
 
 	property TextGUIRendererComponent outcomeText = "33f06587-7ac8-46a9-8eca-80d1fc82a638"
@@ -69,8 +77,8 @@ script RollResultDiceAnimationUI extends Logic
 	method void OnBeginPlay()
 		-- 눈금별 RUID 등록 (실제 RUID로 교체)
 		        self.diceSprites = {
-		            "cbf1cec74040448eb6798b00b0140c24", "4ecb111c2b2749b8af2ff2f581787163", "cca8ae22a4e84eba8572c2279d4661e7",
-		            "84dd7ba746a0476181a007321c0fc7e0", "4a770d8eec474a0da194f559e00eb112", "187ea1dc9d2b456595c1b69ac6ab60a6",
+		            "3ce426e0210343438871297e2806d951", "a2ab7e2cb3734c6d9d35e09b602670aa", "9d70f5c455fe451390e27367fc3692f2",
+					"e5851bea94954232bfca1aac0e13c8a9", "8fe157aa853a45f78703e04bb5cb7894", "b302d911b3c64014b000b494a95898dc",
 		        }
 		        if isvalid(self.panel) then
 		            self.panel.Enable = false   -- 평소엔 숨김
@@ -91,6 +99,31 @@ script RollResultDiceAnimationUI extends Logic
 					self.ResultTextPanel.Enable = false
 				end
 		
+				-- 주사위 눈금 표시를 기본 상태(일반 주사위 활성 / 전용 '1' 주사위 비활성)로 초기화.
+				self:ResetDiceFaces()
+		
+	end
+
+	@ExecSpace("ClientOnly")
+	method void ResetDiceFaces()
+		-- 다음 판을 위해 전용 '1' 주사위는 끄고 일반 주사위를 켠 기본 상태로 되돌린다.
+		if isvalid(self.leftOneDiceEntity) then self.leftOneDiceEntity.Enable = false end
+		if isvalid(self.rightOneDiceEntity) then self.rightOneDiceEntity.Enable = false end
+		if isvalid(self.leftDiceEntity) then self.leftDiceEntity.Enable = true end
+		if isvalid(self.rightDiceEntity) then self.rightDiceEntity.Enable = true end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void ApplyDieFace(integer value, SpriteGUIRendererComponent normalDice, table sprites, Entity normalEntity, Entity oneEntity)
+		-- 눈금이 1이면 일반 주사위를 끄고 전용 '1' 주사위를 켠다. 그 외 눈금이면 일반 주사위에 해당 스프라이트를 적용.
+		if value == 1 then
+			if isvalid(normalEntity) then normalEntity.Enable = false end
+			if isvalid(oneEntity) then oneEntity.Enable = true end
+		else
+			if isvalid(oneEntity) then oneEntity.Enable = false end
+			if isvalid(normalEntity) then normalEntity.Enable = true end
+			if isvalid(normalDice) then normalDice.ImageRUID = sprites[value] end
+		end
 	end
 
 	@ExecSpace("ClientOnly")
@@ -127,8 +160,9 @@ script RollResultDiceAnimationUI extends Logic
 				-- 주사위 눈/반짝임 표시 + 결과 텍스트.
 				if isvalid(self.dicePanel) then self.dicePanel.Enable = true end
 				if isvalid(self.diceParticle) then self.diceParticle.Enable = true end
-				self.leftDice.ImageRUID  = self.diceSprites[self._pendD1]
-				self.rightDice.ImageRUID = self.diceSprites[self._pendD2]
+				-- 눈금별 주사위 표시: 1이면 전용 '1' 주사위, 그 외엔 일반 주사위에 스프라이트 적용.
+				self:ApplyDieFace(self._pendD1, self.leftDice, self.diceSprites, self.leftDiceEntity, self.leftOneDiceEntity)
+				self:ApplyDieFace(self._pendD2, self.rightDice, self.diceSprites, self.rightDiceEntity, self.rightOneDiceEntity)
 		
 		_TimerService:SetTimerOnce(function()
 			
@@ -155,6 +189,7 @@ script RollResultDiceAnimationUI extends Logic
 				if isvalid(self.NextButton) then self.NextButton.Enable = false end
 				if isvalid(self.panel) then self.panel.Enable = false end
 				if isvalid(self.diceParticle) then self.diceParticle.Enable = false end   -- 반짝임 종료
+				self:ResetDiceFaces()   -- 전용 '1' 주사위 상태 초기화(다음 판 잔상 방지)
 		
 				local onComplete = self._pendOnComplete
 				self._pendOnComplete = nil   -- 재진입/중복 실행 방지

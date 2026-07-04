@@ -3342,7 +3342,7 @@
       {
         "id": "3b312053-872f-4bec-a474-1b1b68e0aa3d",
         "path": "/ui/ResultDicetUIGroup/ResultDice_Panel/Dice_Panel",
-        "componentNames": "MOD.Core.UITransformComponent,MOD.Core.ScrollLayoutGroupComponent",
+        "componentNames": "MOD.Core.UITransformComponent",
         "jsonString": {
           "name": "Dice_Panel",
           "path": "/ui/ResultDicetUIGroup/ResultDice_Panel/Dice_Panel",
@@ -3375,12 +3375,12 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 801.2886,
-                "y": 425.326752
+                "x": 808.942566,
+                "y": 427.877869
               },
               "OffsetMin": {
-                "x": -545.0073,
-                "y": -868.3087
+                "x": -537.353333,
+                "y": -865.7576
               },
               "Pivot": {
                 "x": 0.5,
@@ -3393,12 +3393,12 @@
               "UIMode": 1,
               "UIVersion": 2,
               "anchoredPosition": {
-                "x": 128.1406,
-                "y": -221.491
+                "x": 135.7946,
+                "y": -218.9399
               },
               "Position": {
-                "x": 128.1406,
-                "y": -221.491,
+                "x": 135.7946,
+                "y": -218.9399,
                 "z": 0.0
               },
               "QuaternionRotation": {
@@ -3407,19 +3407,6 @@
                 "z": 0.0,
                 "w": 1.0
               },
-              "Enable": true
-            },
-            {
-              "@type": "MOD.Core.ScrollLayoutGroupComponent",
-              "ChildAlignment": 4,
-              "OverrideSorting": false,
-              "Padding": {
-                "left": 0,
-                "right": 0,
-                "top": 0,
-                "bottom": -481
-              },
-              "UseScroll": false,
               "Enable": true
             }
           ],
@@ -3451,23 +3438,23 @@
           "@components": [
             {
               "@type": "MOD.Core.UITransformComponent",
-              "AlignmentOption": 4,
+              "AlignmentOption": 0,
               "AnchorsMax": {
-                "x": 0.0,
-                "y": 1.0
+                "x": 0.5,
+                "y": 0.5
               },
               "AnchorsMin": {
-                "x": 0.0,
-                "y": 1.0
+                "x": 0.5,
+                "y": 0.5
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 673.0,
-                "y": -587.0
+                "x": 100.0,
+                "y": 125.0
               },
               "OffsetMin": {
-                "x": 223.0,
-                "y": -1187.0
+                "x": -350.0,
+                "y": -475.0
               },
               "Pivot": {
                 "x": 0.5,
@@ -3485,12 +3472,12 @@
               },
               "UIVersion": 2,
               "anchoredPosition": {
-                "x": 448.0,
-                "y": -887.0
+                "x": -125.0,
+                "y": -175.0
               },
               "Position": {
-                "x": 448.0,
-                "y": -887.0,
+                "x": -125.0,
+                "y": -175.0,
                 "z": 0.0
               },
               "QuaternionRotation": {
@@ -3510,7 +3497,7 @@
               "@type": "MOD.Core.SpriteGUIRendererComponent",
               "AnimClipPlayType": 0,
               "ImageRUID": {
-                "DataId": "cbf1cec74040448eb6798b00b0140c24"
+                "DataId": "a2ab7e2cb3734c6d9d35e09b602670aa"
               },
               "OverrideSorting": false,
               "PreserveSprite": 1,
@@ -3551,23 +3538,23 @@
           "@components": [
             {
               "@type": "MOD.Core.UITransformComponent",
-              "AlignmentOption": 4,
+              "AlignmentOption": 0,
               "AnchorsMax": {
-                "x": 0.0,
-                "y": 1.0
+                "x": 0.5,
+                "y": 0.5
               },
               "AnchorsMin": {
-                "x": 0.0,
-                "y": 1.0
+                "x": 0.5,
+                "y": 0.5
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 1123.0,
-                "y": -587.0
+                "x": 350.0,
+                "y": 125.0
               },
               "OffsetMin": {
-                "x": 673.0,
-                "y": -1187.0
+                "x": -100.0,
+                "y": -475.0
               },
               "Pivot": {
                 "x": 0.5,
@@ -3585,12 +3572,12 @@
               },
               "UIVersion": 2,
               "anchoredPosition": {
-                "x": 898.0,
-                "y": -887.0
+                "x": 125.0,
+                "y": -175.0
               },
               "Position": {
-                "x": 898.0,
-                "y": -887.0,
+                "x": 125.0,
+                "y": -175.0,
                 "z": 0.0
               },
               "QuaternionRotation": {
@@ -3610,7 +3597,7 @@
               "@type": "MOD.Core.SpriteGUIRendererComponent",
               "AnimClipPlayType": 0,
               "ImageRUID": {
-                "DataId": "cbf1cec74040448eb6798b00b0140c24"
+                "DataId": "a2ab7e2cb3734c6d9d35e09b602670aa"
               },
               "OverrideSorting": false,
               "PreserveSprite": 1,
@@ -3621,6 +3608,296 @@
                 "b": 1.0,
                 "a": 1.0
               },
+              "Enable": true
+            }
+          ],
+          "@version": 1
+        }
+      },
+      {
+        "id": "ba870c13-a3fc-46ad-aa60-de31d4e3e0d5",
+        "path": "/ui/ResultDicetUIGroup/ResultDice_Panel/Dice_Panel/Left_OneDice",
+        "componentNames": "MOD.Core.UITransformComponent,MOD.Core.SpriteGUIRendererComponent",
+        "jsonString": {
+          "name": "Left_OneDice",
+          "path": "/ui/ResultDicetUIGroup/ResultDice_Panel/Dice_Panel/Left_OneDice",
+          "nameEditable": true,
+          "enable": false,
+          "visible": true,
+          "localize": true,
+          "displayOrder": 2,
+          "pathConstraints": "/////",
+          "revision": 0,
+          "origin": {
+            "type": "Model",
+            "entry_id": "UISprite",
+            "sub_entity_id": null,
+            "root_entity_id": null,
+            "replaced_model_id": null
+          },
+          "modelId": "uisprite",
+          "@components": [
+            {
+              "@type": "MOD.Core.UITransformComponent",
+              "ActivePlatform": 255,
+              "AlignmentOption": 0,
+              "AnchorsMax": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "AnchorsMin": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "MobileOnly": false,
+              "OffsetMax": {
+                "x": 100.0,
+                "y": 450.0
+              },
+              "OffsetMin": {
+                "x": -350.0,
+                "y": -150.0
+              },
+              "Pivot": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "RectSize": {
+                "x": 450.0,
+                "y": 600.0
+              },
+              "UIMode": 1,
+              "UIScale": {
+                "x": 1.0,
+                "y": 1.0,
+                "z": 1.0
+              },
+              "UIVersion": 2,
+              "anchoredPosition": {
+                "x": -125.0,
+                "y": 150.0
+              },
+              "Position": {
+                "x": -125.0,
+                "y": 150.0,
+                "z": 0.0
+              },
+              "QuaternionRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 1.0
+              },
+              "Scale": {
+                "x": 1.0,
+                "y": 1.0,
+                "z": 1.0
+              },
+              "Enable": true
+            },
+            {
+              "@type": "MOD.Core.SpriteGUIRendererComponent",
+              "AnimClipPlayType": 1,
+              "EndFrameIndex": 2147483647,
+              "IgnoreMapLayerCheck": false,
+              "ImageRUID": {
+                "DataId": "3ce426e0210343438871297e2806d951"
+              },
+              "LocalPosition": {
+                "x": 0.0,
+                "y": 0.0
+              },
+              "LocalScale": {
+                "x": 2.0,
+                "y": 2.0
+              },
+              "MaterialId": "",
+              "OrderInLayer": 0,
+              "OverrideSorting": false,
+              "PlayRate": 1.0,
+              "PreserveSprite": 0,
+              "SortingLayer": "UI",
+              "StartFrameIndex": 0,
+              "Color": {
+                "r": 1.0,
+                "g": 1.0,
+                "b": 1.0,
+                "a": 1.0
+              },
+              "DropShadow": false,
+              "DropShadowAngle": 120.0,
+              "DropShadowColor": {
+                "r": 0.0,
+                "g": 0.0,
+                "b": 0.0,
+                "a": 0.72
+              },
+              "DropShadowDistance": 3.0,
+              "FillAmount": 1.0,
+              "FillCenter": true,
+              "FillClockWise": true,
+              "FillMethod": 0,
+              "FillOrigin": 0,
+              "FlipX": false,
+              "FlipY": false,
+              "FrameColumn": 1,
+              "FrameRate": 0,
+              "FrameRow": 1,
+              "Outline": false,
+              "OutlineColor": {
+                "r": 0.0,
+                "g": 0.0,
+                "b": 0.0,
+                "a": 1.0
+              },
+              "OutlineWidth": 3.0,
+              "RaycastTarget": false,
+              "Type": 0,
+              "Enable": true
+            }
+          ],
+          "@version": 1
+        }
+      },
+      {
+        "id": "a2882f64-00e3-4d68-a301-508f0fd16950",
+        "path": "/ui/ResultDicetUIGroup/ResultDice_Panel/Dice_Panel/Right_OneDice",
+        "componentNames": "MOD.Core.UITransformComponent,MOD.Core.SpriteGUIRendererComponent",
+        "jsonString": {
+          "name": "Right_OneDice",
+          "path": "/ui/ResultDicetUIGroup/ResultDice_Panel/Dice_Panel/Right_OneDice",
+          "nameEditable": true,
+          "enable": false,
+          "visible": true,
+          "localize": true,
+          "displayOrder": 3,
+          "pathConstraints": "/////",
+          "revision": 0,
+          "origin": {
+            "type": "Model",
+            "entry_id": "UISprite",
+            "sub_entity_id": null,
+            "root_entity_id": null,
+            "replaced_model_id": null
+          },
+          "modelId": "uisprite",
+          "@components": [
+            {
+              "@type": "MOD.Core.UITransformComponent",
+              "ActivePlatform": 255,
+              "AlignmentOption": 0,
+              "AnchorsMax": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "AnchorsMin": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "MobileOnly": false,
+              "OffsetMax": {
+                "x": 350.0,
+                "y": 450.0
+              },
+              "OffsetMin": {
+                "x": -100.0,
+                "y": -150.0
+              },
+              "Pivot": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "RectSize": {
+                "x": 450.0,
+                "y": 600.0
+              },
+              "UIMode": 1,
+              "UIScale": {
+                "x": 1.0,
+                "y": 1.0,
+                "z": 1.0
+              },
+              "UIVersion": 2,
+              "anchoredPosition": {
+                "x": 125.0,
+                "y": 150.0
+              },
+              "Position": {
+                "x": 125.0,
+                "y": 150.0,
+                "z": 0.0
+              },
+              "QuaternionRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 1.0
+              },
+              "Scale": {
+                "x": 1.0,
+                "y": 1.0,
+                "z": 1.0
+              },
+              "Enable": true
+            },
+            {
+              "@type": "MOD.Core.SpriteGUIRendererComponent",
+              "AnimClipPlayType": 1,
+              "EndFrameIndex": 2147483647,
+              "IgnoreMapLayerCheck": false,
+              "ImageRUID": {
+                "DataId": "3ce426e0210343438871297e2806d951"
+              },
+              "LocalPosition": {
+                "x": 0.0,
+                "y": 0.0
+              },
+              "LocalScale": {
+                "x": 2.0,
+                "y": 2.0
+              },
+              "MaterialId": "",
+              "OrderInLayer": 0,
+              "OverrideSorting": false,
+              "PlayRate": 1.0,
+              "PreserveSprite": 0,
+              "SortingLayer": "UI",
+              "StartFrameIndex": 0,
+              "Color": {
+                "r": 1.0,
+                "g": 1.0,
+                "b": 1.0,
+                "a": 1.0
+              },
+              "DropShadow": false,
+              "DropShadowAngle": 120.0,
+              "DropShadowColor": {
+                "r": 0.0,
+                "g": 0.0,
+                "b": 0.0,
+                "a": 0.72
+              },
+              "DropShadowDistance": 3.0,
+              "FillAmount": 1.0,
+              "FillCenter": true,
+              "FillClockWise": true,
+              "FillMethod": 0,
+              "FillOrigin": 0,
+              "FlipX": false,
+              "FlipY": false,
+              "FrameColumn": 1,
+              "FrameRate": 0,
+              "FrameRow": 1,
+              "Outline": false,
+              "OutlineColor": {
+                "r": 0.0,
+                "g": 0.0,
+                "b": 0.0,
+                "a": 1.0
+              },
+              "OutlineWidth": 3.0,
+              "RaycastTarget": false,
+              "Type": 0,
               "Enable": true
             }
           ],
