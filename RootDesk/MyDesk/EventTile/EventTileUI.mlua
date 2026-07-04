@@ -900,6 +900,19 @@ script EventTileUI extends Logic
 	end
 
 	@ExecSpace("ClientOnly")
+	method void PortraitEmoteKind(string kind)
+		-- 결과 등급 대신 명시적 표정("happy"/"cry")으로 초상화 연출한다. (불행칸/길드영입/검은마법사 등 outcome 없이 직접 지정)
+		if kind == "happy" then
+			self:PortraitPlayEmotion("Cheers")
+			self:PortraitHop()
+		elseif kind == "cry" then
+			self:PortraitPlayEmotion("Cry")
+			self:PortraitCry()
+		end
+		log("[EventTileUI] 초상화 결과 연출(명시) kind=" .. tostring(kind))
+	end
+
+	@ExecSpace("ClientOnly")
 	method void PortraitPlayEmotion(string emotionName)
 		-- 초상화 UI 아바타 얼굴 표정 재생(AvatarGUIRendererComponent.PlayEmotion). 이벤트 끝까지 유지되도록 길게 재생.
 		local portrait = _EntityService:GetEntityByPath(self.PortraitPath)
@@ -1220,7 +1233,7 @@ script EventTileUI extends Logic
 		local board = _RollResultDiceAnimationUI:SetProbabilities(self._rollGreat, self._rollSuccess, self._rollFail)
 		_RollResultDiceAnimationUI:Show(self._rollD1, self._rollD2, self._rollTotal, board, self._rollOutcome, function()
 			self:ShowPagedText(self._rollResult, self.OnTextAdvance)
-			self:PortraitEmote(self._rollOutcome)   -- 결과 표정+동작을 초상화에 연출
+			self:PortraitEmote(self._rollOutcome)   -- 결과(성공/대성공=웃음, 실패=울음) 기반 표정+동작
 		end)
 	end
 

@@ -113,8 +113,9 @@ script UnluckyTile extends EventTileBase
 
 	@ExecSpace("Client")
 	method void ClientShowUnlucky(string message, string anim, string npcRuidsCsv)
-		-- 도착 플레이어 클라: 씬(페이지)별 NPC 교체 불행 이벤트 표시.
+		-- 도착 플레이어 클라: 씬(페이지)별 NPC 교체 불행 이벤트 표시. 불행칸 도착 → 울음 표정.
 		_EventTileUI:ShowPagedNpcEvent(message, anim, npcRuidsCsv, self)
+		_EventTileUI:PortraitEmoteKind("cry")
 	end
 
 	method string ResolvePageNpcRUIDs(string npcList)

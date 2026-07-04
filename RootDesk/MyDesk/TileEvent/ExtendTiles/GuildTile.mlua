@@ -245,6 +245,7 @@ script GuildTile extends EventTileBase
 			end
 			log("[GuildTile] 확률게임 event=" .. self._event .. " seq=" .. tostring(self._seq)
 				.. " 주사위=" .. tostring(d1) .. "+" .. tostring(d2) .. "=" .. tostring(sum) .. " → " .. outcomeLabel)
+			-- 길드 롤(창설/신규 길드원 가입)은 outcome 기반: 성공/대성공=웃음, 실패=울음.
 			self:ClientShowRoll(node.text, "idle", resultText, d1, d2, sum, greatPct, successPct, failPct, outcomeLabel, npcKey, ownerId)
 
 		else
@@ -331,8 +332,8 @@ script GuildTile extends EventTileBase
 		local msg = "이 사람으로 결정했다!\n" .. tostring(flavor)
 			.. "\n\n앞으로 길드 운영이 더 단단해질 것 같다!\n"
 			.. self:StatLabel(statKind) .. "이 " .. tostring(statGain) .. "만큼 오르고 공격력/마력이 " .. tostring(attackGain) .. "만큼 올랐다."
-		-- 부길마 선택 결과도 길드 이벤트이므로 등장 NPC는 레아로 고정.
-		self:ClientShowText(msg, "idle", "Lea", ownerId)
+		-- 부길마 선택 결과도 길드 이벤트이므로 등장 NPC는 레아로 고정. 길드원 영입 → 울음 표정.
+		self:ClientViceResult(msg, ownerId)
 	end
 
 	@ExecSpace("ServerOnly")
@@ -382,6 +383,13 @@ script GuildTile extends EventTileBase
 	method void ClientShowRoll(string leadText, string anim, string resultText, integer d1, integer d2, integer diceTotal, number greatPct, number successPct, number failPct, string outcomeLabel, string npcKey)
 		-- roll 씬(리드 텍스트 → 주사위 연출 → 결과 문구) 표시. '다음' → RequestAdvance.
 		_EventTileUI:SceneRoll(leadText, anim, resultText, d1, d2, diceTotal, greatPct, successPct, failPct, outcomeLabel, npcKey, self)
+	end
+
+	@ExecSpace("Client")
+	method void ClientViceResult(string text)
+		-- 부길마(길드원) 영입 결과: 텍스트 표시 + 웃음 표정(영입 성공 → 웃음).
+		_EventTileUI:SceneText(text, "idle", "Lea", self)
+		_EventTileUI:PortraitEmoteKind("happy")
 	end
 
 	@ExecSpace("Client")
