@@ -45,25 +45,27 @@ script RollResultDiceAnimationUI extends Logic
 
 	property table currentBoard = {}
 
-	-- Dice_Panel(주사위 눈/결과 텍스트 묶음) — 굴리기 전엔 숨겼다가 버튼 클릭 시 표시.
 	property Entity dicePanel = "3b312053-872f-4bec-a474-1b1b68e0aa3d"
-	-- '굴리기' 버튼(빌더가 UUID 주입). 클릭해야만 주사위가 굴러간다.
+
 	property Entity RollButton = "52b49e3f-d66f-4fc2-818c-69e1e8402e00"
-	-- '다음' 버튼(빌더가 UUID 주입). 주사위 결과를 본 뒤 눌러야 다음 스크립트로 진행한다.
+
 	property Entity NextButton = "3de88156-4c22-4ee0-93f3-0258ac4f81b9"
 
-	-- 굴리기 대기 중인 결과 데이터(Show에서 저장 → OnRollClicked에서 사용).
 	property integer _pendD1 = 0
+
 	property integer _pendD2 = 0
+
 	property integer _pendTotal = 0
+
 	property string _pendOutcome = ""
+
 	property any _pendOnComplete = nil
 
 	@ExecSpace("ClientOnly")
 	method void OnBeginPlay()
 		-- 눈금별 RUID 등록 (실제 RUID로 교체)
 		        self.diceSprites = {
-		            "a16cdbe6f0c545238c182da21f12b8b5", "4ecb111c2b2749b8af2ff2f581787163", "cca8ae22a4e84eba8572c2279d4661e7",
+		            "cbf1cec74040448eb6798b00b0140c24", "4ecb111c2b2749b8af2ff2f581787163", "cca8ae22a4e84eba8572c2279d4661e7",
 		            "84dd7ba746a0476181a007321c0fc7e0", "4a770d8eec474a0da194f559e00eb112", "187ea1dc9d2b456595c1b69ac6ab60a6",
 		        }
 		        if isvalid(self.panel) then
@@ -91,9 +93,9 @@ script RollResultDiceAnimationUI extends Logic
 				self._pendTotal = total
 				self._pendOutcome = gameOutcome
 				self._pendOnComplete = onComplete
-
+		
 				self:UpdateBoardUI(resultTable)   -- 보드 텍스트(대성공/성공/실패) 갱신
-
+		
 				-- 패널 켜고 앞으로. 굴리기 전에는 주사위/결과/반짝임을 숨기고 굴리기 버튼만 노출.
 				self.panel.Enable = true
 				self:BringToFront()   -- EventTileGroup 등 다른 그룹 위로 강제(그룹 순서 churn 방지)
@@ -108,9 +110,9 @@ script RollResultDiceAnimationUI extends Logic
 	method void OnRollClicked()
 		-- '굴리기' 버튼 클릭 → 실제 주사위 결과 연출. 이후(결과 표시/대기/완료 콜백)는 기존과 동일.
 				if isvalid(self.RollButton) then self.RollButton.Enable = false end
-
+		
 				_SFXManager:PlayDice()   -- 주사위 굴림 효과음
-
+		
 				-- 주사위 눈/반짝임 표시 + 결과 텍스트.
 				if isvalid(self.dicePanel) then self.dicePanel.Enable = true end
 				if isvalid(self.diceParticle) then self.diceParticle.Enable = true end
@@ -118,7 +120,7 @@ script RollResultDiceAnimationUI extends Logic
 				self.rightDice.ImageRUID = self.diceSprites[self._pendD2]
 				self.resultText.Text = "주사위 결과: " .. tostring(self._pendD1) .. " + " .. tostring(self._pendD2)
 					.. " = " .. tostring(self._pendTotal) .. " (" .. self._pendOutcome .. ")"
-
+		
 				-- 변경: 자동으로 닫지 않는다. 결과를 확인한 뒤 '다음' 버튼을 눌러야(OnNextClicked) 진행한다.
 				if isvalid(self.NextButton) then self.NextButton.Enable = true end
 				log("[RollResultDiceUI] 굴리기 클릭 → 주사위 연출 + '다음' 버튼 노출")
@@ -130,7 +132,7 @@ script RollResultDiceAnimationUI extends Logic
 				if isvalid(self.NextButton) then self.NextButton.Enable = false end
 				if isvalid(self.panel) then self.panel.Enable = false end
 				if isvalid(self.diceParticle) then self.diceParticle.Enable = false end   -- 반짝임 종료
-
+		
 				local onComplete = self._pendOnComplete
 				self._pendOnComplete = nil   -- 재진입/중복 실행 방지
 				log("[RollResultDiceUI] 다음 클릭 → 패널 닫고 onComplete 실행. cb=" .. tostring(onComplete ~= nil))
