@@ -1,21 +1,10 @@
---[[
-    PlayerStatInit
-    ----------------------------------------------------------------------------
-    플레이어 입장 시 전투 관련 컴포넌트(per-player)를 런타임 부착하는 Logic.
-    DefaultPlayer.model은 Global(읽기 전용)이라 모델 수정 대신 런타임 AddComponent로 붙인다.
-
-    부착 컴포넌트(같은 플레이어 엔티티에 형제로 존재):
-      BuffManager / WeaponEquipment / ArmorEquipment / AccessoryEquipment / ExtraTableManager / CombatPowerManager
-    이들은 전부 ServerOnly 로직(타일 효과·전투력 계산)에서 사용되므로 서버에서 부착한다.
---]]
 @Logic
 script PlayerStatInit extends Logic
 
 	property any userEnterHandler = nil
 
-	-- [임시/디버그] 입장 시 장착/해제 테스트용 더미 장비를 인벤토리에 지급한다. 출시 전 false 또는 블록 제거.
 	@Sync
-	property boolean debugGrantTestItems = true
+	property boolean debugGrantTestItems = false
 
 	method void OnBeginPlay()
 		if self:IsServer() then
@@ -49,7 +38,7 @@ script PlayerStatInit extends Logic
 		self:AddIfMissing(p, "script.CombatPowerManager")
 		self:AddIfMissing(p, "script.CubeInventory")
 		log("[PlayerStatInit] 전투 컴포넌트 부착 완료: " .. event.UserId)
-
+		
 		-- [임시/디버그] 입장 시 기본 지급(토글 기본 ON). 이후 인게임 DebugGrantItemsButton이 즉시 지급/회수한다.
 		if self.debugGrantTestItems then
 			self:GrantTestItems(p)
@@ -90,14 +79,14 @@ script PlayerStatInit extends Logic
 			end
 		end
 		log("[PlayerStatInit] (디버그) 전체 장비 지급: " .. tostring(count) .. "개")
-
+		
 		-- 잠재 재설정 테스트용 미라클 큐브: 중복 지급 방지로 0으로 되돌린 뒤 999개.
 		local bag = p:GetComponent("script.CubeInventory")
 		if isvalid(bag) then
 			bag:ResetAll()
 			bag:AddMiracleCube(999)
 		end
-
+		
 		local cp = p:GetComponent("script.CombatPowerManager")
 		if isvalid(cp) then cp:CalculateCurrentCombatPower() end
 	end
@@ -113,7 +102,7 @@ script PlayerStatInit extends Logic
 		local bag = p:GetComponent("script.CubeInventory")
 		if isvalid(bag) then bag:ResetAll() end
 		log("[PlayerStatInit] (디버그) 더미 아이템 회수 완료")
-
+		
 		local cp = p:GetComponent("script.CombatPowerManager")
 		if isvalid(cp) then cp:CalculateCurrentCombatPower() end
 	end
