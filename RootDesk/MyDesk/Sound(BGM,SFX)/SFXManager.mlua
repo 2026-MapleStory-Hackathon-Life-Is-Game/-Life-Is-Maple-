@@ -17,6 +17,14 @@ script SFXManager extends Logic
 
 	property string cubeRUID = "56aaece6e9a245dcacbd96722ecf2c0b"
 
+	property string levelUpRUID = "c198d87b06b24707864b1ac73345cca8"
+
+	@ExecSpace("ClientOnly")
+	method void PlayLevelUp()
+		        -- 레벨업 알림 효과음(밝은 멜로디).
+		        self:Play(self.levelUpRUID)
+	end
+
 	@ExecSpace("ClientOnly")
 	method void PlayCube()
 		        -- 미라클 큐브 사용 효과음.
