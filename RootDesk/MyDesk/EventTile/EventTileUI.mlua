@@ -125,6 +125,11 @@ script EventTileUI extends Logic
 
 	property table _pageNpcRUIDs = {}
 
+	-- 페이지 진행 중 '마지막 페이지'에 도달하는 순간 1회 재생할 초상화 연출.
+	-- 불행칸: 스탯 감소 문구가 항상 마지막 페이지에 나오므로, 시작이 아니라 그때 울도록 예약한다.
+	property string _pageEndEmote = ""
+	property boolean _pageEndEmoteFired = false
+
 	property number TypeInterval = 0.03
 
 	property integer _typeTimer = 0
@@ -391,6 +396,8 @@ script EventTileUI extends Logic
 		self:SetNPCImage(false, "")
 		self._imgNpcFromPage = 0   -- 페이지별 이미지 전환 상태 초기화(이번 표시에서만 재설정).
 		self._pageNpcRUIDs = {}    -- 페이지별 NPC 목록도 초기화.
+		self._pageEndEmote = ""    -- 마지막-페이지 예약 연출 초기화(이전 이벤트의 예약이 이어지지 않도록).
+		self._pageEndEmoteFired = false
 	end
 
 	@ExecSpace("ClientOnly")
@@ -795,10 +802,14 @@ script EventTileUI extends Logic
 	@ExecSpace("ClientOnly")
 	method void SetPortrait(string anim)
 		-- 초상화 애니(idle→Stand / attack→Attack) 적용 + 로딩 타이밍 대비 1초마다 재적용.
+		-- ★ 이벤트 시작 시 강제 초기화: 이전 이벤트에서 남은 울음/누움(prone)·점프·표정이 이어지지 않도록,
+		--   진행 중인 모션/표정을 정리하고 포즈를 needReset=true로 강제 전환한다(누움 → 최소 idle, 또는 attack).
 		self._portraitState = anim
 		-- 모션보다 먼저 외형을 로컬 플레이어와 동일하게 고정한다(기본 아바타=토벤머리 폴백 방지).
 		self:EnsurePortraitIdentity()
-		self:ApplyPortrait()
+		self:StopPortraitMotion()      -- 이전 점프/울음 연출 타이머 정리 + 위치 복구
+		self:PortraitResetEmotion()    -- 이전 표정(울음/웃음) 중립 복귀
+		self:PortraitPose(anim, true)  -- 누움 등 held 포즈에서도 확실히 idle/attack로 강제 재생(needReset)
 		self:ClearPortrait()
 		self._portraitTimer = _TimerService:SetTimerRepeat(function() self:ApplyPortrait() end, 1.0)
 	end
@@ -1101,10 +1112,34 @@ script EventTileUI extends Logic
 				if r == nil then r = self._pageNpcRUIDs[#self._pageNpcRUIDs] end
 				if r ~= nil and r ~= "" then self:SetNPCImage(true, r) end
 			end
+			-- 마지막 페이지에 도달하면 예약된 연출(불행칸 울음 등)을 1회 재생한다.
+			if self._pageIdx >= #self._pages then
+				self:FirePageEndEmote()
+			end
 		else
 			local cb = self._pageDone
 			if cb ~= nil then cb(self) end
 		end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void ArmPageEndEmote(string kind)
+		-- 진행 중인 페이지 텍스트의 '마지막 페이지'에 도달하는 순간 kind("cry"/"happy") 연출을 1회 재생하도록 예약한다.
+		-- (불행칸: 이벤트 시작이 아니라 스탯 감소 문구가 나오는 마지막 페이지에서 울도록.)
+		-- 이미 마지막 페이지(단일 페이지 등)를 보고 있으면 즉시 재생한다.
+		self._pageEndEmote = kind
+		self._pageEndEmoteFired = false
+		if #self._pages > 0 and self._pageIdx >= #self._pages then
+			self:FirePageEndEmote()
+		end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void FirePageEndEmote()
+		-- 예약된 마지막-페이지 연출을 1회만 재생한다(이후 페이지 재진입/재적용에도 중복 재생 방지).
+		if self._pageEndEmote == "" or self._pageEndEmoteFired then return end
+		self._pageEndEmoteFired = true
+		self:PortraitEmoteKind(self._pageEndEmote)
 	end
 
 	@ExecSpace("ClientOnly")
