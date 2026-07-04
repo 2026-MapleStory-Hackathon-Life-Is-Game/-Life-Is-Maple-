@@ -20787,9 +20787,9 @@
             },
             {
               "@type": "MOD.Core.SpriteGUIRendererComponent",
-              "AnimClipPlayType": 1,
+              "AnimClipPlayType": 0,
               "ImageRUID": {
-                "DataId": "4ecb111c2b2749b8af2ff2f581787163"
+                "DataId": "a2ab7e2cb3734c6d9d35e09b602670aa"
               },
               "OverrideSorting": false,
               "PreserveSprite": 1,
@@ -20891,9 +20891,9 @@
             },
             {
               "@type": "MOD.Core.SpriteGUIRendererComponent",
-              "AnimClipPlayType": 1,
+              "AnimClipPlayType": 0,
               "ImageRUID": {
-                "DataId": "4ecb111c2b2749b8af2ff2f581787163"
+                "DataId": "a2ab7e2cb3734c6d9d35e09b602670aa"
               },
               "OverrideSorting": false,
               "PlayRate": 1.0,
@@ -20916,6 +20916,220 @@
         }
       },
       {
+        "id": "cabf5cf6-ed1d-49aa-b42d-b75cacbc1736",
+        "path": "/ui/InGameUIGroup/UI_RollDice/UI_LeftOneDice",
+        "componentNames": "MOD.Core.UITransformComponent,MOD.Core.SpriteGUIRendererComponent",
+        "jsonString": {
+          "name": "UI_LeftOneDice",
+          "path": "/ui/InGameUIGroup/UI_RollDice/UI_LeftOneDice",
+          "nameEditable": true,
+          "enable": false,
+          "visible": true,
+          "localize": true,
+          "displayOrder": 2,
+          "pathConstraints": "////",
+          "revision": 1,
+          "origin": {
+            "type": "Model",
+            "entry_id": "uiempty",
+            "sub_entity_id": null,
+            "root_entity_id": "6ee9f4af-07be-46d9-b226-aed331a42dbe",
+            "replaced_model_id": null
+          },
+          "modelId": "uiempty",
+          "@components": [
+            {
+              "@type": "MOD.Core.UITransformComponent",
+              "AlignmentOption": 0,
+              "AnchorsMax": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "AnchorsMin": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "MobileOnly": false,
+              "OffsetMax": {
+                "x": 575.0,
+                "y": -320.0
+              },
+              "OffsetMin": {
+                "x": -825.0,
+                "y": -820.0
+              },
+              "Pivot": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "RectSize": {
+                "x": 1400.0,
+                "y": 500.0
+              },
+              "UIMode": 1,
+              "UIScale": {
+                "x": 1.0,
+                "y": 1.0,
+                "z": 1.0
+              },
+              "UIVersion": 2,
+              "anchoredPosition": {
+                "x": -125.0,
+                "y": -570.0
+              },
+              "Position": {
+                "x": -125.0,
+                "y": -570.0,
+                "z": 0.0
+              },
+              "QuaternionRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 1.0
+              },
+              "Scale": {
+                "x": 1.0,
+                "y": 1.0,
+                "z": 1.0
+              },
+              "Enable": true
+            },
+            {
+              "@type": "MOD.Core.SpriteGUIRendererComponent",
+              "AnimClipPlayType": 1,
+              "ImageRUID": {
+                "DataId": "3ce426e0210343438871297e2806d951"
+              },
+              "OverrideSorting": false,
+              "PlayRate": 1.0,
+              "PreserveSprite": 1,
+              "SortingLayer": "MapLayer0",
+              "StartFrameIndex": 0,
+              "Color": {
+                "r": 1.0,
+                "g": 1.0,
+                "b": 1.0,
+                "a": 1.0
+              },
+              "FillCenter": false,
+              "FillMethod": 1,
+              "FlipY": false,
+              "Type": 0,
+              "Enable": true
+            }
+          ],
+          "@version": 1
+        }
+      },
+      {
+        "id": "4d633474-5970-47e7-8a90-664a24b767d7",
+        "path": "/ui/InGameUIGroup/UI_RollDice/UI_RightOneDice",
+        "componentNames": "MOD.Core.UITransformComponent,MOD.Core.SpriteGUIRendererComponent",
+        "jsonString": {
+          "name": "UI_RightOneDice",
+          "path": "/ui/InGameUIGroup/UI_RollDice/UI_RightOneDice",
+          "nameEditable": true,
+          "enable": false,
+          "visible": true,
+          "localize": true,
+          "displayOrder": 3,
+          "pathConstraints": "////",
+          "revision": 1,
+          "origin": {
+            "type": "Model",
+            "entry_id": "uiempty",
+            "sub_entity_id": null,
+            "root_entity_id": "6ee9f4af-07be-46d9-b226-aed331a42dbe",
+            "replaced_model_id": null
+          },
+          "modelId": "uiempty",
+          "@components": [
+            {
+              "@type": "MOD.Core.UITransformComponent",
+              "AlignmentOption": 0,
+              "AnchorsMax": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "AnchorsMin": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "MobileOnly": false,
+              "OffsetMax": {
+                "x": 825.0,
+                "y": -320.0
+              },
+              "OffsetMin": {
+                "x": -575.0,
+                "y": -820.0
+              },
+              "Pivot": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "RectSize": {
+                "x": 1400.0,
+                "y": 500.0
+              },
+              "UIMode": 1,
+              "UIScale": {
+                "x": 1.0,
+                "y": 1.0,
+                "z": 1.0
+              },
+              "UIVersion": 2,
+              "anchoredPosition": {
+                "x": 125.0,
+                "y": -570.0
+              },
+              "Position": {
+                "x": 125.0,
+                "y": -570.0,
+                "z": 0.0
+              },
+              "QuaternionRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 1.0
+              },
+              "Scale": {
+                "x": 1.0,
+                "y": 1.0,
+                "z": 1.0
+              },
+              "Enable": true
+            },
+            {
+              "@type": "MOD.Core.SpriteGUIRendererComponent",
+              "AnimClipPlayType": 1,
+              "ImageRUID": {
+                "DataId": "3ce426e0210343438871297e2806d951"
+              },
+              "OverrideSorting": false,
+              "PlayRate": 1.0,
+              "PreserveSprite": 1,
+              "SortingLayer": "MapLayer0",
+              "StartFrameIndex": 0,
+              "Color": {
+                "r": 1.0,
+                "g": 1.0,
+                "b": 1.0,
+                "a": 1.0
+              },
+              "FillCenter": false,
+              "FillMethod": 1,
+              "FlipY": false,
+              "Type": 0,
+              "Enable": true
+            }
+          ],
+          "@version": 1
+        }
+      },
+      {
         "id": "e464f83f-90bf-4ff1-9b71-b80b295e3db7",
         "path": "/ui/InGameUIGroup/UI_RollDice/UISprite",
         "componentNames": "MOD.Core.UITransformComponent,MOD.Core.SpriteGUIRendererComponent",
@@ -20926,7 +21140,7 @@
           "enable": false,
           "visible": true,
           "localize": true,
-          "displayOrder": 2,
+          "displayOrder": 4,
           "pathConstraints": "////",
           "revision": 1,
           "origin": {
@@ -21005,7 +21219,7 @@
           "enable": true,
           "visible": true,
           "localize": true,
-          "displayOrder": 3,
+          "displayOrder": 5,
           "pathConstraints": "////",
           "revision": 1,
           "origin": {
@@ -21112,7 +21326,7 @@
           "enable": false,
           "visible": true,
           "localize": true,
-          "displayOrder": 4,
+          "displayOrder": 6,
           "pathConstraints": "////",
           "revision": 0,
           "origin": {
@@ -22060,7 +22274,7 @@
           "name": "DebugEndButton",
           "path": "/ui/InGameUIGroup/DebugEndButton",
           "nameEditable": true,
-          "enable": true,
+          "enable": false,
           "visible": true,
           "localize": true,
           "displayOrder": 10,
@@ -22312,7 +22526,7 @@
           "name": "DebugNextStageButton",
           "path": "/ui/InGameUIGroup/DebugNextStageButton",
           "nameEditable": true,
-          "enable": true,
+          "enable": false,
           "visible": true,
           "localize": true,
           "displayOrder": 11,
@@ -22564,7 +22778,7 @@
           "name": "DebugGrantItemsButton",
           "path": "/ui/InGameUIGroup/DebugGrantItemsButton",
           "nameEditable": true,
-          "enable": true,
+          "enable": false,
           "visible": true,
           "localize": true,
           "displayOrder": 12,
@@ -24376,11 +24590,11 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": -75.0,
+                "x": -75.00017,
                 "y": -100.0001
               },
               "OffsetMin": {
-                "x": 75.0,
+                "x": 74.99977,
                 "y": 250.0
               },
               "Pivot": {
@@ -24388,7 +24602,7 @@
                 "y": 0.5
               },
               "RectSize": {
-                "x": 950.0,
+                "x": 950.000061,
                 "y": 449.9999
               },
               "UIMode": 1,
@@ -24788,20 +25002,20 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": -75.0,
-                "y": -100.0001
+                "x": -75.00017,
+                "y": -102.556519
               },
               "OffsetMin": {
-                "x": 75.0,
-                "y": 250.0
+                "x": 74.99977,
+                "y": 247.4436
               },
               "Pivot": {
                 "x": 0.5,
                 "y": 0.5
               },
               "RectSize": {
-                "x": 950.0,
-                "y": 449.9999
+                "x": 950.000061,
+                "y": 449.999878
               },
               "UIMode": 1,
               "UIScale": {
@@ -25529,11 +25743,11 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": -75.0,
+                "x": -75.00017,
                 "y": -100.0001
               },
               "OffsetMin": {
-                "x": 75.0,
+                "x": 74.99977,
                 "y": 250.0
               },
               "Pivot": {
@@ -25541,7 +25755,7 @@
                 "y": 0.5
               },
               "RectSize": {
-                "x": 950.0,
+                "x": 950.000061,
                 "y": 449.9999
               },
               "UIMode": 1,
@@ -26195,11 +26409,11 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": -75.0,
+                "x": -75.00017,
                 "y": -100.0001
               },
               "OffsetMin": {
-                "x": 75.0,
+                "x": 74.99977,
                 "y": 250.0
               },
               "Pivot": {
@@ -26207,7 +26421,7 @@
                 "y": 0.5
               },
               "RectSize": {
-                "x": 950.0,
+                "x": 950.000061,
                 "y": 449.9999
               },
               "UIMode": 1,
