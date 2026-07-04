@@ -153,6 +153,21 @@ script BossUI extends Logic
 		return nil
 	end
 
+	method string FormatPower(string raw)
+		-- 적정 전투력 표시용: "450000" → "450,000". 숫자가 아니면 원본 그대로.
+		local n = tonumber(raw)
+		if n == nil then return tostring(raw) end
+		local s = tostring(math.floor(n))
+		local out = ""
+		local cnt = 0
+		for i = #s, 1, -1 do
+			out = string.sub(s, i, i) .. out
+			cnt = cnt + 1
+			if cnt % 3 == 0 and i > 1 then out = "," .. out end
+		end
+		return out
+	end
+
 	@ExecSpace("ClientOnly")
 	method void SetCard1Name(string name)
 		-- 1번 카드 이름 텍스트(BossCard1/NameBack/NameText)를 런타임으로 설정한다.
@@ -228,12 +243,31 @@ script BossUI extends Logic
 		end
 	end
 
+	method table BossUITransform(string bossKey)
+		-- BossImage에서 보스별 표시 보정값(scale/offX/offY)을 반환한다. 없거나 빈 칸이면 기본(1/0/0 = 변화 없음).
+		local res = { scale = 1, offX = 0, offY = 0 }
+		local ds = _DataService:GetTable("BossImage")
+		if isvalid(ds) == false then return res end
+		for i = 1, ds:GetRowCount() do
+			if ds:GetCell(i, "BossName") == bossKey then
+				res.scale = tonumber(ds:GetCell(i, "UIScale")) or 1
+				res.offX  = tonumber(ds:GetCell(i, "UIOffsetX")) or 0
+				res.offY  = tonumber(ds:GetCell(i, "UIOffsetY")) or 0
+				return res
+			end
+		end
+		return res
+	end
+
 	@ExecSpace("ClientOnly")
 	method void SetCardImage(integer idx, string bossKey)
 		-- idx번 카드의 보스 선택 이미지(Img)를 BossImage.BossSelectRUID로 설정한다.
+		-- 크기 보정(UIScale)만 적용한다 — 작은 카드에서는 오프셋을 쓰지 않는다(오프셋은 상세/인게임 큰 슬롯 전용).
 		local imgs = { self.BossCard1Img, self.BossCard2Img, self.BossCard3Img, self.BossCard4Img }
 		local row = self:BossImageRow(bossKey)
 		if row ~= nil then self:SetImageRUID(imgs[idx], row.select) end
+		local t = self:BossUITransform(bossKey)
+		_EventTileUI:ApplySlotTransform(imgs[idx], "bosscard" .. idx, t.scale, 0, 0)
 	end
 
 	@ExecSpace("ClientOnly")
@@ -344,9 +378,11 @@ script BossUI extends Logic
 		if isvalid(self.DetailBossName) and isvalid(self.DetailBossName.TextComponent) then
 			self.DetailBossName.TextComponent.Text = self._bossNames[idx]
 		end
-		-- DetailPanel 보스 이미지 = BossImage.DetailPanelRUID.
+		-- DetailPanel 보스 이미지 = BossImage.DetailPanelRUID + 보스별 크기/오프셋 보정(상세 화면은 큰 슬롯이라 오프셋도 적용).
 		local imgRow = self:BossImageRow(self._bossKeys[idx])
 		if imgRow ~= nil then self:SetImageRUID(self.DetailBossImage, imgRow.detail) end
+		local dt = self:BossUITransform(self._bossKeys[idx])
+		_EventTileUI:ApplySlotTransform(self.DetailBossImage, "bossdetail", dt.scale, dt.offX, dt.offY)
 
 		-- 이 지역이 허용하고(_bossDiffs) 또한 BossProbability에 실존하는 난이도만 버튼 활성화.
 		-- (_bossDiffs[idx]가 nil이면 단일 모드 → 지역 제한 없음. 없는/미허용 난이도는 Enable=false.)
@@ -359,7 +395,18 @@ script BossUI extends Logic
 				if row ~= nil and self:DiffAllowed(allowed, d.key) then
 					d.e.Enable = true
 					if isvalid(d.e.TextComponent) then
-						d.e.TextComponent.Text = d.label .. "\n드랍: " .. tostring(row.drop)
+						-- 버튼 본문은 난이도 라벨(제목, 큰 글씨)만.
+						d.e.TextComponent.Text = d.label
+					end
+					-- 세부 설명(적정 전투력 / 드랍)은 버튼 하위 Desc 텍스트(작은 글씨)에 표시.
+					-- 포맷: "제목\n: 내용", 두 파트 사이에는 빈 줄 하나. 드랍 항목의 "/"는 ", "로.
+					local desc = d.e:GetChildByName("Desc")
+					if isvalid(desc) and isvalid(desc.TextComponent) then
+						-- "세트/무기"는 같은 줄(",무기")로 묶고, 나머지 "/"는 줄바꿈으로.
+						local dropRaw = (string.gsub(tostring(row.drop), "/무기", ",무기"))
+						local dropText = (string.gsub(dropRaw, "/", "\n"))
+						desc.TextComponent.Text = "적정 전투력\n: " .. self:FormatPower(row.req)
+							.. "\n\n드랍 아이템\n: " .. dropText
 					end
 				else
 					d.e.Enable = false
