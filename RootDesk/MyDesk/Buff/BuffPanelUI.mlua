@@ -27,6 +27,9 @@ script BuffPanelUI extends Logic
 	-- 서버가 SetBuffs와 함께 보낸 현재 길드원 수(길드 버프 툴팁에 표시).
 	property integer _guildMemberCount = 0
 
+	-- 서버가 SetBuffs와 함께 보낸 현재 가족 구성원 수(결혼 버프 툴팁에 표시).
+	property integer _familyMemberCount = 0
+
 	method void OnBeginPlay()
 		-- 템플릿/툴팁을 숨기고 내부 상태를 초기화한다.
 		self.cards = {}
@@ -41,9 +44,10 @@ script BuffPanelUI extends Logic
 	end
 
 	@ExecSpace("Client")
-	method void SetBuffs(table buffNames, integer guildMemberCount)
-		-- 서버가 보낸 활성 버프 이름 목록으로 카드 한 줄을 다시 만든다. guildMemberCount는 길드 버프 툴팁용.
+	method void SetBuffs(table buffNames, integer guildMemberCount, integer familyCount)
+		-- 서버가 보낸 활성 버프 이름 목록으로 카드 한 줄을 다시 만든다. guildMemberCount/familyCount는 각각 길드/결혼 버프 툴팁용.
 		self._guildMemberCount = guildMemberCount
+		self._familyMemberCount = familyCount
 		self:ClearCards()
 		if isvalid(self.cardTemplate) == false then
 			log_error("[BuffPanelUI] cardTemplate 없음")
@@ -136,6 +140,11 @@ script BuffPanelUI extends Logic
 		-- 길드 버프(Category=Guild)면 현재 영입한 길드원 수를 덧붙인다.
 		if ds:GetCell(rowIdx, "Category") == "Guild" then
 			table.insert(lines, "영입한 길드원: " .. tostring(self._guildMemberCount) .. "명")
+		end
+
+		-- 결혼 버프(웨딩 팡파르)면 현재 가족 구성원 수를 덧붙인다.
+		if ds:GetCell(rowIdx, "BuffName") == "Wedding_Fanfare" then
+			table.insert(lines, "가족 구성원: " .. tostring(self._familyMemberCount) .. "명")
 		end
 
 		return table.concat(lines, "\n")

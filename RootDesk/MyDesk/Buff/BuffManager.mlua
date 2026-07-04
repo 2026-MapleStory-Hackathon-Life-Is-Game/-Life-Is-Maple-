@@ -308,7 +308,11 @@ script BuffManager extends Component
 		local memberCount = 0
 		local guild = self.Entity:GetComponent("script.GuildManager")
 		if isvalid(guild) then memberCount = guild.GeneralMembers end
-		_BuffPanelUI:SetBuffs(self:GetActiveBuffNames(), memberCount, userId)
+		-- 가족 구성원 수(같은 플레이어의 RomanceManager)를 함께 보내 결혼 버프(웨딩 팡파르) 툴팁에 표시한다. 미부착 시 0.
+		local familyCount = 0
+		local romance = self.Entity:GetComponent("script.RomanceManager")
+		if isvalid(romance) then familyCount = romance.FamilyMembers end
+		_BuffPanelUI:SetBuffs(self:GetActiveBuffNames(), memberCount, familyCount, userId)
 	end
 
 end
