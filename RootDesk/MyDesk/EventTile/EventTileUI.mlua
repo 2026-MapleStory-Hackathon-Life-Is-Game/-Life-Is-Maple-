@@ -11,6 +11,11 @@ script EventTileUI extends Logic
 
 	property number VillageStepSeconds = 5.0
 
+	-- 사냥 몬스터 이미지 전역 배율. 슬롯은 PreserveSprite=NativeSize(원본 크기)로 렌더되고,
+	-- 여기에 이 값 × 몬스터별 UIScale(TierMonster)을 곱해 최종 표시 크기가 정해진다.
+	-- 전체 몬스터가 너무 크/작으면 이 값 하나만 조절하면 된다(개별 조정 불필요).
+	property number MonsterNativeScale = 2.0
+
 	property Entity NextButton = "838ae8b4-920f-4448-bc4b-b551594cba6d"
 
 	property Entity AcceptButton = "2a91f613-50ec-455f-8610-6fdc36bfeca4"
@@ -477,15 +482,26 @@ script EventTileUI extends Logic
 
 	@ExecSpace("ClientOnly")
 	method void SetNPCImage(boolean show, string ruid)
-		-- NPC 이미지 표시/숨김 + (선택) NPC별 RUID 적용. 마을·사냥+·불행 이벤트에서 켜고, 그 외에는 끈다.
-		-- ruid가 빈 값이면 NpcInfo에 RUID가 아직 없는 NPC → UI의 기본 이미지를 그대로 유지한다.
+		-- NPC 이미지 표시/숨김 + RUID 적용. 마을·사냥+·불행·보스 이벤트에서 켜고, 그 외에는 끈다.
+		-- ruid가 빈 값이면 UI의 기본 이미지를 그대로 유지한다.
+		-- RUID 종류에 따라 렌더 방식을 분기한다(슬롯은 NPC/보스/엘리트 몬스터가 공용):
+		--   · 몬스터(TierMonster STAND) → 원본 크기(NativeSize) + 전역 배율(MonsterNativeScale). 3칸 사냥 몬스터와 동일 규칙 → 박스에 눌려 작아지지 않음.
+		--   · 인간형 NPC / 보스 → 슬롯 박스에 비율 맞춤(AspectOnly) + NpcInfo/BossImage 보정.
 		if isvalid(self.NPCImage) == false then return end
 		self.NPCImage.Enable = show
 		if show and ruid ~= nil and ruid ~= "" and isvalid(self.NPCImage.SpriteGUIRendererComponent) then
-			self.NPCImage.SpriteGUIRendererComponent.ImageRUID = DataRef(ruid)
-			-- RUID별 표시 보정(크기/위치)을 적용. NpcInfo/BossImage에 값이 없으면 기본(1/0/0)이라 원본 슬롯 그대로.
-			local t = self:SlotTransformForRUID(ruid)
-			self:ApplySlotTransform(self.NPCImage, "npc", t.scale, t.offX, t.offY)
+			local r = self.NPCImage.SpriteGUIRendererComponent
+			r.ImageRUID = DataRef(ruid)
+			local mon = _TileManager:MonsterAnimsByStand(ruid)   -- nil이면 몬스터가 아님(NPC/보스)
+			if mon ~= nil then
+				r.PreserveSprite = PreserveSpriteType.NativeSize
+				local sc = self.MonsterNativeScale * mon.scale
+				self:ApplySlotTransform(self.NPCImage, "npc", sc, mon.offX, mon.offY)
+			else
+				r.PreserveSprite = PreserveSpriteType.AspectOnly
+				local t = self:SlotTransformForRUID(ruid)
+				self:ApplySlotTransform(self.NPCImage, "npc", t.scale, t.offX, t.offY)
+			end
 		end
 	end
 
@@ -573,7 +589,9 @@ script EventTileUI extends Logic
 				local base = self:SlotBase(e, "mon" .. i)   -- 원본 위치(최초 1회 캐시 — 오프셋 누적 방지)
 				self._monBaseXs[i] = base.x + anims.offX
 				e.UITransformComponent.anchoredPosition = Vector2(self._monBaseXs[i], base.y + anims.offY)
-				e.UITransformComponent.UIScale = Vector3(anims.scale, anims.scale, 1)
+				-- 슬롯은 원본 크기(NativeSize)로 렌더 → 전역 배율 × 몬스터별 배율만 UIScale로 곱한다.
+				local sc = self.MonsterNativeScale * anims.scale
+				e.UITransformComponent.UIScale = Vector3(sc, sc, 1)
 			end
 		end
 		self._monBaseSet = true
