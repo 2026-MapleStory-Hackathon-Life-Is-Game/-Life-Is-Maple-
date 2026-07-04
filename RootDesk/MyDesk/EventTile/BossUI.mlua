@@ -285,6 +285,8 @@ script BossUI extends Logic
 		-- 선택 카드의 드랍 안내 텍스트를 BossProbability 기반으로 만든다(더미 대체).
 		-- 이 보스가 (지역이 허용하고) 실존하는 난이도별로 "난이도 · 드랍" 한 줄씩. 없으면 "".
 		-- 난이도가 여러 개면 드랍이 다르므로 난이도 라벨을 붙인다. detail 패널과 같은 BossProbability 값을 참조.
+		-- 검은 마법사는 드랍 아이템이 없다 → 더미 안내([드랍 아이템] 헤더/빈 라벨)를 표시하지 않고 빈칸으로 둔다. (다른 보스엔 영향 없음)
+		if bossKey == "Black_Mage" then return "" end
 		local lines = { "[드랍 아이템]" }
 		local order = { "Easy", "Normal", "Hard", "Chaos" }
 		local labels = { Easy = "이지", Normal = "노말", Hard = "하드", Chaos = "카오스" }
@@ -445,11 +447,16 @@ script BossUI extends Logic
 					-- 포맷: "제목\n: 내용", 두 파트 사이에는 빈 줄 하나. 드랍 항목의 "/"는 ", "로.
 					local desc = d.e:GetChildByName("Desc")
 					if isvalid(desc) and isvalid(desc.TextComponent) then
-						-- "세트/무기"는 같은 줄(",무기")로 묶고, 나머지 "/"는 줄바꿈으로.
-						local dropRaw = (string.gsub(tostring(row.drop), "/무기", ",무기"))
-						local dropText = (string.gsub(dropRaw, "/", "\n"))
-						desc.TextComponent.Text = "적정 전투력\n: " .. self:FormatPower(row.req)
-							.. "\n\n드랍 아이템\n: " .. dropText
+						if bossKey == "Black_Mage" then
+							-- 검은 마법사는 드랍 아이템이 없다 → 드랍 안내를 빈칸으로 두고 적정 전투력만 표시. (다른 보스엔 영향 없음)
+							desc.TextComponent.Text = "적정 전투력\n: " .. self:FormatPower(row.req)
+						else
+							-- "세트/무기"는 같은 줄(",무기")로 묶고, 나머지 "/"는 줄바꿈으로.
+							local dropRaw = (string.gsub(tostring(row.drop), "/무기", ",무기"))
+							local dropText = (string.gsub(dropRaw, "/", "\n"))
+							desc.TextComponent.Text = "적정 전투력\n: " .. self:FormatPower(row.req)
+								.. "\n\n드랍 아이템\n: " .. dropText
+						end
 					end
 				else
 					d.e.Enable = false
