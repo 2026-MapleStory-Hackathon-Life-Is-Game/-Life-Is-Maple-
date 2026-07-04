@@ -9,6 +9,9 @@ script LoadingManager extends Logic
 
 	property TextComponent loadingText = "40f590fe-50a4-4495-b7e1-0e0cb691684e"
 
+	-- 튜토리얼 페이지 아래 안내 Tip 텍스트. 오버레이와 함께 켜고 끈다. UIBuilder 바인딩 주입으로 채워진다.
+	property Entity loadingTip = "a72aa2ce-f84a-45e1-b7a1-36cb35b3627c"
+
 	property string loadingBackgroundRUID = ""
 
 	property number minShowSeconds = 3.0
@@ -20,6 +23,9 @@ script LoadingManager extends Logic
 	property integer _dotTimer = 0
 
 	property integer _dotCount = 0
+
+	-- 로딩 화면 튜토리얼: ?버튼 도움말 12페이지(기본조작5/타일4/장비3) 중 1개를 로딩창에 그대로 클론해 표시.
+	property any _tutClone = nil
 
 	@ExecSpace("ClientOnly")
 	method void OnBeginPlay()
@@ -33,6 +39,7 @@ script LoadingManager extends Logic
 		if isvalid(self.loadingBackdrop) then self.loadingBackdrop.Enable = on end
 		if isvalid(self.loadingSprite) and isvalid(self.loadingSprite.Entity) then self.loadingSprite.Entity.Enable = on end
 		if isvalid(self.loadingText) and isvalid(self.loadingText.Entity) then self.loadingText.Entity.Enable = on end
+		if isvalid(self.loadingTip) then self.loadingTip.Enable = on end
 	end
 
 	@ExecSpace("Client")
@@ -87,6 +94,8 @@ script LoadingManager extends Logic
 		end
 		-- 'loading...' 점 애니메이션 시작.
 		self:StartDotAnim()
+		-- 튜토리얼 페이지 1장을 로딩창에 표시(로딩 종료 시 정리).
+		self:ShowTutorialPage()
 	end
 
 	@ExecSpace("ClientOnly")
@@ -94,7 +103,58 @@ script LoadingManager extends Logic
 		-- 로딩 오버레이를 숨긴다.
 		self:StopDotAnim()
 		self:SetOverlayEnable(false)
+		self:ClearTutorialPage()
 		log("[LoadingManager] 오버레이 종료")
+	end
+
+	method table TutorialPagePaths()
+		-- ?버튼 도움말 12페이지 경로 목록(기본조작 5 / 타일의 종류 4 / 장비 장착강화 3).
+		local base = "/ui/HelpPanelGroup/HelpPanel/WholePanel/"
+		local defs = {
+			{ g = "기본 조작",     p = "Panels",   n = 5 },
+			{ g = "타일의 종류",   p = "Panels_1", n = 4 },
+			{ g = "장비 장착강화", p = "Panels_2", n = 3 },
+		}
+		local out = {}
+		for i = 1, #defs do
+			local d = defs[i]
+			for k = 1, d.n do
+				table.insert(out, base .. d.g .. "/" .. d.p .. "/" .. tostring(k))
+			end
+		end
+		return out
+	end
+
+	@ExecSpace("ClientOnly")
+	method void ShowTutorialPage()
+		-- 12페이지 중 1장을 랜덤 선택 → 로딩창(loadingGroup) 자식으로 그대로 클론해 중앙에 표시.
+		-- 원본(도움말 패널)은 건드리지 않는다. 로딩 종료 시 ClearTutorialPage로 클론을 파괴한다.
+		self:ClearTutorialPage()
+		if isvalid(self.loadingGroup) == false then return end
+		local paths = self:TutorialPagePaths()
+		if #paths == 0 then return end
+		local pick = paths[_UtilLogic:RandomIntegerRange(1, #paths)]
+		local page = _EntityService:GetEntityByPath(pick)
+		if isvalid(page) == false then
+			log_warning("[LoadingManager] 튜토리얼 페이지를 찾을 수 없음: " .. pick)
+			return
+		end
+		local clone = _SpawnService:SpawnByEntity(page, "LoadingTutorialPage", Vector3(0, 0, 0), self.loadingGroup, true)
+		if isvalid(clone) == false then return end
+		self._tutClone = clone
+		clone.Enable = true
+		if isvalid(clone.UITransformComponent) then
+			clone.UITransformComponent.anchoredPosition = Vector2(0, 40)   -- 화면 중앙(하단 'loading' 텍스트와 겹치지 않게 살짝 위로)
+			_UILogic:SetSiblingIndex(clone.UITransformComponent, 999999)   -- loadingGroup 내 최상단(배경 위)
+		end
+		log("[LoadingManager] 로딩 튜토리얼 표시: " .. pick)
+	end
+
+	@ExecSpace("ClientOnly")
+	method void ClearTutorialPage()
+		-- 표시 중인 튜토리얼 클론 제거.
+		if isvalid(self._tutClone) then self._tutClone:Destroy() end
+		self._tutClone = nil
 	end
 
 	method boolean IsOverlayShown()
