@@ -123,18 +123,39 @@ script GameModeManager extends Logic
 		local minutes = 0
 		local turns = 0
 		local titleType = ""
+		local visits = 0
 		local rs = piece:GetComponent("script.RunStatsManager")
 		if isvalid(rs) then
 			minutes = rs:PlayMinutes()
 			turns = rs.TurnCount
 			titleType = rs:MostVisitedType()
+			visits = rs:VisitCount(titleType)
+		end
+		-- 인생 분기(길드/애인) + 인원 수.
+		local lifeInfo = ""
+		local lp = piece:GetComponent("script.LifePathManager")
+		local path = ""
+		if isvalid(lp) then path = lp.LifePath end
+		if path == "Guild" then
+			local g = piece:GetComponent("script.GuildManager")
+			local gn = 0
+			if isvalid(g) then
+				gn = g.GeneralMembers
+				if g.Stage >= 2 then gn = gn + 1 end   -- 부길마 포함
+			end
+			lifeInfo = "길드 (길드원 " .. tostring(gn) .. "명)"
+		elseif path == "Romance" then
+			local r = piece:GetComponent("script.RomanceManager")
+			local rn = 0
+			if isvalid(r) then rn = r.FamilyMembers end
+			lifeInfo = "애인 (유니온 " .. tostring(rn) .. "명)"
 		end
 		local rankPercent = -1
 		local pc = _RankingManager:GetPercentile(power)
 		if pc ~= nil then rankPercent = pc.percent end
-		_EndingSummaryUI:Show(pname, pjob, pcamp, power, minutes, turns, titleType, rankPercent, uid)
+		_EndingSummaryUI:Show(pname, pjob, pcamp, power, minutes, turns, visits, titleType, lifeInfo, rankPercent, uid)
 		log("[GameModeManager] 엔딩 정리 표시 uid=" .. uid .. " turns=" .. tostring(turns)
-			.. " min=" .. tostring(minutes) .. " title=" .. tostring(titleType) .. " rank%=" .. tostring(rankPercent))
+			.. " visits=" .. tostring(visits) .. " title=" .. tostring(titleType) .. " life=" .. lifeInfo .. " rank%=" .. tostring(rankPercent))
 	end
 
 	@ExecSpace("Server")

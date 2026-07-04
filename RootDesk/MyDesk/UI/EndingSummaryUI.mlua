@@ -40,25 +40,28 @@ script EndingSummaryUI extends Logic
 	end
 
 	@ExecSpace("Client")
-	method void Show(string name, string job, string camp, integer power, integer minutes, integer turns, string titleType, integer rankPercent)
+	method void Show(string name, string job, string camp, integer power, integer minutes, integer turns, integer visits, string titleType, string lifeInfo, integer rankPercent)
 		-- 소유자 클라에서 정리 표를 채우고 표시한다. (targetUserId는 호출측 마지막 인자로 전달)
 		if isvalid(self.titleText) then self.titleText.Text = "검은 마법사와 대적한 자의 기록" end
 
 		-- 통계(시간/턴/전투력/랭킹).
 		local powS = tostring(power)
 		if isvalid(_RankingManager) then powS = _RankingManager:FormatPower(power) end
-		local lines = "총 플레이 시간 : " .. tostring(minutes) .. "분\n"
-			.. "총 턴 수 : " .. tostring(turns) .. "턴\n"
-			.. "최종 전투력 : " .. powS
+		local lines = "총 플레이 시간 : " .. tostring(minutes) .. "분"
+		if lifeInfo ~= nil and lifeInfo ~= "" then
+			lines = lines .. "\n인생 분기 : " .. lifeInfo
+		end
+		lines = lines .. "\n최종 전투력 : " .. powS
 		if rankPercent >= 1 then
 			lines = lines .. "\n랭킹 : 상위 " .. tostring(rankPercent) .. "%"
 		end
 		if isvalid(self.statsText) then self.statsText.Text = lines end
 
-		-- 전문가 타이틀(가장 많이 방문한 타일).
+		-- 전문가 타이틀(가장 많이 방문한 타일: 총 N턴 중 M번 방문).
 		if isvalid(self.awardText) then
 			if titleType ~= nil and titleType ~= "" then
-				self.awardText.Text = "'" .. self:TypeKo(titleType) .. " 전문가' 타이틀을 획득하셨습니다!"
+				self.awardText.Text = "총 " .. tostring(turns) .. "턴 중 " .. tostring(visits) .. "번 방문한\n'"
+					.. self:TypeKo(titleType) .. " 전문가' 타이틀을 획득하셨습니다!"
 			else
 				self.awardText.Text = ""
 			end
