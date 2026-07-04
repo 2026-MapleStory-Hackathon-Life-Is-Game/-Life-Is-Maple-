@@ -4,4 +4,51 @@ script WeaponEquipment extends BaseEquipment
 		-- 무기 타입.
 		return "Weapon"
 	end
+
+	method void ApplyEquipVisual()
+		-- 현재 장착 무기(self.Equipped)의 아바타 RUID를 플레이어 CostumeManager 무기 슬롯에 반영한다.
+		-- BaseEquipment.RequestEquip/RequestUnequip(둘 다 @ExecSpace("Server"))에서 호출되므로
+		-- 이 메서드 본문은 서버에서 실행된다. Custom*Equip은 @Sync라 서버 실행이어야 모든 클라에 전파된다.
+		local costume = self.Entity.CostumeManagerComponent
+		if isvalid(costume) == false then
+			log_error("WeaponEquipment.ApplyEquipVisual: CostumeManagerComponent가 없다")
+			return
+		end
+
+		local equipName = self.Equipped
+		if equipName == "" then
+			-- 무기 해제: 모든 무기 슬롯을 빈칸으로.
+			costume.CustomOneHandedWeaponEquip = ""
+			costume.CustomTwoHandedWeaponEquip = ""
+			costume.CustomSubWeaponEquip       = ""
+			log("WeaponEquipment: 무기 해제 → 아바타 무기 슬롯 비움")
+			return
+		end
+
+		local row = self:FindRow(equipName)
+		if row == -1 then
+			log_warning("WeaponEquipment.ApplyEquipVisual: EquipmentData에 " .. equipName .. " 행 없음")
+			return
+		end
+		local ds = _DataService:GetTable("EquipmentData")
+		local ruid = ds:GetCell(row, "Sprite RUID")
+		local preset = ds:GetCell(row, "Preset Name")
+		if ruid == "" then
+			log_warning("WeaponEquipment.ApplyEquipVisual: " .. equipName .. " 의 Sprite RUID가 비어있음")
+			return
+		end
+
+		-- Preset Name 접두로 한손/두손 구분. 상호배제: 한손이면 두손 비우고, 두손이면 한손+보조 비운다.
+		if string.find(preset, "twohandedweapon", 1, true) ~= nil then
+			costume.CustomTwoHandedWeaponEquip = ruid
+			costume.CustomOneHandedWeaponEquip = ""
+			costume.CustomSubWeaponEquip       = ""
+			log("WeaponEquipment: 두손무기 아바타 적용 → " .. equipName)
+		else
+			costume.CustomOneHandedWeaponEquip = ruid
+			costume.CustomTwoHandedWeaponEquip = ""
+			costume.CustomSubWeaponEquip       = ""
+			log("WeaponEquipment: 한손무기 아바타 적용 → " .. equipName)
+		end
+	end
 end
