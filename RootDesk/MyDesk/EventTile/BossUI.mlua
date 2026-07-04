@@ -275,12 +275,10 @@ script BossUI extends Logic
 	@ExecSpace("ClientOnly")
 	method void SetCardImage(integer idx, string bossKey)
 		-- idx번 카드의 보스 선택 이미지(Img)를 BossImage.BossSelectRUID로 설정한다.
-		-- 크기 보정(UIScale)만 적용한다 — 작은 카드에서는 오프셋을 쓰지 않는다(오프셋은 상세/인게임 큰 슬롯 전용).
+		-- 카드는 고정 슬롯 크기 그대로 표시한다(BossImage.UIScale은 인게임 보스 전투 크기에만 쓰고, 선택 카드에는 적용하지 않는다).
 		local imgs = { self.BossCard1Img, self.BossCard2Img, self.BossCard3Img, self.BossCard4Img }
 		local row = self:BossImageRow(bossKey)
 		if row ~= nil then self:SetImageRUID(imgs[idx], row.select) end
-		local t = self:BossUITransform(bossKey)
-		_EventTileUI:ApplySlotTransform(imgs[idx], "bosscard" .. idx, t.scale, 0, 0)
 	end
 
 	method string CardInfoText(string bossKey, table allowed)
@@ -425,11 +423,9 @@ script BossUI extends Logic
 		if isvalid(self.DetailBossName) and isvalid(self.DetailBossName.TextComponent) then
 			self.DetailBossName.TextComponent.Text = self._bossNames[idx]
 		end
-		-- DetailPanel 보스 이미지 = BossImage.DetailPanelRUID + 보스별 크기/오프셋 보정(상세 화면은 큰 슬롯이라 오프셋도 적용).
+		-- DetailPanel 보스 이미지 = BossImage.DetailPanelRUID (고정 슬롯 크기 그대로 — BossImage.UIScale은 인게임 전투에만 적용).
 		local imgRow = self:BossImageRow(self._bossKeys[idx])
 		if imgRow ~= nil then self:SetImageRUID(self.DetailBossImage, imgRow.detail) end
-		local dt = self:BossUITransform(self._bossKeys[idx])
-		_EventTileUI:ApplySlotTransform(self.DetailBossImage, "bossdetail", dt.scale, dt.offX, dt.offY)
 
 		-- 이 지역이 허용하고(_bossDiffs) 또한 BossProbability에 실존하는 난이도만 버튼 활성화.
 		-- (_bossDiffs[idx]가 nil이면 단일 모드 → 지역 제한 없음. 없는/미허용 난이도는 Enable=false.)

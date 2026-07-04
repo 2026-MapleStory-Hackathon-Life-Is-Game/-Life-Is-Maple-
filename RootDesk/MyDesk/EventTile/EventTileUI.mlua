@@ -16,6 +16,14 @@ script EventTileUI extends Logic
 	-- 전체 몬스터가 너무 크/작으면 이 값 하나만 조절하면 된다(개별 조정 불필요).
 	property number MonsterNativeScale = 2.0
 
+	-- 인게임 보스 이미지(NPC 슬롯) 전역 배율. 원본 크기(NativeSize)에 이 값 × 보스별 UIScale(BossImage)을 곱한다.
+	-- stand/die 애니가 바뀌어도 동일하게 적용돼 크기가 유지된다.
+	property number BossNativeScale = 2.0
+
+	-- 인게임 보스 이미지 전역 세로 오프셋(음수 = 아래로). 보스가 커서 위로 떠 보이는 것을 한 번에 내린다.
+	-- 개별 보스는 BossImage.UIOffsetY로 추가 보정(이 값에 더해진다).
+	property number BossOffsetY = -70.0
+
 	property Entity NextButton = "838ae8b4-920f-4448-bc4b-b551594cba6d"
 
 	property Entity AcceptButton = "2a91f613-50ec-455f-8610-6fdc36bfeca4"
@@ -451,8 +459,8 @@ script EventTileUI extends Logic
 
 	@ExecSpace("ClientOnly")
 	method table SlotTransformForRUID(string ruid)
-		-- 슬롯에 적용할 RUID로 표시 보정값(scale/offX/offY)을 역조회한다. NpcInfo → BossImage(IngameStand) 순. 없으면 기본(1/0/0).
-		-- (NPC 슬롯은 일반 NPC와 인게임 보스 stand를 공용하므로 두 테이블을 순차 조회한다.)
+		-- NPC 슬롯(박스 맞춤)용 표시 보정값(scale/offX/offY)을 NpcInfo에서 역조회한다. 없으면 기본(1/0/0).
+		-- (보스는 여기서 조회하지 않는다 — 연애 등 일반 이벤트의 보스/NPC는 박스에 맞춰 표시하고, 보스 전투에서만 SetBossFightImage로 크게 띄운다.)
 		local res = { scale = 1, offX = 0, offY = 0 }
 		if ruid == nil or ruid == "" then return res end
 		local npc = _DataService:GetTable("NpcInfo")
@@ -466,13 +474,111 @@ script EventTileUI extends Logic
 				end
 			end
 		end
+		return res
+	end
+
+	@ExecSpace("ClientOnly")
+	method void SetNPCImage(boolean show, string ruid)
+		-- NPC 이미지 표시/숨김 + RUID 적용. 마을·사냥+·불행·연애 이벤트에서 켜고, 그 외에는 끈다.
+		-- ruid가 빈 값이면 UI의 기본 이미지를 그대로 유지한다.
+		--   · 몬스터(TierMonster STAND) → 원본 크기(NativeSize) + 전역 배율(MonsterNativeScale) × 몬스터별. (사냥+ 엘리트)
+		--   · 그 외(인간형 NPC / 연애 상대 보스 등) → 슬롯 박스에 비율 맞춤(AspectOnly) + NpcInfo 보정.
+		-- 보스를 원본 크기로 크게 띄우는 건 보스 전투 전용 SetBossFightImage에서만 — 연애 등에서 보스가 나와도 여기선 박스에 맞춘다.
+		if isvalid(self.NPCImage) == false then return end
+		self.NPCImage.Enable = show
+		if show and ruid ~= nil and ruid ~= "" and isvalid(self.NPCImage.SpriteGUIRendererComponent) then
+			local r = self.NPCImage.SpriteGUIRendererComponent
+			r.ImageRUID = DataRef(ruid)
+			local mon = _TileManager:MonsterAnimsByStand(ruid)   -- nil이면 몬스터가 아님
+			if mon ~= nil then
+				r.PreserveSprite = PreserveSpriteType.NativeSize
+				local sc = self.MonsterNativeScale * mon.scale
+				self:ApplySlotTransform(self.NPCImage, "npc", sc, mon.offX, mon.offY)
+			else
+				r.PreserveSprite = PreserveSpriteType.AspectOnly   -- 인간형 NPC/연애 상대 등은 슬롯 박스에 맞춤
+				local t = self:SlotTransformForRUID(ruid)
+				self:ApplySlotTransform(self.NPCImage, "npc", t.scale, t.offX, t.offY)
+			end
+		end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void SetBossFightImage(string ruid)
+		-- 보스 전투 전용: 상대 보스를 원본 크기(NativeSize) + 전역 배율(BossNativeScale) × 보스별 보정으로 크게 표시한다.
+		-- (연애 등 다른 이벤트에서 같은 보스가 나와도 SetNPCImage로 박스에 맞춰 표시된다 — 3배 확대는 보스 전투에서만.)
+		if isvalid(self.NPCImage) == false then return end
+		self.NPCImage.Enable = true
+		if ruid == nil or ruid == "" or isvalid(self.NPCImage.SpriteGUIRendererComponent) == false then return end
+		local r = self.NPCImage.SpriteGUIRendererComponent
+		r.ImageRUID = DataRef(ruid)
+		r.PreserveSprite = PreserveSpriteType.NativeSize
+		local bt = self:BossTransformForRUID(ruid)   -- stand/die/BossFightStand 모두 인식
+		local sc = self.BossNativeScale
+		local ox = 0
+		local oy = 0
+		if bt ~= nil then
+			sc = self.BossNativeScale * bt.scale
+			ox = bt.offX
+			oy = bt.offY
+		end
+		self:ApplySlotTransform(self.NPCImage, "npc", sc, ox, oy + self.BossOffsetY)
+	end
+
+	@ExecSpace("ClientOnly")
+	method void BossSceneText(string text, string anim, string bossRUID, Component tile)
+		-- 보스 텍스트 씬(검은 마법사 최종전 등): 상대를 NPC(박스 맞춤)가 아니라 보스 이미지로 원본 크기 × 전역 배율(SetBossFightImage)로 크게 표시.
+		-- 텍스트 진행은 SceneText와 동일(마지막 장 '다음' → tile:RequestAdvance).
+		self._activeTile = tile
+		self:ShowGroup()
+		self:SetBossFightImage(bossRUID)
+		self:SetPortrait(anim)
+		self:ShowPagedText(text, self.OnTextAdvance)
+	end
+
+	@ExecSpace("ClientOnly")
+	method table BossTransformForRUID(string ruid)
+		-- BossImage에서 stand(IngameStandRUID) 또는 die(DieAnimRUID) 일치 행의 표시 보정값(scale/offX/offY)을 반환한다. 보스가 아니면 nil.
+		-- (NPC 슬롯에서 보스만 원본 크기로 렌더할지 판별 + stand→die 애니 전환에도 크기 유지되도록 두 RUID를 모두 인식한다.)
+		if ruid == nil or ruid == "" then return nil end
 		local boss = _DataService:GetTable("BossImage")
-		if isvalid(boss) then
-			for i = 1, boss:GetRowCount() do
-				if boss:GetCell(i, "IngameStandRUID") == ruid then
-					res.scale = tonumber(boss:GetCell(i, "UIScale")) or 1
-					res.offX  = tonumber(boss:GetCell(i, "UIOffsetX")) or 0
-					res.offY  = tonumber(boss:GetCell(i, "UIOffsetY")) or 0
+		if isvalid(boss) == false then return nil end
+		for i = 1, boss:GetRowCount() do
+			if boss:GetCell(i, "IngameStandRUID") == ruid or boss:GetCell(i, "DieAnimRUID") == ruid or boss:GetCell(i, "BossFightStandRUID") == ruid then
+				return {
+					scale = tonumber(boss:GetCell(i, "UIScale")) or 1,
+					offX  = tonumber(boss:GetCell(i, "UIOffsetX")) or 0,
+					offY  = tonumber(boss:GetCell(i, "UIOffsetY")) or 0,
+				}
+			end
+		end
+		return nil
+	end
+
+	@ExecSpace("ClientOnly")
+	method table MonsterScaleForRUID(string ruid)
+		-- 사냥 몬스터 이미지 RUID로 개별 표시 보정값(scale/offX/offY)을 역조회한다.
+		-- TierMonster(STAND) → HuntEvent(MonsterRUID) 순. 없으면 기본(1/0/0).
+		-- (사냥 몬스터 이미지는 HuntEvent.MonsterRUID로 넘어오는 경우가 있어 TierMonster에 없을 수 있다 — 예: 에스페라 아라냐.)
+		local res = { scale = 1, offX = 0, offY = 0 }
+		if ruid == nil or ruid == "" then return res end
+		local tm = _DataService:GetTable("TierMonster")
+		if isvalid(tm) then
+			for i = 1, tm:GetRowCount() do
+				if tm:GetCell(i, "STAND") == ruid then
+					res.scale = tonumber(tm:GetCell(i, "UIScale")) or 1
+					res.offX  = tonumber(tm:GetCell(i, "UIOffsetX")) or 0
+					res.offY  = tonumber(tm:GetCell(i, "UIOffsetY")) or 0
+					return res
+				end
+			end
+		end
+		local he = _DataService:GetTable("HuntEvent")
+		if isvalid(he) then
+			for i = 1, he:GetRowCount() do
+				if he:GetCell(i, "MonsterRUID") == ruid then
+					res.scale = tonumber(he:GetCell(i, "UIScale")) or 1
+					res.offX  = tonumber(he:GetCell(i, "UIOffsetX")) or 0
+					res.offY  = tonumber(he:GetCell(i, "UIOffsetY")) or 0
 					return res
 				end
 			end
@@ -481,33 +587,29 @@ script EventTileUI extends Logic
 	end
 
 	@ExecSpace("ClientOnly")
-	method void SetNPCImage(boolean show, string ruid)
-		-- NPC 이미지 표시/숨김 + RUID 적용. 마을·사냥+·불행·보스 이벤트에서 켜고, 그 외에는 끈다.
-		-- ruid가 빈 값이면 UI의 기본 이미지를 그대로 유지한다.
-		-- RUID 종류에 따라 렌더 방식을 분기한다(슬롯은 NPC/보스/엘리트 몬스터가 공용):
-		--   · 몬스터(TierMonster STAND) → 원본 크기(NativeSize) + 전역 배율(MonsterNativeScale). 3칸 사냥 몬스터와 동일 규칙 → 박스에 눌려 작아지지 않음.
-		--   · 인간형 NPC / 보스 → 슬롯 박스에 비율 맞춤(AspectOnly) + NpcInfo/BossImage 보정.
-		if isvalid(self.NPCImage) == false then return end
-		self.NPCImage.Enable = show
-		if show and ruid ~= nil and ruid ~= "" and isvalid(self.NPCImage.SpriteGUIRendererComponent) then
-			local r = self.NPCImage.SpriteGUIRendererComponent
-			r.ImageRUID = DataRef(ruid)
-			local mon = _TileManager:MonsterAnimsByStand(ruid)   -- nil이면 몬스터가 아님(NPC/보스)
-			if mon ~= nil then
-				r.PreserveSprite = PreserveSpriteType.NativeSize
-				local sc = self.MonsterNativeScale * mon.scale
-				self:ApplySlotTransform(self.NPCImage, "npc", sc, mon.offX, mon.offY)
-			else
-				r.PreserveSprite = PreserveSpriteType.AspectOnly
-				local t = self:SlotTransformForRUID(ruid)
-				self:ApplySlotTransform(self.NPCImage, "npc", t.scale, t.offX, t.offY)
+	method void SizeMonsterSlots(number scale, number offX, number offY)
+		-- 3개 몬스터 이미지의 표시 크기(전역 × 개별)와 기준 위치(원본 + 오프셋)를 설정한다.
+		-- 슬롯은 PreserveSprite=NativeSize라 원본 크기로 렌더되고, 여기에 UIScale만 곱한다.
+		-- _monBaseXs(흔들림 기준 x)에 오프셋을 미리 더해두어 MonBob이 그 위에서 흔든다. (anim 유무와 무관하게 항상 호출)
+		local imgs = self:MonImgs()
+		self._monBaseXs = {}
+		local sc = self.MonsterNativeScale * scale
+		for i = 1, #imgs do
+			local e = imgs[i]
+			if isvalid(e) and isvalid(e.UITransformComponent) then
+				local base = self:SlotBase(e, "mon" .. i)
+				self._monBaseXs[i] = base.x + offX
+				e.UITransformComponent.anchoredPosition = Vector2(self._monBaseXs[i], base.y + offY)
+				e.UITransformComponent.UIScale = Vector3(sc, sc, 1)
 			end
 		end
+		self._monBaseSet = true
 	end
 
 	@ExecSpace("ClientOnly")
 	method void SetMonsterImages(string ruid)
 		-- 사냥 몬스터 RUID를 Monsters 하위 3개 이미지에 동일하게 적용. 빈 값이면 Monsters 숨김.
+		-- 크기는 anim 데이터 유무와 무관하게 항상 원본 크기 × 전역 × 개별로 맞춘다(HuntEvent 전용 몬스터도 포함).
 		-- 애니 데이터(TierMonster)가 있으면 MOVE 재생 + 좌우 흔들림 + 자동 처치 연출을 시작한다.
 		if ruid == nil or ruid == "" then
 			self:StopMonsterAnim()
@@ -516,6 +618,8 @@ script EventTileUI extends Logic
 		end
 		if isvalid(self.MonstersGroup) then self.MonstersGroup.Enable = true end
 		self:SetMonstersClip(ruid)     -- 우선 STAND(넘어온 RUID) 적용 — 연출 데이터 없으면 정적 그대로.
+		local sd = self:MonsterScaleForRUID(ruid)          -- 개별 배율/오프셋(TierMonster/HuntEvent)
+		self:SizeMonsterSlots(sd.scale, sd.offX, sd.offY)  -- 원본 크기 × 전역 × 개별 + 위치(anim 유무 무관 항상)
 		self:StartMonsterAnim(ruid)    -- 연출 데이터 있으면 MOVE + 흔들림 + 처치 연출.
 	end
 
@@ -579,22 +683,8 @@ script EventTileUI extends Logic
 		if anims == nil then return end   -- 연출 데이터 없으면 정적 STAND 유지.
 		self._monAnims = anims
 
-		-- 이미지별 기준 위치(원본 + 몬스터별 오프셋) 확정 + 표시 크기(scale) 적용.
-		-- 흔들림 기준 x(_monBaseXs)에는 오프셋을 이미 더해두어, MonBob이 그 위에서 좌우로 흔든다.
+		-- 크기/기준 위치(_monBaseXs)는 SetMonsterImages → SizeMonsterSlots에서 이미 설정됨(anim 유무 무관).
 		local imgs = self:MonImgs()
-		self._monBaseXs = {}
-		for i = 1, #imgs do
-			local e = imgs[i]
-			if isvalid(e) and isvalid(e.UITransformComponent) then
-				local base = self:SlotBase(e, "mon" .. i)   -- 원본 위치(최초 1회 캐시 — 오프셋 누적 방지)
-				self._monBaseXs[i] = base.x + anims.offX
-				e.UITransformComponent.anchoredPosition = Vector2(self._monBaseXs[i], base.y + anims.offY)
-				-- 슬롯은 원본 크기(NativeSize)로 렌더 → 전역 배율 × 몬스터별 배율만 UIScale로 곱한다.
-				local sc = self.MonsterNativeScale * anims.scale
-				e.UITransformComponent.UIScale = Vector3(sc, sc, 1)
-			end
-		end
-		self._monBaseSet = true
 
 		-- MOVE(없으면 STAND) 재생.
 		local moveClip = anims.move
@@ -1144,7 +1234,7 @@ script EventTileUI extends Logic
 		self._activeTile = bossTile
 		self:ShowGroup()
 		self:SetPortrait("attack")
-		self:SetNPCImage(true, bossStandRUID)
+		self:SetBossFightImage(bossStandRUID)   -- 보스 전투: 원본 크기 × 3배(전역)
 		self:ShowPagedText(challengeText, self.OnQuestNext)
 	end
 
@@ -1159,7 +1249,7 @@ script EventTileUI extends Logic
 		_RollResultDiceAnimationUI:Show(d1, d2, total, resultTable, outcome, function()
 			self:SetPortrait("idle")
 			if win and bossDieRUID ~= "" then
-				self:SetNPCImage(true, bossDieRUID)
+				self:SetBossFightImage(bossDieRUID)   -- 보스 전투 die 애니도 동일 크기 유지
 			end
 			self:ShowPagedText(outcomeText, self.OnDiceNext)
 		end)
