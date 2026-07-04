@@ -11,6 +11,8 @@ script RollResultDiceAnimationUI extends Logic
 
 	property TextGUIRendererComponent resultText = "c65cf185-345f-41a1-a867-23e77171d5fb"
 
+	property TextGUIRendererComponent outcomeText = "33f06587-7ac8-46a9-8eca-80d1fc82a638"
+
 	property table diceSprites = {}
 
 	property Entity diceParticle = "6aa0244c-966a-4524-84e9-206362ba02c9"
@@ -118,8 +120,11 @@ script RollResultDiceAnimationUI extends Logic
 				if isvalid(self.diceParticle) then self.diceParticle.Enable = true end
 				self.leftDice.ImageRUID  = self.diceSprites[self._pendD1]
 				self.rightDice.ImageRUID = self.diceSprites[self._pendD2]
-				self.resultText.Text = "주사위 결과: " .. tostring(self._pendD1) .. " + " .. tostring(self._pendD2)
-					.. " = " .. tostring(self._pendTotal) .. " (" .. self._pendOutcome .. ")"
+		
+		-- 2. 텍스트 지정
+			self.resultText.Text = tostring(self._pendTotal)
+			self.outcomeText.Text = self._pendOutcome
+		
 		
 				-- 변경: 자동으로 닫지 않는다. 결과를 확인한 뒤 '다음' 버튼을 눌러야(OnNextClicked) 진행한다.
 				if isvalid(self.NextButton) then self.NextButton.Enable = true end
