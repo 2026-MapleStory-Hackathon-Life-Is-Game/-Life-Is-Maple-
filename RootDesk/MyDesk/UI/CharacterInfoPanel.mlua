@@ -191,11 +191,16 @@ script CharacterInfoPanel extends Component
 		if isvalid(renderer) == false then return end
 		local e = renderer.Entity
 		if equipName == "" then
-			-- 빈 슬롯: 기본 '네모 슬롯'(어두운 사각) 모양으로 복원.
-			-- 이전 장착품 썸네일 ImageRUID가 남아 실루엣처럼 보이는 문제 방지 → 기본 사각 스프라이트/색으로 되돌린다.
-			renderer.ImageRUID = DataRef("4fea64a3307cda641809ad8be0d4890b")
-			renderer.Color = Color(0.2, 0.22, 0.29, 1)
-			self:SetSlotLabel(e, "(없음)", false)
+			-- 빈 슬롯: 회색 네모 스프라이트를 넣지 않고 완전히 투명 처리(사용자 요청).
+			-- 이전 장착품 썸네일 ImageRUID가 남아 실루엣처럼 보이는 문제는, 알파 0 처리에 더해
+			-- ImageRUID를 빈 값(엔진 기본값 DataRef(""))으로 비워 잔상을 원천 차단한다.
+			renderer.ImageRUID = DataRef("")
+			renderer.Color = Color(1, 1, 1, 0)
+			-- 미착용 슬롯은 아웃라인(흰 테두리)도 해제한다. 스프라이트를 투명하게 해도
+			-- Outline=true면 테두리가 남으므로 명시적으로 끈다(장착 시 다시 켜짐).
+			renderer.Outline = false
+			-- 라벨도 비워 완전히 빈 슬롯으로 둔다("(없음)" 텍스트도 표시하지 않음).
+			self:SetSlotLabel(e, "", false)
 			return
 		end
 		local ds = _DataService:GetTable("EquipmentData")
@@ -215,6 +220,8 @@ script CharacterInfoPanel extends Component
 		else
 			renderer.Color = Color(1, 1, 1, 0)
 		end
+		-- 장착 슬롯은 아웃라인을 다시 켠다(미착용 시 껐던 것을 복원).
+		renderer.Outline = true
 		self:SetSlotLabel(e, dname, true)
 	end
 
