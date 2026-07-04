@@ -611,9 +611,9 @@ script TileManager extends Logic
 	end
 
 	method table MonsterAnimsByStand(string standRUID)
-		-- STAND RUID로 TierMonster 행을 역조회해 애니 클립 세트를 반환한다(사냥 몬스터 UI 연출용). 없으면 nil.
-		--   { move, stand, hit, die, attack } — 값이 빈 칸이면 "".
-		-- (사냥/사냥+ 몬스터 이미지는 STAND RUID로 넘어오므로, 그 값으로 MOVE/HIT/DIE를 역조회해 연출에 쓴다.)
+		-- STAND RUID로 TierMonster 행을 역조회해 애니 클립 세트 + 표시 보정값을 반환한다(사냥 몬스터 UI 연출용). 없으면 nil.
+		--   { move, stand, hit, die, attack, scale, offX, offY } — 클립은 빈 칸이면 "", 보정값은 빈 칸이면 1/0/0(변화 없음).
+		-- (사냥/사냥+ 몬스터 이미지는 STAND RUID로 넘어오므로, 그 값으로 MOVE/HIT/DIE와 UI 크기/오프셋을 역조회해 연출에 쓴다.)
 		if standRUID == nil or standRUID == "" then return nil end
 		local ds = _DataService:GetTable("TierMonster")
 		if isvalid(ds) == false then return nil end
@@ -625,6 +625,9 @@ script TileManager extends Logic
 					hit    = ds:GetCell(i, "HIT"),
 					die    = ds:GetCell(i, "DIE"),
 					attack = ds:GetCell(i, "ATTACK"),
+					scale  = tonumber(ds:GetCell(i, "UIScale")) or 1,
+					offX   = tonumber(ds:GetCell(i, "UIOffsetX")) or 0,
+					offY   = tonumber(ds:GetCell(i, "UIOffsetY")) or 0,
 				}
 			end
 		end
