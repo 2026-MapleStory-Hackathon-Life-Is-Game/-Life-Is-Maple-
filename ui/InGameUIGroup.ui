@@ -24,7 +24,7 @@
           "enable": true,
           "visible": true,
           "localize": true,
-          "displayOrder": 9,
+          "displayOrder": 8,
           "pathConstraints": "//",
           "revision": 1,
           "origin": {
@@ -4498,20 +4498,20 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 340.0,
-                "y": 260.0
+                "x": 368.145,
+                "y": 318.365
               },
               "OffsetMin": {
-                "x": -340.0,
-                "y": -260.0
+                "x": -368.145,
+                "y": -318.365
               },
               "Pivot": {
                 "x": 0.5,
                 "y": 0.5
               },
               "RectSize": {
-                "x": 680.0,
-                "y": 520.0
+                "x": 736.29,
+                "y": 636.73
               },
               "UIMode": 1,
               "UIScale": {
@@ -4572,31 +4572,31 @@
             {
               "@type": "MOD.Core.UITransformComponent",
               "ActivePlatform": 255,
-              "AlignmentOption": 15,
+              "AlignmentOption": 0,
               "AnchorsMax": {
-                "x": 1.0,
-                "y": 1.0
+                "x": 0.5,
+                "y": 0.5
               },
               "AnchorsMin": {
-                "x": 0.0,
-                "y": 0.0
+                "x": 0.5,
+                "y": 0.5
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 0.0,
-                "y": 0.0
+                "x": 418.571136,
+                "y": 364.7617
               },
               "OffsetMin": {
-                "x": 0.0,
-                "y": 0.0
+                "x": -418.571136,
+                "y": -364.7617
               },
               "Pivot": {
                 "x": 0.5,
                 "y": 0.5
               },
               "RectSize": {
-                "x": 680.0,
-                "y": 520.0
+                "x": 837.1423,
+                "y": 729.5234
               },
               "UIMode": 1,
               "UIScale": {
@@ -4633,7 +4633,7 @@
               "EndFrameIndex": 2147483647,
               "IgnoreMapLayerCheck": false,
               "ImageRUID": {
-                "DataId": "4fea64a3307cda641809ad8be0d4890b"
+                "DataId": "ba8dec360b254a659f2ff78c9f39dfd0"
               },
               "LocalPosition": {
                 "x": 0.0,
@@ -4647,14 +4647,14 @@
               "OrderInLayer": 0,
               "OverrideSorting": false,
               "PlayRate": 1.0,
-              "PreserveSprite": 0,
+              "PreserveSprite": 2,
               "SortingLayer": "UI",
               "StartFrameIndex": 0,
               "Color": {
-                "r": 0.08,
-                "g": 0.08,
-                "b": 0.12,
-                "a": 0.92
+                "r": 1.0,
+                "g": 1.0,
+                "b": 1.0,
+                "a": 1.0
               },
               "DropShadow": false,
               "DropShadowAngle": 120.0,
@@ -4692,18 +4692,116 @@
         }
       },
       {
-        "id": "c7a1fae4-b665-4f9e-9423-48a3aebd0a3f",
-        "path": "/ui/InGameUIGroup/Inventory_Panel/Window/TabArmor",
-        "componentNames": "MOD.Core.UITransformComponent,MOD.Core.SpriteGUIRendererComponent,MOD.Core.ButtonComponent,MOD.Core.TextComponent",
+        "id": "5a804260-a44a-42ec-837b-175d2b3b9c9d",
+        "path": "/ui/InGameUIGroup/Inventory_Panel/Window/TabBtn",
+        "componentNames": "MOD.Core.UITransformComponent,MOD.Core.ScrollLayoutGroupComponent",
         "jsonString": {
-          "name": "TabArmor",
-          "path": "/ui/InGameUIGroup/Inventory_Panel/Window/TabArmor",
+          "name": "TabBtn",
+          "path": "/ui/InGameUIGroup/Inventory_Panel/Window/TabBtn",
           "nameEditable": true,
           "enable": true,
           "visible": true,
           "localize": true,
           "displayOrder": 1,
           "pathConstraints": "/////",
+          "revision": 1,
+          "origin": {
+            "type": "Model",
+            "entry_id": "uiempty",
+            "sub_entity_id": null,
+            "root_entity_id": "5a804260-a44a-42ec-837b-175d2b3b9c9d",
+            "replaced_model_id": null
+          },
+          "modelId": "uiempty",
+          "@components": [
+            {
+              "@type": "MOD.Core.UITransformComponent",
+              "AlignmentOption": 0,
+              "AnchorsMax": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "AnchorsMin": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "MobileOnly": false,
+              "OffsetMax": {
+                "x": 419.642334,
+                "y": 294.2308
+              },
+              "OffsetMin": {
+                "x": -419.642334,
+                "y": 168.6814
+              },
+              "Pivot": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "RectSize": {
+                "x": 839.284668,
+                "y": 125.549408
+              },
+              "UIMode": 1,
+              "UIScale": {
+                "x": 1.0,
+                "y": 1.0,
+                "z": 1.0
+              },
+              "UIVersion": 2,
+              "anchoredPosition": {
+                "x": 0.0,
+                "y": 231.4561
+              },
+              "Rotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+              },
+              "Position": {
+                "x": 0.0,
+                "y": 231.4561,
+                "z": 0.0
+              },
+              "QuaternionRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": -1.0
+              },
+              "Scale": {
+                "x": 1.0,
+                "y": 1.0,
+                "z": 1.0
+              },
+              "ZRotation": 0.0,
+              "Enable": true
+            },
+            {
+              "@type": "MOD.Core.ScrollLayoutGroupComponent",
+              "ChildAlignment": 4,
+              "OverrideSorting": false,
+              "Spacing": 16.54,
+              "UseScroll": false,
+              "Enable": true
+            }
+          ],
+          "@version": 1
+        }
+      },
+      {
+        "id": "c7a1fae4-b665-4f9e-9423-48a3aebd0a3f",
+        "path": "/ui/InGameUIGroup/Inventory_Panel/Window/TabBtn/TabArmor",
+        "componentNames": "MOD.Core.UITransformComponent,MOD.Core.SpriteGUIRendererComponent,MOD.Core.ButtonComponent,MOD.Core.TextComponent",
+        "jsonString": {
+          "name": "TabArmor",
+          "path": "/ui/InGameUIGroup/Inventory_Panel/Window/TabBtn/TabArmor",
+          "nameEditable": true,
+          "enable": true,
+          "visible": true,
+          "localize": true,
+          "displayOrder": 0,
+          "pathConstraints": "//////",
           "revision": 0,
           "origin": {
             "type": "Model",
@@ -4728,20 +4826,20 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 210.0,
-                "y": -30.0
+                "x": 220.0,
+                "y": -27.0
               },
               "OffsetMin": {
-                "x": 80.0,
-                "y": -74.0
+                "x": 46.0,
+                "y": -98.0
               },
               "Pivot": {
                 "x": 0.0,
                 "y": 1.0
               },
               "RectSize": {
-                "x": 130.0,
-                "y": 44.0
+                "x": 174.0,
+                "y": 71.0
               },
               "UIMode": 1,
               "UIScale": {
@@ -4751,12 +4849,12 @@
               },
               "UIVersion": 2,
               "anchoredPosition": {
-                "x": 80.0,
-                "y": -30.0
+                "x": 46.0,
+                "y": -27.0
               },
               "Position": {
-                "x": -260.0,
-                "y": 230.0,
+                "x": 46.0,
+                "y": -27.0,
                 "z": 0.0
               },
               "QuaternionRotation": {
@@ -4778,7 +4876,7 @@
               "EndFrameIndex": 2147483647,
               "IgnoreMapLayerCheck": false,
               "ImageRUID": {
-                "DataId": "4fea64a3307cda641809ad8be0d4890b"
+                "DataId": "cb2c6c9ac0ab4526a3664b1a8b762319"
               },
               "LocalPosition": {
                 "x": 0.0,
@@ -4792,13 +4890,13 @@
               "OrderInLayer": 0,
               "OverrideSorting": false,
               "PlayRate": 1.0,
-              "PreserveSprite": 0,
+              "PreserveSprite": 2,
               "SortingLayer": "UI",
               "StartFrameIndex": 0,
               "Color": {
-                "r": 0.2,
-                "g": 0.4,
-                "b": 0.7,
+                "r": 1.0,
+                "g": 1.0,
+                "b": 1.0,
                 "a": 1.0
               },
               "DropShadow": false,
@@ -4887,7 +4985,7 @@
               "Alignment": 4,
               "AllowAutomaticTranslation": true,
               "BestFit": false,
-              "Bold": false,
+              "Bold": true,
               "ConstraintX": 100.0,
               "ConstraintY": 100.0,
               "DropShadow": false,
@@ -4899,30 +4997,30 @@
                 "a": 0.72
               },
               "DropShadowDistance": 3.0,
-              "Font": 0,
+              "Font": 1,
               "FontColor": {
                 "r": 1.0,
                 "g": 1.0,
                 "b": 1.0,
                 "a": 1.0
               },
-              "FontSize": 20,
+              "FontSize": 29,
               "IgnoreMapLayerCheck": false,
               "IsLocalizationKey": false,
               "MaxSize": 40,
               "MinSize": 10,
               "OrderInLayer": 0,
               "OutlineColor": {
-                "r": 0.698039234,
-                "g": 0.698039234,
-                "b": 0.698039234,
+                "r": 0.168627456,
+                "g": 0.254901975,
+                "b": 0.784313738,
                 "a": 1.0
               },
               "OutlineDistance": {
                 "x": 1.0,
                 "y": -1.0
               },
-              "OutlineWidth": 1.0,
+              "OutlineWidth": 5.0,
               "Overflow": 0,
               "OverrideSorting": false,
               "Padding": {
@@ -4936,7 +5034,7 @@
               "Text": "보호구",
               "UseConstraintX": false,
               "UseConstraintY": false,
-              "UseOutLine": false,
+              "UseOutLine": true,
               "Enable": true
             }
           ],
@@ -4945,17 +5043,17 @@
       },
       {
         "id": "43cee12a-4d92-4831-b7c0-7d055c4724c3",
-        "path": "/ui/InGameUIGroup/Inventory_Panel/Window/TabWeapon",
+        "path": "/ui/InGameUIGroup/Inventory_Panel/Window/TabBtn/TabWeapon",
         "componentNames": "MOD.Core.UITransformComponent,MOD.Core.SpriteGUIRendererComponent,MOD.Core.ButtonComponent,MOD.Core.TextComponent",
         "jsonString": {
           "name": "TabWeapon",
-          "path": "/ui/InGameUIGroup/Inventory_Panel/Window/TabWeapon",
+          "path": "/ui/InGameUIGroup/Inventory_Panel/Window/TabBtn/TabWeapon",
           "nameEditable": true,
           "enable": true,
           "visible": true,
           "localize": true,
-          "displayOrder": 2,
-          "pathConstraints": "/////",
+          "displayOrder": 1,
+          "pathConstraints": "//////",
           "revision": 0,
           "origin": {
             "type": "Model",
@@ -4980,20 +5078,20 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 350.0,
-                "y": -30.0
+                "x": 410.54,
+                "y": -27.0
               },
               "OffsetMin": {
-                "x": 220.0,
-                "y": -74.0
+                "x": 236.540009,
+                "y": -98.0
               },
               "Pivot": {
                 "x": 0.0,
                 "y": 1.0
               },
               "RectSize": {
-                "x": 130.0,
-                "y": 44.0
+                "x": 174.0,
+                "y": 71.0
               },
               "UIMode": 1,
               "UIScale": {
@@ -5003,12 +5101,12 @@
               },
               "UIVersion": 2,
               "anchoredPosition": {
-                "x": 220.0,
-                "y": -30.0
+                "x": 236.540009,
+                "y": -27.0
               },
               "Position": {
-                "x": -120.0,
-                "y": 230.0,
+                "x": 236.540009,
+                "y": -27.0,
                 "z": 0.0
               },
               "QuaternionRotation": {
@@ -5030,7 +5128,7 @@
               "EndFrameIndex": 2147483647,
               "IgnoreMapLayerCheck": false,
               "ImageRUID": {
-                "DataId": "4fea64a3307cda641809ad8be0d4890b"
+                "DataId": "ae02632707f44429885b106fb0f89d03"
               },
               "LocalPosition": {
                 "x": 0.0,
@@ -5044,13 +5142,13 @@
               "OrderInLayer": 0,
               "OverrideSorting": false,
               "PlayRate": 1.0,
-              "PreserveSprite": 0,
+              "PreserveSprite": 2,
               "SortingLayer": "UI",
               "StartFrameIndex": 0,
               "Color": {
-                "r": 0.25,
-                "g": 0.25,
-                "b": 0.35,
+                "r": 1.0,
+                "g": 1.0,
+                "b": 1.0,
                 "a": 1.0
               },
               "DropShadow": false,
@@ -5139,7 +5237,7 @@
               "Alignment": 4,
               "AllowAutomaticTranslation": true,
               "BestFit": false,
-              "Bold": false,
+              "Bold": true,
               "ConstraintX": 100.0,
               "ConstraintY": 100.0,
               "DropShadow": false,
@@ -5151,30 +5249,30 @@
                 "a": 0.72
               },
               "DropShadowDistance": 3.0,
-              "Font": 0,
+              "Font": 1,
               "FontColor": {
                 "r": 1.0,
                 "g": 1.0,
                 "b": 1.0,
                 "a": 1.0
               },
-              "FontSize": 20,
+              "FontSize": 29,
               "IgnoreMapLayerCheck": false,
               "IsLocalizationKey": false,
               "MaxSize": 40,
               "MinSize": 10,
               "OrderInLayer": 0,
               "OutlineColor": {
-                "r": 0.698039234,
-                "g": 0.698039234,
-                "b": 0.698039234,
+                "r": 0.08627451,
+                "g": 0.380392164,
+                "b": 0.827451,
                 "a": 1.0
               },
               "OutlineDistance": {
                 "x": 1.0,
                 "y": -1.0
               },
-              "OutlineWidth": 1.0,
+              "OutlineWidth": 5.0,
               "Overflow": 0,
               "OverrideSorting": false,
               "Padding": {
@@ -5188,7 +5286,7 @@
               "Text": "무기",
               "UseConstraintX": false,
               "UseConstraintY": false,
-              "UseOutLine": false,
+              "UseOutLine": true,
               "Enable": true
             }
           ],
@@ -5197,17 +5295,17 @@
       },
       {
         "id": "c47961ba-dc63-4121-9430-a779096b0c72",
-        "path": "/ui/InGameUIGroup/Inventory_Panel/Window/TabAccessory",
+        "path": "/ui/InGameUIGroup/Inventory_Panel/Window/TabBtn/TabAccessory",
         "componentNames": "MOD.Core.UITransformComponent,MOD.Core.SpriteGUIRendererComponent,MOD.Core.ButtonComponent,MOD.Core.TextComponent",
         "jsonString": {
           "name": "TabAccessory",
-          "path": "/ui/InGameUIGroup/Inventory_Panel/Window/TabAccessory",
+          "path": "/ui/InGameUIGroup/Inventory_Panel/Window/TabBtn/TabAccessory",
           "nameEditable": true,
           "enable": true,
           "visible": true,
           "localize": true,
-          "displayOrder": 3,
-          "pathConstraints": "/////",
+          "displayOrder": 2,
+          "pathConstraints": "//////",
           "revision": 0,
           "origin": {
             "type": "Model",
@@ -5232,20 +5330,20 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 490.0,
-                "y": -30.0
+                "x": 601.08,
+                "y": -27.0
               },
               "OffsetMin": {
-                "x": 360.0,
-                "y": -74.0
+                "x": 427.080017,
+                "y": -98.0
               },
               "Pivot": {
                 "x": 0.0,
                 "y": 1.0
               },
               "RectSize": {
-                "x": 130.0,
-                "y": 44.0
+                "x": 174.0,
+                "y": 71.0
               },
               "UIMode": 1,
               "UIScale": {
@@ -5255,12 +5353,12 @@
               },
               "UIVersion": 2,
               "anchoredPosition": {
-                "x": 360.0,
-                "y": -30.0
+                "x": 427.080017,
+                "y": -27.0
               },
               "Position": {
-                "x": 20.0,
-                "y": 230.0,
+                "x": 427.080017,
+                "y": -27.0,
                 "z": 0.0
               },
               "QuaternionRotation": {
@@ -5282,7 +5380,7 @@
               "EndFrameIndex": 2147483647,
               "IgnoreMapLayerCheck": false,
               "ImageRUID": {
-                "DataId": "4fea64a3307cda641809ad8be0d4890b"
+                "DataId": "ae02632707f44429885b106fb0f89d03"
               },
               "LocalPosition": {
                 "x": 0.0,
@@ -5296,13 +5394,13 @@
               "OrderInLayer": 0,
               "OverrideSorting": false,
               "PlayRate": 1.0,
-              "PreserveSprite": 0,
+              "PreserveSprite": 2,
               "SortingLayer": "UI",
               "StartFrameIndex": 0,
               "Color": {
-                "r": 0.25,
-                "g": 0.25,
-                "b": 0.35,
+                "r": 1.0,
+                "g": 1.0,
+                "b": 1.0,
                 "a": 1.0
               },
               "DropShadow": false,
@@ -5391,7 +5489,7 @@
               "Alignment": 4,
               "AllowAutomaticTranslation": true,
               "BestFit": false,
-              "Bold": false,
+              "Bold": true,
               "ConstraintX": 100.0,
               "ConstraintY": 100.0,
               "DropShadow": false,
@@ -5403,30 +5501,30 @@
                 "a": 0.72
               },
               "DropShadowDistance": 3.0,
-              "Font": 0,
+              "Font": 1,
               "FontColor": {
                 "r": 1.0,
                 "g": 1.0,
                 "b": 1.0,
                 "a": 1.0
               },
-              "FontSize": 20,
+              "FontSize": 29,
               "IgnoreMapLayerCheck": false,
               "IsLocalizationKey": false,
               "MaxSize": 40,
               "MinSize": 10,
               "OrderInLayer": 0,
               "OutlineColor": {
-                "r": 0.698039234,
-                "g": 0.698039234,
-                "b": 0.698039234,
+                "r": 0.08627451,
+                "g": 0.380392164,
+                "b": 0.827451,
                 "a": 1.0
               },
               "OutlineDistance": {
                 "x": 1.0,
                 "y": -1.0
               },
-              "OutlineWidth": 1.0,
+              "OutlineWidth": 5.0,
               "Overflow": 0,
               "OverrideSorting": false,
               "Padding": {
@@ -5440,7 +5538,7 @@
               "Text": "장신구",
               "UseConstraintX": false,
               "UseConstraintY": false,
-              "UseOutLine": false,
+              "UseOutLine": true,
               "Enable": true
             }
           ],
@@ -5449,17 +5547,17 @@
       },
       {
         "id": "2b39b62a-d906-4764-b0db-c04aae7b8c11",
-        "path": "/ui/InGameUIGroup/Inventory_Panel/Window/TabItem",
+        "path": "/ui/InGameUIGroup/Inventory_Panel/Window/TabBtn/TabItem",
         "componentNames": "MOD.Core.UITransformComponent,MOD.Core.SpriteGUIRendererComponent,MOD.Core.ButtonComponent,MOD.Core.TextComponent",
         "jsonString": {
           "name": "TabItem",
-          "path": "/ui/InGameUIGroup/Inventory_Panel/Window/TabItem",
+          "path": "/ui/InGameUIGroup/Inventory_Panel/Window/TabBtn/TabItem",
           "nameEditable": true,
           "enable": true,
           "visible": true,
           "localize": true,
-          "displayOrder": 4,
-          "pathConstraints": "/////",
+          "displayOrder": 3,
+          "pathConstraints": "//////",
           "revision": 0,
           "origin": {
             "type": "Model",
@@ -5484,20 +5582,20 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 630.0,
-                "y": -30.0
+                "x": 791.62,
+                "y": -27.0
               },
               "OffsetMin": {
-                "x": 500.0,
-                "y": -74.0
+                "x": 617.62,
+                "y": -98.0
               },
               "Pivot": {
                 "x": 0.0,
                 "y": 1.0
               },
               "RectSize": {
-                "x": 130.0,
-                "y": 44.0
+                "x": 174.0,
+                "y": 71.0
               },
               "UIMode": 1,
               "UIScale": {
@@ -5507,12 +5605,12 @@
               },
               "UIVersion": 2,
               "anchoredPosition": {
-                "x": 500.0,
-                "y": -30.0
+                "x": 617.62,
+                "y": -27.0
               },
               "Position": {
-                "x": 160.0,
-                "y": 230.0,
+                "x": 617.62,
+                "y": -27.0,
                 "z": 0.0
               },
               "QuaternionRotation": {
@@ -5534,7 +5632,7 @@
               "EndFrameIndex": 2147483647,
               "IgnoreMapLayerCheck": false,
               "ImageRUID": {
-                "DataId": "4fea64a3307cda641809ad8be0d4890b"
+                "DataId": "ae02632707f44429885b106fb0f89d03"
               },
               "LocalPosition": {
                 "x": 0.0,
@@ -5552,9 +5650,9 @@
               "SortingLayer": "UI",
               "StartFrameIndex": 0,
               "Color": {
-                "r": 0.25,
-                "g": 0.25,
-                "b": 0.35,
+                "r": 1.0,
+                "g": 1.0,
+                "b": 1.0,
                 "a": 1.0
               },
               "DropShadow": false,
@@ -5634,6 +5732,7 @@
               "KeyCode": 0,
               "OrderInLayer": 0,
               "OverrideSorting": false,
+              "Selectable": false,
               "SortingLayer": "UI",
               "Transition": 1,
               "Enable": true
@@ -5643,7 +5742,7 @@
               "Alignment": 4,
               "AllowAutomaticTranslation": true,
               "BestFit": false,
-              "Bold": false,
+              "Bold": true,
               "ConstraintX": 100.0,
               "ConstraintY": 100.0,
               "DropShadow": false,
@@ -5655,30 +5754,30 @@
                 "a": 0.72
               },
               "DropShadowDistance": 3.0,
-              "Font": 0,
+              "Font": 1,
               "FontColor": {
                 "r": 1.0,
                 "g": 1.0,
                 "b": 1.0,
                 "a": 1.0
               },
-              "FontSize": 20,
+              "FontSize": 29,
               "IgnoreMapLayerCheck": false,
               "IsLocalizationKey": false,
               "MaxSize": 40,
               "MinSize": 10,
               "OrderInLayer": 0,
               "OutlineColor": {
-                "r": 0.698039234,
-                "g": 0.698039234,
-                "b": 0.698039234,
+                "r": 0.08627451,
+                "g": 0.380392164,
+                "b": 0.827451,
                 "a": 1.0
               },
               "OutlineDistance": {
                 "x": 1.0,
                 "y": -1.0
               },
-              "OutlineWidth": 1.0,
+              "OutlineWidth": 5.0,
               "Overflow": 0,
               "OverrideSorting": false,
               "Padding": {
@@ -5692,7 +5791,7 @@
               "Text": "아이템",
               "UseConstraintX": false,
               "UseConstraintY": false,
-              "UseOutLine": false,
+              "UseOutLine": true,
               "Enable": true
             }
           ],
@@ -5710,7 +5809,7 @@
           "enable": true,
           "visible": true,
           "localize": true,
-          "displayOrder": 5,
+          "displayOrder": 2,
           "pathConstraints": "/////",
           "revision": 0,
           "origin": {
@@ -5737,11 +5836,11 @@
               "MobileOnly": false,
               "OffsetMax": {
                 "x": 320.0,
-                "y": 210.0
+                "y": 125.97
               },
               "OffsetMin": {
                 "x": -320.0,
-                "y": -170.0
+                "y": -254.03
               },
               "Pivot": {
                 "x": 0.5,
@@ -5760,11 +5859,11 @@
               "UIVersion": 2,
               "anchoredPosition": {
                 "x": 0.0,
-                "y": 20.0
+                "y": -64.03
               },
               "Position": {
                 "x": 0.0,
-                "y": 20.0,
+                "y": -64.03,
                 "z": 0.0
               },
               "QuaternionRotation": {
@@ -5814,12 +5913,12 @@
                 "DataId": ""
               },
               "ScrollBarThickness": 10.0,
-              "ScrollBarVisible": 1,
+              "ScrollBarVisible": 2,
               "Spacing": {
                 "x": 8.0,
                 "y": 8.0
               },
-              "TotalCount": 0,
+              "TotalCount": 30,
               "UseScroll": true,
               "VerticalScrollBarDirection": 0,
               "Enable": true
@@ -5839,7 +5938,7 @@
           "enable": true,
           "visible": true,
           "localize": true,
-          "displayOrder": 6,
+          "displayOrder": 3,
           "pathConstraints": "/////",
           "revision": 0,
           "origin": {
@@ -5865,20 +5964,20 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 230.0,
-                "y": -207.0
+                "x": 155.343323,
+                "y": -280.5523
               },
               "OffsetMin": {
-                "x": -230.0,
-                "y": -257.0
+                "x": -134.876709,
+                "y": -369.2885
               },
               "Pivot": {
                 "x": 0.5,
                 "y": 0.5
               },
               "RectSize": {
-                "x": 460.0,
-                "y": 50.0
+                "x": 290.220032,
+                "y": 88.7362061
               },
               "UIMode": 1,
               "UIScale": {
@@ -5888,12 +5987,12 @@
               },
               "UIVersion": 2,
               "anchoredPosition": {
-                "x": 0.0,
-                "y": -232.0
+                "x": 10.2333,
+                "y": -324.9204
               },
               "Position": {
-                "x": 0.0,
-                "y": -232.0,
+                "x": 10.2333,
+                "y": -324.9204,
                 "z": 0.0
               },
               "QuaternionRotation": {
@@ -5915,7 +6014,7 @@
               "EndFrameIndex": 2147483647,
               "IgnoreMapLayerCheck": false,
               "ImageRUID": {
-                "DataId": "4fea64a3307cda641809ad8be0d4890b"
+                "DataId": "d8d29142080444de89e894b858a2ca96"
               },
               "LocalPosition": {
                 "x": 0.0,
@@ -5929,13 +6028,13 @@
               "OrderInLayer": 0,
               "OverrideSorting": false,
               "PlayRate": 1.0,
-              "PreserveSprite": 0,
+              "PreserveSprite": 2,
               "SortingLayer": "UI",
               "StartFrameIndex": 0,
               "Color": {
-                "r": 0.42,
-                "g": 0.3,
-                "b": 0.62,
+                "r": 1.0,
+                "g": 1.0,
+                "b": 1.0,
                 "a": 1.0
               },
               "DropShadow": false,
@@ -6024,7 +6123,7 @@
               "Alignment": 4,
               "AllowAutomaticTranslation": true,
               "BestFit": false,
-              "Bold": false,
+              "Bold": true,
               "ConstraintX": 100.0,
               "ConstraintY": 100.0,
               "DropShadow": false,
@@ -6036,7 +6135,7 @@
                 "a": 0.72
               },
               "DropShadowDistance": 3.0,
-              "Font": 0,
+              "Font": 1,
               "FontColor": {
                 "r": 1.0,
                 "g": 1.0,
@@ -6088,10 +6187,10 @@
           "name": "Footer",
           "path": "/ui/InGameUIGroup/Inventory_Panel/Window/Footer",
           "nameEditable": true,
-          "enable": true,
+          "enable": false,
           "visible": true,
           "localize": true,
-          "displayOrder": 7,
+          "displayOrder": 4,
           "pathConstraints": "/////",
           "revision": 0,
           "origin": {
@@ -6145,7 +6244,7 @@
               },
               "Position": {
                 "x": 0.0,
-                "y": -260.0,
+                "y": -318.365,
                 "z": 0.0
               },
               "QuaternionRotation": {
@@ -6485,7 +6584,7 @@
           "name": "CellPrefab",
           "path": "/ui/InGameUIGroup/Inventory_Panel/CellPrefab",
           "nameEditable": true,
-          "enable": false,
+          "enable": true,
           "visible": true,
           "localize": true,
           "displayOrder": 2,
@@ -6564,7 +6663,7 @@
               "EndFrameIndex": 2147483647,
               "IgnoreMapLayerCheck": false,
               "ImageRUID": {
-                "DataId": "4fea64a3307cda641809ad8be0d4890b"
+                "DataId": "202dcae38832408c9ce3cae9a7f5a76b"
               },
               "LocalPosition": {
                 "x": 0.0,
@@ -6578,13 +6677,13 @@
               "OrderInLayer": 0,
               "OverrideSorting": false,
               "PlayRate": 1.0,
-              "PreserveSprite": 0,
+              "PreserveSprite": 2,
               "SortingLayer": "UI",
               "StartFrameIndex": 0,
               "Color": {
-                "r": 0.3,
-                "g": 0.3,
-                "b": 0.4,
+                "r": 1.0,
+                "g": 1.0,
+                "b": 1.0,
                 "a": 1.0
               },
               "DropShadow": false,
