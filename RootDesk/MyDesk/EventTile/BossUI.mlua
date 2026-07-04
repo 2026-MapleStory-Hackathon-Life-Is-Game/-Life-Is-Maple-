@@ -45,6 +45,9 @@ script BossUI extends Logic
 
 	property Entity DetailBossName = "36060171-5658-42a6-b756-204cdd114f62"
 
+	-- 상세(난이도) 화면에서 난이도 버튼 '위'에 현재 내 전투력을 표시하는 텍스트. UIBuilder 바인딩 주입으로 채워진다.
+	property Entity MyPowerText = "0466a161-21b7-4af1-bdc4-6954032c1206"
+
 	-- 난이도 버튼(ScrollLayout 자식). 값은 UIBuilder 바인딩 주입으로 채워진다.
 	property Entity EasyButton = "983189c4-66cd-4971-b802-4d30ebc1a2e8"
 	property Entity NormalButton = "47ee2787-2240-4454-9c54-dc8cf8cfbdf7"
@@ -157,6 +160,17 @@ script BossUI extends Logic
 			end
 		end
 		return nil
+	end
+
+	method string MyCombatPower()
+		-- 로컬 플레이어의 현재 전투력을 콤마 포맷 문자열로 반환. CombatPowerManager.CombatPower(@Sync)를 읽는다.
+		-- 값을 못 구하면 "-".
+		local me = _UserService.LocalPlayer
+		if isvalid(me) == false then return "-" end
+		---@type CombatPowerManager
+		local cp = me:GetComponent("script.CombatPowerManager")
+		if isvalid(cp) == false then return "-" end
+		return self:FormatPower(tostring(cp.CombatPower))
 	end
 
 	method string FormatPower(string raw)
@@ -424,6 +438,10 @@ script BossUI extends Logic
 		self._selectedIndex = idx
 		if isvalid(self.DetailBossName) and isvalid(self.DetailBossName.TextComponent) then
 			self.DetailBossName.TextComponent.Text = self._bossNames[idx]
+		end
+		-- 난이도 버튼 위에 현재 내 전투력 표시.
+		if isvalid(self.MyPowerText) and isvalid(self.MyPowerText.TextComponent) then
+			self.MyPowerText.TextComponent.Text = "내 전투력 : " .. self:MyCombatPower()
 		end
 		-- DetailPanel 보스 이미지 = BossImage.DetailPanelRUID (고정 슬롯 크기 그대로 — BossImage.UIScale은 인게임 전투에만 적용).
 		local imgRow = self:BossImageRow(self._bossKeys[idx])
