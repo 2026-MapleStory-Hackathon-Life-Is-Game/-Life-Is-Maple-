@@ -95,7 +95,7 @@ script EndTile extends BaseTile
 			local key = "lose"
 			if self._won then key = "win" end
 			log("[EndTile] 검은 마법사 판정 CP=" .. tostring(cp) .. " / 적정=" .. tostring(req) .. " → " .. key)
-			self:ClientShowText(self:Dlg(key), "BlackMage", ownerId)
+			self:ClientShowText(self:Dlg(key), "BlackMage", self._won, ownerId)
 		else
 			self:EndBattle()
 		end
@@ -145,17 +145,33 @@ script EndTile extends BaseTile
 		_BossUI:ShowSingle(self, "Black_Mage", "검은 마법사", introText)
 	end
 
-	@ExecSpace("Client")
-	method void ClientStartChallenge(string text)
-		-- BossUI 닫고 도전 문구 표시(콜백용 self). '다음' → RequestAdvance.
-		_BossUI:Hide()
-		_EventTileUI:SceneText(text, "idle", "BlackMage", self)
+	method string BlackMageStandRUID()
+		-- 검은 마법사 인게임 stand 스프라이트(BossImage.IngameStandRUID). 최종전 이미지는 다른 보스처럼 BossImage에서 가져와 크게 표시.
+		local ds = _DataService:GetTable("BossImage")
+		if isvalid(ds) == false then return "" end
+		for i = 1, ds:GetRowCount() do
+			if ds:GetCell(i, "BossName") == "Black_Mage" then
+				local st = ds:GetCell(i, "IngameStandRUID")
+				if st ~= nil then return st end
+				return ""
+			end
+		end
+		return ""
 	end
 
 	@ExecSpace("Client")
-	method void ClientShowText(string text, string npcKey)
-		-- 결과 문구 표시(콜백용 self). '다음' → RequestAdvance. npcKey=등장 NPC(검은 마법사 이미지).
-		_EventTileUI:SceneText(text, "idle", npcKey, self)
+	method void ClientStartChallenge(string text)
+		-- BossUI 닫고 도전 문구 표시(콜백용 self). '다음' → RequestAdvance.
+		-- 검은 마법사는 다른 보스와 동일하게 원본 크기 × 전역 배율(BossImage 설정)로 크게 표시한다.
+		_BossUI:Hide()
+		_EventTileUI:BossSceneText(text, "idle", self:BlackMageStandRUID(), self)
+	end
+
+	@ExecSpace("Client")
+	method void ClientShowText(string text, string npcKey, boolean win)
+		-- 결과 문구 표시(콜백용 self). '다음' → RequestAdvance. 검은 마법사 결과 → 승리=웃음 / 패배=울음.
+		_EventTileUI:BossSceneText(text, "idle", self:BlackMageStandRUID(), self)
+		if win then _EventTileUI:PortraitEmoteKind("happy") else _EventTileUI:PortraitEmoteKind("cry") end
 	end
 
 	@ExecSpace("Client")
