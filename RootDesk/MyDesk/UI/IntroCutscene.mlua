@@ -1,0 +1,278 @@
+@Logic
+script IntroCutscene extends Logic
+
+	-- 오프닝 인트로(연출 위주, 대사 없음). 검은 화면 위에서 게임 타이틀 → 단풍잎 낙하 → Lv.10 레벨업 배너
+	-- 캐릭터 '머리 위' 안착 → 잎 소멸 → 레벨업 이펙트 + 검은화면 페이드아웃(밝기 업) 순으로 진행한다.
+	-- 로딩 화면(GroupOrder 100)보다 아래(IntroGroup 18)라 로딩 중엔 로딩이 덮고, 로딩이 끝나면 검은화면이 드러난다.
+	-- 검은화면(18)은 Lv.10 배너(EventTileGroup 12) 위라, 배너를 가린 채 잎을 얹고 마지막에 걷어 캐릭터를 드러낸다.
+	--
+	-- 좌표 정합: IntroGroup / EventTileGroup 모두 화면 중앙 기준 풀스크린 → anchoredPosition이 동일 화면 좌표로 맞는다.
+	-- 배너 초상화(중앙 정렬)의 화면 중심 ≈ (0, +113), 머리 위 ≈ (0, HeadY). HeadY/시작점 등은 플레이테스트로 튜닝.
+	--
+	-- 흐름은 ModeSelectUI.OnClickSingle에서 BeginOpening()으로 시작한다(게임 시작과 병행되는 오버레이).
+	-- 배너 준비 통지는 EventTileUI.ShowLevelUp(오프닝)에서 OnOpeningBannerReady()로 받는다.
+	-- IntroCutscene가 미등록(nil)이면 ModeSelectUI/EventTileUI가 기존 동작으로 폴백한다.
+
+	property Entity backdrop = "622dc63b-d693-4fa7-a5da-adc7904ad679"   -- 검은 배경(베이스, 페이드아웃 대상)
+	property Entity title = "7a13dbed-3c41-4a33-a2aa-f3f845e01da9"      -- 게임 타이틀(UISprite)
+	property Entity leaf = "53670cc4-be13-4352-8cdf-f6edbb9b2da6"       -- 단풍잎
+
+	property string LeafRUID = "051a0beab25240af87d7743f8fca7e2b"
+
+	-- 튜닝 좌표(플레이테스트로 조정). 화면 중앙(0,0) 기준.
+	property number LeafStartX = 370.0     -- 타이틀 오른쪽 아래(잎이 붙어있는 시작점) — 더 오른쪽 대각선 아래로
+	property number LeafStartY = -250.0
+	property number HeadX = 0.0            -- Lv.10 배너 초상화 '머리 위' 착지점 X
+	property number HeadY = 250.0          -- 〃 Y(초상화 중심 ≈ +113, 머리 위는 그 위)
+	property number HoverY = 330.0         -- 착지 직전 잠깐 떠 있는 높이
+	property number LeafStartScale = 0.8   -- 시작 크기
+	property number LeafHeadScale = 0.5    -- 착지 크기
+
+	-- 타이밍(초).
+	property number TITLE_BEAT = 3.0       -- 타이틀 정지 비트(오래 유지)
+	property number TITLE_FADE = 0.8       -- 타이틀 사라짐(낙하와 함께)
+	property number FALL_DUR = 2.6         -- 잎 낙하(좌우 진자)
+	property number LAND_DUR = 0.5         -- 머리 위로 안착
+	property number LEAF_MOVE_DUR = 0.6    -- 머리 → 정가운데 이동
+	property number LEAF_FADE = 0.6        -- 이동 뒤 잎 소멸
+	property number REVEAL_DUR = 1.6       -- 검은 배경이 점점 투명(EventTileGroup가 서서히 드러남)
+	property number OUTRO_DUR = 1.9        -- 아웃트로 전체 길이(이동+소멸+리빌 오버랩)
+	property number CenterX = 0.0          -- 정가운데 착지 X
+	property number CenterY = 113.0        -- 정가운데 착지 Y(배너 초상화 중심 ≈ +113)
+	property number HOVER_TIMEOUT = 6.0    -- 배너 준비를 못 받아도 이 시간 뒤 진행(소프트락 방지)
+	property number LOAD_TIMEOUT = 20.0    -- 로딩이 끝나지 않아도 이 시간 뒤 진행(안전장치)
+
+	property string _phase = "idle"
+	property number _pt = 0                -- 현재 페이즈 경과(초)
+	property integer _timer = 0
+	property boolean _opening = false
+	property boolean _bannerReady = false
+	property boolean _fxFired = false      -- 아웃트로 레벨업 이펙트 1회 트리거 가드
+
+	@ExecSpace("ClientOnly")
+	method void OnBeginPlay()
+		-- 평소엔 전부 숨김(그룹 루트 DefaultShow는 유지, 레이어만 토글).
+		self:HideAll()
+	end
+
+	@ExecSpace("ClientOnly")
+	method void OnEndPlay()
+		-- 타이머 정리.
+		if self._timer ~= 0 then _TimerService:ClearTimer(self._timer) self._timer = 0 end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void HideAll()
+		-- 모든 레이어 숨김 + 타이머 정리 + 상태 초기화.
+		if self._timer ~= 0 then _TimerService:ClearTimer(self._timer) self._timer = 0 end
+		self:SetEnable(self.backdrop, false)
+		self:SetEnable(self.title, false)
+		self:SetEnable(self.leaf, false)
+		self._phase = "idle"
+		self._pt = 0
+	end
+
+	-- ===== 헬퍼 =====
+	method number Clamp01(number x)
+		-- 0~1 클램프.
+		if x < 0 then return 0 end
+		if x > 1 then return 1 end
+		return x
+	end
+
+	method number Lerp(number a, number b, number k)
+		-- 선형 보간.
+		return a + (b - a) * k
+	end
+
+	method number Ease(number k)
+		-- smoothstep 이징.
+		k = self:Clamp01(k)
+		return k * k * (3 - 2 * k)
+	end
+
+	method void SetEnable(Entity e, boolean on)
+		-- 엔티티 표시 토글(안전).
+		if isvalid(e) then e.Enable = on end
+	end
+
+	method void SetPos(Entity e, number x, number y)
+		-- anchoredPosition 설정.
+		if isvalid(e) and isvalid(e.UITransformComponent) then
+			e.UITransformComponent.anchoredPosition = Vector2(x, y)
+		end
+	end
+
+	method void SetScale(Entity e, number s)
+		-- UIScale 설정.
+		if isvalid(e) and isvalid(e.UITransformComponent) then
+			e.UITransformComponent.UIScale = Vector3(s, s, 1)
+		end
+	end
+
+	method void SetAlpha(Entity e, number a)
+		-- 스프라이트 알파(틴트 흰색 유지).
+		if isvalid(e) and isvalid(e.SpriteGUIRendererComponent) then
+			e.SpriteGUIRendererComponent.Color = Color(1, 1, 1, a)
+		end
+	end
+
+	method void SetBlack(Entity e, number a)
+		-- 검은 배경 알파.
+		if isvalid(e) and isvalid(e.SpriteGUIRendererComponent) then
+			e.SpriteGUIRendererComponent.Color = Color(0, 0, 0, a)
+		end
+	end
+
+	-- ===== 시작/통지 =====
+	@ExecSpace("ClientOnly")
+	method void BeginOpening()
+		-- 싱글 시작 클릭 시 호출. 검은 배경을 먼저 깔고(로딩이 그 위를 덮음),
+		-- 로딩이 끝나면 타이틀/잎 시퀀스를 시작한다.
+		self:HideAll()
+		self._opening = true
+		self._bannerReady = false
+		self._fxFired = false
+		self:SetEnable(self.backdrop, true)
+		self:SetBlack(self.backdrop, 1)
+		-- 타이틀/잎은 로딩이 끝난 뒤(자연스러운 '로딩 이후 씬 시작')에 노출.
+		self._phase = "waitLoad"
+		self._pt = 0
+		if self._timer ~= 0 then _TimerService:ClearTimer(self._timer) end
+		self._timer = _TimerService:SetTimerRepeat(function() self:Step() end, 0.02)
+		log("[IntroCutscene] BeginOpening")
+	end
+
+	@ExecSpace("ClientOnly")
+	method void OnOpeningBannerReady()
+		-- EventTileUI가 오프닝 Lv.10 배너를 띄운 직후 통지. 잎 착지 게이트를 연다.
+		self._bannerReady = true
+		log("[IntroCutscene] 배너 준비 통지 수신")
+	end
+
+	@ExecSpace("ClientOnly")
+	method boolean LoadingShown()
+		-- 로딩 오버레이 표시 여부(안전).
+		if _LoadingManager == nil then return false end
+		return _LoadingManager:IsOverlayShown()
+	end
+
+	-- ===== 진행(마스터 타이머) =====
+	@ExecSpace("ClientOnly")
+	method void Step()
+		-- 페이즈별 진행. 각 페이즈 경과(_pt)를 누적하고 전이 시 0으로 리셋한다.
+		if self._opening == false then return end
+		self._pt = self._pt + 0.02
+		local p = self._phase
+		if p == "waitLoad" then
+			self:StepWaitLoad()
+		elseif p == "title" then
+			self:StepTitle()
+		elseif p == "fall" then
+			self:StepFall()
+		elseif p == "land" then
+			self:StepLand()
+		elseif p == "outro" then
+			self:StepOutro()
+		end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void Goto(string phase)
+		-- 페이즈 전이 + 경과 리셋.
+		self._phase = phase
+		self._pt = 0
+	end
+
+	@ExecSpace("ClientOnly")
+	method void StepWaitLoad()
+		-- 로딩이 끝나면(또는 타임아웃) 타이틀/잎을 노출하고 시작.
+		if self:LoadingShown() and self._pt < self.LOAD_TIMEOUT then return end
+		self:SetEnable(self.title, true)
+		self:SetAlpha(self.title, 1)
+		self:SetEnable(self.leaf, true)
+		self:SetAlpha(self.leaf, 1)
+		self:SetPos(self.leaf, self.LeafStartX, self.LeafStartY)
+		self:SetScale(self.leaf, self.LeafStartScale)
+		self:Goto("title")
+		log("[IntroCutscene] 로딩 종료 → 타이틀/잎 표시")
+	end
+
+	@ExecSpace("ClientOnly")
+	method void StepTitle()
+		-- 타이틀 정지 비트: 잎을 제자리에서 살짝 흔든다. 비트가 끝나면 낙하로.
+		local sx = self.LeafStartX + math.sin(self._pt * 2.2) * 6
+		local sy = self.LeafStartY + math.sin(self._pt * 1.7) * 4
+		self:SetPos(self.leaf, sx, sy)
+		if self._pt >= self.TITLE_BEAT then
+			self:Goto("fall")
+		end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void StepFall()
+		-- 타이틀은 사라지고, 잎이 좌우 진자운동하며 머리 위(hover)까지 내려온다.
+		self:SetAlpha(self.title, 1 - self:Clamp01(self._pt / self.TITLE_FADE))
+		if self._pt >= self.TITLE_FADE then self:SetEnable(self.title, false) end
+		local k = self:Clamp01(self._pt / self.FALL_DUR)
+		local ek = self:Ease(k)
+		-- 진폭은 내려올수록 감소(살랑살랑 → 머리 위에서 잔잔).
+		local swing = math.sin(self._pt * 3.0) * (26 * (1 - k))
+		local x = self:Lerp(self.LeafStartX, self.HeadX, ek) + swing
+		local y = self:Lerp(self.LeafStartY, self.HoverY, ek)
+		self:SetPos(self.leaf, x, y)
+		self:SetScale(self.leaf, self:Lerp(self.LeafStartScale, self.LeafHeadScale, ek))
+		-- hover 도달 + 배너 준비되면 착지. 준비를 오래 못 받으면 타임아웃으로 진행.
+		if k >= 1 then
+			if self._bannerReady or self._pt >= (self.FALL_DUR + self.HOVER_TIMEOUT) then
+				self._landFromX = x
+				self._landFromY = y
+				self:Goto("land")
+			end
+		end
+	end
+
+	property number _landFromX = 0
+	property number _landFromY = 0
+
+	@ExecSpace("ClientOnly")
+	method void StepLand()
+		-- hover에서 머리 위(HeadX,HeadY)로 부드럽게 안착.
+		local k = self:Ease(self:Clamp01(self._pt / self.LAND_DUR))
+		self:SetPos(self.leaf, self:Lerp(self._landFromX, self.HeadX, k), self:Lerp(self._landFromY, self.HeadY, k))
+		if self._pt >= self.LAND_DUR then
+			self:SetPos(self.leaf, self.HeadX, self.HeadY)
+			self:Goto("outro")
+		end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void StepOutro()
+		-- 잎을 정가운데로 이동시키며 서서히 소멸시키고, 동시에 검은 배경을 점점 투명하게 걷어
+		-- 뒤의 Lv.10 배너(EventTileGroup)를 서서히 드러낸다(한 번에 전환하지 않고 겹쳐서 진행).
+		local mk = self:Ease(self:Clamp01(self._pt / self.LEAF_MOVE_DUR))
+		self:SetPos(self.leaf, self:Lerp(self.HeadX, self.CenterX, mk), self:Lerp(self.HeadY, self.CenterY, mk))
+		-- 이동(LEAF_MOVE_DUR) 뒤에 소멸(LEAF_FADE)한다 → '가운데로 간 다음 사라짐'.
+		self:SetAlpha(self.leaf, 1 - self:Clamp01((self._pt - self.LEAF_MOVE_DUR) / self.LEAF_FADE))
+		-- 검은 배경: 처음부터 점점 투명 → EventTileGroup가 뒤에서 서서히 드러남.
+		self:SetBlack(self.backdrop, 1 - self:Clamp01(self._pt / self.REVEAL_DUR))
+		-- 잎이 다 사라지는 시점에 보류했던 레벨업 이펙트 1회 재생.
+		if self._fxFired == false and self._pt >= (self.LEAF_MOVE_DUR + self.LEAF_FADE) then
+			self._fxFired = true
+			if isvalid(_EventTileUI) then _EventTileUI:PlayOpeningLevelUpFx() end
+		end
+		if self._pt >= self.OUTRO_DUR then
+			self:SetEnable(self.leaf, false)
+			self:Finish()
+		end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void Finish()
+		-- 인트로 종료: 전체 숨김. 이후는 기존 Lv.10 배너 흐름(다음 → 진영 선택)이 그대로 이어진다.
+		self._opening = false
+		self:HideAll()
+		log("[IntroCutscene] Finish")
+	end
+
+end

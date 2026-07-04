@@ -1,0 +1,36 @@
+@Logic
+script DebugEndingSummaryButton extends Logic
+
+	-- [임시/디버그] 인게임 HUD의 '엔딩표(TEST)' 버튼 컨트롤러.
+	-- 검은 마법사 최종전 없이도 엔딩 정리 표(EndingSummaryUI)를 바로 띄워 검증하기 위한 임시 버튼.
+	-- 현재 런 상태(턴/방문/전투력/인생분기)를 그대로 사용한다.
+	-- ⚠️ 출시 전 제거: 이 스크립트 + InGameUIGroup의 DebugSummaryButton 엔티티.
+
+	property Entity DebugBtn = "0acd8711-a325-4a1c-a8d9-f7e9e0ac3f2a"
+	property any _handler = nil
+
+	@ExecSpace("ClientOnly")
+	method void OnBeginPlay()
+		-- 버튼 클릭 → 서버에 엔딩 정리 표 강제 표시 요청.
+		if isvalid(self.DebugBtn) then
+			self._handler = self.DebugBtn:ConnectEvent(ButtonClickEvent, self.OnClick)
+		end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void OnEndPlay()
+		-- 핸들러 해제.
+		if isvalid(self.DebugBtn) and self._handler ~= nil then
+			self.DebugBtn:DisconnectEvent(ButtonClickEvent, self._handler)
+		end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void OnClick(ButtonClickEvent event)
+		-- 엔딩 정리 표 강제 표시(디버그).
+		log("[DebugEndingSummaryButton] 엔딩표(TEST) 클릭 → DebugShowEndingSummary")
+		if _SFXManager ~= nil then _SFXManager:PlayClick() end
+		_GameModeManager:DebugShowEndingSummary()
+	end
+
+end

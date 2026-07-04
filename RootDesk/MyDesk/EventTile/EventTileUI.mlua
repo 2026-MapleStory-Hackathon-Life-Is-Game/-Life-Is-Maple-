@@ -101,6 +101,11 @@ script EventTileUI extends Logic
 	property integer _luFxSchedTimer = 0      -- 로딩 대기/지연 재생 타이머
 	property boolean _luFxWanted = false      -- 배너가 이펙트를 원하는 상태(배너가 닫히면 false → 예약 취소)
 
+	-- 오프닝(Lv.10) 인트로 연동: 인트로가 단풍잎을 초상화 머리에 안착시킨 뒤 이펙트를 재생하도록 '보류'한다.
+	-- 인트로 미등록/미트리거 시 소프트락 방지용 폴백 타이머로 스스로 재생한다.
+	property boolean _openingLevelUpDeferred = false
+	property integer _luFxFallbackTimer = 0
+
 	-- 레벨업 배너 표시 동안 인게임 HUD(InGameUIGroup)를 숨겼다가 배너 종료 시 복원(BossUI 패턴).
 	property Entity InGameGroup = "a322b09a-023e-427d-9c6c-19724156dab7"
 	property boolean _luHidHud = false
@@ -1267,6 +1272,16 @@ script EventTileUI extends Logic
 	end
 
 	@ExecSpace("ClientOnly")
+	method void PlayOpeningLevelUpFx()
+		-- 인트로(또는 폴백 타이머)가 호출: 보류했던 오프닝 레벨업 이펙트를 지금 재생한다.
+		-- 로딩 오버레이는 이미 걷힌 상태 → ShowLevelUpFx가 LevelUpFxDelay 후 재생한다.
+		if self._openingLevelUpDeferred == false then return end
+		self._openingLevelUpDeferred = false
+		if self._luFxFallbackTimer ~= 0 then _TimerService:ClearTimer(self._luFxFallbackTimer) self._luFxFallbackTimer = 0 end
+		self:ShowLevelUpFx()
+	end
+
+	@ExecSpace("ClientOnly")
 	method void ScheduleLevelUpFx()
 		-- 로딩 오버레이가 끝날 때까지 폴링 대기 → 끝나면 LevelUpFxDelay 후 재생. 배너가 닫혔으면(_luFxWanted=false) 취소.
 		if self._luFxWanted == false then return end
@@ -1305,10 +1320,46 @@ script EventTileUI extends Logic
 	method void HideLevelUpFx()
 		-- 이펙트 숨김 + 예약/자동숨김 타이머 정리(배너 종료/자동 종료 공용). 로딩 중 배너가 닫히면 예약도 취소된다.
 		self._luFxWanted = false
+		self._openingLevelUpDeferred = false
+		if self._luFxFallbackTimer ~= 0 then _TimerService:ClearTimer(self._luFxFallbackTimer) self._luFxFallbackTimer = 0 end
 		self:ClearLuFxSched()
 		if self._luFxTimer ~= 0 then _TimerService:ClearTimer(self._luFxTimer) self._luFxTimer = 0 end
 		local e = _EntityService:GetEntityByPath(self.LevelUpFxPath)
 		if isvalid(e) then e.Enable = false end
+	end
+
+	method string StripQuotes(string s)
+		-- 손으로 쓴 CSV에서 쉼표 때문에 "..."로 감싼 필드는 런타임에 리터럴 따옴표가 남는다 → 감싼 따옴표 1쌍 제거.
+		if s == nil then return "" end
+		if #s >= 2 and string.sub(s, 1, 1) == "\"" and string.sub(s, #s, #s) == "\"" then
+			return string.sub(s, 2, #s - 1)
+		end
+		return s
+	end
+
+	method string NormalizePages(string s)
+		-- CSV 문구를 페이지 텍스트로 변환. '|' 또는 '\n\n'(줄바꿈 두 번) = 다음 페이지, '\n' = 같은 페이지 줄바꿈.
+		if s == nil then return "" end
+		s = string.gsub(s, "|", "\n\n")     -- '|' → 페이지 경계
+		s = string.gsub(s, "\\n", "\n")     -- 리터럴 '\n' → 실제 개행(연속 두 개면 '\n\n'=페이지 경계)
+		return s
+	end
+
+	@ExecSpace("ClientOnly")
+	method string LevelBannerText(integer level)
+		-- 레벨업 배너 헤드라인(1페이지~). LevelDialogue.Banner에 값이 있으면 그 문구,
+		-- 없으면 기본 "Lv.N 달성!". → 문구는 CSV의 Banner 칸만 고치면 코드 수정 없이 바뀐다.
+		local ds = _DataService:GetTable("LevelDialogue")
+		if isvalid(ds) then
+			for i = 1, ds:GetRowCount() do
+				if tonumber(ds:GetCell(i, "Level")) == level then
+					local b = ds:GetCell(i, "Banner")
+					if b ~= nil and b ~= "" then return self:StripQuotes(b) end
+					break
+				end
+			end
+		end
+		return "Lv." .. tostring(level) .. " 달성!"
 	end
 
 	@ExecSpace("ClientOnly")
@@ -1321,7 +1372,7 @@ script EventTileUI extends Logic
 			if tonumber(ds:GetCell(i, "Level")) == level then
 				local t = ds:GetCell(i, "Text")
 				if t == nil then return "" end
-				return t
+				return self:StripQuotes(t)
 			end
 		end
 		return ""
@@ -1340,15 +1391,25 @@ script EventTileUI extends Logic
 		self:CenterPortrait(true)        -- 초상화를 수평 중앙으로(원위치 캐시)
 		self:SetPortrait("idle")         -- 초상화 외형을 로컬 플레이어와 동일하게 고정
 		self:PortraitEmoteKind("happy")  -- Cheers 표정 + 제자리 폴짝
-		self:ShowLevelUpFx()             -- 초상화 중심에 레벨업 이펙트 1회 재생
-		local banner = "Lv." .. tostring(level) .. " 달성!"
-		local line = self:LevelDialogueText(level)
-		if line ~= "" then
-			-- '\n\n'(빈 줄) 경계로 페이지 분할 → 1페이지 배너, 2페이지 내레이션.
-			self:ShowPagedText(banner .. "\n\n" .. line, self.OnLevelUpNext)
+		-- 오프닝(Lv.10) 배너면: 인트로가 단풍잎을 머리에 안착시킨 뒤 이펙트를 재생하도록 '보류'한다.
+		-- 인트로가 없거나 오프닝이 아니면 기존대로 즉시 예약.
+		if isvalid(_IntroCutscene) and isvalid(_LevelUpCelebration) and _LevelUpCelebration:IsOpeningCampPending() then
+			self._openingLevelUpDeferred = true
+			_IntroCutscene:OnOpeningBannerReady()
+			if self._luFxFallbackTimer ~= 0 then _TimerService:ClearTimer(self._luFxFallbackTimer) end
+			self._luFxFallbackTimer = _TimerService:SetTimerOnce(function() self:PlayOpeningLevelUpFx() end, 12.0)
+			log("[EventTileUI] 오프닝 레벨업 이펙트 보류(인트로 트리거 대기)")
 		else
-			self:ShowPagedText(banner, self.OnLevelUpNext)
+			self:ShowLevelUpFx()             -- 초상화 중심에 레벨업 이펙트 1회 재생
 		end
+		-- 배너(1페이지~) + 내레이션을 합쳐 페이지로 나눈다. 페이지/줄바꿈 규칙은 CSV에서 관리:
+		--   '|' 또는 '\n\n'(줄바꿈 두 번) = 다음 스크립트(페이지)로 넘김,  '\n' = 같은 페이지 줄바꿈.
+		-- Banner 칸에 '|'로 여러 페이지를 넣어도, Text 칸의 '\n\n'로 넘겨도 모두 동작한다.
+		local banner = self:LevelBannerText(level)
+		local line = self:LevelDialogueText(level)
+		local full = banner
+		if line ~= "" then full = banner .. "\n\n" .. line end
+		self:ShowPagedText(self:NormalizePages(full), self.OnLevelUpNext)
 		log("[EventTileUI] 레벨업 배너 표시 Lv." .. tostring(level) .. " 대사=" .. tostring(line ~= ""))
 	end
 

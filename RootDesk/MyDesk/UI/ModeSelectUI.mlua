@@ -79,11 +79,17 @@ script ModeSelectUI extends Logic
 	@ExecSpace("ClientOnly")
 	method void OnClickSingle()
 		_SFXManager:PlayClick()
-		-- 오프닝 Lv.10 인트로 배너가 진영 선택보다 먼저 나오도록, 진영 자동표시를 억제 예약(클라 로컬 → 맵 진입 경쟁 없음).
-		_LevelUpCelebration:MarkOpeningCampPending()
-		_GameModeManager:StartSinglePlayer()
 		self:SetPanelEnable(self.modeSelectPanel, false)
 		self:SetPanelEnable(self.matchingPanel, false)
+		-- 오프닝 Lv.10 배너가 진영 선택보다 먼저 나오도록 억제 예약.
+		_LevelUpCelebration:MarkOpeningCampPending()
+		-- 인트로(검은화면+타이틀+단풍잎)를 오버레이로 띄우고, 게임은 바로 시작한다(게이트 아님).
+		-- 로딩 뒤 배너가 검은화면 뒤에서 준비되면 인트로가 잎을 머리에 안착 → 이펙트 → 밝기 업으로 이어간다.
+		-- 인트로 미등록이면 검은화면 없이 기존 흐름 그대로 진행된다.
+		if isvalid(_IntroCutscene) then
+			_IntroCutscene:BeginOpening()
+		end
+		_GameModeManager:StartSinglePlayer()
 	end
 
 	@ExecSpace("ClientOnly")
