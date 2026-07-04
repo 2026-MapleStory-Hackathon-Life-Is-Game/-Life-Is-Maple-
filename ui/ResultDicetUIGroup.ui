@@ -3387,7 +3387,7 @@
                 "y": 0.5
               },
               "RectSize": {
-                "x": 1342.78516,
+                "x": 1346.2959,
                 "y": 1293.6355
               },
               "UIMode": 1,
@@ -3419,7 +3419,6 @@
                 "top": 0,
                 "bottom": -481
               },
-              "ReverseArrangement": false,
               "UseScroll": false,
               "Enable": true
             }
@@ -3463,11 +3462,11 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 671.0,
+                "x": 673.0,
                 "y": -587.0
               },
               "OffsetMin": {
-                "x": 221.000031,
+                "x": 223.0,
                 "y": -1187.0
               },
               "Pivot": {
@@ -3486,11 +3485,11 @@
               },
               "UIVersion": 2,
               "anchoredPosition": {
-                "x": 446.000031,
+                "x": 448.0,
                 "y": -887.0
               },
               "Position": {
-                "x": 446.000031,
+                "x": 448.0,
                 "y": -887.0,
                 "z": 0.0
               },
@@ -3563,11 +3562,11 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 1121.0,
+                "x": 1123.0,
                 "y": -587.0
               },
               "OffsetMin": {
-                "x": 671.000061,
+                "x": 673.0,
                 "y": -1187.0
               },
               "Pivot": {
@@ -3586,11 +3585,11 @@
               },
               "UIVersion": 2,
               "anchoredPosition": {
-                "x": 896.000061,
+                "x": 898.0,
                 "y": -887.0
               },
               "Position": {
-                "x": 896.000061,
+                "x": 898.0,
                 "y": -887.0,
                 "z": 0.0
               },
@@ -3936,7 +3935,7 @@
           "enable": false,
           "visible": true,
           "localize": true,
-          "displayOrder": 2,
+          "displayOrder": 3,
           "pathConstraints": "////",
           "revision": 0,
           "origin": {
@@ -4045,92 +4044,18 @@
         }
       },
       {
-        "id": "b327cf6e-c167-4e1a-98e8-fe6c8524a919",
-        "path": "/ui/ResultDicetUIGroup/RContentArea",
-        "componentNames": "MOD.Core.UITransformComponent",
+        "id": "52b49e3f-d66f-4fc2-818c-69e1e8402e00",
+        "path": "/ui/ResultDicetUIGroup/RollButton",
+        "componentNames": "MOD.Core.UITransformComponent,MOD.Core.SpriteGUIRendererComponent,MOD.Core.ButtonComponent,MOD.Core.TextComponent",
         "jsonString": {
-          "name": "RContentArea",
-          "path": "/ui/ResultDicetUIGroup/RContentArea",
+          "name": "RollButton",
+          "path": "/ui/ResultDicetUIGroup/RollButton",
           "nameEditable": true,
           "enable": true,
           "visible": true,
           "localize": true,
           "displayOrder": 1,
           "pathConstraints": "///",
-          "revision": 1,
-          "origin": {
-            "type": "Model",
-            "entry_id": "uiempty",
-            "sub_entity_id": null,
-            "root_entity_id": "b327cf6e-c167-4e1a-98e8-fe6c8524a919",
-            "replaced_model_id": null
-          },
-          "modelId": "uiempty",
-          "@components": [
-            {
-              "@type": "MOD.Core.UITransformComponent",
-              "AlignmentOption": 0,
-              "AnchorsMax": {
-                "x": 0.5,
-                "y": 0.5
-              },
-              "AnchorsMin": {
-                "x": 0.5,
-                "y": 0.5
-              },
-              "MobileOnly": false,
-              "OffsetMax": {
-                "x": 787.245361,
-                "y": 397.558563
-              },
-              "OffsetMin": {
-                "x": -513.4115,
-                "y": -396.388336
-              },
-              "Pivot": {
-                "x": 0.5,
-                "y": 0.5
-              },
-              "RectSize": {
-                "x": 1300.65686,
-                "y": 793.9469
-              },
-              "UIMode": 1,
-              "UIVersion": 2,
-              "anchoredPosition": {
-                "x": 136.9169,
-                "y": 0.5851
-              },
-              "Position": {
-                "x": 136.9169,
-                "y": 0.5851,
-                "z": 0.0
-              },
-              "QuaternionRotation": {
-                "x": 0.0,
-                "y": 0.0,
-                "z": 0.0,
-                "w": 1.0
-              },
-              "Enable": true
-            }
-          ],
-          "@version": 1
-        }
-      },
-      {
-        "id": "52b49e3f-d66f-4fc2-818c-69e1e8402e00",
-        "path": "/ui/ResultDicetUIGroup/RContentArea/RollButton",
-        "componentNames": "MOD.Core.UITransformComponent,MOD.Core.SpriteGUIRendererComponent,MOD.Core.ButtonComponent,MOD.Core.TextComponent",
-        "jsonString": {
-          "name": "RollButton",
-          "path": "/ui/ResultDicetUIGroup/RContentArea/RollButton",
-          "nameEditable": true,
-          "enable": false,
-          "visible": true,
-          "localize": true,
-          "displayOrder": 0,
-          "pathConstraints": "////",
           "revision": 0,
           "origin": {
             "type": "Model",
@@ -4190,14 +4115,13 @@
                 "x": 0.0,
                 "y": 0.0,
                 "z": 0.0,
-                "w": -1.0
+                "w": 1.0
               },
               "Scale": {
                 "x": 1.0,
                 "y": 1.0,
                 "z": 1.0
               },
-              "ZRotation": 0.0,
               "Enable": true
             },
             {
@@ -4373,17 +4297,17 @@
       },
       {
         "id": "3de88156-4c22-4ee0-93f3-0258ac4f81b9",
-        "path": "/ui/ResultDicetUIGroup/RContentArea/NextButton",
+        "path": "/ui/ResultDicetUIGroup/NextButton",
         "componentNames": "MOD.Core.UITransformComponent,MOD.Core.SpriteGUIRendererComponent,MOD.Core.ButtonComponent,MOD.Core.TextComponent",
         "jsonString": {
           "name": "NextButton",
-          "path": "/ui/ResultDicetUIGroup/RContentArea/NextButton",
+          "path": "/ui/ResultDicetUIGroup/NextButton",
           "nameEditable": true,
           "enable": false,
           "visible": true,
           "localize": true,
-          "displayOrder": 1,
-          "pathConstraints": "////",
+          "displayOrder": 2,
+          "pathConstraints": "///",
           "revision": 0,
           "origin": {
             "type": "Model",
@@ -4397,13 +4321,13 @@
             {
               "@type": "MOD.Core.UITransformComponent",
               "ActivePlatform": 255,
-              "AlignmentOption": 8,
+              "AlignmentOption": 6,
               "AnchorsMax": {
-                "x": 1.0,
+                "x": 0.5,
                 "y": 0.0
               },
               "AnchorsMin": {
-                "x": 1.0,
+                "x": 0.5,
                 "y": 0.0
               },
               "MobileOnly": false,
@@ -4420,8 +4344,8 @@
                 "y": 0.0
               },
               "RectSize": {
-                "x": 103.662712,
-                "y": 91.32091
+                "x": 342.88,
+                "y": 100.0
               },
               "UIMode": 1,
               "UIScale": {
@@ -4443,14 +4367,13 @@
                 "x": 0.0,
                 "y": 0.0,
                 "z": 0.0,
-                "w": -1.0
+                "w": 1.0
               },
               "Scale": {
                 "x": 1.0,
                 "y": 1.0,
                 "z": 1.0
               },
-              "ZRotation": 0.0,
               "Enable": true
             },
             {
@@ -4459,7 +4382,7 @@
               "EndFrameIndex": 2147483647,
               "IgnoreMapLayerCheck": false,
               "ImageRUID": {
-                "DataId": "127adf91c406417ab451379063d68fb0"
+                "DataId": "a1f11905b0b742abb57aacce3ca36539"
               },
               "LocalPosition": {
                 "x": 0.0,
@@ -4618,301 +4541,6 @@
               "UseConstraintX": false,
               "UseConstraintY": false,
               "UseOutLine": true,
-              "Enable": false
-            }
-          ],
-          "@version": 1
-        }
-      },
-      {
-        "id": "2bf5e621-ffa7-4e9f-821d-53d6a8247357",
-        "path": "/ui/ResultDicetUIGroup/RContentArea/ResultText",
-        "componentNames": "MOD.Core.UITransformComponent",
-        "jsonString": {
-          "name": "ResultText",
-          "path": "/ui/ResultDicetUIGroup/RContentArea/ResultText",
-          "nameEditable": true,
-          "enable": true,
-          "visible": true,
-          "localize": true,
-          "displayOrder": 2,
-          "pathConstraints": "////",
-          "revision": 1,
-          "origin": {
-            "type": "Model",
-            "entry_id": "uiempty",
-            "sub_entity_id": null,
-            "root_entity_id": "2bf5e621-ffa7-4e9f-821d-53d6a8247357",
-            "replaced_model_id": null
-          },
-          "modelId": "uiempty",
-          "@components": [
-            {
-              "@type": "MOD.Core.UITransformComponent",
-              "AlignmentOption": 0,
-              "AnchorsMax": {
-                "x": 0.5,
-                "y": 0.5
-              },
-              "AnchorsMin": {
-                "x": 0.5,
-                "y": 0.5
-              },
-              "MobileOnly": false,
-              "OffsetMax": {
-                "x": 50.0,
-                "y": -268.85
-              },
-              "OffsetMin": {
-                "x": -50.0,
-                "y": -368.85
-              },
-              "Pivot": {
-                "x": 0.5,
-                "y": 0.5
-              },
-              "RectSize": {
-                "x": 100.0,
-                "y": 100.0
-              },
-              "UIMode": 1,
-              "UIScale": {
-                "x": 1.0,
-                "y": 1.0,
-                "z": 1.0
-              },
-              "UIVersion": 2,
-              "anchoredPosition": {
-                "x": 0.0,
-                "y": -318.85
-              },
-              "Position": {
-                "x": 0.0,
-                "y": -318.85,
-                "z": 0.0
-              },
-              "QuaternionRotation": {
-                "x": 0.0,
-                "y": 0.0,
-                "z": 0.0,
-                "w": 1.0
-              },
-              "Scale": {
-                "x": 1.0,
-                "y": 1.0,
-                "z": 1.0
-              },
-              "Enable": true
-            }
-          ],
-          "@version": 1
-        }
-      },
-      {
-        "id": "c65cf185-345f-41a1-a867-23e77171d5fb",
-        "path": "/ui/ResultDicetUIGroup/RContentArea/ResultText/Result_Text",
-        "componentNames": "MOD.Core.UITransformComponent,MOD.Core.TextGUIRendererComponent",
-        "jsonString": {
-          "name": "Result_Text",
-          "path": "/ui/ResultDicetUIGroup/RContentArea/ResultText/Result_Text",
-          "nameEditable": true,
-          "enable": true,
-          "visible": true,
-          "localize": true,
-          "displayOrder": 0,
-          "pathConstraints": "/////",
-          "revision": 1,
-          "origin": {
-            "type": "Model",
-            "entry_id": "uiempty",
-            "sub_entity_id": null,
-            "root_entity_id": "c65cf185-345f-41a1-a867-23e77171d5fb",
-            "replaced_model_id": null
-          },
-          "modelId": "uiempty",
-          "@components": [
-            {
-              "@type": "MOD.Core.UITransformComponent",
-              "AlignmentOption": 0,
-              "AnchorsMax": {
-                "x": 0.5,
-                "y": 0.5
-              },
-              "AnchorsMin": {
-                "x": 0.5,
-                "y": 0.5
-              },
-              "MobileOnly": false,
-              "OffsetMax": {
-                "x": 223.102936,
-                "y": 33.6167679
-              },
-              "OffsetMin": {
-                "x": -223.102936,
-                "y": -33.6167679
-              },
-              "Pivot": {
-                "x": 0.5,
-                "y": 0.5
-              },
-              "RectSize": {
-                "x": 446.205872,
-                "y": 67.2335358
-              },
-              "UIMode": 1,
-              "UIScale": {
-                "x": 1.0,
-                "y": 1.0,
-                "z": 1.0
-              },
-              "UIVersion": 2,
-              "anchoredPosition": {
-                "x": 0.0,
-                "y": 0.0
-              },
-              "Position": {
-                "x": 0.0,
-                "y": 0.0,
-                "z": 0.0
-              },
-              "QuaternionRotation": {
-                "x": 0.0,
-                "y": 0.0,
-                "z": 0.0,
-                "w": 1.0
-              },
-              "Scale": {
-                "x": 1.0,
-                "y": 1.0,
-                "z": 1.0
-              },
-              "Enable": true
-            },
-            {
-              "@type": "MOD.Core.TextGUIRendererComponent",
-              "Font": "Maple",
-              "FontColor": {
-                "r": 0.258823544,
-                "g": 0.2901961,
-                "b": 0.4745098,
-                "a": 1.0
-              },
-              "FontSize": 36.0,
-              "FontStyle": 1,
-              "MaxSize": 50.0,
-              "MinSize": 10.0,
-              "OverrideSorting": false,
-              "Text": "12",
-              "Enable": true
-            }
-          ],
-          "@version": 1
-        }
-      },
-      {
-        "id": "33f06587-7ac8-46a9-8eca-80d1fc82a638",
-        "path": "/ui/ResultDicetUIGroup/RContentArea/ResultText/Result_Text_1",
-        "componentNames": "MOD.Core.UITransformComponent,MOD.Core.TextGUIRendererComponent",
-        "jsonString": {
-          "name": "Result_Text_1",
-          "path": "/ui/ResultDicetUIGroup/RContentArea/ResultText/Result_Text_1",
-          "nameEditable": true,
-          "enable": true,
-          "visible": true,
-          "localize": true,
-          "displayOrder": 1,
-          "pathConstraints": "/////",
-          "revision": 1,
-          "origin": {
-            "type": "Model",
-            "entry_id": "uiempty",
-            "sub_entity_id": null,
-            "root_entity_id": "c65cf185-345f-41a1-a867-23e77171d5fb",
-            "replaced_model_id": null
-          },
-          "modelId": "uiempty",
-          "@components": [
-            {
-              "@type": "MOD.Core.UITransformComponent",
-              "AlignmentOption": 0,
-              "AnchorsMax": {
-                "x": 0.5,
-                "y": 0.5
-              },
-              "AnchorsMin": {
-                "x": 0.5,
-                "y": 0.5
-              },
-              "MobileOnly": false,
-              "OffsetMax": {
-                "x": 150.0,
-                "y": -1.40000153
-              },
-              "OffsetMin": {
-                "x": -150.0,
-                "y": -101.4
-              },
-              "Pivot": {
-                "x": 0.5,
-                "y": 0.5
-              },
-              "RectSize": {
-                "x": 300.0,
-                "y": 100.0
-              },
-              "UIMode": 1,
-              "UIScale": {
-                "x": 1.0,
-                "y": 1.0,
-                "z": 1.0
-              },
-              "UIVersion": 2,
-              "anchoredPosition": {
-                "x": 0.0,
-                "y": -51.4
-              },
-              "Position": {
-                "x": 0.0,
-                "y": -51.4,
-                "z": 0.0
-              },
-              "QuaternionRotation": {
-                "x": 0.0,
-                "y": 0.0,
-                "z": 0.0,
-                "w": 1.0
-              },
-              "Scale": {
-                "x": 1.0,
-                "y": 1.0,
-                "z": 1.0
-              },
-              "Enable": true
-            },
-            {
-              "@type": "MOD.Core.TextGUIRendererComponent",
-              "FaceDilate": 1.0,
-              "Font": "Maple",
-              "FontColor": {
-                "r": 1.0,
-                "g": 1.0,
-                "b": 1.0,
-                "a": 1.0
-              },
-              "FontSize": 46.0,
-              "FontStyle": 1,
-              "MaxSize": 50.0,
-              "MinSize": 10.0,
-              "OutlineColor": {
-                "r": 0.168627456,
-                "g": 0.254901975,
-                "b": 0.784313738,
-                "a": 1.0
-              },
-              "OutlineWidth": 1.0,
-              "OverrideSorting": false,
-              "SortingLayer": "MapLayer0",
-              "Text": "대성공",
               "Enable": true
             }
           ],
