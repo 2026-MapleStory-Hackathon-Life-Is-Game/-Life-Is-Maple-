@@ -9,6 +9,8 @@ script RollDiceAnimationUI extends Logic
 
 	property TextGUIRendererComponent resultText = "0746379f-0e16-4898-93ff-a8363188d3d0"
 
+	property SpriteGUIRendererComponent resultPanel = "0746379f-0e16-4898-93ff-a8363188d3d0"
+
 	property table leftDiceSprites = {}
 
 	property table rightDiceSprites = {}
@@ -26,21 +28,29 @@ script RollDiceAnimationUI extends Logic
 	@ExecSpace("ClientOnly")
 	method void OnBeginPlay()
 		-- 눈금별 RUID 등록 (실제 RUID로 교체) — LeftDice / RightDice 각각 1~6눈금
-		        self.leftDiceSprites = {
-		            "cbf1cec74040448eb6798b00b0140c24", "a2ab7e2cb3734c6d9d35e09b602670aa", "9d70f5c455fe451390e27367fc3692f2",
-		            "e5851bea94954232bfca1aac0e13c8a9", "8fe157aa853a45f78703e04bb5cb7894", "b302d911b3c64014b000b494a95898dc",
-		        }
-		        self.rightDiceSprites = {
-		            "cbf1cec74040448eb6798b00b0140c24", "a2ab7e2cb3734c6d9d35e09b602670aa", "9d70f5c455fe451390e27367fc3692f2",
-		            "e5851bea94954232bfca1aac0e13c8a9", "8fe157aa853a45f78703e04bb5cb7894", "b302d911b3c64014b000b494a95898dc",
-		        }
-		        if isvalid(self.panel) then
-		            self.panel.Enable = false   -- 평소엔 숨김
-		        end
-		
-				if isvalid(self.DiceBuffPanel) then
-		            self.DiceBuffPanel.Enable = false   -- 평소엔 숨김
-		        end
+		self.leftDiceSprites = {
+			"cbf1cec74040448eb6798b00b0140c24", "a2ab7e2cb3734c6d9d35e09b602670aa", "9d70f5c455fe451390e27367fc3692f2",
+			"e5851bea94954232bfca1aac0e13c8a9", "8fe157aa853a45f78703e04bb5cb7894", "b302d911b3c64014b000b494a95898dc",
+		}
+		self.rightDiceSprites = {
+			"cbf1cec74040448eb6798b00b0140c24", "a2ab7e2cb3734c6d9d35e09b602670aa", "9d70f5c455fe451390e27367fc3692f2",
+			"e5851bea94954232bfca1aac0e13c8a9", "8fe157aa853a45f78703e04bb5cb7894", "b302d911b3c64014b000b494a95898dc",
+		}
+		if isvalid(self.panel) then
+			self.panel.Enable = false   -- 평소엔 숨김
+		end
+
+		if isvalid(self.DiceBuffPanel) then
+			self.DiceBuffPanel.Enable = false   -- 평소엔 숨김
+		end
+
+		-- 결과 텍스트/패널은 굴리기 전까지 숨김(초기 방어).
+		if isvalid(self.resultText) then
+			self.resultText.Enable = false
+		end
+		if isvalid(self.resultPanel) then
+			self.resultPanel.Enable = false
+		end
 	end
 
 	@ExecSpace("ClientOnly")
@@ -60,50 +70,70 @@ script RollDiceAnimationUI extends Logic
 
 	@ExecSpace("ClientOnly")
 	method void Show(integer d1, integer d2, integer total, any onComplete)
+		-- 주사위 연출: 굴러가는 동안엔 결과 텍스트/패널을 숨겼다가, 다 굴러간 뒤(2초) 결과를 노출한다.
 		if isvalid(self.panel) == false then return end
 		_SFXManager:PlayDice()   -- 주사위 굴림 효과음
-		
-		        -- 나머지 HUD를 흐리게(50%) + 입력 차단
-		        self:SetHudDimmed(true)
-		
-		        -- 패널 켜고, 주사위 눈 스프라이트 교체
-		        self.panel.Enable = true
-		        if isvalid(self.diceParticle) then self.diceParticle.Enable = true end   -- 반짝임 시작(play_on_enable)
-		        self.leftDice.ImageRUID  = self.leftDiceSprites[d1]
-		        self.rightDice.ImageRUID = self.rightDiceSprites[d2]
-		
-		        -- 결과 텍스트
+
+		-- 나머지 HUD를 흐리게(50%) + 입력 차단
+		self:SetHudDimmed(true)
+
+		-- 패널 켜고, 주사위 눈 스프라이트 교체
+		self.panel.Enable = true
+		if isvalid(self.diceParticle) then self.diceParticle.Enable = true end   -- 반짝임 시작(play_on_enable)
+		self.leftDice.ImageRUID  = self.leftDiceSprites[d1]
+		self.rightDice.ImageRUID = self.rightDiceSprites[d2]
+
+		-- 방어: 이번에 패널이 다시 켜졌을 때, 굴리기 전에는 결과 텍스트/패널을 숨긴다(지난 결과 잔상 방지).
+		if isvalid(self.resultText) then
+			self.resultText.Enable = false
+		end
+		if isvalid(self.resultPanel) then
+			self.resultPanel.Enable = false
+		end
+
+		-- 타이머 중첩: (주사위 굴러가는 연출 2초) 뒤 결과 노출 → 1초 더 대기 → 패널 끄고 onComplete.
+		_TimerService:SetTimerOnce(function()
+			-- 주사위가 다 굴러간 뒤 결과 텍스트/패널을 활성화하고 값을 채운다.
+			if isvalid(self.resultPanel) then
+				self.resultPanel.Enable = true
+			end
+			if isvalid(self.resultText) then
+				self.resultText.Enable = true
 				self.resultText.FontSize = 48
 				self.resultText.FontStyle = FontStyleType.Bold
-		        self.resultText.Text = tostring(total) .. "칸"
-		
-		
-		        -- 타이머 중첩: (애니메이션 시간) 뒤 1초 더 대기 → 패널 끄고 onComplete
-		        -- 여기선 애니메이션 1초 + 추가 1초로 가정 (실제 연출 길이에 맞춰 조정)
-		        _TimerService:SetTimerOnce(function()
-		            _TimerService:SetTimerOnce(function()
-		                self.panel.Enable = false
-		                if isvalid(self.diceParticle) then self.diceParticle.Enable = false end   -- 반짝임 종료
-		                self:SetHudDimmed(false)   -- HUD 투명도/입력 원복
-		                if onComplete ~= nil then
-		                    onComplete()
-		                end
-		            end, 1.0)   -- 결과 본 뒤 1초 대기
-		        end, 2.0)       -- 주사위 굴러가는 연출 1초    
+				self.resultText.Text = tostring(total) .. "칸"
+			end
+
+			_TimerService:SetTimerOnce(function()
+				self.panel.Enable = false
+				if isvalid(self.diceParticle) then self.diceParticle.Enable = false end   -- 반짝임 종료
+				self:SetHudDimmed(false)   -- HUD 투명도/입력 원복
+				-- 다음 판을 위해 결과 텍스트/패널도 다시 숨김.
+				if isvalid(self.resultText) then
+					self.resultText.Enable = false
+				end
+				if isvalid(self.resultPanel) then
+					self.resultPanel.Enable = false
+				end
+				if onComplete ~= nil then
+					onComplete()
+				end
+			end, 1.0)   -- 결과 본 뒤 1초 대기
+		end, 2.0)       -- 주사위 굴러가는 연출 2초
 	end
 
 	@ExecSpace("ClientOnly")
 	method void ChangeDiceBuff(integer remaining)
 		if isvalid(self.DiceBuffPanel) == false then return end
-		
-		        if remaining > 0 then
-		            -- 이동 중: 패널 켜고 숫자 갱신
-		            self.DiceBuffPanel.Enable = true
-		            self.diceBuffText.Text = tostring(remaining)
-		        else
-		            -- 다 썼으면 숨김
-		            self.DiceBuffPanel.Enable = false
-		        end
+
+		if remaining > 0 then
+			-- 이동 중: 패널 켜고 숫자 갱신
+			self.DiceBuffPanel.Enable = true
+			self.diceBuffText.Text = tostring(remaining)
+		else
+			-- 다 썼으면 숨김
+			self.DiceBuffPanel.Enable = false
+		end
 	end
 
 end
