@@ -168,8 +168,10 @@ script EventTileUI extends Logic
 		if s == nil or s == "" then return s end
 		local blue = "#2E6BFF"
 		local red = "#E53935"
-		-- 스탯 이름 키워드(파랑). 긴/구체 키워드를 먼저(같은 시작 위치에서 더 긴 이름 우선 매칭).
+		-- 스탯 이름/보상 아이템 키워드(파랑). 긴/구체 키워드를 먼저(같은 시작 위치에서 더 긴 이름 우선 매칭).
+		-- ('미라클 큐브'는 띄어쓰기/붙임 두 표기 모두 대응. 이름만 파랑이고 뒤의 '(x5)' 개수는 검정 그대로.)
 		local kws = {
+			"미라클 큐브", "미라클큐브",
 			"공격력/마력", "보스 공격력", "보스 대미지", "추가 대미지", "크리티컬 대미지",
 			"올스탯", "주스탯", "크리티컬", "공격력", "마력", "대미지", "전투력", "장비", "스탯"
 		}
@@ -1012,6 +1014,34 @@ script EventTileUI extends Logic
 		-- 결과 문구 '다음' → UI 닫고 종료 신호.
 		self:Hide()
 		if isvalid(self._activeTile) then self._activeTile:RequestFinish() end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void BossFightText(string challengeText, string bossStandRUID, Component bossTile)
+		-- 보스 전투 연출: 플레이어는 공격 모션, 상대 NPCImage에는 보스 stand 스프라이트를 넣어 싸우는 장면 + 도전 문구.
+		-- 마지막 장 '다음' → RequestQuestRoll (공용 OnQuestNext 재사용).
+		self._activeTile = bossTile
+		self:ShowGroup()
+		self:SetPortrait("attack")
+		self:SetNPCImage(true, bossStandRUID)
+		self:ShowPagedText(challengeText, self.OnQuestNext)
+	end
+
+	@ExecSpace("ClientOnly")
+	method void BossFightDice(integer d1, integer d2, integer total, table resultTable, string outcome, string outcomeText, string bossDieRUID, Component bossTile)
+		-- 보스 결과 주사위 → 주사위 종료 후 EventTileUI 복귀 연출:
+		--   성공/대성공 → 플레이어 idle 복귀 + 보스 die 애니 재생 / 실패 → 플레이어 idle + 보스는 기본(stand) 유지.
+		-- 이어서 결과 문구 표시, '다음' → 종료(공용 OnDiceNext 재사용).
+		self._activeTile = bossTile
+		self:HideAllButtons()
+		local win = (outcome == "성공" or outcome == "대성공")
+		_RollResultDiceAnimationUI:Show(d1, d2, total, resultTable, outcome, function()
+			self:SetPortrait("idle")
+			if win and bossDieRUID ~= "" then
+				self:SetNPCImage(true, bossDieRUID)
+			end
+			self:ShowPagedText(outcomeText, self.OnDiceNext)
+		end)
 	end
 
 end

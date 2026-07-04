@@ -685,6 +685,8 @@ script TileManager extends Logic
 							if img:GetCell(j, "BossName") == key then
 								add(img:GetCell(j, "BossSelectRUID"))
 								add(img:GetCell(j, "DetailPanelRUID"))
+								add(img:GetCell(j, "IngameStandRUID"))   -- 전투 연출 stand
+								add(img:GetCell(j, "DieAnimRUID"))       -- 처치 die 애니
 							end
 						end
 					end
