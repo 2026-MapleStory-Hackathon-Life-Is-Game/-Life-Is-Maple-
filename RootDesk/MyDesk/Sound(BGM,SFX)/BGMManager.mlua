@@ -1,46 +1,65 @@
 @Logic
 script BGMManager extends Logic
 
-	-- 마을(Region)별 BGM 매니저(클라 전용).
-	-- 로컬 플레이어가 밟은 '현재 타일'의 Region(헤네시스/페리온/오르비스 …)이 바뀌면,
-	-- 그 지역에 지정된 BGM으로 바꾼다. 어느 지역에 어떤 BGM을 틀지는 데이터셋
-	-- 'RegionBGM'(컬럼: Region, RUID)에서 조회한다.
-	--   · RUID 빈칸  → BGM을 바꾸지 않고 현재 재생 중인 BGM을 그대로 유지.
-	--   · RUID 있음  → 그 RUID의 BGM으로 전환(단, 이미 같은 BGM이면 재시작하지 않음).
-	-- 지역은 타일 데이터(TileEventData)의 Region 컬럼이며, 현재 타일→Region은
-	-- _TileManager:GetTileRegion 으로 얻는다. currentTile은 @Sync라 클라에서 읽을 수 있다.
-	-- _SoundService BGM은 맵/지역과 무관한 전역 채널이라 지역을 이동해도 재생이 이어진다.
-
 	property string DataSetName = "RegionBGM"
 
 	property number volume = 1.0
 
-	-- 재생 상태(세션 내에서만 유효, OnBeginPlay에서 초기화).
-	property string _curRuid = ""     -- 현재 재생 중인 BGM RUID
-	property string _curRegion = ""   -- 마지막으로 처리한 Region(변화 감지용)
+	property string _curRuid = ""
+
+	property string _curRegion = ""
+
+	property boolean _manual = false
+
+	property string The_Great_Melee = "93153b02180e45478f538063fd6b56bc"
+
+	property string North_Forest = "96caf11b323447fd829582091b364995"
+
+	property string MiniGame_1 = "8ca27cca659448c1b957a1c841712aa3"
+
+	property string StarPlanet = "a6803c3691ee4058b200aa1fe999dabe"
+
+	property string Henesys_Park = "ae1e81ea94f5421580ecbdf1b0fddfaf"
+
+	property string Lanias_House = "5e25983d0fbb48b5aa60654699e209fc"
+
+	property string Violine = "5d6edb441b68427abede76c385ca072b"
+
+	property string StrawBerry_Garden = "27845f761e1441fda0a6df50a0ca1027"
+
+	property string Maple_Live = "853c80d50c6644218eb9414752994641"
+
+	property string FlagRace = "6a3a57485388476da1969ca1a8d6d4c4"
+
+	property string The_Great_Field_Day = "2daeb6e95eac49a6b4a3105c0a6c895d"
+
+	property string MiniGame_2 = "b9cc105e858e48cfac26c73ee8ff2e08"
 
 	@ExecSpace("ClientOnly")
 	method void OnBeginPlay()
 		-- 클라에서만 BGM을 구동한다. 첫 지역이 잡히도록 상태를 비운다.
 		self._curRegion = ""
 		self._curRuid = ""
+		
+		self:PlayCustomBGM(self.MiniGame_2)
 	end
 
 	@ExecSpace("ClientOnly")
 	method void OnUpdate(number delta)
 		-- 로컬 플레이어가 서 있는 타일의 Region이 바뀌면 그 지역 BGM으로 전환한다.
+		if self._manual then return end   -- 수동 오버라이드 중엔 지역 자동전환을 멈춘다.
 		local me = _UserService.LocalPlayer
 		if isvalid(me) == false then return end
-
+		
 		local region = self:CurrentRegion(me)
 		if region == "" then return end             -- 지역 미확정(로비/타일 그래프 미빌드) → 유지.
 		if region == self._curRegion then return end -- 같은 지역 → 아무것도 안 함.
 		self._curRegion = region
-
+		
 		local ruid = self:ResolveRuid(region)
 		if ruid == "" then return end               -- 빈칸 → BGM 유지(안 바꿈).
 		if ruid == self._curRuid then return end    -- 같은 BGM → 재시작 안 함(끊김 방지).
-
+		
 		self._curRuid = ruid
 		_SoundService:PlayBGM(ruid, self.volume)
 		log("[BGMManager] PlayBGM region=" .. region .. " ruid=" .. ruid)
@@ -69,6 +88,26 @@ script BGMManager extends Logic
 			end
 		end
 		return ""
+	end
+
+	@ExecSpace("ClientOnly")
+	method void PlayCustomBGM(string ruid)
+		-- 지역 자동전환과 무관하게 지정한 곡을 튼다. 취소(ResumeRegionBGM) 전까지 유지된다.
+		-- 서버 이벤트에서 부를 땐 이 메서드를 감싸는 @ExecSpace("Client") 진입점을 따로 둔다.
+		if ruid == nil or ruid == "" then return end
+		self._manual = true
+		if ruid == self._curRuid then return end   -- 이미 같은 곡이면 재시작 안 함(끊김 방지).
+		self._curRuid = ruid
+		_SoundService:PlayBGM(ruid, self.volume)
+		log("[BGMManager] PlayCustomBGM ruid=" .. ruid)
+	end
+
+	@ExecSpace("ClientOnly")
+	method void ResumeRegionBGM()
+		-- 수동 오버라이드 해제 → 다음 틱에 현재 지역의 BGM으로 자동 복귀한다.
+		self._manual = false
+		self._curRegion = ""   -- 강제 재평가 유도(지역이 그대로여도 다시 곡을 적용).
+		log("[BGMManager] ResumeRegionBGM")
 	end
 
 end
