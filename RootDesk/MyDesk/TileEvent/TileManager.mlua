@@ -400,6 +400,43 @@ script TileManager extends Logic
 		self:ApplyTileLevel(mapName .. "_" .. tileName, piece)
 	end
 
+	method table PeekLevelUp(string key, Entity piece)
+		-- 도착/시작 타일의 (Stage,Tier) 레벨이 현재 레벨보다 높은지 '상태 변경 없이' 판정한다.
+		-- 반환 { up = boolean, level = integer }. 레벨업 축하 배너를 타일 효과/선택창보다 먼저 게이트하기 위한 미리보기용.
+		local out = { up = false, level = 0 }
+		if isvalid(piece) == false then return out end
+		local data = self.tileGraph[key]
+		if data == nil or data.stage == nil or data.tier == nil then return out end
+		local cp = piece:GetComponent("script.CombatPowerManager")
+		if isvalid(cp) == false then return out end
+		local lv = self:LevelForStageTier(data.stage, data.tier)
+		out.level = lv
+		out.up = lv > cp.Level
+		return out
+	end
+
+	method table PeekArrival(string mapName, string tileName, Entity piece)
+		-- 도착 타일 기준 레벨업 미리보기(상태 변경 없음).
+		return self:PeekLevelUp(mapName .. "_" .. tileName, piece)
+	end
+
+	method table PeekStartTile(Entity piece, string mapName)
+		-- 맵 시작 타일(currentTile, 보통 Tile_1) 기준 레벨업 미리보기. ApplyStartTileLevel과 동일한 타일 해석을 쓴다.
+		local tileName = "Tile_1"
+		local pm = piece:GetComponent("script.PlayerMovement")
+		if isvalid(pm) and pm.currentTile ~= nil and pm.currentTile ~= "" then
+			tileName = pm.currentTile
+		end
+		return self:PeekLevelUp(mapName .. "_" .. tileName, piece)
+	end
+
+	@ExecSpace("ServerOnly")
+	method void ApplyArrivalLevel(string mapName, string tileName, Entity piece)
+		-- 도착 타일 레벨을 즉시 적용(+레벨업 FX). 축하 배너와 동시에 FX가 울리도록 OnTile에서 배너 직전 선적용한다.
+		-- 이후 TriggerArrive→ApplyTileLevel은 (이미 적용돼) 재적용/재-FX 없이 통과한다(단조 증가 가드).
+		self:ApplyTileLevel(mapName .. "_" .. tileName, piece)
+	end
+
 	method integer LevelForStageTier(integer stage, integer tier)
 		-- (Stage,Tier)→Level. Stage 1은 Tier 무관 Lv.10. 미일치 시 10 폴백.
 		if stage == 1 then return 10 end

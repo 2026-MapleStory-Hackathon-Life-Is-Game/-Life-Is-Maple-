@@ -25,14 +25,12 @@ script PlayerMovement extends Component
 		        -- 내 플레이어가 이동한 경우만 내 화면 UI를 바꾼다(다른 플레이어 진입은 무시).
 		        if self.Entity ~= _UserService.LocalPlayer then return end
 		
+				-- Map_01(진영 선택)은 레벨업이 없어 여기서 바로 표시한다.
+				-- Map_02(직업)/Map_03(인생분기) 선택창은 레벨업 배너가 닫힌 뒤 열려야 하므로
+				-- GameModeManager.MoveToNextMap의 레벨업 게이트(→ ShowMapSelectionFor)로 이관했다.
+				-- (게임은 항상 Map_01에서 시작해 MoveToNextMap으로만 Map_02/03에 진입하므로 여기서 빠져도 누락되지 않는다.)
 				if self.Entity.CurrentMapName == "Map_01" then
 					_CampSelectUI:ShowSelectPanel()
-				elseif self.Entity.CurrentMapName == "Map_02" then
-					-- 2스테이지 진입: 직업 선택창 표시(내 화면만).
-					_JobWeaponManager:ShowJobSelect()
-				elseif self.Entity.CurrentMapName == "Map_03" then
-					-- 3스테이지 진입: 인생 분기(길드/연애) 선택창 표시(내 화면만).
-					_LifePathSelectUI:ShowSelectPanel()
 				end
 	end
 

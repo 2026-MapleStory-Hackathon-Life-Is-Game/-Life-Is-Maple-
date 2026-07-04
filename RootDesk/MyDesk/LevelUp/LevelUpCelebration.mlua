@@ -1,0 +1,58 @@
+@Logic
+script LevelUpCelebration extends Logic
+
+	-- 레벨업 축하 연출 게이트(서버 권위).
+	-- 레벨 상승이 감지되면, 다운스트림 동작(타일 이벤트 OnArrive / 맵 진입 직업·연애·길드 선택창)보다 '먼저'
+	-- 축하 배너(EventTileGroup 재사용)를 소유 플레이어 클라에 띄우고, '다음' 클릭으로 닫힐 때
+	-- 보류해 둔 다운스트림 동작(continuation)을 실행한다. → 배너가 항상 먼저 나오도록 순서를 결정적으로 보장.
+	-- 싱글플레이(턴제, 동시 1명) 기준: 보류 게이트는 항상 최대 1개 → 단일 상태로 충분하다.
+	-- (멀티플레이로 확장 시 uid별 보류 상태가 필요 — 현재 프로토타입 범위 밖.)
+
+	-- 보류 중인 다운스트림 동작(서버 런타임 클로저). any는 @Sync 불가 → 서버 상태로만 보관한다.
+	property any _cont = nil
+
+	-- 배너를 표시한 소유 플레이어 UserId(완료 신호 검증용).
+	property string _uid = ""
+
+	@ExecSpace("ServerOnly")
+	method void Gate(Entity piece, boolean leveledUp, integer newLevel, any continuation)
+		-- 레벨 상승이면: 소유자 클라에 배너 표시 + continuation 보류(닫힐 때 실행).
+		-- 상승이 아니면: 배너 없이 continuation 즉시 실행(흐름을 막지 않는다).
+		if leveledUp == false then
+			if continuation ~= nil then continuation() end
+			return
+		end
+		local uid = ""
+		if isvalid(piece) and piece.PlayerComponent ~= nil and piece.PlayerComponent.UserId ~= nil then
+			uid = piece.PlayerComponent.UserId
+		end
+		if uid == "" then
+			-- 소유자를 못 찾으면 연출 생략하고 진행(턴/맵 흐름이 멈추지 않도록).
+			if continuation ~= nil then continuation() end
+			return
+		end
+		self._cont = continuation
+		self._uid = uid
+		self:ShowCelebration(newLevel, uid)
+		log("[LevelUpCelebration] 레벨업 배너 게이트 시작 uid=" .. uid .. " Lv." .. tostring(newLevel))
+	end
+
+	@ExecSpace("Client")
+	method void ShowCelebration(integer level)
+		-- 소유 플레이어 클라에서만 실행(타깃 호출). EventTileGroup을 재사용해 배너 표시.
+		_EventTileUI:ShowLevelUp(level)
+	end
+
+	@ExecSpace("Server")
+	method void RequestDone()
+		-- 클라가 배너 '다음'을 눌러 완료를 요청 → 보류한 다운스트림 동작을 실행한다.
+		-- 배너를 띄운 소유자만 완료를 신호할 수 있다(다른 유저의 오신호 차단).
+		if self._uid ~= "" and senderUserId ~= self._uid then return end
+		local cont = self._cont
+		self._cont = nil
+		self._uid = ""
+		if cont ~= nil then cont() end
+		log("[LevelUpCelebration] 레벨업 배너 종료 → 다운스트림 진행")
+	end
+
+end

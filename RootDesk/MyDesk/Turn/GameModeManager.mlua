@@ -393,12 +393,36 @@ script GameModeManager extends Logic
 
 				-- 새 맵(스테이지) 시작 시 서 있는 시작 타일의 레벨을 즉시 적용(진입 즉시 반영, 이동 불필요).
 				-- nextMapName을 명시 전달: 텔레포트 직후 piece.CurrentMapName은 아직 이전 맵일 수 있음.
+				-- ★ 레벨업 게이트: 시작 타일로 레벨이 오르면(맵 진입은 상위 스테이지라 보통 상승),
+				--   직업(Map_02)/인생분기(Map_03) 선택창보다 '먼저' 레벨업 배너를 띄우고, 배너가 닫힌 뒤 선택창을 연다.
+				--   (Map_02/03 선택창 트리거는 PlayerMovement.UpdateMapUI에서 이 게이트로 이관됨. Map_01 진영은 레벨업이 없어 UpdateMapUI가 그대로 담당.)
+				local ownerUid = ""
+				if piece.PlayerComponent ~= nil and piece.PlayerComponent.UserId ~= nil then
+					ownerUid = piece.PlayerComponent.UserId
+				end
+				local lvPeek = _TileManager:PeekStartTile(piece, nextMapName)
 				_TileManager:ApplyStartTileLevel(piece, nextMapName)
+				if ownerUid ~= "" then
+					_LevelUpCelebration:Gate(piece, lvPeek.up, lvPeek.level, function()
+						self:ShowMapSelectionFor(nextMapName, ownerUid)
+					end)
+				end
 
 				-- 만약 바로 시작하면 TileManager의 타일 수집이 덜 끝날 수 있으므로 타이머 사용 권장
 				    _TimerService:SetTimerOnce(function()
 				        _SingleTurnManager:Start() -- 여기서 Start()가 호출되면 다시 TURN_START 단계부터 시작함
 				    end, 1.0)
+	end
+
+	@ExecSpace("Client")
+	method void ShowMapSelectionFor(string mapName)
+		-- 맵 진입 선택창을 소유 플레이어 클라에 표시(레벨업 배너가 닫힌 뒤 게이트에서 호출됨).
+		-- Map_01(진영)은 레벨업이 없어 PlayerMovement.UpdateMapUI가 담당 → 여기선 Map_02(직업)/Map_03(인생분기)만 다룬다.
+		if mapName == "Map_02" then
+			_JobWeaponManager:ShowJobSelect()
+		elseif mapName == "Map_03" then
+			_LifePathSelectUI:ShowSelectPanel()
+		end
 	end
 
 	@ExecSpace("Client")

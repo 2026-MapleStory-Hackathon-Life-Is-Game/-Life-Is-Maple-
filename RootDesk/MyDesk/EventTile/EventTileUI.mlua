@@ -87,6 +87,10 @@ script EventTileUI extends Logic
 	property number _portraitHopT = 0
 	property Vector2 _portraitHopBase = Vector2(0, 0)
 
+	-- 레벨업 배너: 초상화(PlayerPortrait) 중앙 이동용 원위치 캐시(최초 1회).
+	property Vector2 _luPortraitBase = Vector2(0, 0)
+	property boolean _luPortraitCached = false
+
 	property any _nextHandler = nil
 
 	property table _choiceHandlers = {}
@@ -1186,6 +1190,46 @@ script EventTileUI extends Logic
 		self:ShowGroup()
 		self:SetText(message)
 		self:SetPortrait("attack")
+	end
+
+	@ExecSpace("ClientOnly")
+	method void ShowLevelUp(integer level)
+		-- 레벨업 축하 배너: EventTileGroup 재사용. 몬스터/NPC는 ShowGroup에서 숨기고,
+		-- 플레이어 초상화를 화면 중앙으로 옮겨 축하 표정(Cheers)+제자리 폴짝 + "Lv.N 달성!" 문구 + '다음'.
+		-- '다음'(OnLevelUpNext)에서 그룹을 닫고 서버(_LevelUpCelebration)에 완료를 신호해 다운스트림을 진행한다.
+		self._activeTile = nil
+		self:ShowGroup()                 -- 그룹 on + 현재 지역 배경 + 몬스터/NPC 숨김
+		self:CenterPortrait(true)        -- 초상화를 수평 중앙으로(원위치 캐시)
+		self:SetPortrait("idle")         -- 초상화 외형을 로컬 플레이어와 동일하게 고정
+		self:PortraitEmoteKind("happy")  -- Cheers 표정 + 제자리 폴짝
+		self:SetText("Lv." .. tostring(level) .. " 달성!")
+		self:ShowNext(self.OnLevelUpNext)
+		log("[EventTileUI] 레벨업 배너 표시 Lv." .. tostring(level))
+	end
+
+	@ExecSpace("ClientOnly")
+	method void OnLevelUpNext()
+		-- 배너 '다음' → 초상화 원위치 복구 + 그룹 닫기 + 서버에 완료 신호(다운스트림 진행).
+		self:CenterPortrait(false)
+		self:Hide()
+		_LevelUpCelebration:RequestDone()
+	end
+
+	@ExecSpace("ClientOnly")
+	method void CenterPortrait(boolean on)
+		-- 초상화(PlayerPortrait)를 수평 중앙(x=0)으로 옮기거나 원위치로 되돌린다. 원위치는 최초 1회만 캐시한다.
+		local portrait = _EntityService:GetEntityByPath(self.PortraitPath)
+		if isvalid(portrait) == false or isvalid(portrait.UITransformComponent) == false then return end
+		local ut = portrait.UITransformComponent
+		if on then
+			if self._luPortraitCached == false then
+				self._luPortraitBase = ut.anchoredPosition
+				self._luPortraitCached = true
+			end
+			ut.anchoredPosition = Vector2(0, self._luPortraitBase.y)
+		elseif self._luPortraitCached then
+			ut.anchoredPosition = self._luPortraitBase
+		end
 	end
 
 	@ExecSpace("ClientOnly")
