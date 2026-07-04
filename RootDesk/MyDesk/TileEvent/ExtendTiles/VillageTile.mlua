@@ -145,6 +145,8 @@ script VillageTile extends EventTileBase
 			log("[VillageTile] 확률게임 group=" .. scene.branchGroup
 				.. " 확률(대/성/실)=" .. tostring(greatPct) .. "/" .. tostring(successPct) .. "/" .. tostring(failPct)
 				.. " 주사위=" .. tostring(d1) .. "+" .. tostring(d2) .. "=" .. tostring(sum) .. " → " .. outcomeLabel)
+			-- 결과 표정(대성공=환호 / 성공=미소 / 실패=울음)을 전체 클라 월드 아바타에 재생.
+			_EmoteBroadcaster:PlayForOutcome(ownerId, outcomeLabel)
 			-- 클라 표시는 확률을 넘겨 SetProbabilities로 결과판을 구성하게 한다.
 			self:ClientShowRoll(scene.text, scene.anim, resultText, d1, d2, sum, greatPct, successPct, failPct, outcomeLabel, npcKey, ownerId)
 

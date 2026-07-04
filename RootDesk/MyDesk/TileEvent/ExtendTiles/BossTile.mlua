@@ -139,6 +139,7 @@ script BossTile extends EventTileBase
 		log("[BossTile] 도전 " .. outcome .. " → " .. key)
 
 		local ownerId = self:OwnerUserId(piece)
+		_EmoteBroadcaster:PlayForOutcome(ownerId, key)   -- 결과 표정(대성공=환호 / 성공=미소 / 실패=울음)을 전체 클라 월드 아바타에 재생
 		self:ShowChallengeDice(d1, d2, total, resultTable, outcome, outcomeText, self._selectedBossKey, ownerId)
 	end
 

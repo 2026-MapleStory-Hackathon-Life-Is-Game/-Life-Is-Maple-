@@ -1,0 +1,41 @@
+@Logic
+script EmoteBroadcaster extends Logic
+
+	-- 이벤트 결과에 따라 플레이어 '월드 아바타'의 얼굴 표정(감정)을 모든 클라이언트에 재생한다.
+	-- 흐름: 서버가 결과 등급(성공/대성공/실패 또는 success/great/fail)을 확정한 뒤 PlayForOutcome 호출 →
+	--        Multicast로 전체 클라가 해당 유저 아바타(AvatarRendererComponent)에 PlayEmotion.
+	-- 표정은 클라마다 로컬 연출이라 자동 동기화되지 않으므로, 모두가 보게 하려면 Multicast로 각자 재생해야 한다.
+	-- 표정 종류(EmotionalType)는 문자열로 넘긴 뒤 클라에서 CastFrom으로 되돌린다(엔진 enum은 RPC 경계를 못 넘는다).
+
+	-- 표정 유지 시간(초). 끝나면 아바타가 기본 표정으로 복귀한다.
+	property number EmotionDuration = 3.0
+
+	method string EmotionForOutcome(string outcome)
+		-- 결과 등급 문자열 → 표정 키. 대성공=Cheers(환호) / 성공=Smile(미소) / 그 외(실패)=Cry(울음).
+		-- 보스 타일은 영문 키(great/success/fail), 그 외 타일은 한글 라벨(대성공/성공/실패)을 넘긴다 — 둘 다 처리.
+		if outcome == "great" or outcome == "대성공" then return "Cheers" end
+		if outcome == "success" or outcome == "성공" then return "Smile" end
+		return "Cry"
+	end
+
+	@ExecSpace("ServerOnly")
+	method void PlayForOutcome(string userId, string outcome)
+		-- 서버: 결과 등급으로 표정을 정해 전체 클라에 브로드캐스트한다.
+		if userId == nil or userId == "" then return end
+		local emo = self:EmotionForOutcome(outcome)
+		self:Broadcast(userId, emo)
+		log("[EmoteBroadcaster] user=" .. tostring(userId) .. " outcome=" .. tostring(outcome) .. " → " .. emo)
+	end
+
+	@ExecSpace("Multicast")
+	method void Broadcast(string userId, string emotionName)
+		-- 모든 클라: 해당 유저의 월드 아바타에 표정을 재생한다.
+		local userEntity = _UserService:GetUserEntityByUserId(userId)
+		if isvalid(userEntity) == false then return end
+		local renderer = userEntity.AvatarRendererComponent
+		if isvalid(renderer) == false then return end
+		renderer:PlayEmotion(EmotionalType.CastFrom(emotionName), self.EmotionDuration)
+		log("[EmoteBroadcaster] (client) 표정 재생 user=" .. tostring(userId) .. " emo=" .. tostring(emotionName))
+	end
+
+end

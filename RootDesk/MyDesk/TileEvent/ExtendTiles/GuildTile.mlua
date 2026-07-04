@@ -245,6 +245,7 @@ script GuildTile extends EventTileBase
 			end
 			log("[GuildTile] 확률게임 event=" .. self._event .. " seq=" .. tostring(self._seq)
 				.. " 주사위=" .. tostring(d1) .. "+" .. tostring(d2) .. "=" .. tostring(sum) .. " → " .. outcomeLabel)
+			_EmoteBroadcaster:PlayForOutcome(ownerId, outcomeLabel)   -- 결과 표정(대성공=환호 / 성공=미소 / 실패=울음)을 전체 클라 월드 아바타에 재생
 			self:ClientShowRoll(node.text, "idle", resultText, d1, d2, sum, greatPct, successPct, failPct, outcomeLabel, npcKey, ownerId)
 
 		else
