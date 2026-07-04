@@ -97,6 +97,11 @@ script LoadingManager extends Logic
 		log("[LoadingManager] 오버레이 종료")
 	end
 
+	method boolean IsOverlayShown()
+		-- 로딩 오버레이가 현재 표시 중인지(백드롭 Enable 기준). 다른 연출이 '로딩 종료 후'로 미루기 위해 조회한다.
+		return isvalid(self.loadingBackdrop) and self.loadingBackdrop.Enable
+	end
+
 	@ExecSpace("ClientOnly")
 	method void StartDotAnim()
 		-- 'loading' 뒤 점을 1→2→3→1 로 반복시킨다.

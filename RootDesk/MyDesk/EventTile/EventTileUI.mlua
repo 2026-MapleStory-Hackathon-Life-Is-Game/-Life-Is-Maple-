@@ -91,6 +91,20 @@ script EventTileUI extends Logic
 	property Vector2 _luPortraitBase = Vector2(0, 0)
 	property boolean _luPortraitCached = false
 
+	-- 레벨업 배너 이펙트: 초상화 자식 스프라이트(LevelUpFx)에 메이플 LevelUp_Fast 애니메이션클립을 1회 재생.
+	-- 초상화 자식이라 중앙 이동/제자리 폴짝을 자동으로 따라간다. 평소엔 비활성, ShowLevelUp에서만 켠다.
+	property string LevelUpFxPath = "/ui/EventTileGroup/EventBack/BackgroundMap/PlayerPortrait/LevelUpFx"
+	property string LevelUpFxRUID = "d92f2ec742d94285af771d33086773d3"
+	property number LevelUpFxSeconds = 1.5
+	property number LevelUpFxDelay = 0.5      -- 로딩 오버레이가 사라진 뒤 이펙트 재생까지의 여유
+	property integer _luFxTimer = 0           -- 자동 숨김 타이머
+	property integer _luFxSchedTimer = 0      -- 로딩 대기/지연 재생 타이머
+	property boolean _luFxWanted = false      -- 배너가 이펙트를 원하는 상태(배너가 닫히면 false → 예약 취소)
+
+	-- 레벨업 배너 표시 동안 인게임 HUD(InGameUIGroup)를 숨겼다가 배너 종료 시 복원(BossUI 패턴).
+	property Entity InGameGroup = "a322b09a-023e-427d-9c6c-19724156dab7"
+	property boolean _luHidHud = false
+
 	property any _nextHandler = nil
 
 	property table _choiceHandlers = {}
@@ -1154,6 +1168,11 @@ script EventTileUI extends Logic
 		--   그룹을 끄기 '전에'(아바타가 아직 켜져 있는 동안) 보내야 포즈 이벤트가 확실히 전달된다.
 		self:PortraitResetPose()
 		self:ClearPortrait()
+		self:HideLevelUpFx()          -- 레벨업 이펙트 정리
+		if self._luHidHud then        -- 레벨업 배너가 숨긴 HUD만 복원(다른 이벤트 Hide는 HUD를 건드리지 않음)
+			if isvalid(self.InGameGroup) then self.InGameGroup.Enable = true end
+			self._luHidHud = false
+		end
 		if isvalid(self.EventGroup) then self.EventGroup.Enable = false end
 	end
 
@@ -1239,6 +1258,60 @@ script EventTileUI extends Logic
 	end
 
 	@ExecSpace("ClientOnly")
+	method void ShowLevelUpFx()
+		-- 배너에서 호출. 맵 전환 프리로드 로딩 오버레이가 떠 있으면, 오버레이가 사라진 뒤
+		-- LevelUpFxDelay 만큼 있다가 이펙트를 재생한다(오버레이 뒤에서 원샷이 끝나 안 보이는 문제 방지).
+		self._luFxWanted = true
+		self:ClearLuFxSched()
+		self:ScheduleLevelUpFx()
+	end
+
+	@ExecSpace("ClientOnly")
+	method void ScheduleLevelUpFx()
+		-- 로딩 오버레이가 끝날 때까지 폴링 대기 → 끝나면 LevelUpFxDelay 후 재생. 배너가 닫혔으면(_luFxWanted=false) 취소.
+		if self._luFxWanted == false then return end
+		if _LoadingManager ~= nil and _LoadingManager:IsOverlayShown() then
+			self._luFxSchedTimer = _TimerService:SetTimerOnce(function() self:ScheduleLevelUpFx() end, 0.2)
+			return
+		end
+		self._luFxSchedTimer = _TimerService:SetTimerOnce(function() self:PlayLevelUpFx() end, self.LevelUpFxDelay)
+	end
+
+	@ExecSpace("ClientOnly")
+	method void PlayLevelUpFx()
+		-- 초상화 중심(LevelUpFx 자식)에 레벨업 이펙트를 1회 재생. ImageRUID 재할당으로 클립을 처음부터 재생.
+		if self._luFxWanted == false then return end
+		local e = _EntityService:GetEntityByPath(self.LevelUpFxPath)
+		if isvalid(e) == false then
+			log_warning("[EventTileUI] LevelUpFx 엔티티를 찾을 수 없습니다: " .. self.LevelUpFxPath)
+			return
+		end
+		if isvalid(e.SpriteGUIRendererComponent) then
+			e.SpriteGUIRendererComponent.ImageRUID = DataRef(self.LevelUpFxRUID)
+		end
+		e.Enable = true
+		if self._luFxTimer ~= 0 then _TimerService:ClearTimer(self._luFxTimer) end
+		self._luFxTimer = _TimerService:SetTimerOnce(function() self:HideLevelUpFx() end, self.LevelUpFxSeconds)
+		log("[EventTileUI] 레벨업 이펙트 재생")
+	end
+
+	@ExecSpace("ClientOnly")
+	method void ClearLuFxSched()
+		-- 예약(로딩 대기/지연 재생) 타이머 해제.
+		if self._luFxSchedTimer ~= 0 then _TimerService:ClearTimer(self._luFxSchedTimer) self._luFxSchedTimer = 0 end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void HideLevelUpFx()
+		-- 이펙트 숨김 + 예약/자동숨김 타이머 정리(배너 종료/자동 종료 공용). 로딩 중 배너가 닫히면 예약도 취소된다.
+		self._luFxWanted = false
+		self:ClearLuFxSched()
+		if self._luFxTimer ~= 0 then _TimerService:ClearTimer(self._luFxTimer) self._luFxTimer = 0 end
+		local e = _EntityService:GetEntityByPath(self.LevelUpFxPath)
+		if isvalid(e) then e.Enable = false end
+	end
+
+	@ExecSpace("ClientOnly")
 	method string LevelDialogueText(integer level)
 		-- LevelDialogue 데이터셋에서 해당 레벨의 내레이션 대사(Text)를 반환한다. 행이 없거나 빈 칸이면 "".
 		-- 레벨→대사는 데이터로만 관리 → 새 레벨 대사는 CSV에 행만 추가하면 자동 반영(코드 수정 불필요).
@@ -1261,10 +1334,13 @@ script EventTileUI extends Logic
 		-- LevelDialogue에 해당 레벨 대사가 있으면 배너 '다음' 뒤에 내레이션 페이지로 이어붙인다(없으면 배너만).
 		-- 마지막 페이지 '다음'(OnLevelUpNext)에서 그룹을 닫고 서버(_LevelUpCelebration)에 완료를 신호해 다운스트림을 진행한다.
 		self._activeTile = nil
+		self._luHidHud = true            -- 레벨업 배너 동안 인게임 HUD 숨김(닫힐 때 복원)
+		if isvalid(self.InGameGroup) then self.InGameGroup.Enable = false end
 		self:ShowGroup()                 -- 그룹 on + 현재 지역 배경 + 몬스터/NPC 숨김
 		self:CenterPortrait(true)        -- 초상화를 수평 중앙으로(원위치 캐시)
 		self:SetPortrait("idle")         -- 초상화 외형을 로컬 플레이어와 동일하게 고정
 		self:PortraitEmoteKind("happy")  -- Cheers 표정 + 제자리 폴짝
+		self:ShowLevelUpFx()             -- 초상화 중심에 레벨업 이펙트 1회 재생
 		local banner = "Lv." .. tostring(level) .. " 달성!"
 		local line = self:LevelDialogueText(level)
 		if line ~= "" then
