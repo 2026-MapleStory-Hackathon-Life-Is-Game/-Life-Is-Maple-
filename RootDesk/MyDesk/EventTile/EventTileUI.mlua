@@ -487,6 +487,12 @@ script EventTileUI extends Logic
 		return res
 	end
 
+	method boolean ShouldFlipNpcRUID(string ruid)
+		-- 좌우 반전(FlipX)해서 표시할 NPC 스프라이트인지 여부. 현재는 '여신의 조각상'(NpcInfo Statue) 하나만 해당.
+		-- 다른 NPC/보스/몬스터는 반전하지 않는다. NPCImage는 공유 엔티티라, 스프라이트를 바꿀 때마다 이 값으로 FlipX를 명시해야 잔상이 남지 않는다.
+		return ruid == "6e662c08b4d544058f207e1acc6036fb"
+	end
+
 	@ExecSpace("ClientOnly")
 	method void SetNPCImage(boolean show, string ruid)
 		-- NPC 이미지 표시/숨김 + RUID 적용. 마을·사냥+·불행·연애 이벤트에서 켜고, 그 외에는 끈다.
@@ -499,6 +505,7 @@ script EventTileUI extends Logic
 		if show and ruid ~= nil and ruid ~= "" and isvalid(self.NPCImage.SpriteGUIRendererComponent) then
 			local r = self.NPCImage.SpriteGUIRendererComponent
 			r.ImageRUID = DataRef(ruid)
+			r.FlipX = self:ShouldFlipNpcRUID(ruid)   -- 여신의 조각상만 좌우 반전, 그 외엔 항상 반전 해제(공유 엔티티 잔상 방지)
 			local mon = _TileManager:MonsterAnimsByStand(ruid)   -- nil이면 몬스터가 아님
 			if mon ~= nil then
 				r.PreserveSprite = PreserveSpriteType.NativeSize
@@ -521,6 +528,7 @@ script EventTileUI extends Logic
 		if ruid == nil or ruid == "" or isvalid(self.NPCImage.SpriteGUIRendererComponent) == false then return end
 		local r = self.NPCImage.SpriteGUIRendererComponent
 		r.ImageRUID = DataRef(ruid)
+		r.FlipX = self:ShouldFlipNpcRUID(ruid)   -- 보스는 반전 대상이 아니므로 항상 해제(공유 NPCImage 잔상 방지)
 		r.PreserveSprite = PreserveSpriteType.NativeSize
 		local bt = self:BossTransformForRUID(ruid)   -- stand/die/BossFightStand 모두 인식
 		local sc = self.BossNativeScale
