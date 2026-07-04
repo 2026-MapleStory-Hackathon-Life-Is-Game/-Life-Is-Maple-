@@ -90,6 +90,25 @@ script RomanceTile extends BaseTile
 		return key
 	end
 
+	method string PartnerBossKey(any rm)
+		-- 선택한 연애 상대(rm.Partner)의 BossImage 키(BossName)를 RomancePartner.BossKey에서 조회한다.
+		-- 이 키를 NpcInfoManager:GetNpcRUID에 넘기면 BossImage.IngameStandRUID로 해석돼 NPCImage에 상대 보스 스프라이트가 뜬다.
+		local key = ""
+		if isvalid(rm) then key = rm.Partner end
+		if self._selectedPartnerKey ~= "" then key = self._selectedPartnerKey end
+		if key == nil or key == "" then return "" end
+		local ds = _DataService:GetTable("RomancePartner")
+		if isvalid(ds) == false then return "" end
+		for i = 1, ds:GetRowCount() do
+			if ds:GetCell(i, "Key") == key then
+				local bk = ds:GetCell(i, "BossKey")
+				if bk == nil then return "" end
+				return bk
+			end
+		end
+		return ""
+	end
+
 	method string DateCell(string key, string column)
 		-- RomanceDate에서 Key 일치 행의 지정 컬럼 값을 반환. 없으면 "".
 		local ds = _DataService:GetTable("RomanceDate")
@@ -214,10 +233,14 @@ script RomanceTile extends BaseTile
 
 		local ownerId = self:OwnerUserId(piece)
 		local text = self:Fill(self:GetText(step.key), rm)
-		-- 등장 NPC 키(NpcInfo.Name과 일치해야 GetNpcRUID가 RUID를 찾는다).
-		--   SELECT/UNION → 용잡이 Ms.어카운트(NpcInfo 키 = "MsAccount") / MARRY/DATE → 연인(별도 키 없음 → 기본 이미지).
-		local npcKey = "Romance"
-		if self._eventId == "SELECT" or self._eventId == "UNION" then npcKey = "MsAccount" end
+		-- 등장 NPC 키. GetNpcRUID가 NpcInfo → BossImage 순으로 RUID를 찾는다.
+		--   SELECT/UNION → 용잡이 Ms.어카운트(NpcInfo 키 = "MsAccount")
+		--   MARRY/DATE(연인 이벤트) → 선택한 연애 상대의 BossImage 키(BossName) → 그 보스의 인게임 stand 스프라이트.
+		local npcKey = "MsAccount"
+		if self._eventId == "MARRY" or self._eventId == "DATE" then
+			npcKey = self:PartnerBossKey(rm)
+			if npcKey == "" then npcKey = "Romance" end   -- 매핑 없으면 기본 이미지 유지
+		end
 
 		if step.node == "partnerselect" then
 			-- 상대 카드 선택창(연애/길드 공용 UI): RomancePartner 전체 행을 슬롯에 채운다.
