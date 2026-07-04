@@ -14,6 +14,27 @@ script LevelUpCelebration extends Logic
 	-- 배너를 표시한 소유 플레이어 UserId(완료 신호 검증용).
 	property string _uid = ""
 
+	-- 싱글 오프닝: 진영 선택(Map_01)을 Lv.10 인트로 배너 '뒤로' 미루기 위한 클라 로컬 플래그.
+	-- 모드 선택 '싱글' 클릭 시점(OnClickSingle)에 켜서 UpdateMapUI의 진영 자동표시를 억제한다 → 경쟁 없음.
+	-- 배너가 닫히면 게이트 continuation(ShowMapSelectionFor "Map_01")이 진영 선택을 열고 이 플래그를 끈다.
+	-- (멀티는 이 플래그를 켜지 않으므로 진영 선택이 기존대로 UpdateMapUI에서 바로 뜬다.)
+	property boolean _openingCampPending = false
+
+	@ExecSpace("ClientOnly")
+	method void MarkOpeningCampPending()
+		self._openingCampPending = true
+	end
+
+	@ExecSpace("ClientOnly")
+	method boolean IsOpeningCampPending()
+		return self._openingCampPending
+	end
+
+	@ExecSpace("ClientOnly")
+	method void ClearOpeningCampPending()
+		self._openingCampPending = false
+	end
+
 	@ExecSpace("ServerOnly")
 	method void Gate(Entity piece, boolean leveledUp, integer newLevel, any continuation)
 		-- 레벨 상승이면: 소유자 클라에 배너 표시 + continuation 보류(닫힐 때 실행).

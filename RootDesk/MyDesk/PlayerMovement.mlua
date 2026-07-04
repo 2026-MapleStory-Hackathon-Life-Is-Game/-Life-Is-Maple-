@@ -30,7 +30,11 @@ script PlayerMovement extends Component
 				-- GameModeManager.MoveToNextMap의 레벨업 게이트(→ ShowMapSelectionFor)로 이관했다.
 				-- (게임은 항상 Map_01에서 시작해 MoveToNextMap으로만 Map_02/03에 진입하므로 여기서 빠져도 누락되지 않는다.)
 				if self.Entity.CurrentMapName == "Map_01" then
-					_CampSelectUI:ShowSelectPanel()
+					-- 싱글 오프닝: Lv.10 인트로 배너가 먼저 나와야 하므로, 배너 게이트가 진영 선택을 열 예정이면 여기선 건너뛴다.
+					-- (멀티 등 게이트가 없으면 플래그가 꺼져 있어 기존대로 즉시 표시.)
+					if _LevelUpCelebration:IsOpeningCampPending() == false then
+						_CampSelectUI:ShowSelectPanel()
+					end
 				end
 	end
 

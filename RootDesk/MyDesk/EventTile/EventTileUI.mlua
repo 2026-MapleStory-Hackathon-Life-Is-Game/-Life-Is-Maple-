@@ -1150,8 +1150,19 @@ script EventTileUI extends Logic
 		self:HideAllButtons()
 		self:StopPortraitMotion()
 		self:PortraitResetEmotion()   -- 이벤트 종료 → 표정 중립 복귀(다음 이벤트로 표정 잔류 방지)
+		-- ★ 몸 포즈를 Stand로 되돌린다(울음=Crouch/prone 등 held 포즈가 다음 이벤트로 이어지지 않도록).
+		--   그룹을 끄기 '전에'(아바타가 아직 켜져 있는 동안) 보내야 포즈 이벤트가 확실히 전달된다.
+		self:PortraitResetPose()
 		self:ClearPortrait()
 		if isvalid(self.EventGroup) then self.EventGroup.Enable = false end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void PortraitResetPose()
+		-- 초상화 몸 포즈를 기본 Stand(idle)로 강제 복귀시킨다(needReset=true).
+		-- Hide에서 그룹 비활성화 직전에 호출 → 다음에 UI가 다시 열릴 때 이전 이벤트의 누움/포즈가 남지 않는다.
+		self._portraitState = "idle"
+		self:PortraitPose("idle", true)
 	end
 
 	@ExecSpace("ClientOnly")
@@ -1228,18 +1239,41 @@ script EventTileUI extends Logic
 	end
 
 	@ExecSpace("ClientOnly")
+	method string LevelDialogueText(integer level)
+		-- LevelDialogue 데이터셋에서 해당 레벨의 내레이션 대사(Text)를 반환한다. 행이 없거나 빈 칸이면 "".
+		-- 레벨→대사는 데이터로만 관리 → 새 레벨 대사는 CSV에 행만 추가하면 자동 반영(코드 수정 불필요).
+		local ds = _DataService:GetTable("LevelDialogue")
+		if isvalid(ds) == false then return "" end
+		for i = 1, ds:GetRowCount() do
+			if tonumber(ds:GetCell(i, "Level")) == level then
+				local t = ds:GetCell(i, "Text")
+				if t == nil then return "" end
+				return t
+			end
+		end
+		return ""
+	end
+
+	@ExecSpace("ClientOnly")
 	method void ShowLevelUp(integer level)
 		-- 레벨업 축하 배너: EventTileGroup 재사용. 몬스터/NPC는 ShowGroup에서 숨기고,
 		-- 플레이어 초상화를 화면 중앙으로 옮겨 축하 표정(Cheers)+제자리 폴짝 + "Lv.N 달성!" 문구 + '다음'.
-		-- '다음'(OnLevelUpNext)에서 그룹을 닫고 서버(_LevelUpCelebration)에 완료를 신호해 다운스트림을 진행한다.
+		-- LevelDialogue에 해당 레벨 대사가 있으면 배너 '다음' 뒤에 내레이션 페이지로 이어붙인다(없으면 배너만).
+		-- 마지막 페이지 '다음'(OnLevelUpNext)에서 그룹을 닫고 서버(_LevelUpCelebration)에 완료를 신호해 다운스트림을 진행한다.
 		self._activeTile = nil
 		self:ShowGroup()                 -- 그룹 on + 현재 지역 배경 + 몬스터/NPC 숨김
 		self:CenterPortrait(true)        -- 초상화를 수평 중앙으로(원위치 캐시)
 		self:SetPortrait("idle")         -- 초상화 외형을 로컬 플레이어와 동일하게 고정
 		self:PortraitEmoteKind("happy")  -- Cheers 표정 + 제자리 폴짝
-		self:SetText("Lv." .. tostring(level) .. " 달성!")
-		self:ShowNext(self.OnLevelUpNext)
-		log("[EventTileUI] 레벨업 배너 표시 Lv." .. tostring(level))
+		local banner = "Lv." .. tostring(level) .. " 달성!"
+		local line = self:LevelDialogueText(level)
+		if line ~= "" then
+			-- '\n\n'(빈 줄) 경계로 페이지 분할 → 1페이지 배너, 2페이지 내레이션.
+			self:ShowPagedText(banner .. "\n\n" .. line, self.OnLevelUpNext)
+		else
+			self:ShowPagedText(banner, self.OnLevelUpNext)
+		end
+		log("[EventTileUI] 레벨업 배너 표시 Lv." .. tostring(level) .. " 대사=" .. tostring(line ~= ""))
 	end
 
 	@ExecSpace("ClientOnly")

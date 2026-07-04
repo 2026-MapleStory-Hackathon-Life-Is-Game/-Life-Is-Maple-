@@ -33,7 +33,21 @@ script GameModeManager extends Logic
 		        local starter = _UserService:GetUserEntityByUserId(senderUserId)
 		        if isvalid(starter) then _JobWeaponManager:EquipStarterCudgel(starter) end
 		        _VillageEventFlowManager:ResetStage1Lock()
-		        _SingleTurnManager:Start()
+		        -- 오프닝: 첫 턴 '전에' Lv.10 축하 배너 + LevelDialogue(10) 내레이션을 보여주고, 배너를 닫으면 첫 턴 시작.
+		        -- (시작 레벨이 10이라 자연 레벨업이 없어 게이트가 안 걸리므로 여기서 직접 게이트한다. 레벨업 배너 UI/흐름 재사용.)
+		        if isvalid(starter) then
+		            local openUid = ""
+		            if starter.PlayerComponent ~= nil and starter.PlayerComponent.UserId ~= nil then
+		                openUid = starter.PlayerComponent.UserId
+		            end
+		            _LevelUpCelebration:Gate(starter, true, 10, function()
+		                -- Lv.10 인트로 배너 닫힘 → 이제 진영 선택을 연 뒤 첫 턴 시작.
+		                self:ShowMapSelectionFor("Map_01", openUid)
+		                _SingleTurnManager:Start()
+		            end)
+		        else
+		            _SingleTurnManager:Start()
+		        end
 	end
 
 	@ExecSpace("Server")
@@ -417,8 +431,12 @@ script GameModeManager extends Logic
 	@ExecSpace("Client")
 	method void ShowMapSelectionFor(string mapName)
 		-- 맵 진입 선택창을 소유 플레이어 클라에 표시(레벨업 배너가 닫힌 뒤 게이트에서 호출됨).
-		-- Map_01(진영)은 레벨업이 없어 PlayerMovement.UpdateMapUI가 담당 → 여기선 Map_02(직업)/Map_03(인생분기)만 다룬다.
-		if mapName == "Map_02" then
+		-- Map_01(진영)은 싱글 오프닝 Lv.10 배너 뒤에 열도록 여기서 처리(억제 플래그 해제 후 표시).
+		-- Map_02(직업)/Map_03(인생분기)는 맵 전환 레벨업 배너 뒤에 열린다.
+		if mapName == "Map_01" then
+			_LevelUpCelebration:ClearOpeningCampPending()
+			_CampSelectUI:ShowSelectPanel()
+		elseif mapName == "Map_02" then
 			_JobWeaponManager:ShowJobSelect()
 		elseif mapName == "Map_03" then
 			_LifePathSelectUI:ShowSelectPanel()
