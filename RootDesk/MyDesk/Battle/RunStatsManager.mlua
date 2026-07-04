@@ -1,0 +1,84 @@
+@Component
+script RunStatsManager extends Component
+
+	-- 싱글 플레이 1회차(런) 기록. 플레이어 엔티티에 부착되어 Map_01→02→03 전환에도 유지된다.
+	-- (CombatPowerManager와 동일한 플레이어-부착/런-스코프 패턴.)
+	-- 갱신/조회가 모두 서버 측(OnTurnStart/TriggerArrive/FinishGame)이라 @Sync 불필요.
+
+	-- 런 시작 시각 baseline. _UtilLogic.ElapsedSeconds는 세션을 넘어 지속되므로 '차이'로만 사용한다.
+	property number StartElapsed = 0
+
+	-- 총 턴 수.
+	property integer TurnCount = 0
+
+	-- 타일 타입별 방문 수 { Village, Boss, Unlucky, Hunt, HuntPlus }.
+	property any TileVisits = nil
+
+	method table NewVisits()
+		-- 5종 방문 카운터 초기 테이블.
+		return { Village = 0, Boss = 0, Unlucky = 0, Hunt = 0, HuntPlus = 0 }
+	end
+
+	method void EnsureVisits()
+		-- TileVisits 테이블 보장(BeginRun 이전에 AddVisit이 불려도 안전).
+		if self.TileVisits == nil then self.TileVisits = self:NewVisits() end
+	end
+
+	@ExecSpace("ServerOnly")
+	method void BeginRun()
+		-- 런 시작: baseline 시각 기록 + 카운터 초기화.
+		self.StartElapsed = _UtilLogic.ElapsedSeconds
+		self.TurnCount = 0
+		self.TileVisits = self:NewVisits()
+		log("[RunStatsManager] BeginRun startElapsed=" .. tostring(self.StartElapsed))
+	end
+
+	@ExecSpace("ServerOnly")
+	method void AddTurn()
+		-- 턴 시작마다 +1.
+		self.TurnCount = self.TurnCount + 1
+	end
+
+	@ExecSpace("ServerOnly")
+	method void AddVisit(string t)
+		-- 5종 타일 방문 집계(그 외 타입은 무시).
+		if t == nil then return end
+		self:EnsureVisits()
+		if self.TileVisits[t] ~= nil then
+			self.TileVisits[t] = self.TileVisits[t] + 1
+		end
+	end
+
+	method integer PlayMinutes()
+		-- 런 시작 이후 경과 분(내림).
+		local sec = _UtilLogic.ElapsedSeconds - self.StartElapsed
+		if sec < 0 then sec = 0 end
+		return math.floor(sec / 60)
+	end
+
+	method string MostVisitedType()
+		-- 최다 방문 타일 타입키. 동률 우선순위 Boss>HuntPlus>Hunt>Unlucky>Village. 방문 없으면 "".
+		self:EnsureVisits()
+		local order = { "Boss", "HuntPlus", "Hunt", "Unlucky", "Village" }
+		local best = ""
+		local bestN = 0
+		for i = 1, #order do
+			local k = order[i]
+			local n = self.TileVisits[k] or 0
+			if n > bestN then
+				bestN = n
+				best = k
+			end
+		end
+		return best
+	end
+
+	@ExecSpace("ServerOnly")
+	method void ResetAll()
+		-- 판 종료 시 초기화(다음 판이 깨끗하게 시작).
+		self.StartElapsed = 0
+		self.TurnCount = 0
+		self.TileVisits = self:NewVisits()
+	end
+
+end

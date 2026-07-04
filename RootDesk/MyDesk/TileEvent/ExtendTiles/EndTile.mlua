@@ -110,9 +110,10 @@ script EndTile extends BaseTile
 		self._piece = nil
 		self._step = 0
 		if ownerId ~= "" then self:ClientHide(ownerId) end
-		if isvalid(piece) then _GameModeManager:OnPlayerReachedEnd(piece) end
+		-- 엔딩 정리 표를 먼저 띄우고, 그 '다음'에서 기존 종료 흐름(OnPlayerReachedEnd→결과화면)이 진행된다.
+		if isvalid(piece) then _GameModeManager:ShowEndingSummary(piece) end
 		_SingleTurnManager:Stop()
-		log("[EndTile] 검은 마법사 결전 종료(won=" .. tostring(self._won) .. ") → 게임 종료")
+		log("[EndTile] 검은 마법사 결전 종료(won=" .. tostring(self._won) .. ") → 엔딩 정리 표")
 	end
 
 	method integer BlackMageRequiredPower()

@@ -86,6 +86,8 @@ script SingleTurnManager extends Logic
 		        for _, userEntity in pairs(_UserService.UserEntities) do
 		            local rm = userEntity:GetComponent("script.RomanceManager")
 		            if isvalid(rm) then rm:OnTurnPassed() end
+		            local rs = userEntity:GetComponent("script.RunStatsManager")
+		            if isvalid(rs) then rs:AddTurn() end   -- 엔딩 정리용 총 턴 수 +1
 		            break   -- 싱글이라 플레이어는 한 명
 		        end
 		        self:AdvanceState()

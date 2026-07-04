@@ -182,6 +182,34 @@ script RankingManager extends Logic
 		return 0
 	end
 
+	@ExecSpace("ServerOnly")
+	method table GetPercentile(integer power)
+		-- 전체 랭킹 저장소를 스캔해 이 전투력의 상위 백분위를 계산한다.
+		-- 반환 { rank, total, percent }(percent = 상위 %, 1~100). 조회 실패/기록 0건이면 nil.
+		-- (게임 종료 시 1회성 전체 스캔 — DataStorage 비용 허용.)
+		if isvalid(self._scoreStore) == false then self:AcquireStores() end
+		if isvalid(self._scoreStore) == false then return nil end
+		local ec, pages = self._scoreStore:GetSortedAndWait(SortDirection.Descending, 0, 2000000000)
+		if ec ~= 0 then return nil end
+		local total = 0
+		local higher = 0
+		local done = false
+		while done == false do
+			local items = pages:GetCurrentPageDatas()
+			for _, it in pairs(items) do
+				total = total + 1
+				if (tonumber(it.Value) or 0) > power then higher = higher + 1 end
+			end
+			if pages.IsLastPage == true then done = true else pages:MoveToNextPageAndWait() end
+		end
+		if total <= 0 then return nil end
+		local rank = higher + 1
+		local percent = math.ceil(rank / total * 100)
+		if percent < 1 then percent = 1 end
+		if percent > 100 then percent = 100 end
+		return { rank = rank, total = total, percent = percent }
+	end
+
 	@ExecSpace("Server")
 	method void RequestRanking()
 		-- 클라(로비 진입)가 현재 랭킹 요청 → 저장소에서 최신 top N 재조회 후 요청자에게 전송.

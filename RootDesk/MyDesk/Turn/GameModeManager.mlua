@@ -7,6 +7,9 @@ script GameModeManager extends Logic
 	@Sync
 	property boolean _isGameActive = false
 
+	-- 엔딩 정리 표 '다음' 대기 중인 piece(검은마법사 종료 → 정리표 → OnPlayerReachedEnd 연결용).
+	property any _pendingEndPiece = nil
+
 	method void OnBeginPlay()
 		        log("[GameModeManager] OnBeginPlay: 모드 선택 대기 중")
 		        -- 모드는 ModeSelectUI(클라)의 버튼에서 StartSinglePlayer / StartMultiPlayer 호출로 결정된다.
@@ -32,6 +35,11 @@ script GameModeManager extends Logic
 		        -- 게임 시작 시 기본 무기 '몽둥이(Cudgel)'를 지급+장착한다(아직 직업 선택 전의 시작 무기).
 		        local starter = _UserService:GetUserEntityByUserId(senderUserId)
 		        if isvalid(starter) then _JobWeaponManager:EquipStarterCudgel(starter) end
+		        -- 엔딩 정리용 런 기록 초기화(baseline 시각 + 턴/방문 카운터).
+		        if isvalid(starter) then
+		            local rsInit = starter:GetComponent("script.RunStatsManager")
+		            if isvalid(rsInit) then rsInit:BeginRun() end
+		        end
 		        _VillageEventFlowManager:ResetStage1Lock()
 		        -- 오프닝: 첫 턴 '전에' Lv.10 축하 배너 + LevelDialogue(10) 내레이션을 보여주고, 배너를 닫으면 첫 턴 시작.
 		        -- (시작 레벨이 10이라 자연 레벨업이 없어 게이트가 안 걸리므로 여기서 직접 게이트한다. 레벨업 배너 UI/흐름 재사용.)
@@ -93,6 +101,50 @@ script GameModeManager extends Logic
 		        end
 		        self._activeMode = "NONE"
 		        self._isGameActive = false
+	end
+
+	@ExecSpace("ServerOnly")
+	method void ShowEndingSummary(Entity piece)
+		-- 검은 마법사 최종전 종료 후(승/패 무관) 호출. 런 기록을 모아 엔딩 정리 표를 소유자 클라에 띄운다.
+		-- 정리 표 '다음'(OnEndingSummaryNext)에서 OnPlayerReachedEnd → FinishGame(기존 결과화면)로 이어진다.
+		if isvalid(piece) == false or piece.PlayerComponent == nil then
+			-- 소유자 확보 실패 시 정리 표 생략하고 기존 흐름 바로 진행.
+			if isvalid(piece) then self:OnPlayerReachedEnd(piece) end
+			return
+		end
+		local uid = piece.PlayerComponent.UserId
+		self._pendingEndPiece = piece
+		local pname = self:GetPlayerName(piece)
+		local pjob = self:GetPlayerJob(piece)
+		local pcamp = self:GetPlayerCamp(piece)
+		local power = 0
+		local cp = piece:GetComponent("script.CombatPowerManager")
+		if isvalid(cp) then power = math.floor(cp.CombatPower) end
+		local minutes = 0
+		local turns = 0
+		local titleType = ""
+		local rs = piece:GetComponent("script.RunStatsManager")
+		if isvalid(rs) then
+			minutes = rs:PlayMinutes()
+			turns = rs.TurnCount
+			titleType = rs:MostVisitedType()
+		end
+		local rankPercent = -1
+		local pc = _RankingManager:GetPercentile(power)
+		if pc ~= nil then rankPercent = pc.percent end
+		_EndingSummaryUI:Show(pname, pjob, pcamp, power, minutes, turns, titleType, rankPercent, uid)
+		log("[GameModeManager] 엔딩 정리 표시 uid=" .. uid .. " turns=" .. tostring(turns)
+			.. " min=" .. tostring(minutes) .. " title=" .. tostring(titleType) .. " rank%=" .. tostring(rankPercent))
+	end
+
+	@ExecSpace("Server")
+	method void OnEndingSummaryNext()
+		-- 엔딩 정리 표 '다음' → 보류한 piece로 기존 종료 흐름(결과화면)을 진행. 소유자만 신호 가능.
+		local piece = self._pendingEndPiece
+		if isvalid(piece) == false or piece.PlayerComponent == nil then return end
+		if senderUserId ~= piece.PlayerComponent.UserId then return end
+		self._pendingEndPiece = nil
+		self:OnPlayerReachedEnd(piece)
 	end
 
 	@ExecSpace("Server")
@@ -329,6 +381,8 @@ script GameModeManager extends Logic
 		        -- 미라클 큐브 인벤토리 + 미확정 잠재 후보 초기화.
 		        local bag = entity:GetComponent("script.CubeInventory")
 		        if isvalid(bag) then bag:ResetAll() end
+		        local runstats = entity:GetComponent("script.RunStatsManager")
+		        if isvalid(runstats) then runstats:ResetAll() end
 		        if entity.PlayerComponent ~= nil then
 		            _PotentialManager:ClearPendingFor(entity.PlayerComponent.UserId)
 		        end

@@ -295,6 +295,10 @@ script TileManager extends Logic
 		-- 반환 true면 호출측(턴 매니저)이 UI 표시 시간만큼 대기한 뒤 다음 단계로 진행한다.
 		local key = mapName .. "_" .. tileName
 
+		-- 엔딩 정리용: 이 도착 타일의 타입(Village/Boss/Unlucky/Hunt/HuntPlus만)을 런 방문 통계에 집계.
+		local rs = piece:GetComponent("script.RunStatsManager")
+		if isvalid(rs) then rs:AddVisit(self:GetTileType(mapName, tileName)) end
+
 		-- [테스트] 강제 이벤트 오버라이드(_TileEventTester.ForceEvent). None이면 nil → 정상 동작.
 		local ov = _TileEventTester:OverrideFor(self.tileEntities[key])
 		if isvalid(ov) then
