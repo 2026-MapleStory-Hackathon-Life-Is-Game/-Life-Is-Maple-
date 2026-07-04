@@ -39,6 +39,12 @@ script EndingSummaryUI extends Logic
 		return tostring(t)
 	end
 
+	method string TypeJosa(string t)
+		-- {타일} 뒤 목적격 조사(받침 유무). 보스만 '를', 나머지(마을/불행/사냥/사냥+)는 '을'.
+		if t == "Boss" then return "를" end
+		return "을"
+	end
+
 	@ExecSpace("Client")
 	method void Show(string name, string job, string camp, integer power, integer minutes, integer turns, integer visits, string titleType, string lifeInfo, integer rankPercent)
 		-- 소유자 클라에서 정리 표를 채우고 표시한다. (targetUserId는 호출측 마지막 인자로 전달)
@@ -60,8 +66,10 @@ script EndingSummaryUI extends Logic
 		-- 전문가 타이틀(가장 많이 방문한 타일: 총 N턴 중 M번 방문).
 		if isvalid(self.awardText) then
 			if titleType ~= nil and titleType ~= "" then
-				self.awardText.Text = "총 " .. tostring(turns) .. "턴 중 " .. tostring(visits) .. "번 방문한\n'"
-					.. self:TypeKo(titleType) .. " 전문가' 타이틀을 획득하셨습니다!"
+				local ko = self:TypeKo(titleType)
+				self.awardText.Text = "총 " .. tostring(turns) .. "턴 중 " .. ko .. self:TypeJosa(titleType)
+					.. " " .. tostring(visits) .. "번으로 최다 방문하셨습니다!\n"
+					.. ko .. " 전문가 타이틀을 획득하셨습니다!"
 			else
 				self.awardText.Text = ""
 			end
