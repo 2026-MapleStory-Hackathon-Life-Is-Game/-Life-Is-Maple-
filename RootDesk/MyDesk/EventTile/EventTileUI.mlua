@@ -11,6 +11,11 @@ script EventTileUI extends Logic
 
 	property number VillageStepSeconds = 5.0
 
+	-- 사냥 몬스터 이미지 전역 배율. 슬롯은 PreserveSprite=NativeSize(원본 크기)로 렌더되고,
+	-- 여기에 이 값 × 몬스터별 UIScale(TierMonster)을 곱해 최종 표시 크기가 정해진다.
+	-- 전체 몬스터가 너무 크/작으면 이 값 하나만 조절하면 된다(개별 조정 불필요).
+	property number MonsterNativeScale = 2.0
+
 	property Entity NextButton = "838ae8b4-920f-4448-bc4b-b551594cba6d"
 
 	property Entity AcceptButton = "2a91f613-50ec-455f-8610-6fdc36bfeca4"
@@ -56,6 +61,9 @@ script EventTileUI extends Logic
 	property table _monTimers = {}         -- 처치 시퀀스(이미지별 hit→die→사라짐) 타이머 목록
 	property boolean _monBusy = false      -- 처치 연출 시작(첫 사망) 여부 — 초상화 attack 1회 트리거용
 	property table _monDone = {}           -- 이미지별 '처치 시작' 여부(true면 흔들림 제외)
+
+	-- 슬롯(몬스터/NPC/보스)별 '원본' anchoredPosition 캐시(고유 문자열 키 → {x,y}). RUID별 오프셋 누적 방지.
+	property table _slotBase = {}
 
 	property any _activeTile = nil
 
@@ -111,6 +119,10 @@ script EventTileUI extends Logic
 
 	property any _textComp = nil
 
+	-- 장비/장신구/아이템 이름(파랑) 캐시. EquipmentData.Name에서 1회 구축(+미라클큐브), 길이 내림차순 정렬.
+	property table _nameKws = {}
+	property boolean _nameLoaded = false
+
 	@ExecSpace("ClientOnly")
 	method void OnBeginPlay()
 		-- 평소엔 그룹 숨김 + 모든 버튼 비활성.
@@ -156,6 +168,25 @@ script EventTileUI extends Logic
 	end
 
 	@ExecSpace("ClientOnly")
+	method void EnsureNameKws()
+		-- 장비/장신구/아이템 이름(파랑) 목록을 EquipmentData.Name에서 1회 구축 후 캐시한다.
+		-- 데이터셋을 실제로 읽었을 때만 확정(_nameLoaded)하고, 그 전엔 정적 이름(미라클큐브)만으로 동작하다 다음 호출에 재시도.
+		-- 긴 이름이 먼저 매칭되도록 바이트 길이 내림차순 정렬(예: '보스 장신구 세트(9)'가 '장비'보다 먼저).
+		if self._nameLoaded then return end
+		local names = { "미라클 큐브", "미라클큐브" }
+		local ds = _DataService:GetTable("EquipmentData")
+		if isvalid(ds) then
+			for i = 1, ds:GetRowCount() do
+				local nm = ds:GetCell(i, "Name")
+				if nm ~= nil and nm ~= "" then table.insert(names, nm) end
+			end
+			self._nameLoaded = true
+		end
+		table.sort(names, function(a, b) return #a > #b end)
+		self._nameKws = names
+	end
+
+	@ExecSpace("ClientOnly")
 	method string Colorize(string s)
 		-- 대사 리치텍스트 색칠: 증가 스탯 '이름'(장비/주스탯/올스탯/공격력 등)은 파란색,
 		-- '증가량' 숫자만 빨간색, 그 외 글자·숫자는 기본색(검은색) 그대로 둔다.
@@ -166,6 +197,7 @@ script EventTileUI extends Logic
 		--   → '3턴', '100마리', '큐브 x5' 등 스탯·개수와 무관한 숫자는 빨강 제외.
 		-- 좌→우 1회 스캔. 타이핑 연출과 함께 쓰도록 '평문'을 받아 매 렌더마다 새로 태깅한다(태그가 한 글자씩 노출 안 됨).
 		if s == nil or s == "" then return s end
+		self:EnsureNameKws()
 		local blue = "#2E6BFF"
 		local red = "#E53935"
 		-- 스탯 이름 키워드(파랑). 긴/구체 키워드를 먼저(같은 시작 위치에서 더 긴 이름 우선 매칭).
@@ -173,6 +205,9 @@ script EventTileUI extends Logic
 			"공격력/마력", "보스 공격력", "보스 대미지", "추가 대미지", "크리티컬 대미지",
 			"올스탯", "주스탯", "크리티컬", "공격력", "마력", "대미지", "전투력", "장비", "스탯"
 		}
+		-- 장비/장신구/아이템 이름(파랑, 문맥 없음). EquipmentData에서 구축한 캐시(미라클큐브 포함, 길이 내림차순).
+		-- 이름만 파랑이고 뒤의 '(x5)'·'(9)' 등 숫자는 이름의 일부로 함께 파랑 처리된다.
+		local nameKws = self._nameKws
 		-- 개수 키워드(색칠 안 함·검정). 뒤따르는 숫자를 '개수 증가량'으로 보고 빨강 처리하는 문맥만 연다.
 		local countKws = { "길드원", "가족", "구성원", "수" }
 		-- 키워드와 숫자 사이에 올 수 있는 조사/공백(이것만 지나면 문맥 유지).
@@ -200,7 +235,22 @@ script EventTileUI extends Logic
 					break
 				end
 			end
-			-- (1b) 개수 키워드(검정) → 개수 증가량 문맥 시작.
+			-- (1b) 장비/장신구/아이템 이름(파랑) → 문맥 없음(뒤 숫자에 영향 주지 않음).
+			if matched == false then
+				for k = 1, #nameKws do
+					local kw = nameKws[k]
+					local L = #kw
+					if i + L - 1 <= n and string.sub(s, i, i + L - 1) == kw then
+						table.insert(out, "<color=" .. blue .. ">" .. kw .. "</color>")
+						i = i + L
+						matched = true
+						statCtx = false
+						countCtx = false
+						break
+					end
+				end
+			end
+			-- (1c) 개수 키워드(검정) → 개수 증가량 문맥 시작.
 			if matched == false then
 				for k = 1, #countKws do
 					local kw = countKws[k]
@@ -377,14 +427,81 @@ script EventTileUI extends Logic
 		end
 	end
 
+	method table SlotBase(Entity e, string key)
+		-- 슬롯의 '원본' anchoredPosition을 (고유 키로) 최초 1회 캐시해 반환한다. 런타임 오프셋 누적 방지용.
+		-- (보스 카드 이미지처럼 이름이 겹치는 슬롯도 있어 엔티티 이름 대신 호출자가 주는 고유 키로 캐시한다.)
+		if isvalid(e) == false or isvalid(e.UITransformComponent) == false then return { x = 0, y = 0 } end
+		if self._slotBase[key] == nil then
+			local ap = e.UITransformComponent.anchoredPosition
+			self._slotBase[key] = { x = ap.x, y = ap.y }
+		end
+		return self._slotBase[key]
+	end
+
+	@ExecSpace("ClientOnly")
+	method void ApplySlotTransform(Entity e, string key, number scale, number offX, number offY)
+		-- 슬롯에 표시 크기(UIScale)와 위치 오프셋을 적용한다. 위치는 '원본(SlotBase) + 오프셋' 기준이라 반복 표시에도 누적되지 않는다.
+		-- scale/offX/offY 기본값(1/0/0)이면 원본 그대로가 된다.
+		if isvalid(e) == false or isvalid(e.UITransformComponent) == false then return end
+		local base = self:SlotBase(e, key)
+		local ut = e.UITransformComponent
+		ut.UIScale = Vector3(scale, scale, 1)
+		ut.anchoredPosition = Vector2(base.x + offX, base.y + offY)
+	end
+
+	@ExecSpace("ClientOnly")
+	method table SlotTransformForRUID(string ruid)
+		-- 슬롯에 적용할 RUID로 표시 보정값(scale/offX/offY)을 역조회한다. NpcInfo → BossImage(IngameStand) 순. 없으면 기본(1/0/0).
+		-- (NPC 슬롯은 일반 NPC와 인게임 보스 stand를 공용하므로 두 테이블을 순차 조회한다.)
+		local res = { scale = 1, offX = 0, offY = 0 }
+		if ruid == nil or ruid == "" then return res end
+		local npc = _DataService:GetTable("NpcInfo")
+		if isvalid(npc) then
+			for i = 1, npc:GetRowCount() do
+				if npc:GetCell(i, "SpriteRUID") == ruid then
+					res.scale = tonumber(npc:GetCell(i, "UIScale")) or 1
+					res.offX  = tonumber(npc:GetCell(i, "UIOffsetX")) or 0
+					res.offY  = tonumber(npc:GetCell(i, "UIOffsetY")) or 0
+					return res
+				end
+			end
+		end
+		local boss = _DataService:GetTable("BossImage")
+		if isvalid(boss) then
+			for i = 1, boss:GetRowCount() do
+				if boss:GetCell(i, "IngameStandRUID") == ruid then
+					res.scale = tonumber(boss:GetCell(i, "UIScale")) or 1
+					res.offX  = tonumber(boss:GetCell(i, "UIOffsetX")) or 0
+					res.offY  = tonumber(boss:GetCell(i, "UIOffsetY")) or 0
+					return res
+				end
+			end
+		end
+		return res
+	end
+
 	@ExecSpace("ClientOnly")
 	method void SetNPCImage(boolean show, string ruid)
-		-- NPC 이미지 표시/숨김 + (선택) NPC별 RUID 적용. 마을·사냥+·불행 이벤트에서 켜고, 그 외에는 끈다.
-		-- ruid가 빈 값이면 NpcInfo에 RUID가 아직 없는 NPC → UI의 기본 이미지를 그대로 유지한다.
+		-- NPC 이미지 표시/숨김 + RUID 적용. 마을·사냥+·불행·보스 이벤트에서 켜고, 그 외에는 끈다.
+		-- ruid가 빈 값이면 UI의 기본 이미지를 그대로 유지한다.
+		-- RUID 종류에 따라 렌더 방식을 분기한다(슬롯은 NPC/보스/엘리트 몬스터가 공용):
+		--   · 몬스터(TierMonster STAND) → 원본 크기(NativeSize) + 전역 배율(MonsterNativeScale). 3칸 사냥 몬스터와 동일 규칙 → 박스에 눌려 작아지지 않음.
+		--   · 인간형 NPC / 보스 → 슬롯 박스에 비율 맞춤(AspectOnly) + NpcInfo/BossImage 보정.
 		if isvalid(self.NPCImage) == false then return end
 		self.NPCImage.Enable = show
 		if show and ruid ~= nil and ruid ~= "" and isvalid(self.NPCImage.SpriteGUIRendererComponent) then
-			self.NPCImage.SpriteGUIRendererComponent.ImageRUID = DataRef(ruid)
+			local r = self.NPCImage.SpriteGUIRendererComponent
+			r.ImageRUID = DataRef(ruid)
+			local mon = _TileManager:MonsterAnimsByStand(ruid)   -- nil이면 몬스터가 아님(NPC/보스)
+			if mon ~= nil then
+				r.PreserveSprite = PreserveSpriteType.NativeSize
+				local sc = self.MonsterNativeScale * mon.scale
+				self:ApplySlotTransform(self.NPCImage, "npc", sc, mon.offX, mon.offY)
+			else
+				r.PreserveSprite = PreserveSpriteType.AspectOnly
+				local t = self:SlotTransformForRUID(ruid)
+				self:ApplySlotTransform(self.NPCImage, "npc", t.scale, t.offX, t.offY)
+			end
 		end
 	end
 
@@ -462,13 +579,19 @@ script EventTileUI extends Logic
 		if anims == nil then return end   -- 연출 데이터 없으면 정적 STAND 유지.
 		self._monAnims = anims
 
-		-- 이미지별 기준 x(디자인 위치) 캡처.
+		-- 이미지별 기준 위치(원본 + 몬스터별 오프셋) 확정 + 표시 크기(scale) 적용.
+		-- 흔들림 기준 x(_monBaseXs)에는 오프셋을 이미 더해두어, MonBob이 그 위에서 좌우로 흔든다.
 		local imgs = self:MonImgs()
 		self._monBaseXs = {}
 		for i = 1, #imgs do
 			local e = imgs[i]
 			if isvalid(e) and isvalid(e.UITransformComponent) then
-				self._monBaseXs[i] = e.UITransformComponent.anchoredPosition.x
+				local base = self:SlotBase(e, "mon" .. i)   -- 원본 위치(최초 1회 캐시 — 오프셋 누적 방지)
+				self._monBaseXs[i] = base.x + anims.offX
+				e.UITransformComponent.anchoredPosition = Vector2(self._monBaseXs[i], base.y + anims.offY)
+				-- 슬롯은 원본 크기(NativeSize)로 렌더 → 전역 배율 × 몬스터별 배율만 UIScale로 곱한다.
+				local sc = self.MonsterNativeScale * anims.scale
+				e.UITransformComponent.UIScale = Vector3(sc, sc, 1)
 			end
 		end
 		self._monBaseSet = true
@@ -1012,6 +1135,34 @@ script EventTileUI extends Logic
 		-- 결과 문구 '다음' → UI 닫고 종료 신호.
 		self:Hide()
 		if isvalid(self._activeTile) then self._activeTile:RequestFinish() end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void BossFightText(string challengeText, string bossStandRUID, Component bossTile)
+		-- 보스 전투 연출: 플레이어는 공격 모션, 상대 NPCImage에는 보스 stand 스프라이트를 넣어 싸우는 장면 + 도전 문구.
+		-- 마지막 장 '다음' → RequestQuestRoll (공용 OnQuestNext 재사용).
+		self._activeTile = bossTile
+		self:ShowGroup()
+		self:SetPortrait("attack")
+		self:SetNPCImage(true, bossStandRUID)
+		self:ShowPagedText(challengeText, self.OnQuestNext)
+	end
+
+	@ExecSpace("ClientOnly")
+	method void BossFightDice(integer d1, integer d2, integer total, table resultTable, string outcome, string outcomeText, string bossDieRUID, Component bossTile)
+		-- 보스 결과 주사위 → 주사위 종료 후 EventTileUI 복귀 연출:
+		--   성공/대성공 → 플레이어 idle 복귀 + 보스 die 애니 재생 / 실패 → 플레이어 idle + 보스는 기본(stand) 유지.
+		-- 이어서 결과 문구 표시, '다음' → 종료(공용 OnDiceNext 재사용).
+		self._activeTile = bossTile
+		self:HideAllButtons()
+		local win = (outcome == "성공" or outcome == "대성공")
+		_RollResultDiceAnimationUI:Show(d1, d2, total, resultTable, outcome, function()
+			self:SetPortrait("idle")
+			if win and bossDieRUID ~= "" then
+				self:SetNPCImage(true, bossDieRUID)
+			end
+			self:ShowPagedText(outcomeText, self.OnDiceNext)
+		end)
 	end
 
 end

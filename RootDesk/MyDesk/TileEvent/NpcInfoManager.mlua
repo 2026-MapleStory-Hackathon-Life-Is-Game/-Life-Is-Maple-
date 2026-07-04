@@ -16,12 +16,25 @@ script NpcInfoManager extends Logic
 		-- (몬스터 스프라이트는 TierMonster가 원본 — 사냥+ 엘리트 등은 HuntPlusTile이 MonsterStandRUID로 직접 해석해 넘긴다.)
 		if name == nil or name == "" then return "" end
 		local ds = _DataService:GetTable("NpcInfo")
-		if isvalid(ds) == false then return "" end
-		for i = 1, ds:GetRowCount() do
-			if ds:GetCell(i, "Name") == name then
-				local ruid = ds:GetCell(i, "SpriteRUID")
-				if ruid == nil then return "" end
-				return ruid
+		if isvalid(ds) then
+			for i = 1, ds:GetRowCount() do
+				if ds:GetCell(i, "Name") == name then
+					local ruid = ds:GetCell(i, "SpriteRUID")
+					if ruid == nil then return "" end
+					return ruid
+				end
+			end
+		end
+		-- NpcInfo에 없으면 BossImage(연애 상대=보스 등)로 폴백: BossName 일치 행의 인게임 stand 스프라이트.
+		-- (연애 데이트 이벤트는 선택한 상대 보스의 BossImage.IngameStandRUID를 NPCImage에 그대로 쓴다.)
+		local boss = _DataService:GetTable("BossImage")
+		if isvalid(boss) then
+			for i = 1, boss:GetRowCount() do
+				if boss:GetCell(i, "BossName") == name then
+					local ruid = boss:GetCell(i, "IngameStandRUID")
+					if ruid == nil then return "" end
+					return ruid
+				end
 			end
 		end
 		return ""

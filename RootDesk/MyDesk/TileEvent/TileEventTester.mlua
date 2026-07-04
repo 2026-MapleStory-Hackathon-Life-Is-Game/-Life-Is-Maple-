@@ -3,7 +3,7 @@ script TileEventTester extends Logic
 
 	@DisplayName("강제 이벤트")
 	@Description("None / Hunt / HuntPlus / Village / Boss / Unlucky / Guild / Romance / BlackMage")
-	property string ForceEvent = "None"
+	property string ForceEvent = "Hunt"
 
 	method string CompNameFor(string key)
 		-- 이벤트 키 → 부착할 타일 컴포넌트 이름. 미설정/None이면 "".
@@ -19,6 +19,18 @@ script TileEventTester extends Logic
 		return ""
 	end
 
+	method void ClearConflicting(Entity e, string compName)
+		-- HuntPlusTile은 HuntTile을 상속하므로 둘은 같은 컴포넌트 슬롯을 공유한다.
+		-- 형제 컴포넌트가 남아 있으면 AddComponent가 조용히 실패해(강제 Hunt인데 기존 HuntPlus가 그대로 실행),
+		-- 강제 대상이 둘 중 하나면 반대쪽을 먼저 제거해 슬롯을 비운다. (그 외 타입은 서로 독립이라 무관.)
+		local sibling = ""
+		if compName == "HuntTile" then sibling = "HuntPlusTile"
+		elseif compName == "HuntPlusTile" then sibling = "HuntTile" end
+		if sibling ~= "" and isvalid(e:GetComponent("script." .. sibling)) then
+			e:RemoveComponent(sibling)
+		end
+	end
+
 	@ExecSpace("ServerOnly")
 	method any OverrideFor(Entity tileEntity)
 		-- ForceEvent가 설정돼 있으면 tileEntity에 해당 타일 컴포넌트를 보장하고 반환한다.
@@ -26,6 +38,8 @@ script TileEventTester extends Logic
 		local compName = self:CompNameFor(self.ForceEvent)
 		if compName == "" then return nil end
 		if isvalid(tileEntity) == false then return nil end
+		-- 상속으로 슬롯이 겹치는 형제(Hunt↔HuntPlus)를 먼저 정리한다(AddComponent 무음 실패 방지).
+		self:ClearConflicting(tileEntity, compName)
 		local c = tileEntity:GetComponent("script." .. compName)
 		if isvalid(c) == false then
 			tileEntity:AddComponent(compName)

@@ -925,12 +925,12 @@
         }
       },
       {
-        "id": "eb5c3997-2c03-4c8c-bd2f-e817bd2ca486",
-        "path": "/ui/EventTileGroup/EventBack/BackgroundMap/Monsters/MonsterImage_1",
+        "id": "419c949d-bc4a-4821-801a-89b796cd6053",
+        "path": "/ui/EventTileGroup/EventBack/BackgroundMap/Monsters/MonsterImage_2",
         "componentNames": "MOD.Core.UITransformComponent,MOD.Core.SpriteGUIRendererComponent",
         "jsonString": {
-          "name": "MonsterImage_1",
-          "path": "/ui/EventTileGroup/EventBack/BackgroundMap/Monsters/MonsterImage_1",
+          "name": "MonsterImage_2",
+          "path": "/ui/EventTileGroup/EventBack/BackgroundMap/Monsters/MonsterImage_2",
           "nameEditable": true,
           "enable": true,
           "visible": true,
@@ -949,6 +949,7 @@
           "@components": [
             {
               "@type": "MOD.Core.UITransformComponent",
+              "ActivePlatform": 255,
               "AlignmentOption": 0,
               "AnchorsMax": {
                 "x": 0.5,
@@ -960,20 +961,20 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 487.936554,
-                "y": -78.27656
+                "x": 668.7004,
+                "y": 115.600204
               },
               "OffsetMin": {
-                "x": 331.635651,
-                "y": -234.577454
+                "x": 503.700378,
+                "y": -49.3998
               },
               "Pivot": {
                 "x": 0.5,
                 "y": 0.5
               },
               "RectSize": {
-                "x": 156.300888,
-                "y": 156.300888
+                "x": 165.0,
+                "y": 165.0
               },
               "UIMode": 1,
               "UIScale": {
@@ -983,25 +984,31 @@
               },
               "UIVersion": 2,
               "anchoredPosition": {
-                "x": 409.7861,
-                "y": -156.427
+                "x": 586.2004,
+                "y": 33.1002
+              },
+              "Rotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
               },
               "Position": {
-                "x": 409.7861,
-                "y": -156.427,
+                "x": 586.2004,
+                "y": 33.1002,
                 "z": 0.0
               },
               "QuaternionRotation": {
                 "x": 0.0,
                 "y": 0.0,
                 "z": 0.0,
-                "w": 1.0
+                "w": -1.0
               },
               "Scale": {
                 "x": 1.0,
                 "y": 1.0,
                 "z": 1.0
               },
+              "ZRotation": 0.0,
               "Enable": true
             },
             {
@@ -1010,100 +1017,7 @@
                 "DataId": "6ad988b3ef6d4ceab3a504d300755a5b"
               },
               "OverrideSorting": false,
-              "PreserveSprite": 1,
-              "Enable": true
-            }
-          ],
-          "@version": 1
-        }
-      },
-      {
-        "id": "419c949d-bc4a-4821-801a-89b796cd6053",
-        "path": "/ui/EventTileGroup/EventBack/BackgroundMap/Monsters/MonsterImage_2",
-        "componentNames": "MOD.Core.UITransformComponent,MOD.Core.SpriteGUIRendererComponent",
-        "jsonString": {
-          "name": "MonsterImage_2",
-          "path": "/ui/EventTileGroup/EventBack/BackgroundMap/Monsters/MonsterImage_2",
-          "nameEditable": true,
-          "enable": true,
-          "visible": true,
-          "localize": true,
-          "displayOrder": 1,
-          "pathConstraints": "//////",
-          "revision": 1,
-          "origin": {
-            "type": "Model",
-            "entry_id": "uisprite",
-            "sub_entity_id": null,
-            "root_entity_id": "eb5c3997-2c03-4c8c-bd2f-e817bd2ca486",
-            "replaced_model_id": null
-          },
-          "modelId": "uisprite",
-          "@components": [
-            {
-              "@type": "MOD.Core.UITransformComponent",
-              "AlignmentOption": 0,
-              "AnchorsMax": {
-                "x": 0.5,
-                "y": 0.5
-              },
-              "AnchorsMin": {
-                "x": 0.5,
-                "y": 0.5
-              },
-              "MobileOnly": false,
-              "OffsetMax": {
-                "x": 620.4413,
-                "y": 141.25769
-              },
-              "OffsetMin": {
-                "x": 467.979126,
-                "y": -11.2044907
-              },
-              "Pivot": {
-                "x": 0.5,
-                "y": 0.5
-              },
-              "RectSize": {
-                "x": 152.462189,
-                "y": 152.462189
-              },
-              "UIMode": 1,
-              "UIScale": {
-                "x": 1.0,
-                "y": 1.0,
-                "z": 1.0
-              },
-              "UIVersion": 2,
-              "anchoredPosition": {
-                "x": 544.2102,
-                "y": 65.0266
-              },
-              "Position": {
-                "x": 544.2102,
-                "y": 65.0266,
-                "z": 0.0
-              },
-              "QuaternionRotation": {
-                "x": 0.0,
-                "y": 0.0,
-                "z": 0.0,
-                "w": 1.0
-              },
-              "Scale": {
-                "x": 1.0,
-                "y": 1.0,
-                "z": 1.0
-              },
-              "Enable": true
-            },
-            {
-              "@type": "MOD.Core.SpriteGUIRendererComponent",
-              "ImageRUID": {
-                "DataId": "6ad988b3ef6d4ceab3a504d300755a5b"
-              },
-              "OverrideSorting": false,
-              "PreserveSprite": 1,
+              "PreserveSprite": 2,
               "SortingLayer": "MapLayer0",
               "Enable": true
             }
@@ -1122,7 +1036,7 @@
           "enable": true,
           "visible": true,
           "localize": true,
-          "displayOrder": 2,
+          "displayOrder": 1,
           "pathConstraints": "//////",
           "revision": 1,
           "origin": {
@@ -1136,6 +1050,7 @@
           "@components": [
             {
               "@type": "MOD.Core.UITransformComponent",
+              "ActivePlatform": 255,
               "AlignmentOption": 0,
               "AnchorsMax": {
                 "x": 0.5,
@@ -1147,20 +1062,20 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 332.608337,
-                "y": 88.79515
+                "x": 297.4,
+                "y": 55.4
               },
               "OffsetMin": {
-                "x": 184.624634,
-                "y": -59.1885529
+                "x": 132.4,
+                "y": -109.6
               },
               "Pivot": {
                 "x": 0.5,
                 "y": 0.5
               },
               "RectSize": {
-                "x": 147.9837,
-                "y": 147.9837
+                "x": 165.0,
+                "y": 165.0
               },
               "UIMode": 1,
               "UIScale": {
@@ -1170,12 +1085,12 @@
               },
               "UIVersion": 2,
               "anchoredPosition": {
-                "x": 258.6165,
-                "y": 14.8033
+                "x": 214.9,
+                "y": -27.1
               },
               "Position": {
-                "x": 258.6165,
-                "y": 14.8033,
+                "x": 214.9,
+                "y": -27.1,
                 "z": 0.0
               },
               "QuaternionRotation": {
@@ -1197,8 +1112,102 @@
                 "DataId": "6ad988b3ef6d4ceab3a504d300755a5b"
               },
               "OverrideSorting": false,
-              "PreserveSprite": 1,
+              "PreserveSprite": 2,
               "SortingLayer": "MapLayer0",
+              "Enable": true
+            }
+          ],
+          "@version": 1
+        }
+      },
+      {
+        "id": "eb5c3997-2c03-4c8c-bd2f-e817bd2ca486",
+        "path": "/ui/EventTileGroup/EventBack/BackgroundMap/Monsters/MonsterImage_1",
+        "componentNames": "MOD.Core.UITransformComponent,MOD.Core.SpriteGUIRendererComponent",
+        "jsonString": {
+          "name": "MonsterImage_1",
+          "path": "/ui/EventTileGroup/EventBack/BackgroundMap/Monsters/MonsterImage_1",
+          "nameEditable": true,
+          "enable": true,
+          "visible": true,
+          "localize": true,
+          "displayOrder": 2,
+          "pathConstraints": "//////",
+          "revision": 1,
+          "origin": {
+            "type": "Model",
+            "entry_id": "uisprite",
+            "sub_entity_id": null,
+            "root_entity_id": "eb5c3997-2c03-4c8c-bd2f-e817bd2ca486",
+            "replaced_model_id": null
+          },
+          "modelId": "uisprite",
+          "@components": [
+            {
+              "@type": "MOD.Core.UITransformComponent",
+              "ActivePlatform": 255,
+              "AlignmentOption": 0,
+              "AnchorsMax": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "AnchorsMin": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "MobileOnly": false,
+              "OffsetMax": {
+                "x": 494.0,
+                "y": -150.1
+              },
+              "OffsetMin": {
+                "x": 329.0,
+                "y": -315.1
+              },
+              "Pivot": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "RectSize": {
+                "x": 165.0,
+                "y": 165.0
+              },
+              "UIMode": 1,
+              "UIScale": {
+                "x": 1.0,
+                "y": 1.0,
+                "z": 1.0
+              },
+              "UIVersion": 2,
+              "anchoredPosition": {
+                "x": 411.5,
+                "y": -232.6
+              },
+              "Position": {
+                "x": 411.5,
+                "y": -232.6,
+                "z": 0.0
+              },
+              "QuaternionRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 1.0
+              },
+              "Scale": {
+                "x": 1.0,
+                "y": 1.0,
+                "z": 1.0
+              },
+              "Enable": true
+            },
+            {
+              "@type": "MOD.Core.SpriteGUIRendererComponent",
+              "ImageRUID": {
+                "DataId": "6ad988b3ef6d4ceab3a504d300755a5b"
+              },
+              "OverrideSorting": false,
+              "PreserveSprite": 2,
               "Enable": true
             }
           ],
@@ -1230,6 +1239,7 @@
           "@components": [
             {
               "@type": "MOD.Core.UITransformComponent",
+              "ActivePlatform": 255,
               "AlignmentOption": 0,
               "AnchorsMax": {
                 "x": 0.5,
@@ -1242,11 +1252,11 @@
               "MobileOnly": false,
               "OffsetMax": {
                 "x": 460.626343,
-                "y": 60.8175964
+                "y": -39.18241
               },
               "OffsetMin": {
                 "x": 310.886841,
-                "y": -178.2766
+                "y": -278.2766
               },
               "Pivot": {
                 "x": 0.5,
@@ -1257,14 +1267,19 @@
                 "y": 239.0942
               },
               "UIMode": 1,
+              "UIScale": {
+                "x": 1.0,
+                "y": 1.0,
+                "z": 1.0
+              },
               "UIVersion": 2,
               "anchoredPosition": {
                 "x": 385.7566,
-                "y": -58.7295
+                "y": -158.7295
               },
               "Position": {
                 "x": 385.7566,
-                "y": -58.7295,
+                "y": -158.7295,
                 "z": 0.0
               },
               "QuaternionRotation": {
@@ -1272,6 +1287,11 @@
                 "y": 0.0,
                 "z": 0.0,
                 "w": 1.0
+              },
+              "Scale": {
+                "x": 1.0,
+                "y": 1.0,
+                "z": 1.0
               },
               "Enable": true
             },
@@ -2159,6 +2179,7 @@
           "@components": [
             {
               "@type": "MOD.Core.UITransformComponent",
+              "ActivePlatform": 255,
               "AlignmentOption": 4,
               "AnchorsMax": {
                 "x": 0.0,
@@ -2170,11 +2191,11 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 1230.72412,
+                "x": 1010.0,
                 "y": -617.4072
               },
               "OffsetMin": {
-                "x": 1130.72412,
+                "x": 910.0,
                 "y": -717.4072
               },
               "Pivot": {
@@ -2193,16 +2214,11 @@
               },
               "UIVersion": 2,
               "anchoredPosition": {
-                "x": 1180.72412,
+                "x": 960.0,
                 "y": -667.4072
               },
-              "Rotation": {
-                "x": 0.0,
-                "y": 0.0,
-                "z": 0.0
-              },
               "Position": {
-                "x": 220.724121,
+                "x": 0.0,
                 "y": 72.59277,
                 "z": 0.0
               },
@@ -2210,14 +2226,13 @@
                 "x": 0.0,
                 "y": 0.0,
                 "z": 0.0,
-                "w": -1.0
+                "w": 1.0
               },
               "Scale": {
                 "x": 1.0,
                 "y": 1.0,
                 "z": 1.0
               },
-              "ZRotation": 0.0,
               "Enable": true
             }
           ],
@@ -2765,11 +2780,11 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 173.9325,
+                "x": 170.0,
                 "y": -12.0
               },
               "OffsetMin": {
-                "x": -166.0675,
+                "x": -170.0,
                 "y": -108.0
               },
               "Pivot": {
@@ -2788,11 +2803,11 @@
               },
               "UIVersion": 2,
               "anchoredPosition": {
-                "x": 3.9325,
+                "x": 0.0,
                 "y": -60.0
               },
               "Position": {
-                "x": 3.9325,
+                "x": 0.0,
                 "y": -60.0,
                 "z": 0.0
               },

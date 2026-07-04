@@ -3663,12 +3663,12 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 1427.99048,
-                "y": -599.2712
+                "x": 704.1738,
+                "y": -217.115112
               },
               "OffsetMin": {
-                "x": 427.990479,
-                "y": -699.2712
+                "x": -295.8262,
+                "y": -317.1151
               },
               "Pivot": {
                 "x": 0.5,
@@ -3686,17 +3686,12 @@
               },
               "UIVersion": 2,
               "anchoredPosition": {
-                "x": 927.9905,
-                "y": -649.2712
-              },
-              "Rotation": {
-                "x": 0.0,
-                "y": 0.0,
-                "z": 0.0
+                "x": 204.1738,
+                "y": -267.1151
               },
               "Position": {
-                "x": 127.990479,
-                "y": -249.271179,
+                "x": 204.1738,
+                "y": -267.1151,
                 "z": 0.0
               },
               "QuaternionRotation": {
@@ -3715,10 +3710,96 @@
             },
             {
               "@type": "MOD.Core.TextGUIRendererComponent",
+              "Font": "Maple",
               "FontSize": 50.0,
               "MaxSize": 50.0,
               "MinSize": 10.0,
               "OverrideSorting": false,
+              "Text": "",
+              "Enable": true
+            }
+          ],
+          "@version": 1
+        }
+      },
+      {
+        "id": "33f06587-7ac8-46a9-8eca-80d1fc82a638",
+        "path": "/ui/ResultDicetUIGroup/ResultDice_Panel/Dice_Panel/Result_Text_1",
+        "componentNames": "MOD.Core.UITransformComponent,MOD.Core.TextGUIRendererComponent",
+        "jsonString": {
+          "name": "Result_Text_1",
+          "path": "/ui/ResultDicetUIGroup/ResultDice_Panel/Dice_Panel/Result_Text_1",
+          "nameEditable": true,
+          "enable": true,
+          "visible": true,
+          "localize": true,
+          "displayOrder": 3,
+          "pathConstraints": "/////",
+          "revision": 1,
+          "origin": {
+            "type": "Model",
+            "entry_id": "uiempty",
+            "sub_entity_id": null,
+            "root_entity_id": "c65cf185-345f-41a1-a867-23e77171d5fb",
+            "replaced_model_id": null
+          },
+          "modelId": "uiempty",
+          "@components": [
+            {
+              "@type": "MOD.Core.UITransformComponent",
+              "AlignmentOption": 0,
+              "AnchorsMax": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "AnchorsMin": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "MobileOnly": false,
+              "OffsetMax": {
+                "x": 700.962769,
+                "y": -285.0
+              },
+              "OffsetMin": {
+                "x": -299.0372,
+                "y": -385.0
+              },
+              "Pivot": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "RectSize": {
+                "x": 1000.0,
+                "y": 100.0
+              },
+              "UIMode": 1,
+              "UIVersion": 2,
+              "anchoredPosition": {
+                "x": 200.9628,
+                "y": -335.0
+              },
+              "Position": {
+                "x": 200.9628,
+                "y": -335.0,
+                "z": 0.0
+              },
+              "QuaternionRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 1.0
+              },
+              "Enable": true
+            },
+            {
+              "@type": "MOD.Core.TextGUIRendererComponent",
+              "Font": "Maple",
+              "FontSize": 50.0,
+              "MaxSize": 50.0,
+              "MinSize": 10.0,
+              "OverrideSorting": false,
+              "SortingLayer": "MapLayer0",
               "Text": "",
               "Enable": true
             }

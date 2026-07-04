@@ -30,6 +30,12 @@ script BossUI extends Logic
 	property Entity BossCard2Name = "dd64ef7b-cf44-4a15-b60b-f28e5b77dc94"
 	property Entity BossCard3Name = "5fa5ecd7-abc8-4176-a085-a2e364261318"
 	property Entity BossCard4Name = "f522b41a-9d87-4be1-91d1-3117b3869e44"
+
+	-- 카드별 드랍 안내 텍스트(BossCardN/ItemText…). 더미 대신 BossProbability 기반으로 런타임 갱신.
+	property Entity BossCard1Item = "8f925984-2a3b-4e6d-b07c-0d010fe00a13"
+	property Entity BossCard2Item = "1d0def31-2202-494e-ae1b-b63a3110e6ea"
+	property Entity BossCard3Item = "f6fd839d-24b5-4e1f-aa53-292379d58bf1"
+	property Entity BossCard4Item = "e4a1bd1e-9df4-410e-b17d-ce4e156f1369"
 	-- 1번 카드 이름의 기본값(단일 모드 등 폴백용). OnBeginPlay에서 .ui 실제 값으로 갱신.
 	property string _card1DefaultName = "4카루타"
 
@@ -153,6 +159,28 @@ script BossUI extends Logic
 		return nil
 	end
 
+	method string FormatPower(string raw)
+		-- 적정 전투력 표시용: "450000" → "450,000". 숫자가 아니면 원본 그대로.
+		local n = tonumber(raw)
+		if n == nil then return tostring(raw) end
+		local s = tostring(math.floor(n))
+		local out = ""
+		local cnt = 0
+		for i = #s, 1, -1 do
+			out = string.sub(s, i, i) .. out
+			cnt = cnt + 1
+			if cnt % 3 == 0 and i > 1 then out = "," .. out end
+		end
+		return out
+	end
+
+	method string FormatDrop(string raw, string sep)
+		-- 드랍 문자열의 구분자 "/"를 sep으로 바꾼다. 단 "세트/무기"는 같은 줄(",무기")로 묶는다.
+		local s = (string.gsub(tostring(raw), "/무기", ",무기"))
+		s = (string.gsub(s, "/", sep))
+		return s
+	end
+
 	@ExecSpace("ClientOnly")
 	method void SetCard1Name(string name)
 		-- 1번 카드 이름 텍스트(BossCard1/NameBack/NameText)를 런타임으로 설정한다.
@@ -228,12 +256,63 @@ script BossUI extends Logic
 		end
 	end
 
+	method table BossUITransform(string bossKey)
+		-- BossImage에서 보스별 표시 보정값(scale/offX/offY)을 반환한다. 없거나 빈 칸이면 기본(1/0/0 = 변화 없음).
+		local res = { scale = 1, offX = 0, offY = 0 }
+		local ds = _DataService:GetTable("BossImage")
+		if isvalid(ds) == false then return res end
+		for i = 1, ds:GetRowCount() do
+			if ds:GetCell(i, "BossName") == bossKey then
+				res.scale = tonumber(ds:GetCell(i, "UIScale")) or 1
+				res.offX  = tonumber(ds:GetCell(i, "UIOffsetX")) or 0
+				res.offY  = tonumber(ds:GetCell(i, "UIOffsetY")) or 0
+				return res
+			end
+		end
+		return res
+	end
+
 	@ExecSpace("ClientOnly")
 	method void SetCardImage(integer idx, string bossKey)
 		-- idx번 카드의 보스 선택 이미지(Img)를 BossImage.BossSelectRUID로 설정한다.
+		-- 크기 보정(UIScale)만 적용한다 — 작은 카드에서는 오프셋을 쓰지 않는다(오프셋은 상세/인게임 큰 슬롯 전용).
 		local imgs = { self.BossCard1Img, self.BossCard2Img, self.BossCard3Img, self.BossCard4Img }
 		local row = self:BossImageRow(bossKey)
 		if row ~= nil then self:SetImageRUID(imgs[idx], row.select) end
+		local t = self:BossUITransform(bossKey)
+		_EventTileUI:ApplySlotTransform(imgs[idx], "bosscard" .. idx, t.scale, 0, 0)
+	end
+
+	method string CardInfoText(string bossKey, table allowed)
+		-- 선택 카드의 드랍 안내 텍스트를 BossProbability 기반으로 만든다(더미 대체).
+		-- 이 보스가 (지역이 허용하고) 실존하는 난이도별로 "난이도 · 드랍" 한 줄씩. 없으면 "".
+		-- 난이도가 여러 개면 드랍이 다르므로 난이도 라벨을 붙인다. detail 패널과 같은 BossProbability 값을 참조.
+		local lines = { "[드랍 아이템]" }
+		local order = { "Easy", "Normal", "Hard", "Chaos" }
+		local labels = { Easy = "이지", Normal = "노말", Hard = "하드", Chaos = "카오스" }
+		local count = 0
+		for oi = 1, #order do
+			local dk = order[oi]
+			if self:DiffAllowed(allowed, dk) then
+				local row = self:DiffRow(bossKey, dk)
+				if row ~= nil then
+					count = count + 1
+					table.insert(lines, labels[dk] .. " · " .. self:FormatDrop(row.drop, ", "))
+				end
+			end
+		end
+		if count == 0 then return "" end
+		return table.concat(lines, "\n")
+	end
+
+	@ExecSpace("ClientOnly")
+	method void SetCardDrops(integer idx, string bossKey, table allowed)
+		-- idx번 카드의 드랍 안내 텍스트(ItemText…)를 BossProbability 기반으로 설정한다.
+		local items = { self.BossCard1Item, self.BossCard2Item, self.BossCard3Item, self.BossCard4Item }
+		local e = items[idx]
+		if isvalid(e) and isvalid(e.TextComponent) then
+			e.TextComponent.Text = self:CardInfoText(bossKey, allowed)
+		end
 	end
 
 	@ExecSpace("ClientOnly")
@@ -286,6 +365,7 @@ script BossUI extends Logic
 			if i <= n then
 				self:SetCardName(i, self._bossNames[i])
 				self:SetCardImage(i, self._bossKeys[i])
+				self:SetCardDrops(i, self._bossKeys[i], self._bossDiffs[i])
 			end
 		end
 		log("[BossUI] 지역 보스 로스터 표시 보스수=" .. tostring(n))
@@ -315,6 +395,7 @@ script BossUI extends Logic
 		end
 		self:SetCard1Name(bossName)   -- 1번 카드 이름을 보스명(검은 마법사)으로 런타임 교체
 		self:SetCardImage(1, bossKey) -- 1번 카드 보스 선택 이미지도 교체
+		self:SetCardDrops(1, bossKey, nil) -- 단일 모드: 제한 없음(BossProbability 실존 난이도 전부)
 		log("[BossUI] 단일 보스 선택 표시: " .. tostring(bossName))
 	end
 
@@ -344,9 +425,11 @@ script BossUI extends Logic
 		if isvalid(self.DetailBossName) and isvalid(self.DetailBossName.TextComponent) then
 			self.DetailBossName.TextComponent.Text = self._bossNames[idx]
 		end
-		-- DetailPanel 보스 이미지 = BossImage.DetailPanelRUID.
+		-- DetailPanel 보스 이미지 = BossImage.DetailPanelRUID + 보스별 크기/오프셋 보정(상세 화면은 큰 슬롯이라 오프셋도 적용).
 		local imgRow = self:BossImageRow(self._bossKeys[idx])
 		if imgRow ~= nil then self:SetImageRUID(self.DetailBossImage, imgRow.detail) end
+		local dt = self:BossUITransform(self._bossKeys[idx])
+		_EventTileUI:ApplySlotTransform(self.DetailBossImage, "bossdetail", dt.scale, dt.offX, dt.offY)
 
 		-- 이 지역이 허용하고(_bossDiffs) 또한 BossProbability에 실존하는 난이도만 버튼 활성화.
 		-- (_bossDiffs[idx]가 nil이면 단일 모드 → 지역 제한 없음. 없는/미허용 난이도는 Enable=false.)
@@ -359,7 +442,18 @@ script BossUI extends Logic
 				if row ~= nil and self:DiffAllowed(allowed, d.key) then
 					d.e.Enable = true
 					if isvalid(d.e.TextComponent) then
-						d.e.TextComponent.Text = d.label .. "\n드랍: " .. tostring(row.drop)
+						-- 버튼 본문은 난이도 라벨(제목, 큰 글씨)만.
+						d.e.TextComponent.Text = d.label
+					end
+					-- 세부 설명(적정 전투력 / 드랍)은 버튼 하위 Desc 텍스트(작은 글씨)에 표시.
+					-- 포맷: "제목\n: 내용", 두 파트 사이에는 빈 줄 하나. 드랍 항목의 "/"는 ", "로.
+					local desc = d.e:GetChildByName("Desc")
+					if isvalid(desc) and isvalid(desc.TextComponent) then
+						-- "세트/무기"는 같은 줄(",무기")로 묶고, 나머지 "/"는 줄바꿈으로.
+						local dropRaw = (string.gsub(tostring(row.drop), "/무기", ",무기"))
+						local dropText = (string.gsub(dropRaw, "/", "\n"))
+						desc.TextComponent.Text = "적정 전투력\n: " .. self:FormatPower(row.req)
+							.. "\n\n드랍 아이템\n: " .. dropText
 					end
 				else
 					d.e.Enable = false

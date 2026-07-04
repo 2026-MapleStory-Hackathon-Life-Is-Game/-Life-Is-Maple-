@@ -2,10 +2,10 @@
 script BossTile extends EventTileBase
 
 	-- 보스(인터랙티브) 이벤트 타일.
-	-- 흐름: 도착 → EventTileGroup 안내 문구 + BossUI 보스 선택(4종) →
-	--        카드 클릭 시 상세(난이도/적정전투력/드랍 + 뒤로가기) → 난이도 선택 시 RequestSelect →
-	--        BossUI 닫고 EventTileGroup 도전 문구(5초) → 결과 주사위 →
-	--        실패/성공/대성공별 보상·결과 문구.
+	-- 흐름: 도착 → BossUI 보스 선택(지역 로스터) → 카드 클릭 시 상세(난이도/드랍) → 난이도 선택(RequestSelect) →
+	--        EventTileGroup 전투 연출(플레이어 공격 모션 + 상대 NPCImage 보스 stand) + 도전 문구 →
+	--        '다음' → 결과 주사위(성공/대성공/실패 판정 + 보상) →
+	--        EventTileGroup 복귀: 성공/대성공이면 보스 die 애니 재생, 실패면 보스 기본 유지(플레이어는 idle 복귀) + 결과 문구.
 	-- 대사·보상은 BossDialog 데이터셋(Group=all)에서 관리한다: intro/challenge/fail/success/great.
 	--   Text에 {boss}(선택 보스명)·{drop}(BossProbability.DropEquip) 치환자, Reward에 보상 토큰(main%/attack%/cube).
 	--   실패=주스탯3% / 성공=미라클큐브x5+주스탯6%+공격력6% / 대성공=드랍장비+주스탯9%+공격력9%.
@@ -90,15 +90,16 @@ script BossTile extends EventTileBase
 		local ownerId = self:OwnerUserId(piece)
 		local challengeText = self:BossText("all", "challenge", self._selectedBossName, "")
 		if challengeText == "" then challengeText = self._selectedBossName .. " 처치에 도전하였다!\n각오해라!" end
-		self:StartChallenge(challengeText, ownerId)
+		self:StartChallenge(challengeText, bossKey, ownerId)
 		log("[BossTile] 선택: " .. self._selectedBossName)
 	end
 
 	@ExecSpace("Client")
-	method void StartChallenge(string challengeText)
-		-- 도착 플레이어 클라: BossUI 닫고 EventTileGroup에 도전 문구 표시(공용 연출 재사용).
+	method void StartChallenge(string challengeText, string bossKey)
+		-- 도착 플레이어 클라: BossUI 닫고 EventTileGroup에서 보스 전투 연출 시작.
+		-- 플레이어 공격 모션 + 상대 NPCImage에 보스 stand 스프라이트 + 도전 문구.
 		_BossUI:Hide()
-		_EventTileUI:VillageQuestText(challengeText, self)
+		_EventTileUI:BossFightText(challengeText, self:BossStandRUID(bossKey), self)
 	end
 
 	@ExecSpace("Server")
@@ -138,13 +139,13 @@ script BossTile extends EventTileBase
 		log("[BossTile] 도전 " .. outcome .. " → " .. key)
 
 		local ownerId = self:OwnerUserId(piece)
-		self:ShowChallengeDice(d1, d2, total, resultTable, outcome, outcomeText, ownerId)
+		self:ShowChallengeDice(d1, d2, total, resultTable, outcome, outcomeText, self._selectedBossKey, ownerId)
 	end
 
 	@ExecSpace("Client")
-	method void ShowChallengeDice(integer d1, integer d2, integer total, table resultTable, string outcome, string outcomeText)
-		-- 도착 플레이어 클라: 결과 주사위 연출 + 결과 문구 표시(공용 연출 재사용).
-		_EventTileUI:VillageDice(d1, d2, total, resultTable, outcome, outcomeText, self)
+	method void ShowChallengeDice(integer d1, integer d2, integer total, table resultTable, string outcome, string outcomeText, string bossKey)
+		-- 도착 플레이어 클라: 결과 주사위 연출 → 성공 시 보스 die 애니 / 실패 시 기본 유지 + 플레이어 idle → 결과 문구.
+		_EventTileUI:BossFightDice(d1, d2, total, resultTable, outcome, outcomeText, self:BossDieRUID(bossKey), self)
 	end
 
 	@ExecSpace("Server")
@@ -169,6 +170,36 @@ script BossTile extends EventTileBase
 			end
 		end
 		return key
+	end
+
+	method string BossStandRUID(string key)
+		-- 보스 전투 연출용 stand 스프라이트(BossImage.IngameStandRUID). 없으면 DetailPanelRUID로 폴백.
+		local ds = _DataService:GetTable("BossImage")
+		if isvalid(ds) == false then return "" end
+		for i = 1, ds:GetRowCount() do
+			if ds:GetCell(i, "BossName") == key then
+				local st = ds:GetCell(i, "IngameStandRUID")
+				if st ~= nil and st ~= "" then return st end
+				local dp = ds:GetCell(i, "DetailPanelRUID")
+				if dp ~= nil then return dp end
+				return ""
+			end
+		end
+		return ""
+	end
+
+	method string BossDieRUID(string key)
+		-- 보스 처치 시 재생할 die 애니메이션 RUID(BossImage.DieAnimRUID). 없으면 "".
+		local ds = _DataService:GetTable("BossImage")
+		if isvalid(ds) == false then return "" end
+		for i = 1, ds:GetRowCount() do
+			if ds:GetCell(i, "BossName") == key then
+				local d = ds:GetCell(i, "DieAnimRUID")
+				if d ~= nil then return d end
+				return ""
+			end
+		end
+		return ""
 	end
 
 	method string DiffLabel(string diff)
