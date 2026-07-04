@@ -79,6 +79,14 @@ script EventTileUI extends Logic
 
 	property string _portraitState = "idle"
 
+	-- 결과 표정/동작(초상화 PlayerPortrait) 연출용.
+	property number EmoteHoldSeconds = 600.0       -- 결과 표정 유지 시간(초). 이벤트가 끝날 때까지 유지되도록 충분히 길게.
+	property number PortraitHopHeight = 60.0       -- 웃음 제자리 점프 높이(UI px)
+	property number PortraitHopDuration = 0.4      -- 점프 1회 총 시간(초)
+	property integer _portraitHopTimer = 0
+	property number _portraitHopT = 0
+	property Vector2 _portraitHopBase = Vector2(0, 0)
+
 	property any _nextHandler = nil
 
 	property table _choiceHandlers = {}
@@ -142,6 +150,8 @@ script EventTileUI extends Logic
 	@ExecSpace("ClientOnly")
 	method void OnEndPlay()
 		self:StopTyping()
+		self:StopPortraitMotion()
+		self:PortraitResetEmotion()
 		self:ClearPortrait()
 		self:HideAllButtons()
 	end
@@ -832,16 +842,26 @@ script EventTileUI extends Logic
 	end
 
 	@ExecSpace("ClientOnly")
-	method void ApplyPortrait()
-		-- 현재 _portraitState 를 초상화 아바타에 1회 적용한다.
+	method void PortraitPose(string state, boolean needReset)
+		-- 초상화 몸 포즈를 state에 맞춰 전송한다. needReset=true면 진행 중인 애니(attack 등)를 멈추고 처음부터 재생한다.
+		self._portraitState = state
 		local portrait = _EntityService:GetEntityByPath(self.PortraitPath)
 		if isvalid(portrait) == false then return end
-		local state = MapleAvatarBodyActionState.Stand
-		if self._portraitState == "attack" then state = MapleAvatarBodyActionState.Attack end
-		local event = BodyActionStateChangeEvent()
-		event.ActionState = state
-		event.needResetAction = false
-		portrait:SendEvent(event)
+		local st = MapleAvatarBodyActionState.Stand
+		if state == "attack" then st = MapleAvatarBodyActionState.Attack
+		elseif state == "cry" then st = MapleAvatarBodyActionState.Crouch   -- crouch → prone(엎드림) 스프라이트
+		elseif state == "jump" then st = MapleAvatarBodyActionState.Fall     -- fall → jump(공중) 스프라이트
+		end
+		local ev = BodyActionStateChangeEvent()
+		ev.ActionState = st
+		ev.needResetAction = needReset
+		portrait:SendEvent(ev)
+	end
+
+	@ExecSpace("ClientOnly")
+	method void ApplyPortrait()
+		-- 현재 _portraitState 를 초상화에 재적용한다(재시작 없이 — 로딩 타이밍 대비 반복 적용용).
+		self:PortraitPose(self._portraitState, false)
 	end
 
 	@ExecSpace("ClientOnly")
@@ -850,6 +870,98 @@ script EventTileUI extends Logic
 		if self._portraitTimer ~= 0 then
 			_TimerService:ClearTimer(self._portraitTimer)
 			self._portraitTimer = 0
+		end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void PortraitEmote(string outcome)
+		-- 결과 등급(성공/대성공/실패)에 따라 초상화(PlayerPortrait)에 표정 + 동작을 연출한다.
+		--   좋은 결과 → 표정(대성공=Cheers/성공=Smile) + 제자리 폴짝 점프 1회
+		--   나쁜 결과(실패 등) → 표정 Cry + 엎드림 포즈 유지(이벤트 끝까지 — 종료 시 Hide에서 정리)
+		if outcome == "대성공" or outcome == "great" then
+			self:PortraitPlayEmotion("Cheers")
+			self:PortraitHop()
+		elseif outcome == "성공" or outcome == "success" then
+			self:PortraitPlayEmotion("Smile")
+			self:PortraitHop()
+		else
+			self:PortraitPlayEmotion("Cry")
+			self:PortraitCry()
+		end
+		log("[EventTileUI] 초상화 결과 연출 outcome=" .. tostring(outcome))
+	end
+
+	@ExecSpace("ClientOnly")
+	method void PortraitPlayEmotion(string emotionName)
+		-- 초상화 UI 아바타 얼굴 표정 재생(AvatarGUIRendererComponent.PlayEmotion). 이벤트 끝까지 유지되도록 길게 재생.
+		local portrait = _EntityService:GetEntityByPath(self.PortraitPath)
+		if isvalid(portrait) == false then return end
+		local r = portrait.AvatarGUIRendererComponent
+		if isvalid(r) == false then return end
+		r:PlayEmotion(EmotionalType.CastFrom(emotionName), self.EmoteHoldSeconds)
+	end
+
+	@ExecSpace("ClientOnly")
+	method void PortraitResetEmotion()
+		-- 초상화 표정을 기본(중립)으로 되돌린다(이벤트 종료 시 다음 이벤트로 표정이 남지 않도록).
+		local portrait = _EntityService:GetEntityByPath(self.PortraitPath)
+		if isvalid(portrait) == false then return end
+		local r = portrait.AvatarGUIRendererComponent
+		if isvalid(r) == false then return end
+		r:PlayEmotion(EmotionalType.Default, 0.1)
+	end
+
+	@ExecSpace("ClientOnly")
+	method void PortraitHop()
+		-- 초상화를 제자리에서 위로 폴짝 뛰어오르게 한다(공중 jump 포즈 + anchoredPosition 포물선 → 착지 idle).
+		local portrait = _EntityService:GetEntityByPath(self.PortraitPath)
+		if isvalid(portrait) == false or isvalid(portrait.UITransformComponent) == false then return end
+		self:StopPortraitMotion()
+		self._portraitHopBase = portrait.UITransformComponent.anchoredPosition
+		self._portraitHopT = 0
+		self:PortraitPose("jump", true)   -- 기존 애니(attack 등)를 멈추고 점프(공중) 포즈로 강제 전환
+		self._portraitHopTimer = _TimerService:SetTimerRepeat(function() self:PortraitHopStep() end, 0.02)
+	end
+
+	@ExecSpace("ClientOnly")
+	method void PortraitHopStep()
+		-- 점프 프레임 갱신: sin 곡선으로 0→정점→0. 끝나면 원위치 복귀 + idle 포즈.
+		local portrait = _EntityService:GetEntityByPath(self.PortraitPath)
+		if isvalid(portrait) == false or isvalid(portrait.UITransformComponent) == false then
+			self:StopPortraitMotion() return
+		end
+		self._portraitHopT = self._portraitHopT + 0.02
+		local prog = self._portraitHopT / self.PortraitHopDuration
+		local b = self._portraitHopBase
+		if prog >= 1 then
+			portrait.UITransformComponent.anchoredPosition = b
+			if self._portraitHopTimer ~= 0 then _TimerService:ClearTimer(self._portraitHopTimer) self._portraitHopTimer = 0 end
+			self:PortraitPose("idle", true)   -- 점프 멈추고 idle(Stand)로 복귀
+			return
+		end
+		local y = self.PortraitHopHeight * math.sin(math.pi * prog)
+		portrait.UITransformComponent.anchoredPosition = Vector2(b.x, b.y + y)
+	end
+
+	@ExecSpace("ClientOnly")
+	method void PortraitCry()
+		-- 기존 애니를 멈추고 엎드린(prone) 포즈로 전환 → 이벤트가 끝날 때까지 유지한다.
+		-- 초상화 재적용 타이머(_portraitTimer)가 _portraitState="cry"를 계속 반영해 포즈가 유지되고,
+		-- 이벤트 종료(Hide)에서 정리된다(별도 복귀 타이머 없음 = 표정/포즈 끝까지 유지).
+		self:StopPortraitMotion()
+		self:PortraitPose("cry", true)
+	end
+
+	@ExecSpace("ClientOnly")
+	method void StopPortraitMotion()
+		-- 점프/울음 연출 타이머 정리 + 점프 중이면 초상화 위치를 원위치로 복구.
+		if self._portraitHopTimer ~= 0 then
+			_TimerService:ClearTimer(self._portraitHopTimer)
+			self._portraitHopTimer = 0
+			local portrait = _EntityService:GetEntityByPath(self.PortraitPath)
+			if isvalid(portrait) and isvalid(portrait.UITransformComponent) then
+				portrait.UITransformComponent.anchoredPosition = self._portraitHopBase
+			end
 		end
 	end
 
@@ -976,6 +1088,8 @@ script EventTileUI extends Logic
 		self:StopTyping()
 		self:StopMonsterAnim()
 		self:HideAllButtons()
+		self:StopPortraitMotion()
+		self:PortraitResetEmotion()   -- 이벤트 종료 → 표정 중립 복귀(다음 이벤트로 표정 잔류 방지)
 		self:ClearPortrait()
 		if isvalid(self.EventGroup) then self.EventGroup.Enable = false end
 	end
@@ -1098,6 +1212,7 @@ script EventTileUI extends Logic
 		local board = _RollResultDiceAnimationUI:SetProbabilities(self._rollGreat, self._rollSuccess, self._rollFail)
 		_RollResultDiceAnimationUI:Show(self._rollD1, self._rollD2, self._rollTotal, board, self._rollOutcome, function()
 			self:ShowPagedText(self._rollResult, self.OnTextAdvance)
+			self:PortraitEmote(self._rollOutcome)   -- 결과 표정+동작을 초상화에 연출
 		end)
 	end
 
@@ -1252,6 +1367,7 @@ script EventTileUI extends Logic
 				self:SetBossFightImage(bossDieRUID)   -- 보스 전투 die 애니도 동일 크기 유지
 			end
 			self:ShowPagedText(outcomeText, self.OnDiceNext)
+			self:PortraitEmote(outcome)   -- 결과 표정+동작을 초상화에 연출(SetPortrait("idle") 뒤에 덮어씀)
 		end)
 	end
 
