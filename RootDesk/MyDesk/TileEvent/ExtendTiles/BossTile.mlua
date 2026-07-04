@@ -173,11 +173,14 @@ script BossTile extends EventTileBase
 	end
 
 	method string BossStandRUID(string key)
-		-- 보스 전투 연출용 stand 스프라이트(BossImage.IngameStandRUID). 없으면 DetailPanelRUID로 폴백.
+		-- 보스 전투 연출용 stand 스프라이트. 우선순위: BossFightStandRUID(보스 전투 전용) → IngameStandRUID → DetailPanelRUID.
+		-- (연애 등 다른 이벤트는 IngameStandRUID를 쓰므로, 보스 전투에서만 다른 스프라이트를 쓰고 싶으면 BossFightStandRUID로 분리한다. 예: 루시드)
 		local ds = _DataService:GetTable("BossImage")
 		if isvalid(ds) == false then return "" end
 		for i = 1, ds:GetRowCount() do
 			if ds:GetCell(i, "BossName") == key then
+				local bf = ds:GetCell(i, "BossFightStandRUID")
+				if bf ~= nil and bf ~= "" then return bf end
 				local st = ds:GetCell(i, "IngameStandRUID")
 				if st ~= nil and st ~= "" then return st end
 				local dp = ds:GetCell(i, "DetailPanelRUID")

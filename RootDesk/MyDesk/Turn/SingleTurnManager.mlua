@@ -73,7 +73,7 @@ script SingleTurnManager extends Logic
 		        if s == "TURN_START" then self:OnTurnStart()
 		        elseif s == "DICE" then self:OnDice()
 		        elseif s == "MOVE" then self:OnMove()
-		        elseif s == "TILE" then self:OnTile()
+		        elseif s == "TILE" then self:OnTileGated()
 				elseif s == "RESULT_DICE" then self:OnResultDice()
 		        elseif s == "TURN_END" then self:OnTurnEnd()
 		        end
@@ -163,6 +163,29 @@ script SingleTurnManager extends Logic
 		        if self._currentState ~= "MOVE" then return end
 		        log("[SingleTurnManager] 이동 완료 수신 → TILE 진행")
 		        self:AdvanceState()
+	end
+
+	@ExecSpace("Server")
+	method void OnTileGated()
+	        -- 타일 단계(TILE) 진입점. 도착 타일로 레벨이 오르면 타일 이벤트(OnTile)가 발동하기 '전에'
+	        -- 먼저 레벨업 축하 배너를 띄우고, 배너가 닫힌 뒤 OnTile을 실행한다. 레벨업이 없으면 즉시 OnTile.
+	        -- (레벨은 배너와 동시에 선적용 → 이후 OnTile→TriggerArrive의 ApplyTileLevel은 단조 증가 가드로 통과.)
+	        for _, userEntity in pairs(_UserService.UserEntities) do
+	            if userEntity.PlayerMovement ~= nil then
+	                local mapName  = userEntity.CurrentMapName
+	                local tileName = userEntity.PlayerMovement.currentTile
+	                local peek = _TileManager:PeekArrival(mapName, tileName, userEntity)
+	                if peek.up then
+	                    _TileManager:ApplyArrivalLevel(mapName, tileName, userEntity)
+	                    _LevelUpCelebration:Gate(userEntity, true, peek.level, function()
+	                        self:OnTile()
+	                    end)
+	                    return
+	                end
+	            end
+	            break
+	        end
+	        self:OnTile()
 	end
 
 	@ExecSpace("Server")

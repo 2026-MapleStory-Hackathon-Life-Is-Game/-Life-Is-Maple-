@@ -275,18 +275,18 @@ script BossUI extends Logic
 	@ExecSpace("ClientOnly")
 	method void SetCardImage(integer idx, string bossKey)
 		-- idx번 카드의 보스 선택 이미지(Img)를 BossImage.BossSelectRUID로 설정한다.
-		-- 크기 보정(UIScale)만 적용한다 — 작은 카드에서는 오프셋을 쓰지 않는다(오프셋은 상세/인게임 큰 슬롯 전용).
+		-- 카드는 고정 슬롯 크기 그대로 표시한다(BossImage.UIScale은 인게임 보스 전투 크기에만 쓰고, 선택 카드에는 적용하지 않는다).
 		local imgs = { self.BossCard1Img, self.BossCard2Img, self.BossCard3Img, self.BossCard4Img }
 		local row = self:BossImageRow(bossKey)
 		if row ~= nil then self:SetImageRUID(imgs[idx], row.select) end
-		local t = self:BossUITransform(bossKey)
-		_EventTileUI:ApplySlotTransform(imgs[idx], "bosscard" .. idx, t.scale, 0, 0)
 	end
 
 	method string CardInfoText(string bossKey, table allowed)
 		-- 선택 카드의 드랍 안내 텍스트를 BossProbability 기반으로 만든다(더미 대체).
 		-- 이 보스가 (지역이 허용하고) 실존하는 난이도별로 "난이도 · 드랍" 한 줄씩. 없으면 "".
 		-- 난이도가 여러 개면 드랍이 다르므로 난이도 라벨을 붙인다. detail 패널과 같은 BossProbability 값을 참조.
+		-- 검은 마법사는 드랍 아이템이 없다 → 더미 안내([드랍 아이템] 헤더/빈 라벨)를 표시하지 않고 빈칸으로 둔다. (다른 보스엔 영향 없음)
+		if bossKey == "Black_Mage" then return "" end
 		local lines = { "[드랍 아이템]" }
 		local order = { "Easy", "Normal", "Hard", "Chaos" }
 		local labels = { Easy = "이지", Normal = "노말", Hard = "하드", Chaos = "카오스" }
@@ -425,11 +425,9 @@ script BossUI extends Logic
 		if isvalid(self.DetailBossName) and isvalid(self.DetailBossName.TextComponent) then
 			self.DetailBossName.TextComponent.Text = self._bossNames[idx]
 		end
-		-- DetailPanel 보스 이미지 = BossImage.DetailPanelRUID + 보스별 크기/오프셋 보정(상세 화면은 큰 슬롯이라 오프셋도 적용).
+		-- DetailPanel 보스 이미지 = BossImage.DetailPanelRUID (고정 슬롯 크기 그대로 — BossImage.UIScale은 인게임 전투에만 적용).
 		local imgRow = self:BossImageRow(self._bossKeys[idx])
 		if imgRow ~= nil then self:SetImageRUID(self.DetailBossImage, imgRow.detail) end
-		local dt = self:BossUITransform(self._bossKeys[idx])
-		_EventTileUI:ApplySlotTransform(self.DetailBossImage, "bossdetail", dt.scale, dt.offX, dt.offY)
 
 		-- 이 지역이 허용하고(_bossDiffs) 또한 BossProbability에 실존하는 난이도만 버튼 활성화.
 		-- (_bossDiffs[idx]가 nil이면 단일 모드 → 지역 제한 없음. 없는/미허용 난이도는 Enable=false.)
@@ -449,11 +447,16 @@ script BossUI extends Logic
 					-- 포맷: "제목\n: 내용", 두 파트 사이에는 빈 줄 하나. 드랍 항목의 "/"는 ", "로.
 					local desc = d.e:GetChildByName("Desc")
 					if isvalid(desc) and isvalid(desc.TextComponent) then
-						-- "세트/무기"는 같은 줄(",무기")로 묶고, 나머지 "/"는 줄바꿈으로.
-						local dropRaw = (string.gsub(tostring(row.drop), "/무기", ",무기"))
-						local dropText = (string.gsub(dropRaw, "/", "\n"))
-						desc.TextComponent.Text = "적정 전투력\n: " .. self:FormatPower(row.req)
-							.. "\n\n드랍 아이템\n: " .. dropText
+						if bossKey == "Black_Mage" then
+							-- 검은 마법사는 드랍 아이템이 없다 → 드랍 안내를 빈칸으로 두고 적정 전투력만 표시. (다른 보스엔 영향 없음)
+							desc.TextComponent.Text = "적정 전투력\n: " .. self:FormatPower(row.req)
+						else
+							-- "세트/무기"는 같은 줄(",무기")로 묶고, 나머지 "/"는 줄바꿈으로.
+							local dropRaw = (string.gsub(tostring(row.drop), "/무기", ",무기"))
+							local dropText = (string.gsub(dropRaw, "/", "\n"))
+							desc.TextComponent.Text = "적정 전투력\n: " .. self:FormatPower(row.req)
+								.. "\n\n드랍 아이템\n: " .. dropText
+						end
 					end
 				else
 					d.e.Enable = false

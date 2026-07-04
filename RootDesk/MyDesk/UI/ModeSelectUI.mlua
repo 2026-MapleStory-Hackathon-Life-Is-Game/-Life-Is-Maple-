@@ -79,6 +79,8 @@ script ModeSelectUI extends Logic
 	@ExecSpace("ClientOnly")
 	method void OnClickSingle()
 		_SFXManager:PlayClick()
+		-- 오프닝 Lv.10 인트로 배너가 진영 선택보다 먼저 나오도록, 진영 자동표시를 억제 예약(클라 로컬 → 맵 진입 경쟁 없음).
+		_LevelUpCelebration:MarkOpeningCampPending()
 		_GameModeManager:StartSinglePlayer()
 		self:SetPanelEnable(self.modeSelectPanel, false)
 		self:SetPanelEnable(self.matchingPanel, false)

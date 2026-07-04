@@ -53,6 +53,8 @@ script RollResultDiceAnimationUI extends Logic
 
 	property Entity NextButton = "3de88156-4c22-4ee0-93f3-0258ac4f81b9"
 
+	property Entity ResultTextPanel = "9ba7d4bd-f38a-4fd4-ac7c-679c2afba32b"
+
 	property integer _pendD1 = 0
 
 	property integer _pendD2 = 0
@@ -83,6 +85,12 @@ script RollResultDiceAnimationUI extends Logic
 		            self.NextButton:ConnectEvent(ButtonClickEvent, self.OnNextClicked)
 		            self.NextButton.Enable = false
 		        end
+		
+				-- 결과 알려주는 패널 비활성화
+				if isvalid(self.ResultTextPanel) then
+					self.ResultTextPanel.Enable = false
+				end
+		
 	end
 
 	@ExecSpace("ClientOnly")
@@ -105,6 +113,7 @@ script RollResultDiceAnimationUI extends Logic
 				if isvalid(self.diceParticle) then self.diceParticle.Enable = false end
 				if isvalid(self.RollButton) then self.RollButton.Enable = true end
 				if isvalid(self.NextButton) then self.NextButton.Enable = false end
+				if isvalid(self.ResultTextPanel) then self.ResultTextPanel.Enable = false end
 				log("[RollResultDiceUI] Show → 패널 표시, 굴리기 버튼 대기(수동). RollBtn=" .. tostring(isvalid(self.RollButton)))
 	end
 
@@ -121,13 +130,22 @@ script RollResultDiceAnimationUI extends Logic
 				self.leftDice.ImageRUID  = self.diceSprites[self._pendD1]
 				self.rightDice.ImageRUID = self.diceSprites[self._pendD2]
 		
-		-- 2. 텍스트 지정
-			self.resultText.Text = tostring(self._pendTotal)
-			self.outcomeText.Text = self._pendOutcome
-		
+		_TimerService:SetTimerOnce(function()
+			
+					-- 주사위 효과음
+				    _ResultDiceManager:PlayTotalResultDiceSFX(self._pendTotal)
+					
+					-- 결과 텍스트 패널 활성화
+					if isvalid(self.ResultTextPanel) then self.ResultTextPanel.Enable = true end
+			
+					-- 텍스트 지정
+					self.resultText.Text = tostring(self._pendTotal)
+					self.outcomeText.Text = self._pendOutcome .. "!"
+				end, 2.0)
 		
 				-- 변경: 자동으로 닫지 않는다. 결과를 확인한 뒤 '다음' 버튼을 눌러야(OnNextClicked) 진행한다.
 				if isvalid(self.NextButton) then self.NextButton.Enable = true end
+				
 				log("[RollResultDiceUI] 굴리기 클릭 → 주사위 연출 + '다음' 버튼 노출")
 	end
 

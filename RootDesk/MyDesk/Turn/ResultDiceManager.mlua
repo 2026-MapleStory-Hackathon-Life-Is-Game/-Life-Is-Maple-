@@ -23,8 +23,6 @@ script ResultDiceManager extends Logic
 
 	property string twelve_SFX = "919a0108f61e419d842a54566bb39b7b"
 
-	-- 동일 전투력(전투력 우위 0)일 때의 기준 확률(%). 합이 100이 되도록 성공은 (100-실패-대성공)으로 자동 산출.
-	-- ⚠ 밸런스 잠정값 — 기획 확정 시 인스펙터에서 조정 가능.
 	@Sync
 	property number BaseFailPct = 40
 
@@ -54,10 +52,6 @@ script ResultDiceManager extends Logic
 				local d1 = _UtilLogic:RandomIntegerRange(1, 6)
 				local d2 = _UtilLogic:RandomIntegerRange(1, 6)
 				local total = d1 + d2
-		
-				_TimerService:SetTimerOnce(function()
-				    self:PlayTotalResultDiceSFX(total)
-				end, 2.0)
 				
 				-- 3. 최종 결과 판정
 				local finalVal = self._currentResultTable[total]
@@ -86,7 +80,7 @@ script ResultDiceManager extends Logic
 		local pct = self:DeriveOutcomePercents(playerCombatPower, targetCombatPower)
 		pct = self:NormalizePercents(pct)
 		self._currentResultTable = self:PlaceOutcomes(pct.fail, pct.success, pct.great)
-
+		
 		log("[ResultDiceManager] 목표확률 실패=" .. tostring(pct.fail) .. "% 성공=" .. tostring(pct.success) .. "% 대성공=" .. tostring(pct.great) .. "%")
 	end
 
@@ -97,7 +91,7 @@ script ResultDiceManager extends Logic
 		if denom <= 0 then denom = 1 end
 		local shift = (playerCombatPower - targetCombatPower) / denom
 		if shift > 1 then shift = 1 elseif shift < -1 then shift = -1 end
-
+		
 		local great = self.BaseGreatPct
 		local fail = self.BaseFailPct
 		if shift >= 0 then
@@ -129,7 +123,7 @@ script ResultDiceManager extends Logic
 		local fail = self:RoundTo10(p.fail)
 		local success = self:RoundTo10(p.success)
 		local great = self:RoundTo10(p.great)
-
+		
 		-- 부족분: 대성공 → 성공 → 실패 순으로 10%씩 추가.
 		local guard = 0
 		while fail + success + great < 100 and guard < 20 do
@@ -163,10 +157,10 @@ script ResultDiceManager extends Logic
 		cumRef[2] = 0;  cumRef[3] = 10; cumRef[4] = 20; cumRef[5] = 30
 		cumRef[6] = 40; cumRef[7] = 60; cumRef[8] = 70; cumRef[9] = 80
 		cumRef[10] = 90; cumRef[11] = 100; cumRef[12] = 100
-
+		
 		local failThr = failPct
 		local successThr = failPct + successPct
-
+		
 		-- 결과코드: 실패=0, 성공=1, 대성공=2
 		local res = {}
 		for n = 2, 12 do
@@ -245,23 +239,20 @@ script ResultDiceManager extends Logic
 		local pct = self:LookupBossPercents(bossKey, difficulty, playerCombatPower)
 		self._currentResultTable = self:PlaceOutcomes(pct.fail, pct.success, pct.great)
 		log("[ResultDiceManager] 보스표 확률 실패=" .. tostring(pct.fail) .. "% 성공=" .. tostring(pct.success) .. "% 대성공=" .. tostring(pct.great) .. "% (CP=" .. tostring(playerCombatPower) .. ")")
-
+		
 		local d1 = _UtilLogic:RandomIntegerRange(1, 6)
 		local d2 = _UtilLogic:RandomIntegerRange(1, 6)
 		local total = d1 + d2
-		_TimerService:SetTimerOnce(function()
-			self:PlayTotalResultDiceSFX(total)
-		end, 2.0)
-
+		
 		local finalVal = self._currentResultTable[total]
 		if finalVal == 2 then self.GameOutcome = "대성공"
 		elseif finalVal == 1 then self.GameOutcome = "성공"
 		else self.GameOutcome = "실패" end
-
+		
 		self._dice1 = d1
 		self._dice2 = d2
 		self._total = total
-
+		
 		log("[ResultDiceManager] 보스 주사위: " .. tostring(d1) .. " + " .. tostring(d2) .. " = " .. tostring(total) .. " (" .. self.GameOutcome .. ")")
 		return total
 	end

@@ -114,7 +114,10 @@ script UnluckyTile extends EventTileBase
 	@ExecSpace("Client")
 	method void ClientShowUnlucky(string message, string anim, string npcRuidsCsv)
 		-- 도착 플레이어 클라: 씬(페이지)별 NPC 교체 불행 이벤트 표시.
+		-- 울음은 '시작'이 아니라 스탯 감소 문구가 나오는 '마지막 페이지'에 도달했을 때 재생하도록 예약한다.
+		-- (초상화는 SetPortrait(anim)로 idle에서 시작 → 마지막 페이지에서 울음 포즈로 전환.)
 		_EventTileUI:ShowPagedNpcEvent(message, anim, npcRuidsCsv, self)
+		_EventTileUI:ArmPageEndEmote("cry")
 	end
 
 	method string ResolvePageNpcRUIDs(string npcList)

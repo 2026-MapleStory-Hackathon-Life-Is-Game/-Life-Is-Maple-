@@ -16,6 +16,14 @@ script EventTileUI extends Logic
 	-- 전체 몬스터가 너무 크/작으면 이 값 하나만 조절하면 된다(개별 조정 불필요).
 	property number MonsterNativeScale = 2.0
 
+	-- 인게임 보스 이미지(NPC 슬롯) 전역 배율. 원본 크기(NativeSize)에 이 값 × 보스별 UIScale(BossImage)을 곱한다.
+	-- stand/die 애니가 바뀌어도 동일하게 적용돼 크기가 유지된다.
+	property number BossNativeScale = 2.0
+
+	-- 인게임 보스 이미지 전역 세로 오프셋(음수 = 아래로). 보스가 커서 위로 떠 보이는 것을 한 번에 내린다.
+	-- 개별 보스는 BossImage.UIOffsetY로 추가 보정(이 값에 더해진다).
+	property number BossOffsetY = -70.0
+
 	property Entity NextButton = "838ae8b4-920f-4448-bc4b-b551594cba6d"
 
 	property Entity AcceptButton = "2a91f613-50ec-455f-8610-6fdc36bfeca4"
@@ -71,6 +79,18 @@ script EventTileUI extends Logic
 
 	property string _portraitState = "idle"
 
+	-- 결과 표정/동작(초상화 PlayerPortrait) 연출용.
+	property number EmoteHoldSeconds = 600.0       -- 결과 표정 유지 시간(초). 이벤트가 끝날 때까지 유지되도록 충분히 길게.
+	property number PortraitHopHeight = 60.0       -- 웃음 제자리 점프 높이(UI px)
+	property number PortraitHopDuration = 0.4      -- 점프 1회 총 시간(초)
+	property integer _portraitHopTimer = 0
+	property number _portraitHopT = 0
+	property Vector2 _portraitHopBase = Vector2(0, 0)
+
+	-- 레벨업 배너: 초상화(PlayerPortrait) 중앙 이동용 원위치 캐시(최초 1회).
+	property Vector2 _luPortraitBase = Vector2(0, 0)
+	property boolean _luPortraitCached = false
+
 	property any _nextHandler = nil
 
 	property table _choiceHandlers = {}
@@ -105,6 +125,11 @@ script EventTileUI extends Logic
 
 	property table _pageNpcRUIDs = {}
 
+	-- 페이지 진행 중 '마지막 페이지'에 도달하는 순간 1회 재생할 초상화 연출.
+	-- 불행칸: 스탯 감소 문구가 항상 마지막 페이지에 나오므로, 시작이 아니라 그때 울도록 예약한다.
+	property string _pageEndEmote = ""
+	property boolean _pageEndEmoteFired = false
+
 	property number TypeInterval = 0.03
 
 	property integer _typeTimer = 0
@@ -134,6 +159,8 @@ script EventTileUI extends Logic
 	@ExecSpace("ClientOnly")
 	method void OnEndPlay()
 		self:StopTyping()
+		self:StopPortraitMotion()
+		self:PortraitResetEmotion()
 		self:ClearPortrait()
 		self:HideAllButtons()
 	end
@@ -369,6 +396,8 @@ script EventTileUI extends Logic
 		self:SetNPCImage(false, "")
 		self._imgNpcFromPage = 0   -- 페이지별 이미지 전환 상태 초기화(이번 표시에서만 재설정).
 		self._pageNpcRUIDs = {}    -- 페이지별 NPC 목록도 초기화.
+		self._pageEndEmote = ""    -- 마지막-페이지 예약 연출 초기화(이전 이벤트의 예약이 이어지지 않도록).
+		self._pageEndEmoteFired = false
 	end
 
 	@ExecSpace("ClientOnly")
@@ -451,8 +480,8 @@ script EventTileUI extends Logic
 
 	@ExecSpace("ClientOnly")
 	method table SlotTransformForRUID(string ruid)
-		-- 슬롯에 적용할 RUID로 표시 보정값(scale/offX/offY)을 역조회한다. NpcInfo → BossImage(IngameStand) 순. 없으면 기본(1/0/0).
-		-- (NPC 슬롯은 일반 NPC와 인게임 보스 stand를 공용하므로 두 테이블을 순차 조회한다.)
+		-- NPC 슬롯(박스 맞춤)용 표시 보정값(scale/offX/offY)을 NpcInfo에서 역조회한다. 없으면 기본(1/0/0).
+		-- (보스는 여기서 조회하지 않는다 — 연애 등 일반 이벤트의 보스/NPC는 박스에 맞춰 표시하고, 보스 전투에서만 SetBossFightImage로 크게 띄운다.)
 		local res = { scale = 1, offX = 0, offY = 0 }
 		if ruid == nil or ruid == "" then return res end
 		local npc = _DataService:GetTable("NpcInfo")
@@ -466,13 +495,119 @@ script EventTileUI extends Logic
 				end
 			end
 		end
+		return res
+	end
+
+	method boolean ShouldFlipNpcRUID(string ruid)
+		-- 좌우 반전(FlipX)해서 표시할 NPC 스프라이트인지 여부. 현재는 '여신의 조각상'(NpcInfo Statue) 하나만 해당.
+		-- 다른 NPC/보스/몬스터는 반전하지 않는다. NPCImage는 공유 엔티티라, 스프라이트를 바꿀 때마다 이 값으로 FlipX를 명시해야 잔상이 남지 않는다.
+		return ruid == "6e662c08b4d544058f207e1acc6036fb"
+	end
+
+	@ExecSpace("ClientOnly")
+	method void SetNPCImage(boolean show, string ruid)
+		-- NPC 이미지 표시/숨김 + RUID 적용. 마을·사냥+·불행·연애 이벤트에서 켜고, 그 외에는 끈다.
+		-- ruid가 빈 값이면 UI의 기본 이미지를 그대로 유지한다.
+		--   · 몬스터(TierMonster STAND) → 원본 크기(NativeSize) + 전역 배율(MonsterNativeScale) × 몬스터별. (사냥+ 엘리트)
+		--   · 그 외(인간형 NPC / 연애 상대 보스 등) → 슬롯 박스에 비율 맞춤(AspectOnly) + NpcInfo 보정.
+		-- 보스를 원본 크기로 크게 띄우는 건 보스 전투 전용 SetBossFightImage에서만 — 연애 등에서 보스가 나와도 여기선 박스에 맞춘다.
+		if isvalid(self.NPCImage) == false then return end
+		self.NPCImage.Enable = show
+		if show and ruid ~= nil and ruid ~= "" and isvalid(self.NPCImage.SpriteGUIRendererComponent) then
+			local r = self.NPCImage.SpriteGUIRendererComponent
+			r.ImageRUID = DataRef(ruid)
+			r.FlipX = self:ShouldFlipNpcRUID(ruid)   -- 여신의 조각상만 좌우 반전, 그 외엔 항상 반전 해제(공유 엔티티 잔상 방지)
+			local mon = _TileManager:MonsterAnimsByStand(ruid)   -- nil이면 몬스터가 아님
+			if mon ~= nil then
+				r.PreserveSprite = PreserveSpriteType.NativeSize
+				local sc = self.MonsterNativeScale * mon.scale
+				self:ApplySlotTransform(self.NPCImage, "npc", sc, mon.offX, mon.offY)
+			else
+				r.PreserveSprite = PreserveSpriteType.AspectOnly   -- 인간형 NPC/연애 상대 등은 슬롯 박스에 맞춤
+				local t = self:SlotTransformForRUID(ruid)
+				self:ApplySlotTransform(self.NPCImage, "npc", t.scale, t.offX, t.offY)
+			end
+		end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void SetBossFightImage(string ruid)
+		-- 보스 전투 전용: 상대 보스를 원본 크기(NativeSize) + 전역 배율(BossNativeScale) × 보스별 보정으로 크게 표시한다.
+		-- (연애 등 다른 이벤트에서 같은 보스가 나와도 SetNPCImage로 박스에 맞춰 표시된다 — 3배 확대는 보스 전투에서만.)
+		if isvalid(self.NPCImage) == false then return end
+		self.NPCImage.Enable = true
+		if ruid == nil or ruid == "" or isvalid(self.NPCImage.SpriteGUIRendererComponent) == false then return end
+		local r = self.NPCImage.SpriteGUIRendererComponent
+		r.ImageRUID = DataRef(ruid)
+		r.FlipX = self:ShouldFlipNpcRUID(ruid)   -- 보스는 반전 대상이 아니므로 항상 해제(공유 NPCImage 잔상 방지)
+		r.PreserveSprite = PreserveSpriteType.NativeSize
+		local bt = self:BossTransformForRUID(ruid)   -- stand/die/BossFightStand 모두 인식
+		local sc = self.BossNativeScale
+		local ox = 0
+		local oy = 0
+		if bt ~= nil then
+			sc = self.BossNativeScale * bt.scale
+			ox = bt.offX
+			oy = bt.offY
+		end
+		self:ApplySlotTransform(self.NPCImage, "npc", sc, ox, oy + self.BossOffsetY)
+	end
+
+	@ExecSpace("ClientOnly")
+	method void BossSceneText(string text, string anim, string bossRUID, Component tile)
+		-- 보스 텍스트 씬(검은 마법사 최종전 등): 상대를 NPC(박스 맞춤)가 아니라 보스 이미지로 원본 크기 × 전역 배율(SetBossFightImage)로 크게 표시.
+		-- 텍스트 진행은 SceneText와 동일(마지막 장 '다음' → tile:RequestAdvance).
+		self._activeTile = tile
+		self:ShowGroup()
+		self:SetBossFightImage(bossRUID)
+		self:SetPortrait(anim)
+		self:ShowPagedText(text, self.OnTextAdvance)
+	end
+
+	@ExecSpace("ClientOnly")
+	method table BossTransformForRUID(string ruid)
+		-- BossImage에서 stand(IngameStandRUID) 또는 die(DieAnimRUID) 일치 행의 표시 보정값(scale/offX/offY)을 반환한다. 보스가 아니면 nil.
+		-- (NPC 슬롯에서 보스만 원본 크기로 렌더할지 판별 + stand→die 애니 전환에도 크기 유지되도록 두 RUID를 모두 인식한다.)
+		if ruid == nil or ruid == "" then return nil end
 		local boss = _DataService:GetTable("BossImage")
-		if isvalid(boss) then
-			for i = 1, boss:GetRowCount() do
-				if boss:GetCell(i, "IngameStandRUID") == ruid then
-					res.scale = tonumber(boss:GetCell(i, "UIScale")) or 1
-					res.offX  = tonumber(boss:GetCell(i, "UIOffsetX")) or 0
-					res.offY  = tonumber(boss:GetCell(i, "UIOffsetY")) or 0
+		if isvalid(boss) == false then return nil end
+		for i = 1, boss:GetRowCount() do
+			if boss:GetCell(i, "IngameStandRUID") == ruid or boss:GetCell(i, "DieAnimRUID") == ruid or boss:GetCell(i, "BossFightStandRUID") == ruid then
+				return {
+					scale = tonumber(boss:GetCell(i, "UIScale")) or 1,
+					offX  = tonumber(boss:GetCell(i, "UIOffsetX")) or 0,
+					offY  = tonumber(boss:GetCell(i, "UIOffsetY")) or 0,
+				}
+			end
+		end
+		return nil
+	end
+
+	@ExecSpace("ClientOnly")
+	method table MonsterScaleForRUID(string ruid)
+		-- 사냥 몬스터 이미지 RUID로 개별 표시 보정값(scale/offX/offY)을 역조회한다.
+		-- TierMonster(STAND) → HuntEvent(MonsterRUID) 순. 없으면 기본(1/0/0).
+		-- (사냥 몬스터 이미지는 HuntEvent.MonsterRUID로 넘어오는 경우가 있어 TierMonster에 없을 수 있다 — 예: 에스페라 아라냐.)
+		local res = { scale = 1, offX = 0, offY = 0 }
+		if ruid == nil or ruid == "" then return res end
+		local tm = _DataService:GetTable("TierMonster")
+		if isvalid(tm) then
+			for i = 1, tm:GetRowCount() do
+				if tm:GetCell(i, "STAND") == ruid then
+					res.scale = tonumber(tm:GetCell(i, "UIScale")) or 1
+					res.offX  = tonumber(tm:GetCell(i, "UIOffsetX")) or 0
+					res.offY  = tonumber(tm:GetCell(i, "UIOffsetY")) or 0
+					return res
+				end
+			end
+		end
+		local he = _DataService:GetTable("HuntEvent")
+		if isvalid(he) then
+			for i = 1, he:GetRowCount() do
+				if he:GetCell(i, "MonsterRUID") == ruid then
+					res.scale = tonumber(he:GetCell(i, "UIScale")) or 1
+					res.offX  = tonumber(he:GetCell(i, "UIOffsetX")) or 0
+					res.offY  = tonumber(he:GetCell(i, "UIOffsetY")) or 0
 					return res
 				end
 			end
@@ -481,33 +616,29 @@ script EventTileUI extends Logic
 	end
 
 	@ExecSpace("ClientOnly")
-	method void SetNPCImage(boolean show, string ruid)
-		-- NPC 이미지 표시/숨김 + RUID 적용. 마을·사냥+·불행·보스 이벤트에서 켜고, 그 외에는 끈다.
-		-- ruid가 빈 값이면 UI의 기본 이미지를 그대로 유지한다.
-		-- RUID 종류에 따라 렌더 방식을 분기한다(슬롯은 NPC/보스/엘리트 몬스터가 공용):
-		--   · 몬스터(TierMonster STAND) → 원본 크기(NativeSize) + 전역 배율(MonsterNativeScale). 3칸 사냥 몬스터와 동일 규칙 → 박스에 눌려 작아지지 않음.
-		--   · 인간형 NPC / 보스 → 슬롯 박스에 비율 맞춤(AspectOnly) + NpcInfo/BossImage 보정.
-		if isvalid(self.NPCImage) == false then return end
-		self.NPCImage.Enable = show
-		if show and ruid ~= nil and ruid ~= "" and isvalid(self.NPCImage.SpriteGUIRendererComponent) then
-			local r = self.NPCImage.SpriteGUIRendererComponent
-			r.ImageRUID = DataRef(ruid)
-			local mon = _TileManager:MonsterAnimsByStand(ruid)   -- nil이면 몬스터가 아님(NPC/보스)
-			if mon ~= nil then
-				r.PreserveSprite = PreserveSpriteType.NativeSize
-				local sc = self.MonsterNativeScale * mon.scale
-				self:ApplySlotTransform(self.NPCImage, "npc", sc, mon.offX, mon.offY)
-			else
-				r.PreserveSprite = PreserveSpriteType.AspectOnly
-				local t = self:SlotTransformForRUID(ruid)
-				self:ApplySlotTransform(self.NPCImage, "npc", t.scale, t.offX, t.offY)
+	method void SizeMonsterSlots(number scale, number offX, number offY)
+		-- 3개 몬스터 이미지의 표시 크기(전역 × 개별)와 기준 위치(원본 + 오프셋)를 설정한다.
+		-- 슬롯은 PreserveSprite=NativeSize라 원본 크기로 렌더되고, 여기에 UIScale만 곱한다.
+		-- _monBaseXs(흔들림 기준 x)에 오프셋을 미리 더해두어 MonBob이 그 위에서 흔든다. (anim 유무와 무관하게 항상 호출)
+		local imgs = self:MonImgs()
+		self._monBaseXs = {}
+		local sc = self.MonsterNativeScale * scale
+		for i = 1, #imgs do
+			local e = imgs[i]
+			if isvalid(e) and isvalid(e.UITransformComponent) then
+				local base = self:SlotBase(e, "mon" .. i)
+				self._monBaseXs[i] = base.x + offX
+				e.UITransformComponent.anchoredPosition = Vector2(self._monBaseXs[i], base.y + offY)
+				e.UITransformComponent.UIScale = Vector3(sc, sc, 1)
 			end
 		end
+		self._monBaseSet = true
 	end
 
 	@ExecSpace("ClientOnly")
 	method void SetMonsterImages(string ruid)
 		-- 사냥 몬스터 RUID를 Monsters 하위 3개 이미지에 동일하게 적용. 빈 값이면 Monsters 숨김.
+		-- 크기는 anim 데이터 유무와 무관하게 항상 원본 크기 × 전역 × 개별로 맞춘다(HuntEvent 전용 몬스터도 포함).
 		-- 애니 데이터(TierMonster)가 있으면 MOVE 재생 + 좌우 흔들림 + 자동 처치 연출을 시작한다.
 		if ruid == nil or ruid == "" then
 			self:StopMonsterAnim()
@@ -516,6 +647,8 @@ script EventTileUI extends Logic
 		end
 		if isvalid(self.MonstersGroup) then self.MonstersGroup.Enable = true end
 		self:SetMonstersClip(ruid)     -- 우선 STAND(넘어온 RUID) 적용 — 연출 데이터 없으면 정적 그대로.
+		local sd = self:MonsterScaleForRUID(ruid)          -- 개별 배율/오프셋(TierMonster/HuntEvent)
+		self:SizeMonsterSlots(sd.scale, sd.offX, sd.offY)  -- 원본 크기 × 전역 × 개별 + 위치(anim 유무 무관 항상)
 		self:StartMonsterAnim(ruid)    -- 연출 데이터 있으면 MOVE + 흔들림 + 처치 연출.
 	end
 
@@ -579,22 +712,8 @@ script EventTileUI extends Logic
 		if anims == nil then return end   -- 연출 데이터 없으면 정적 STAND 유지.
 		self._monAnims = anims
 
-		-- 이미지별 기준 위치(원본 + 몬스터별 오프셋) 확정 + 표시 크기(scale) 적용.
-		-- 흔들림 기준 x(_monBaseXs)에는 오프셋을 이미 더해두어, MonBob이 그 위에서 좌우로 흔든다.
+		-- 크기/기준 위치(_monBaseXs)는 SetMonsterImages → SizeMonsterSlots에서 이미 설정됨(anim 유무 무관).
 		local imgs = self:MonImgs()
-		self._monBaseXs = {}
-		for i = 1, #imgs do
-			local e = imgs[i]
-			if isvalid(e) and isvalid(e.UITransformComponent) then
-				local base = self:SlotBase(e, "mon" .. i)   -- 원본 위치(최초 1회 캐시 — 오프셋 누적 방지)
-				self._monBaseXs[i] = base.x + anims.offX
-				e.UITransformComponent.anchoredPosition = Vector2(self._monBaseXs[i], base.y + anims.offY)
-				-- 슬롯은 원본 크기(NativeSize)로 렌더 → 전역 배율 × 몬스터별 배율만 UIScale로 곱한다.
-				local sc = self.MonsterNativeScale * anims.scale
-				e.UITransformComponent.UIScale = Vector3(sc, sc, 1)
-			end
-		end
-		self._monBaseSet = true
 
 		-- MOVE(없으면 STAND) 재생.
 		local moveClip = anims.move
@@ -683,10 +802,14 @@ script EventTileUI extends Logic
 	@ExecSpace("ClientOnly")
 	method void SetPortrait(string anim)
 		-- 초상화 애니(idle→Stand / attack→Attack) 적용 + 로딩 타이밍 대비 1초마다 재적용.
+		-- ★ 이벤트 시작 시 강제 초기화: 이전 이벤트에서 남은 울음/누움(prone)·점프·표정이 이어지지 않도록,
+		--   진행 중인 모션/표정을 정리하고 포즈를 needReset=true로 강제 전환한다(누움 → 최소 idle, 또는 attack).
 		self._portraitState = anim
 		-- 모션보다 먼저 외형을 로컬 플레이어와 동일하게 고정한다(기본 아바타=토벤머리 폴백 방지).
 		self:EnsurePortraitIdentity()
-		self:ApplyPortrait()
+		self:StopPortraitMotion()      -- 이전 점프/울음 연출 타이머 정리 + 위치 복구
+		self:PortraitResetEmotion()    -- 이전 표정(울음/웃음) 중립 복귀
+		self:PortraitPose(anim, true)  -- 누움 등 held 포즈에서도 확실히 idle/attack로 강제 재생(needReset)
 		self:ClearPortrait()
 		self._portraitTimer = _TimerService:SetTimerRepeat(function() self:ApplyPortrait() end, 1.0)
 	end
@@ -742,16 +865,26 @@ script EventTileUI extends Logic
 	end
 
 	@ExecSpace("ClientOnly")
-	method void ApplyPortrait()
-		-- 현재 _portraitState 를 초상화 아바타에 1회 적용한다.
+	method void PortraitPose(string state, boolean needReset)
+		-- 초상화 몸 포즈를 state에 맞춰 전송한다. needReset=true면 진행 중인 애니(attack 등)를 멈추고 처음부터 재생한다.
+		self._portraitState = state
 		local portrait = _EntityService:GetEntityByPath(self.PortraitPath)
 		if isvalid(portrait) == false then return end
-		local state = MapleAvatarBodyActionState.Stand
-		if self._portraitState == "attack" then state = MapleAvatarBodyActionState.Attack end
-		local event = BodyActionStateChangeEvent()
-		event.ActionState = state
-		event.needResetAction = false
-		portrait:SendEvent(event)
+		local st = MapleAvatarBodyActionState.Stand
+		if state == "attack" then st = MapleAvatarBodyActionState.Attack
+		elseif state == "cry" then st = MapleAvatarBodyActionState.Crouch   -- crouch → prone(엎드림) 스프라이트
+		elseif state == "jump" then st = MapleAvatarBodyActionState.Fall     -- fall → jump(공중) 스프라이트
+		end
+		local ev = BodyActionStateChangeEvent()
+		ev.ActionState = st
+		ev.needResetAction = needReset
+		portrait:SendEvent(ev)
+	end
+
+	@ExecSpace("ClientOnly")
+	method void ApplyPortrait()
+		-- 현재 _portraitState 를 초상화에 재적용한다(재시작 없이 — 로딩 타이밍 대비 반복 적용용).
+		self:PortraitPose(self._portraitState, false)
 	end
 
 	@ExecSpace("ClientOnly")
@@ -760,6 +893,111 @@ script EventTileUI extends Logic
 		if self._portraitTimer ~= 0 then
 			_TimerService:ClearTimer(self._portraitTimer)
 			self._portraitTimer = 0
+		end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void PortraitEmote(string outcome)
+		-- 결과 등급(성공/대성공/실패)에 따라 초상화(PlayerPortrait)에 표정 + 동작을 연출한다.
+		--   좋은 결과 → 표정(대성공=Cheers/성공=Smile) + 제자리 폴짝 점프 1회
+		--   나쁜 결과(실패 등) → 표정 Cry + 엎드림 포즈 유지(이벤트 끝까지 — 종료 시 Hide에서 정리)
+		if outcome == "대성공" or outcome == "great" then
+			self:PortraitPlayEmotion("Cheers")
+			self:PortraitHop()
+		elseif outcome == "성공" or outcome == "success" then
+			self:PortraitPlayEmotion("Smile")
+			self:PortraitHop()
+		else
+			self:PortraitPlayEmotion("Cry")
+			self:PortraitCry()
+		end
+		log("[EventTileUI] 초상화 결과 연출 outcome=" .. tostring(outcome))
+	end
+
+	@ExecSpace("ClientOnly")
+	method void PortraitEmoteKind(string kind)
+		-- 결과 등급 대신 명시적 표정("happy"/"cry")으로 초상화 연출한다. (불행칸/길드영입/검은마법사 등 outcome 없이 직접 지정)
+		if kind == "happy" then
+			self:PortraitPlayEmotion("Cheers")
+			self:PortraitHop()
+		elseif kind == "cry" then
+			self:PortraitPlayEmotion("Cry")
+			self:PortraitCry()
+		end
+		log("[EventTileUI] 초상화 결과 연출(명시) kind=" .. tostring(kind))
+	end
+
+	@ExecSpace("ClientOnly")
+	method void PortraitPlayEmotion(string emotionName)
+		-- 초상화 UI 아바타 얼굴 표정 재생(AvatarGUIRendererComponent.PlayEmotion). 이벤트 끝까지 유지되도록 길게 재생.
+		local portrait = _EntityService:GetEntityByPath(self.PortraitPath)
+		if isvalid(portrait) == false then return end
+		local r = portrait.AvatarGUIRendererComponent
+		if isvalid(r) == false then return end
+		r:PlayEmotion(EmotionalType.CastFrom(emotionName), self.EmoteHoldSeconds)
+	end
+
+	@ExecSpace("ClientOnly")
+	method void PortraitResetEmotion()
+		-- 초상화 표정을 기본(중립)으로 되돌린다(이벤트 종료 시 다음 이벤트로 표정이 남지 않도록).
+		local portrait = _EntityService:GetEntityByPath(self.PortraitPath)
+		if isvalid(portrait) == false then return end
+		local r = portrait.AvatarGUIRendererComponent
+		if isvalid(r) == false then return end
+		r:PlayEmotion(EmotionalType.Default, 0.1)
+	end
+
+	@ExecSpace("ClientOnly")
+	method void PortraitHop()
+		-- 초상화를 제자리에서 위로 폴짝 뛰어오르게 한다(공중 jump 포즈 + anchoredPosition 포물선 → 착지 idle).
+		local portrait = _EntityService:GetEntityByPath(self.PortraitPath)
+		if isvalid(portrait) == false or isvalid(portrait.UITransformComponent) == false then return end
+		self:StopPortraitMotion()
+		self._portraitHopBase = portrait.UITransformComponent.anchoredPosition
+		self._portraitHopT = 0
+		self:PortraitPose("jump", true)   -- 기존 애니(attack 등)를 멈추고 점프(공중) 포즈로 강제 전환
+		self._portraitHopTimer = _TimerService:SetTimerRepeat(function() self:PortraitHopStep() end, 0.02)
+	end
+
+	@ExecSpace("ClientOnly")
+	method void PortraitHopStep()
+		-- 점프 프레임 갱신: sin 곡선으로 0→정점→0. 끝나면 원위치 복귀 + idle 포즈.
+		local portrait = _EntityService:GetEntityByPath(self.PortraitPath)
+		if isvalid(portrait) == false or isvalid(portrait.UITransformComponent) == false then
+			self:StopPortraitMotion() return
+		end
+		self._portraitHopT = self._portraitHopT + 0.02
+		local prog = self._portraitHopT / self.PortraitHopDuration
+		local b = self._portraitHopBase
+		if prog >= 1 then
+			portrait.UITransformComponent.anchoredPosition = b
+			if self._portraitHopTimer ~= 0 then _TimerService:ClearTimer(self._portraitHopTimer) self._portraitHopTimer = 0 end
+			self:PortraitPose("idle", true)   -- 점프 멈추고 idle(Stand)로 복귀
+			return
+		end
+		local y = self.PortraitHopHeight * math.sin(math.pi * prog)
+		portrait.UITransformComponent.anchoredPosition = Vector2(b.x, b.y + y)
+	end
+
+	@ExecSpace("ClientOnly")
+	method void PortraitCry()
+		-- 기존 애니를 멈추고 엎드린(prone) 포즈로 전환 → 이벤트가 끝날 때까지 유지한다.
+		-- 초상화 재적용 타이머(_portraitTimer)가 _portraitState="cry"를 계속 반영해 포즈가 유지되고,
+		-- 이벤트 종료(Hide)에서 정리된다(별도 복귀 타이머 없음 = 표정/포즈 끝까지 유지).
+		self:StopPortraitMotion()
+		self:PortraitPose("cry", true)
+	end
+
+	@ExecSpace("ClientOnly")
+	method void StopPortraitMotion()
+		-- 점프/울음 연출 타이머 정리 + 점프 중이면 초상화 위치를 원위치로 복구.
+		if self._portraitHopTimer ~= 0 then
+			_TimerService:ClearTimer(self._portraitHopTimer)
+			self._portraitHopTimer = 0
+			local portrait = _EntityService:GetEntityByPath(self.PortraitPath)
+			if isvalid(portrait) and isvalid(portrait.UITransformComponent) then
+				portrait.UITransformComponent.anchoredPosition = self._portraitHopBase
+			end
 		end
 	end
 
@@ -874,10 +1112,34 @@ script EventTileUI extends Logic
 				if r == nil then r = self._pageNpcRUIDs[#self._pageNpcRUIDs] end
 				if r ~= nil and r ~= "" then self:SetNPCImage(true, r) end
 			end
+			-- 마지막 페이지에 도달하면 예약된 연출(불행칸 울음 등)을 1회 재생한다.
+			if self._pageIdx >= #self._pages then
+				self:FirePageEndEmote()
+			end
 		else
 			local cb = self._pageDone
 			if cb ~= nil then cb(self) end
 		end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void ArmPageEndEmote(string kind)
+		-- 진행 중인 페이지 텍스트의 '마지막 페이지'에 도달하는 순간 kind("cry"/"happy") 연출을 1회 재생하도록 예약한다.
+		-- (불행칸: 이벤트 시작이 아니라 스탯 감소 문구가 나오는 마지막 페이지에서 울도록.)
+		-- 이미 마지막 페이지(단일 페이지 등)를 보고 있으면 즉시 재생한다.
+		self._pageEndEmote = kind
+		self._pageEndEmoteFired = false
+		if #self._pages > 0 and self._pageIdx >= #self._pages then
+			self:FirePageEndEmote()
+		end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void FirePageEndEmote()
+		-- 예약된 마지막-페이지 연출을 1회만 재생한다(이후 페이지 재진입/재적용에도 중복 재생 방지).
+		if self._pageEndEmote == "" or self._pageEndEmoteFired then return end
+		self._pageEndEmoteFired = true
+		self:PortraitEmoteKind(self._pageEndEmote)
 	end
 
 	@ExecSpace("ClientOnly")
@@ -886,8 +1148,21 @@ script EventTileUI extends Logic
 		self:StopTyping()
 		self:StopMonsterAnim()
 		self:HideAllButtons()
+		self:StopPortraitMotion()
+		self:PortraitResetEmotion()   -- 이벤트 종료 → 표정 중립 복귀(다음 이벤트로 표정 잔류 방지)
+		-- ★ 몸 포즈를 Stand로 되돌린다(울음=Crouch/prone 등 held 포즈가 다음 이벤트로 이어지지 않도록).
+		--   그룹을 끄기 '전에'(아바타가 아직 켜져 있는 동안) 보내야 포즈 이벤트가 확실히 전달된다.
+		self:PortraitResetPose()
 		self:ClearPortrait()
 		if isvalid(self.EventGroup) then self.EventGroup.Enable = false end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void PortraitResetPose()
+		-- 초상화 몸 포즈를 기본 Stand(idle)로 강제 복귀시킨다(needReset=true).
+		-- Hide에서 그룹 비활성화 직전에 호출 → 다음에 UI가 다시 열릴 때 이전 이벤트의 누움/포즈가 남지 않는다.
+		self._portraitState = "idle"
+		self:PortraitPose("idle", true)
 	end
 
 	@ExecSpace("ClientOnly")
@@ -964,6 +1239,69 @@ script EventTileUI extends Logic
 	end
 
 	@ExecSpace("ClientOnly")
+	method string LevelDialogueText(integer level)
+		-- LevelDialogue 데이터셋에서 해당 레벨의 내레이션 대사(Text)를 반환한다. 행이 없거나 빈 칸이면 "".
+		-- 레벨→대사는 데이터로만 관리 → 새 레벨 대사는 CSV에 행만 추가하면 자동 반영(코드 수정 불필요).
+		local ds = _DataService:GetTable("LevelDialogue")
+		if isvalid(ds) == false then return "" end
+		for i = 1, ds:GetRowCount() do
+			if tonumber(ds:GetCell(i, "Level")) == level then
+				local t = ds:GetCell(i, "Text")
+				if t == nil then return "" end
+				return t
+			end
+		end
+		return ""
+	end
+
+	@ExecSpace("ClientOnly")
+	method void ShowLevelUp(integer level)
+		-- 레벨업 축하 배너: EventTileGroup 재사용. 몬스터/NPC는 ShowGroup에서 숨기고,
+		-- 플레이어 초상화를 화면 중앙으로 옮겨 축하 표정(Cheers)+제자리 폴짝 + "Lv.N 달성!" 문구 + '다음'.
+		-- LevelDialogue에 해당 레벨 대사가 있으면 배너 '다음' 뒤에 내레이션 페이지로 이어붙인다(없으면 배너만).
+		-- 마지막 페이지 '다음'(OnLevelUpNext)에서 그룹을 닫고 서버(_LevelUpCelebration)에 완료를 신호해 다운스트림을 진행한다.
+		self._activeTile = nil
+		self:ShowGroup()                 -- 그룹 on + 현재 지역 배경 + 몬스터/NPC 숨김
+		self:CenterPortrait(true)        -- 초상화를 수평 중앙으로(원위치 캐시)
+		self:SetPortrait("idle")         -- 초상화 외형을 로컬 플레이어와 동일하게 고정
+		self:PortraitEmoteKind("happy")  -- Cheers 표정 + 제자리 폴짝
+		local banner = "Lv." .. tostring(level) .. " 달성!"
+		local line = self:LevelDialogueText(level)
+		if line ~= "" then
+			-- '\n\n'(빈 줄) 경계로 페이지 분할 → 1페이지 배너, 2페이지 내레이션.
+			self:ShowPagedText(banner .. "\n\n" .. line, self.OnLevelUpNext)
+		else
+			self:ShowPagedText(banner, self.OnLevelUpNext)
+		end
+		log("[EventTileUI] 레벨업 배너 표시 Lv." .. tostring(level) .. " 대사=" .. tostring(line ~= ""))
+	end
+
+	@ExecSpace("ClientOnly")
+	method void OnLevelUpNext()
+		-- 배너 '다음' → 초상화 원위치 복구 + 그룹 닫기 + 서버에 완료 신호(다운스트림 진행).
+		self:CenterPortrait(false)
+		self:Hide()
+		_LevelUpCelebration:RequestDone()
+	end
+
+	@ExecSpace("ClientOnly")
+	method void CenterPortrait(boolean on)
+		-- 초상화(PlayerPortrait)를 수평 중앙(x=0)으로 옮기거나 원위치로 되돌린다. 원위치는 최초 1회만 캐시한다.
+		local portrait = _EntityService:GetEntityByPath(self.PortraitPath)
+		if isvalid(portrait) == false or isvalid(portrait.UITransformComponent) == false then return end
+		local ut = portrait.UITransformComponent
+		if on then
+			if self._luPortraitCached == false then
+				self._luPortraitBase = ut.anchoredPosition
+				self._luPortraitCached = true
+			end
+			ut.anchoredPosition = Vector2(0, self._luPortraitBase.y)
+		elseif self._luPortraitCached then
+			ut.anchoredPosition = self._luPortraitBase
+		end
+	end
+
+	@ExecSpace("ClientOnly")
 	method void SceneText(string text, string anim, string npcKey, Component tile)
 		-- 텍스트 씬: 그룹/초상화/텍스트(페이지 단위). 마지막 장에서 '다음' → 서버에 진행 요청.
 		self._activeTile = tile
@@ -1008,6 +1346,7 @@ script EventTileUI extends Logic
 		local board = _RollResultDiceAnimationUI:SetProbabilities(self._rollGreat, self._rollSuccess, self._rollFail)
 		_RollResultDiceAnimationUI:Show(self._rollD1, self._rollD2, self._rollTotal, board, self._rollOutcome, function()
 			self:ShowPagedText(self._rollResult, self.OnTextAdvance)
+			self:PortraitEmote(self._rollOutcome)   -- 결과(성공/대성공=웃음, 실패=울음) 기반 표정+동작
 		end)
 	end
 
@@ -1144,7 +1483,7 @@ script EventTileUI extends Logic
 		self._activeTile = bossTile
 		self:ShowGroup()
 		self:SetPortrait("attack")
-		self:SetNPCImage(true, bossStandRUID)
+		self:SetBossFightImage(bossStandRUID)   -- 보스 전투: 원본 크기 × 3배(전역)
 		self:ShowPagedText(challengeText, self.OnQuestNext)
 	end
 
@@ -1159,9 +1498,10 @@ script EventTileUI extends Logic
 		_RollResultDiceAnimationUI:Show(d1, d2, total, resultTable, outcome, function()
 			self:SetPortrait("idle")
 			if win and bossDieRUID ~= "" then
-				self:SetNPCImage(true, bossDieRUID)
+				self:SetBossFightImage(bossDieRUID)   -- 보스 전투 die 애니도 동일 크기 유지
 			end
 			self:ShowPagedText(outcomeText, self.OnDiceNext)
+			self:PortraitEmote(outcome)   -- 결과 표정+동작을 초상화에 연출(SetPortrait("idle") 뒤에 덮어씀)
 		end)
 	end
 
