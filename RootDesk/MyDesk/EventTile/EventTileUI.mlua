@@ -111,6 +111,10 @@ script EventTileUI extends Logic
 
 	property any _textComp = nil
 
+	-- 장비/장신구/아이템 이름(파랑) 캐시. EquipmentData.Name에서 1회 구축(+미라클큐브), 길이 내림차순 정렬.
+	property table _nameKws = {}
+	property boolean _nameLoaded = false
+
 	@ExecSpace("ClientOnly")
 	method void OnBeginPlay()
 		-- 평소엔 그룹 숨김 + 모든 버튼 비활성.
@@ -156,6 +160,25 @@ script EventTileUI extends Logic
 	end
 
 	@ExecSpace("ClientOnly")
+	method void EnsureNameKws()
+		-- 장비/장신구/아이템 이름(파랑) 목록을 EquipmentData.Name에서 1회 구축 후 캐시한다.
+		-- 데이터셋을 실제로 읽었을 때만 확정(_nameLoaded)하고, 그 전엔 정적 이름(미라클큐브)만으로 동작하다 다음 호출에 재시도.
+		-- 긴 이름이 먼저 매칭되도록 바이트 길이 내림차순 정렬(예: '보스 장신구 세트(9)'가 '장비'보다 먼저).
+		if self._nameLoaded then return end
+		local names = { "미라클 큐브", "미라클큐브" }
+		local ds = _DataService:GetTable("EquipmentData")
+		if isvalid(ds) then
+			for i = 1, ds:GetRowCount() do
+				local nm = ds:GetCell(i, "Name")
+				if nm ~= nil and nm ~= "" then table.insert(names, nm) end
+			end
+			self._nameLoaded = true
+		end
+		table.sort(names, function(a, b) return #a > #b end)
+		self._nameKws = names
+	end
+
+	@ExecSpace("ClientOnly")
 	method string Colorize(string s)
 		-- 대사 리치텍스트 색칠: 증가 스탯 '이름'(장비/주스탯/올스탯/공격력 등)은 파란색,
 		-- '증가량' 숫자만 빨간색, 그 외 글자·숫자는 기본색(검은색) 그대로 둔다.
@@ -166,15 +189,17 @@ script EventTileUI extends Logic
 		--   → '3턴', '100마리', '큐브 x5' 등 스탯·개수와 무관한 숫자는 빨강 제외.
 		-- 좌→우 1회 스캔. 타이핑 연출과 함께 쓰도록 '평문'을 받아 매 렌더마다 새로 태깅한다(태그가 한 글자씩 노출 안 됨).
 		if s == nil or s == "" then return s end
+		self:EnsureNameKws()
 		local blue = "#2E6BFF"
 		local red = "#E53935"
-		-- 스탯 이름/보상 아이템 키워드(파랑). 긴/구체 키워드를 먼저(같은 시작 위치에서 더 긴 이름 우선 매칭).
-		-- ('미라클 큐브'는 띄어쓰기/붙임 두 표기 모두 대응. 이름만 파랑이고 뒤의 '(x5)' 개수는 검정 그대로.)
+		-- 스탯 이름 키워드(파랑). 긴/구체 키워드를 먼저(같은 시작 위치에서 더 긴 이름 우선 매칭).
 		local kws = {
-			"미라클 큐브", "미라클큐브",
 			"공격력/마력", "보스 공격력", "보스 대미지", "추가 대미지", "크리티컬 대미지",
 			"올스탯", "주스탯", "크리티컬", "공격력", "마력", "대미지", "전투력", "장비", "스탯"
 		}
+		-- 장비/장신구/아이템 이름(파랑, 문맥 없음). EquipmentData에서 구축한 캐시(미라클큐브 포함, 길이 내림차순).
+		-- 이름만 파랑이고 뒤의 '(x5)'·'(9)' 등 숫자는 이름의 일부로 함께 파랑 처리된다.
+		local nameKws = self._nameKws
 		-- 개수 키워드(색칠 안 함·검정). 뒤따르는 숫자를 '개수 증가량'으로 보고 빨강 처리하는 문맥만 연다.
 		local countKws = { "길드원", "가족", "구성원", "수" }
 		-- 키워드와 숫자 사이에 올 수 있는 조사/공백(이것만 지나면 문맥 유지).
@@ -202,7 +227,22 @@ script EventTileUI extends Logic
 					break
 				end
 			end
-			-- (1b) 개수 키워드(검정) → 개수 증가량 문맥 시작.
+			-- (1b) 장비/장신구/아이템 이름(파랑) → 문맥 없음(뒤 숫자에 영향 주지 않음).
+			if matched == false then
+				for k = 1, #nameKws do
+					local kw = nameKws[k]
+					local L = #kw
+					if i + L - 1 <= n and string.sub(s, i, i + L - 1) == kw then
+						table.insert(out, "<color=" .. blue .. ">" .. kw .. "</color>")
+						i = i + L
+						matched = true
+						statCtx = false
+						countCtx = false
+						break
+					end
+				end
+			end
+			-- (1c) 개수 키워드(검정) → 개수 증가량 문맥 시작.
 			if matched == false then
 				for k = 1, #countKws do
 					local kw = countKws[k]
