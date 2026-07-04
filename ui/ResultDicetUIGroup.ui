@@ -358,7 +358,7 @@
               },
               "Position": {
                 "x": 125.095,
-                "y": -45.999992399999996,
+                "y": -46.0,
                 "z": 0.0
               },
               "QuaternionRotation": {
@@ -635,7 +635,7 @@
               },
               "Position": {
                 "x": 125.095,
-                "y": -116.27,
+                "y": -116.270004,
                 "z": 0.0
               },
               "QuaternionRotation": {
@@ -3414,14 +3414,14 @@
         }
       },
       {
-        "id": "ae3c5c53-9bd9-4800-baa5-a2a8b065ab78",
-        "path": "/ui/ResultDicetUIGroup/ResultDice_Panel/Dice_Panel/UI_LeftDice_1",
+        "id": "cd633811-d544-4050-8a25-ed5ed24e76a1",
+        "path": "/ui/ResultDicetUIGroup/ResultDice_Panel/Dice_Panel/UI_RightDice_1",
         "componentNames": "MOD.Core.UITransformComponent,MOD.Core.SpriteGUIRendererComponent",
         "jsonString": {
-          "name": "UI_LeftDice_1",
-          "path": "/ui/ResultDicetUIGroup/ResultDice_Panel/Dice_Panel/UI_LeftDice_1",
+          "name": "UI_RightDice_1",
+          "path": "/ui/ResultDicetUIGroup/ResultDice_Panel/Dice_Panel/UI_RightDice_1",
           "nameEditable": true,
-          "enable": true,
+          "enable": false,
           "visible": true,
           "localize": true,
           "displayOrder": 0,
@@ -3449,20 +3449,20 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 758.0587,
-                "y": -210.051392
+                "x": 212.265991,
+                "y": 366.6206
               },
               "OffsetMin": {
-                "x": 58.0586853,
-                "y": -460.0514
+                "x": 137.265991,
+                "y": 291.6206
               },
               "Pivot": {
                 "x": 0.5,
                 "y": 0.5
               },
               "RectSize": {
-                "x": 700.0,
-                "y": 250.0
+                "x": 75.0,
+                "y": 75.0
               },
               "UIMode": 1,
               "UIScale": {
@@ -3472,31 +3472,25 @@
               },
               "UIVersion": 2,
               "anchoredPosition": {
-                "x": 408.0587,
-                "y": -335.0514
-              },
-              "Rotation": {
-                "x": 0.0,
-                "y": 0.0,
-                "z": 0.0
+                "x": 174.765991,
+                "y": 329.1206
               },
               "Position": {
-                "x": 408.0587,
-                "y": -335.0514,
+                "x": 174.765991,
+                "y": 329.1206,
                 "z": 0.0
               },
               "QuaternionRotation": {
                 "x": 0.0,
                 "y": 0.0,
                 "z": 0.0,
-                "w": -1.0
+                "w": 1.0
               },
               "Scale": {
                 "x": 1.0,
                 "y": 1.0,
                 "z": 1.0
               },
-              "ZRotation": 0.0,
               "Enable": true
             },
             {
@@ -3511,7 +3505,7 @@
                 "y": 5.0
               },
               "OverrideSorting": false,
-              "PreserveSprite": 2,
+              "PreserveSprite": 0,
               "SortingLayer": "MapLayer0",
               "StartFrameIndex": 1,
               "Color": {
@@ -3531,14 +3525,14 @@
         }
       },
       {
-        "id": "887c98c1-756f-44df-a3ec-1a11126cd164",
-        "path": "/ui/ResultDicetUIGroup/ResultDice_Panel/Dice_Panel/UI_LeftDice_2",
+        "id": "c3d2b57d-7a24-4102-ab20-674cb565851f",
+        "path": "/ui/ResultDicetUIGroup/ResultDice_Panel/Dice_Panel/UI_RightDice_2",
         "componentNames": "MOD.Core.UITransformComponent,MOD.Core.SpriteGUIRendererComponent",
         "jsonString": {
-          "name": "UI_LeftDice_2",
-          "path": "/ui/ResultDicetUIGroup/ResultDice_Panel/Dice_Panel/UI_LeftDice_2",
+          "name": "UI_RightDice_2",
+          "path": "/ui/ResultDicetUIGroup/ResultDice_Panel/Dice_Panel/UI_RightDice_2",
           "nameEditable": true,
-          "enable": true,
+          "enable": false,
           "visible": true,
           "localize": true,
           "displayOrder": 1,
@@ -3566,20 +3560,20 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 411.263977,
-                "y": 8.888611
+                "x": 212.265991,
+                "y": 366.6206
               },
               "OffsetMin": {
-                "x": -288.736023,
-                "y": -241.111389
+                "x": 137.265991,
+                "y": 291.6206
               },
               "Pivot": {
                 "x": 0.5,
                 "y": 0.5
               },
               "RectSize": {
-                "x": 700.0,
-                "y": 250.0
+                "x": 75.0,
+                "y": 75.0
               },
               "UIMode": 1,
               "UIScale": {
@@ -3589,12 +3583,12 @@
               },
               "UIVersion": 2,
               "anchoredPosition": {
-                "x": 61.2639771,
-                "y": -116.111389
+                "x": 174.765991,
+                "y": 329.1206
               },
               "Position": {
-                "x": 61.2639771,
-                "y": -116.111389,
+                "x": 174.765991,
+                "y": 329.1206,
                 "z": 0.0
               },
               "QuaternionRotation": {
@@ -3622,7 +3616,7 @@
                 "y": 5.0
               },
               "OverrideSorting": false,
-              "PreserveSprite": 2,
+              "PreserveSprite": 0,
               "SortingLayer": "MapLayer0",
               "StartFrameIndex": 1,
               "Color": {
@@ -3642,14 +3636,14 @@
         }
       },
       {
-        "id": "1851696a-4d1d-4587-a337-9b79d1863c4d",
-        "path": "/ui/ResultDicetUIGroup/ResultDice_Panel/Dice_Panel/UI_LeftDice_3",
+        "id": "9b2bc9a6-d33f-4925-a6e3-9f1e39826e93",
+        "path": "/ui/ResultDicetUIGroup/ResultDice_Panel/Dice_Panel/UI_RightDice_3",
         "componentNames": "MOD.Core.UITransformComponent,MOD.Core.SpriteGUIRendererComponent",
         "jsonString": {
-          "name": "UI_LeftDice_3",
-          "path": "/ui/ResultDicetUIGroup/ResultDice_Panel/Dice_Panel/UI_LeftDice_3",
+          "name": "UI_RightDice_3",
+          "path": "/ui/ResultDicetUIGroup/ResultDice_Panel/Dice_Panel/UI_RightDice_3",
           "nameEditable": true,
-          "enable": true,
+          "enable": false,
           "visible": true,
           "localize": true,
           "displayOrder": 2,
@@ -3677,20 +3671,20 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 309.2639,
-                "y": 8.888611
+                "x": 212.265991,
+                "y": 366.6206
               },
               "OffsetMin": {
-                "x": -390.7361,
-                "y": -241.111389
+                "x": 137.265991,
+                "y": 291.6206
               },
               "Pivot": {
                 "x": 0.5,
                 "y": 0.5
               },
               "RectSize": {
-                "x": 700.0,
-                "y": 250.0
+                "x": 75.0,
+                "y": 75.0
               },
               "UIMode": 1,
               "UIScale": {
@@ -3700,12 +3694,12 @@
               },
               "UIVersion": 2,
               "anchoredPosition": {
-                "x": -40.7361069,
-                "y": -116.111389
+                "x": 174.765991,
+                "y": 329.1206
               },
               "Position": {
-                "x": -40.7361069,
-                "y": -116.111389,
+                "x": 174.765991,
+                "y": 329.1206,
                 "z": 0.0
               },
               "QuaternionRotation": {
@@ -3733,7 +3727,7 @@
                 "y": 5.0
               },
               "OverrideSorting": false,
-              "PreserveSprite": 2,
+              "PreserveSprite": 0,
               "SortingLayer": "MapLayer0",
               "StartFrameIndex": 1,
               "Color": {
@@ -3753,14 +3747,14 @@
         }
       },
       {
-        "id": "3db9364a-1ea8-4a3a-9d79-4e2e0a2b5e57",
-        "path": "/ui/ResultDicetUIGroup/ResultDice_Panel/Dice_Panel/UI_LeftDice_4",
+        "id": "e05000d6-b29e-4bb8-bb1d-f22d82359c8d",
+        "path": "/ui/ResultDicetUIGroup/ResultDice_Panel/Dice_Panel/UI_RightDice_4",
         "componentNames": "MOD.Core.UITransformComponent,MOD.Core.SpriteGUIRendererComponent",
         "jsonString": {
-          "name": "UI_LeftDice_4",
-          "path": "/ui/ResultDicetUIGroup/ResultDice_Panel/Dice_Panel/UI_LeftDice_4",
+          "name": "UI_RightDice_4",
+          "path": "/ui/ResultDicetUIGroup/ResultDice_Panel/Dice_Panel/UI_RightDice_4",
           "nameEditable": true,
-          "enable": true,
+          "enable": false,
           "visible": true,
           "localize": true,
           "displayOrder": 3,
@@ -3788,20 +3782,20 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 34.2640381,
-                "y": 8.888611
+                "x": 212.265991,
+                "y": 366.6206
               },
               "OffsetMin": {
-                "x": -665.735962,
-                "y": -241.111389
+                "x": 137.265991,
+                "y": 291.6206
               },
               "Pivot": {
                 "x": 0.5,
                 "y": 0.5
               },
               "RectSize": {
-                "x": 700.0,
-                "y": 250.0
+                "x": 75.0,
+                "y": 75.0
               },
               "UIMode": 1,
               "UIScale": {
@@ -3811,12 +3805,12 @@
               },
               "UIVersion": 2,
               "anchoredPosition": {
-                "x": -315.735962,
-                "y": -116.111389
+                "x": 174.765991,
+                "y": 329.1206
               },
               "Position": {
-                "x": -315.735962,
-                "y": -116.111389,
+                "x": 174.765991,
+                "y": 329.1206,
                 "z": 0.0
               },
               "QuaternionRotation": {
@@ -3844,7 +3838,7 @@
                 "y": 5.0
               },
               "OverrideSorting": false,
-              "PreserveSprite": 2,
+              "PreserveSprite": 0,
               "SortingLayer": "MapLayer0",
               "StartFrameIndex": 1,
               "Color": {
@@ -3864,14 +3858,14 @@
         }
       },
       {
-        "id": "5832896b-eba2-42ba-bb3b-ebcc22f834fa",
-        "path": "/ui/ResultDicetUIGroup/ResultDice_Panel/Dice_Panel/UI_LeftDice_5",
+        "id": "5ec193b7-8c50-4d54-ba1e-1df82fb77f70",
+        "path": "/ui/ResultDicetUIGroup/ResultDice_Panel/Dice_Panel/UI_RightDice_5",
         "componentNames": "MOD.Core.UITransformComponent,MOD.Core.SpriteGUIRendererComponent",
         "jsonString": {
-          "name": "UI_LeftDice_5",
-          "path": "/ui/ResultDicetUIGroup/ResultDice_Panel/Dice_Panel/UI_LeftDice_5",
+          "name": "UI_RightDice_5",
+          "path": "/ui/ResultDicetUIGroup/ResultDice_Panel/Dice_Panel/UI_RightDice_5",
           "nameEditable": true,
-          "enable": true,
+          "enable": false,
           "visible": true,
           "localize": true,
           "displayOrder": 4,
@@ -3899,20 +3893,20 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": -28.7359619,
-                "y": 8.888611
+                "x": 212.265991,
+                "y": 366.6206
               },
               "OffsetMin": {
-                "x": -728.735962,
-                "y": -241.111389
+                "x": 137.265991,
+                "y": 291.6206
               },
               "Pivot": {
                 "x": 0.5,
                 "y": 0.5
               },
               "RectSize": {
-                "x": 700.0,
-                "y": 250.0
+                "x": 75.0,
+                "y": 75.0
               },
               "UIMode": 1,
               "UIScale": {
@@ -3922,12 +3916,12 @@
               },
               "UIVersion": 2,
               "anchoredPosition": {
-                "x": -378.735962,
-                "y": -116.111389
+                "x": 174.765991,
+                "y": 329.1206
               },
               "Position": {
-                "x": -378.735962,
-                "y": -116.111389,
+                "x": 174.765991,
+                "y": 329.1206,
                 "z": 0.0
               },
               "QuaternionRotation": {
@@ -3955,7 +3949,7 @@
                 "y": 5.0
               },
               "OverrideSorting": false,
-              "PreserveSprite": 2,
+              "PreserveSprite": 0,
               "SortingLayer": "MapLayer0",
               "StartFrameIndex": 1,
               "Color": {
@@ -3975,14 +3969,14 @@
         }
       },
       {
-        "id": "b0854c72-8f0a-4923-9fc7-076ee2f3f982",
-        "path": "/ui/ResultDicetUIGroup/ResultDice_Panel/Dice_Panel/UI_LeftDice_6",
+        "id": "d536d913-a725-4e5f-afd3-2fb0ff291b27",
+        "path": "/ui/ResultDicetUIGroup/ResultDice_Panel/Dice_Panel/UI_RightDice_6",
         "componentNames": "MOD.Core.UITransformComponent,MOD.Core.SpriteGUIRendererComponent",
         "jsonString": {
-          "name": "UI_LeftDice_6",
-          "path": "/ui/ResultDicetUIGroup/ResultDice_Panel/Dice_Panel/UI_LeftDice_6",
+          "name": "UI_RightDice_6",
+          "path": "/ui/ResultDicetUIGroup/ResultDice_Panel/Dice_Panel/UI_RightDice_6",
           "nameEditable": true,
-          "enable": true,
+          "enable": false,
           "visible": true,
           "localize": true,
           "displayOrder": 5,
@@ -4010,20 +4004,20 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": -300.945984,
-                "y": 8.888611
+                "x": 212.265991,
+                "y": 366.6206
               },
               "OffsetMin": {
-                "x": -1000.946,
-                "y": -241.111389
+                "x": 137.265991,
+                "y": 291.6206
               },
               "Pivot": {
                 "x": 0.5,
                 "y": 0.5
               },
               "RectSize": {
-                "x": 700.0,
-                "y": 250.0
+                "x": 75.0,
+                "y": 75.0
               },
               "UIMode": 1,
               "UIScale": {
@@ -4033,12 +4027,12 @@
               },
               "UIVersion": 2,
               "anchoredPosition": {
-                "x": -650.946,
-                "y": -116.111389
+                "x": 174.765991,
+                "y": 329.1206
               },
               "Position": {
-                "x": -650.946,
-                "y": -116.111389,
+                "x": 174.765991,
+                "y": 329.1206,
                 "z": 0.0
               },
               "QuaternionRotation": {
@@ -4066,7 +4060,7 @@
                 "y": 5.0
               },
               "OverrideSorting": false,
-              "PreserveSprite": 2,
+              "PreserveSprite": 0,
               "SortingLayer": "MapLayer0",
               "StartFrameIndex": 1,
               "Color": {
@@ -4086,14 +4080,14 @@
         }
       },
       {
-        "id": "cd633811-d544-4050-8a25-ed5ed24e76a1",
-        "path": "/ui/ResultDicetUIGroup/ResultDice_Panel/Dice_Panel/UI_RightDice_1",
+        "id": "ae3c5c53-9bd9-4800-baa5-a2a8b065ab78",
+        "path": "/ui/ResultDicetUIGroup/ResultDice_Panel/Dice_Panel/UI_LeftDice_1",
         "componentNames": "MOD.Core.UITransformComponent,MOD.Core.SpriteGUIRendererComponent",
         "jsonString": {
-          "name": "UI_RightDice_1",
-          "path": "/ui/ResultDicetUIGroup/ResultDice_Panel/Dice_Panel/UI_RightDice_1",
+          "name": "UI_LeftDice_1",
+          "path": "/ui/ResultDicetUIGroup/ResultDice_Panel/Dice_Panel/UI_LeftDice_1",
           "nameEditable": true,
-          "enable": true,
+          "enable": false,
           "visible": true,
           "localize": true,
           "displayOrder": 6,
@@ -4121,20 +4115,20 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 956.8984,
-                "y": 9.805206
+                "x": -218.908813,
+                "y": 366.6195
               },
               "OffsetMin": {
-                "x": 256.898376,
-                "y": -240.1948
+                "x": -293.9088,
+                "y": 291.6195
               },
               "Pivot": {
                 "x": 0.5,
                 "y": 0.5
               },
               "RectSize": {
-                "x": 700.0,
-                "y": 250.0
+                "x": 75.0,
+                "y": 75.0
               },
               "UIMode": 1,
               "UIScale": {
@@ -4144,12 +4138,12 @@
               },
               "UIVersion": 2,
               "anchoredPosition": {
-                "x": 606.8984,
-                "y": -115.194794
+                "x": -256.4088,
+                "y": 329.1195
               },
               "Position": {
-                "x": 606.8984,
-                "y": -115.194794,
+                "x": -256.4088,
+                "y": 329.1195,
                 "z": 0.0
               },
               "QuaternionRotation": {
@@ -4177,7 +4171,7 @@
                 "y": 5.0
               },
               "OverrideSorting": false,
-              "PreserveSprite": 2,
+              "PreserveSprite": 0,
               "SortingLayer": "MapLayer0",
               "StartFrameIndex": 1,
               "Color": {
@@ -4197,14 +4191,14 @@
         }
       },
       {
-        "id": "c3d2b57d-7a24-4102-ab20-674cb565851f",
-        "path": "/ui/ResultDicetUIGroup/ResultDice_Panel/Dice_Panel/UI_RightDice_2",
+        "id": "887c98c1-756f-44df-a3ec-1a11126cd164",
+        "path": "/ui/ResultDicetUIGroup/ResultDice_Panel/Dice_Panel/UI_LeftDice_2",
         "componentNames": "MOD.Core.UITransformComponent,MOD.Core.SpriteGUIRendererComponent",
         "jsonString": {
-          "name": "UI_RightDice_2",
-          "path": "/ui/ResultDicetUIGroup/ResultDice_Panel/Dice_Panel/UI_RightDice_2",
+          "name": "UI_LeftDice_2",
+          "path": "/ui/ResultDicetUIGroup/ResultDice_Panel/Dice_Panel/UI_LeftDice_2",
           "nameEditable": true,
-          "enable": true,
+          "enable": false,
           "visible": true,
           "localize": true,
           "displayOrder": 7,
@@ -4232,20 +4226,20 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 745.898132,
-                "y": 9.805206
+                "x": -218.908813,
+                "y": 366.6195
               },
               "OffsetMin": {
-                "x": 45.8981323,
-                "y": -240.1948
+                "x": -293.9088,
+                "y": 291.6195
               },
               "Pivot": {
                 "x": 0.5,
                 "y": 0.5
               },
               "RectSize": {
-                "x": 700.0,
-                "y": 250.0
+                "x": 75.0,
+                "y": 75.0
               },
               "UIMode": 1,
               "UIScale": {
@@ -4255,12 +4249,12 @@
               },
               "UIVersion": 2,
               "anchoredPosition": {
-                "x": 395.898132,
-                "y": -115.194794
+                "x": -256.4088,
+                "y": 329.1195
               },
               "Position": {
-                "x": 395.898132,
-                "y": -115.194794,
+                "x": -256.4088,
+                "y": 329.1195,
                 "z": 0.0
               },
               "QuaternionRotation": {
@@ -4288,7 +4282,7 @@
                 "y": 5.0
               },
               "OverrideSorting": false,
-              "PreserveSprite": 2,
+              "PreserveSprite": 0,
               "SortingLayer": "MapLayer0",
               "StartFrameIndex": 1,
               "Color": {
@@ -4308,14 +4302,14 @@
         }
       },
       {
-        "id": "9b2bc9a6-d33f-4925-a6e3-9f1e39826e93",
-        "path": "/ui/ResultDicetUIGroup/ResultDice_Panel/Dice_Panel/UI_RightDice_3",
+        "id": "1851696a-4d1d-4587-a337-9b79d1863c4d",
+        "path": "/ui/ResultDicetUIGroup/ResultDice_Panel/Dice_Panel/UI_LeftDice_3",
         "componentNames": "MOD.Core.UITransformComponent,MOD.Core.SpriteGUIRendererComponent",
         "jsonString": {
-          "name": "UI_RightDice_3",
-          "path": "/ui/ResultDicetUIGroup/ResultDice_Panel/Dice_Panel/UI_RightDice_3",
+          "name": "UI_LeftDice_3",
+          "path": "/ui/ResultDicetUIGroup/ResultDice_Panel/Dice_Panel/UI_LeftDice_3",
           "nameEditable": true,
-          "enable": true,
+          "enable": false,
           "visible": true,
           "localize": true,
           "displayOrder": 8,
@@ -4343,20 +4337,20 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 643.8983,
-                "y": 9.805206
+                "x": -218.908813,
+                "y": 366.6195
               },
               "OffsetMin": {
-                "x": -56.1016846,
-                "y": -240.1948
+                "x": -293.9088,
+                "y": 291.6195
               },
               "Pivot": {
                 "x": 0.5,
                 "y": 0.5
               },
               "RectSize": {
-                "x": 700.0,
-                "y": 250.0
+                "x": 75.0,
+                "y": 75.0
               },
               "UIMode": 1,
               "UIScale": {
@@ -4366,12 +4360,12 @@
               },
               "UIVersion": 2,
               "anchoredPosition": {
-                "x": 293.898315,
-                "y": -115.194794
+                "x": -256.4088,
+                "y": 329.1195
               },
               "Position": {
-                "x": 293.898315,
-                "y": -115.194794,
+                "x": -256.4088,
+                "y": 329.1195,
                 "z": 0.0
               },
               "QuaternionRotation": {
@@ -4399,7 +4393,7 @@
                 "y": 5.0
               },
               "OverrideSorting": false,
-              "PreserveSprite": 2,
+              "PreserveSprite": 0,
               "SortingLayer": "MapLayer0",
               "StartFrameIndex": 1,
               "Color": {
@@ -4419,14 +4413,14 @@
         }
       },
       {
-        "id": "e05000d6-b29e-4bb8-bb1d-f22d82359c8d",
-        "path": "/ui/ResultDicetUIGroup/ResultDice_Panel/Dice_Panel/UI_RightDice_4",
+        "id": "3db9364a-1ea8-4a3a-9d79-4e2e0a2b5e57",
+        "path": "/ui/ResultDicetUIGroup/ResultDice_Panel/Dice_Panel/UI_LeftDice_4",
         "componentNames": "MOD.Core.UITransformComponent,MOD.Core.SpriteGUIRendererComponent",
         "jsonString": {
-          "name": "UI_RightDice_4",
-          "path": "/ui/ResultDicetUIGroup/ResultDice_Panel/Dice_Panel/UI_RightDice_4",
+          "name": "UI_LeftDice_4",
+          "path": "/ui/ResultDicetUIGroup/ResultDice_Panel/Dice_Panel/UI_LeftDice_4",
           "nameEditable": true,
-          "enable": true,
+          "enable": false,
           "visible": true,
           "localize": true,
           "displayOrder": 9,
@@ -4454,20 +4448,20 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 368.8984,
-                "y": 9.805206
+                "x": -218.908813,
+                "y": 366.6195
               },
               "OffsetMin": {
-                "x": -331.1016,
-                "y": -240.1948
+                "x": -293.9088,
+                "y": 291.6195
               },
               "Pivot": {
                 "x": 0.5,
                 "y": 0.5
               },
               "RectSize": {
-                "x": 700.0,
-                "y": 250.0
+                "x": 75.0,
+                "y": 75.0
               },
               "UIMode": 1,
               "UIScale": {
@@ -4477,12 +4471,12 @@
               },
               "UIVersion": 2,
               "anchoredPosition": {
-                "x": 18.8984,
-                "y": -115.194794
+                "x": -256.4088,
+                "y": 329.1195
               },
               "Position": {
-                "x": 18.8984,
-                "y": -115.194794,
+                "x": -256.4088,
+                "y": 329.1195,
                 "z": 0.0
               },
               "QuaternionRotation": {
@@ -4510,7 +4504,7 @@
                 "y": 5.0
               },
               "OverrideSorting": false,
-              "PreserveSprite": 2,
+              "PreserveSprite": 0,
               "SortingLayer": "MapLayer0",
               "StartFrameIndex": 1,
               "Color": {
@@ -4530,14 +4524,14 @@
         }
       },
       {
-        "id": "5ec193b7-8c50-4d54-ba1e-1df82fb77f70",
-        "path": "/ui/ResultDicetUIGroup/ResultDice_Panel/Dice_Panel/UI_RightDice_5",
+        "id": "5832896b-eba2-42ba-bb3b-ebcc22f834fa",
+        "path": "/ui/ResultDicetUIGroup/ResultDice_Panel/Dice_Panel/UI_LeftDice_5",
         "componentNames": "MOD.Core.UITransformComponent,MOD.Core.SpriteGUIRendererComponent",
         "jsonString": {
-          "name": "UI_RightDice_5",
-          "path": "/ui/ResultDicetUIGroup/ResultDice_Panel/Dice_Panel/UI_RightDice_5",
+          "name": "UI_LeftDice_5",
+          "path": "/ui/ResultDicetUIGroup/ResultDice_Panel/Dice_Panel/UI_LeftDice_5",
           "nameEditable": true,
-          "enable": true,
+          "enable": false,
           "visible": true,
           "localize": true,
           "displayOrder": 10,
@@ -4565,20 +4559,20 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 305.898376,
-                "y": 9.805206
+                "x": -218.908813,
+                "y": 366.6195
               },
               "OffsetMin": {
-                "x": -394.101624,
-                "y": -240.1948
+                "x": -293.9088,
+                "y": 291.6195
               },
               "Pivot": {
                 "x": 0.5,
                 "y": 0.5
               },
               "RectSize": {
-                "x": 700.0,
-                "y": 250.0
+                "x": 75.0,
+                "y": 75.0
               },
               "UIMode": 1,
               "UIScale": {
@@ -4588,12 +4582,12 @@
               },
               "UIVersion": 2,
               "anchoredPosition": {
-                "x": -44.10162,
-                "y": -115.194794
+                "x": -256.4088,
+                "y": 329.1195
               },
               "Position": {
-                "x": -44.10162,
-                "y": -115.194794,
+                "x": -256.4088,
+                "y": 329.1195,
                 "z": 0.0
               },
               "QuaternionRotation": {
@@ -4621,7 +4615,7 @@
                 "y": 5.0
               },
               "OverrideSorting": false,
-              "PreserveSprite": 2,
+              "PreserveSprite": 0,
               "SortingLayer": "MapLayer0",
               "StartFrameIndex": 1,
               "Color": {
@@ -4641,14 +4635,14 @@
         }
       },
       {
-        "id": "d536d913-a725-4e5f-afd3-2fb0ff291b27",
-        "path": "/ui/ResultDicetUIGroup/ResultDice_Panel/Dice_Panel/UI_RightDice_6",
+        "id": "b0854c72-8f0a-4923-9fc7-076ee2f3f982",
+        "path": "/ui/ResultDicetUIGroup/ResultDice_Panel/Dice_Panel/UI_LeftDice_6",
         "componentNames": "MOD.Core.UITransformComponent,MOD.Core.SpriteGUIRendererComponent",
         "jsonString": {
-          "name": "UI_RightDice_6",
-          "path": "/ui/ResultDicetUIGroup/ResultDice_Panel/Dice_Panel/UI_RightDice_6",
+          "name": "UI_LeftDice_6",
+          "path": "/ui/ResultDicetUIGroup/ResultDice_Panel/Dice_Panel/UI_LeftDice_6",
           "nameEditable": true,
-          "enable": true,
+          "enable": false,
           "visible": true,
           "localize": true,
           "displayOrder": 11,
@@ -4676,20 +4670,20 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 33.6882935,
-                "y": 9.805206
+                "x": -218.908813,
+                "y": 366.6195
               },
               "OffsetMin": {
-                "x": -666.3117,
-                "y": -240.1948
+                "x": -293.9088,
+                "y": 291.6195
               },
               "Pivot": {
                 "x": 0.5,
                 "y": 0.5
               },
               "RectSize": {
-                "x": 700.0,
-                "y": 250.0
+                "x": 75.0,
+                "y": 75.0
               },
               "UIMode": 1,
               "UIScale": {
@@ -4699,12 +4693,12 @@
               },
               "UIVersion": 2,
               "anchoredPosition": {
-                "x": -316.3117,
-                "y": -115.194794
+                "x": -256.4088,
+                "y": 329.1195
               },
               "Position": {
-                "x": -316.3117,
-                "y": -115.194794,
+                "x": -256.4088,
+                "y": 329.1195,
                 "z": 0.0
               },
               "QuaternionRotation": {
@@ -4732,7 +4726,7 @@
                 "y": 5.0
               },
               "OverrideSorting": false,
-              "PreserveSprite": 2,
+              "PreserveSprite": 0,
               "SortingLayer": "MapLayer0",
               "StartFrameIndex": 1,
               "Color": {
