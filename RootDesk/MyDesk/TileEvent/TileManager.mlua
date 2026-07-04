@@ -757,6 +757,46 @@ script TileManager extends Logic
 		return out
 	end
 
+	method table GatherMapPreloadRUIDs(string mapName)
+		-- 맵 전체에서 '사용될 수 있는' NPC/몬스터/보스/배경 RUID를 중복 없이 모은다(씬 로드 시 백그라운드 캐시 워밍용).
+		-- 타일별 GatherArrivalRUIDs(보스 로스터 select/detail/ingame/die · 마을 NPC · 사냥+ 후보 등)를 union + 이벤트 배경 전체.
+		-- (보스/마을/배경은 서버 롤과 무관한 '결정적' 값이라 진입 즉시 채워짐. 사냥 몬스터 STAND는 @Sync TileMonster 도착 후에만 포함됨.)
+		local set = {}
+		local out = {}
+		local function add(r)
+			if r ~= nil and r ~= "" and set[r] == nil then
+				set[r] = true
+				table.insert(out, r)
+			end
+		end
+		-- tileGraph는 월드 시작(서버) 또는 클라 지연 수집에서 빌드된다. 워밍 시점에 비어 있으면 여기서 즉시 빌드.
+		if next(self.tileGraph) == nil then self:BuildTileGraph() end
+		local prefix = mapName .. "_"
+		for key, _data in pairs(self.tileGraph) do
+			if string.sub(key, 1, #prefix) == prefix then
+				local tileName = string.sub(key, #prefix + 1)
+				local cands = self:GatherArrivalRUIDs(mapName, tileName)
+				for i = 1, #cands do add(cands[i]) end
+			end
+		end
+		-- 이벤트 배경(지역 결정적, 개수 적음) 전체.
+		local bg = _DataService:GetTable("EventBackground")
+		if isvalid(bg) then
+			for i = 1, bg:GetRowCount() do add(bg:GetCell(i, "RUID")) end
+		end
+		return out
+	end
+
+	@ExecSpace("ClientOnly")
+	method void WarmupMapAssets(string mapName)
+		-- 씬(맵) 로드 시 그 맵의 사용 예정 에셋을 백그라운드로 캐시 워밍한다(논블로킹 — 로딩/게임 진행을 막지 않음).
+		-- 리소스는 첫 로드 후 캐시되므로, 도착·선택 시점의 첫 지연(특히 보스 select 상세 이미지)을 사전에 제거한다.
+		local list = self:GatherMapPreloadRUIDs(mapName)
+		if #list == 0 then return end
+		_ResourceService:PreloadAsync(list, function(_results) end)
+		log("[TileManager] 맵 에셋 백그라운드 워밍: " .. tostring(mapName) .. " " .. tostring(#list) .. "개")
+	end
+
 	@ExecSpace("ClientOnly")
 	method void RequestCampVisuals()
 		self._visualRetries = 0

@@ -46,6 +46,11 @@ script PlayerMovement extends Component
 		            _TileManager:EnsureTilesCollected()
 			            -- 클라: 내 진영에 맞춰 변형 타일 겉모습을 로컬 교체(서버에선 ClientOnly라 no-op).
 			            _TileManager:RequestCampVisuals()
+			            -- 씬 로드 시 이 맵의 사용 예정 에셋(보스 로스터/NPC/배경 등)을 백그라운드로 캐시 워밍(논블로킹).
+			            -- 로컬 플레이어 진입에만 실행(다른 플레이어 OnMapEnter로 중복 워밍 방지). 도착 시 top-up(PrefetchForTile)은 유지.
+			            if self.Entity == _UserService.LocalPlayer then
+			                _TileManager:WarmupMapAssets(self.Entity.CurrentMapName)
+			            end
 		        end
 		        log("[PlayerMovement] 맵=" .. tostring(self.Entity.CurrentMapName) .. " 물리/입력 enable=" .. tostring(inGame == false))
 	end
