@@ -7,8 +7,7 @@ script GameModeManager extends Logic
 	@Sync
 	property boolean _isGameActive = false
 
-	-- 엔딩 정리 표 '다음' 대기 중인 piece(검은마법사 종료 → 정리표 → OnPlayerReachedEnd 연결용).
-	property any _pendingEndPiece = nil
+	property integer _roomSeq = 0
 
 	method void OnBeginPlay()
 		        log("[GameModeManager] OnBeginPlay: 모드 선택 대기 중")
@@ -21,19 +20,43 @@ script GameModeManager extends Logic
 
 	@ExecSpace("Server")
 	method void StartSinglePlayer()
-		        if self._isGameActive then
-		            log_warning("[GameModeManager] 이미 게임이 진행 중입니다.")
+		        -- [룸 분리] 로비(스태틱 룸)에서 호출된다. 여기서는 '이 요청자만을 위한 고유 인스턴스 룸'을
+		        -- 생성하고 본인만 그 룸의 Map_01로 이동시킨다. 실제 게임 시작(무기/게이트/턴)은
+		        -- 인스턴스 룸의 Map_01에 도착한 뒤 BeginSingleRoomGame에서 수행한다.
+		        -- 이렇게 해야 로비에 여러 명이 있어도 각자 독립된 룸/GameModeManager로 충돌 없이 플레이한다.
+		        -- ※ CreateInstanceRoom은 스태틱 룸에서만 동작한다(인스턴스 룸에선 nil 반환).
+		        if _RoomService:IsInstanceRoom() then
+		            log_warning("[GameModeManager] StartSinglePlayer는 스태틱 룸(로비)에서만 호출해야 합니다.")
 		            return
 		        end
-		        log("[GameModeManager] 싱글플레이 모드 시작")
+		        local uid = senderUserId
+		        self._roomSeq = self._roomSeq + 1
+		        local roomKey = "Single_" .. uid .. "_" .. tostring(self._roomSeq)
+		        -- Map_01/02/03은 InstanceMap=true 이어야 한다(이 룸에 세 맵을 함께 싣는다).
+		        local room = _RoomService:CreateInstanceRoom(roomKey, { "Map_01", "Map_02", "Map_03" })
+		        if room == nil then
+		            log_error("[GameModeManager] 싱글 인스턴스 룸 생성 실패: " .. roomKey)
+		            return
+		        end
+		        log("[GameModeManager] 싱글 인스턴스 룸 생성: " .. roomKey .. " → 이동 uid=" .. tostring(uid))
+		        _RoomService:MoveUserToInstanceRoom(roomKey, uid, "Map_01")
+	end
+
+	@ExecSpace("Server")
+	method void BeginSingleRoomGame()
+		        -- [룸 분리] 플레이어가 자기 인스턴스 룸의 Map_01에 도착했을 때 클라(FirstMapManagement)가 호출한다.
+		        -- 이 룸의 GameModeManager는 이 플레이어 전용이므로 _isGameActive/턴 상태가 다른 플레이어와 섞이지 않는다.
+		        if _RoomService:IsInstanceRoom() == false then
+		            log_warning("[GameModeManager] BeginSingleRoomGame은 인스턴스 룸에서만 유효합니다.")
+		            return
+		        end
+		        if self._isGameActive then return end   -- 중복 진입(재-OnMapEnter) 방지
+		        log("[GameModeManager] 싱글플레이 게임 시작(인스턴스 룸)")
 		        self._activeMode = "SINGLE"
 		        self._isGameActive = true
-		        -- 본인만 게임 맵으로 텔레포트 (MatchManager의 전환 로직 재사용)
-		        local ids = {}
-		        table.insert(ids, senderUserId)
-		        _MatchManager:TeleportPlayersToGame(ids)
-		        -- 게임 시작 시 기본 무기 '몽둥이(Cudgel)'를 지급+장착한다(아직 직업 선택 전의 시작 무기).
+		        -- 도착 플레이어(요청 클라). 인스턴스 룸엔 이 한 명뿐이다.
 		        local starter = _UserService:GetUserEntityByUserId(senderUserId)
+		        -- 게임 시작 시 기본 무기 '몽둥이(Cudgel)'를 지급+장착한다(아직 직업 선택 전의 시작 무기).
 		        if isvalid(starter) then _JobWeaponManager:EquipStarterCudgel(starter) end
 		        -- 엔딩 정리용 런 기록 초기화(baseline 시각 + 턴/방문 카운터).
 		        if isvalid(starter) then
@@ -104,47 +127,37 @@ script GameModeManager extends Logic
 	end
 
 	@ExecSpace("ServerOnly")
-	method void ShowEndingSummary(Entity piece)
-		-- 검은 마법사 최종전 종료 후(승/패 무관) 호출. 런 기록을 모아 엔딩 정리 표를 소유자 클라에 띄운다.
-		-- 정리 표 '다음'(OnEndingSummaryNext)에서 OnPlayerReachedEnd → FinishGame(기존 결과화면)로 이어진다.
-		if isvalid(piece) == false or piece.PlayerComponent == nil then
-			-- 소유자 확보 실패 시 정리 표 생략하고 기존 흐름 바로 진행.
-			if isvalid(piece) then self:OnPlayerReachedEnd(piece) end
-			return
-		end
-		local uid = piece.PlayerComponent.UserId
-		self._pendingEndPiece = piece
-		local pname = self:GetPlayerName(piece)
-		local pjob = self:GetPlayerJob(piece)
-		local pcamp = self:GetPlayerCamp(piece)
-		local power = 0
-		local cp = piece:GetComponent("script.CombatPowerManager")
-		if isvalid(cp) then power = math.floor(cp.CombatPower) end
-		local minutes = 0
-		local turns = 0
-		local titleType = ""
+	method table CollectRunSummary(Entity piece)
+		-- 결과 카드에 합칠 엔딩 요약 지표(플레이시간/턴/최다방문/인생분기)를 모아 반환한다.
+		-- (기존 엔딩 정리 표를 결과창과 통합 → 별도 요약 화면/‘다음’ 단계 제거.)
+		local out = { minutes = 0, turns = 0, titleType = "", visits = 0, lifeInfo = "" }
+		if isvalid(piece) == false then return out end
 		local rs = piece:GetComponent("script.RunStatsManager")
 		if isvalid(rs) then
-			minutes = rs:PlayMinutes()
-			turns = rs.TurnCount
-			titleType = rs:MostVisitedType()
+			out.minutes = rs:PlayMinutes()
+			out.turns = rs.TurnCount
+			out.titleType = rs:MostVisitedType()
+			out.visits = rs:VisitCount(out.titleType)
 		end
-		local rankPercent = -1
-		local pc = _RankingManager:GetPercentile(power)
-		if pc ~= nil then rankPercent = pc.percent end
-		_EndingSummaryUI:Show(pname, pjob, pcamp, power, minutes, turns, titleType, rankPercent, uid)
-		log("[GameModeManager] 엔딩 정리 표시 uid=" .. uid .. " turns=" .. tostring(turns)
-			.. " min=" .. tostring(minutes) .. " title=" .. tostring(titleType) .. " rank%=" .. tostring(rankPercent))
-	end
-
-	@ExecSpace("Server")
-	method void OnEndingSummaryNext()
-		-- 엔딩 정리 표 '다음' → 보류한 piece로 기존 종료 흐름(결과화면)을 진행. 소유자만 신호 가능.
-		local piece = self._pendingEndPiece
-		if isvalid(piece) == false or piece.PlayerComponent == nil then return end
-		if senderUserId ~= piece.PlayerComponent.UserId then return end
-		self._pendingEndPiece = nil
-		self:OnPlayerReachedEnd(piece)
+		-- 인생 분기(길드/애인) + 인원 수.
+		local lp = piece:GetComponent("script.LifePathManager")
+		local path = ""
+		if isvalid(lp) then path = lp.LifePath end
+		if path == "Guild" then
+			local g = piece:GetComponent("script.GuildManager")
+			local gn = 0
+			if isvalid(g) then
+				gn = g.GeneralMembers
+				if g.Stage >= 2 then gn = gn + 1 end   -- 부길마 포함
+			end
+			out.lifeInfo = "길드 (길드원 " .. tostring(gn) .. "명)"
+		elseif path == "Romance" then
+			local r = piece:GetComponent("script.RomanceManager")
+			local rn = 0
+			if isvalid(r) then rn = r.FamilyMembers end
+			out.lifeInfo = "애인 (유니온 " .. tostring(rn) .. "명)"
+		end
+		return out
 	end
 
 	@ExecSpace("Server")
@@ -223,7 +236,10 @@ script GameModeManager extends Logic
 		            -- 제출(플레이어별 최고만 유지) 후 전체 순위 계산 → 완주자 클라에 리치 결과 카드.
 		            _RankingManager:SubmitRecord(uid, pname, pjob, pcamp, ipower)
 		            local rank = _RankingManager:GetRankOf(uid)
-		            _ResultUI:ShowSingle(pname, ipower, pjob, pcamp, rank, isNew, avatar, uid)
+		            -- 엔딩 요약 지표(플레이시간/턴/최다방문/인생분기)를 모아 결과 카드에 함께 표시(통합본).
+		            local sm = self:CollectRunSummary(piece)
+		            _ResultUI:ShowSingle(pname, ipower, pjob, pcamp, rank, isNew, avatar,
+		                sm.minutes, sm.lifeInfo, sm.titleType, sm.turns, sm.visits, uid)
 		        end
 		
 		        -- 로비 복귀 + 스탯 초기화는 결과 카드를 '닫을 때'로 미룬다(ResultUI.HideCard → ReturnToLobbyAfterResult).
@@ -233,12 +249,14 @@ script GameModeManager extends Logic
 
 	@ExecSpace("Server")
 	method void ReturnToLobbyAfterResult()
-		        -- 결과 카드 닫힘(클라)에서 호출. 로딩 오버레이는 클라가 먼저 띄운 상태 → 여기서 로비 텔레포트 + 스탯 초기화.
+		        -- 결과 카드 닫힘(클라)에서 호출. 로딩 오버레이는 클라가 먼저 띄운 상태.
+		        -- [룸 분리] 인스턴스 룸 → 스태틱 룸(로비)로 복귀. 스탯 초기화는 이동 '전에' 수행한다
+		        -- (이동 후에는 이 인스턴스 룸/GameModeManager가 곧 파기되므로).
 		        local uid = senderUserId
 		        local ue = _UserService:GetUserEntityByUserId(uid)
-		        _MatchManager:TeleportPlayersToLobby({ uid })
 		        if isvalid(ue) then self:ResetPlayerStats(ue) end
-		        log("[GameModeManager] 결과 확인 후 로비 복귀: " .. tostring(uid))
+		        _RoomService:MoveUsersToStaticRoom({ uid }, "Lobby")
+		        log("[GameModeManager] 결과 확인 후 로비 복귀(룸): " .. tostring(uid))
 	end
 
 	@ExecSpace("Server")
@@ -252,6 +270,20 @@ script GameModeManager extends Logic
 		            return
 		        end
 		        log("[GameModeManager] (디버그) 강제 게임 종료 요청")
+		        self:FinishGame(player)
+	end
+
+	@ExecSpace("Server")
+	method void DebugShowEndingSummary()
+		        -- [임시/디버그] 요청 클라 기준으로 통합 결과 카드(엔딩 요약 포함)를 바로 띄운다(검은마법사 전투 없이 검증용).
+		        -- 엔딩 정리 표가 결과창과 통합되어, 이 버튼도 이제 통합 결과 카드를 강제 표시한다. 싱글 게임 진행 중에만 동작.
+		        local player = _UserService:GetUserEntityByUserId(senderUserId)
+		        if isvalid(player) == false then return end
+		        if self._activeMode ~= "SINGLE" then
+		            log_warning("[GameModeManager] DebugShowEndingSummary 무시: 싱글 게임이 아님(mode=" .. tostring(self._activeMode) .. ")")
+		            return
+		        end
+		        log("[GameModeManager] (디버그) 통합 결과 카드 강제 표시")
 		        self:FinishGame(player)
 	end
 
@@ -441,9 +473,18 @@ script GameModeManager extends Logic
 				if piece.PlayerComponent ~= nil then
 					_LoadingManager:ShowLoadingAndPreload(piece.PlayerComponent.UserId)
 				end
-				-- (Tile_1의 위치를 잡기 전이므로 임시 좌표(0,0)로 이동시킵니다)
-				_TeleportService:TeleportToMapPosition(piece, Vector3(0,0,0), nextMapEntity.Name)
+				local spawnPos = Vector3(0, 0, 0)
 		
+				local startTile = _TileManager:GetTileEntity(nextMapName, "Tile_1")
+				
+				if isvalid(startTile) then
+					spawnPos = startTile.TransformComponent.WorldPosition
+				else
+					log_warning("[GameModeManager] 시작 타일 미발견 → (0,0,0) 폴백: " .. nextMapName .. "_Tile_1")
+				end
+		
+				_TeleportService:TeleportToMapPosition(piece, spawnPos, nextMapEntity.Name)
+				
 				-- 다른 맵 도착 연출: '점프'하는 느낌(공중 포즈 + 수직 홉). 텔레포트 동기화 여유로 약간 지연.
 				local jumpUid = ""
 				if piece.PlayerComponent ~= nil then jumpUid = piece.PlayerComponent.UserId end
@@ -458,7 +499,7 @@ script GameModeManager extends Logic
 					pm.remainingSteps = 0
 					pm:ChangePlayerState("IDLE")
 				end
-
+		
 				-- 새 맵(스테이지) 시작 시 서 있는 시작 타일의 레벨을 즉시 적용(진입 즉시 반영, 이동 불필요).
 				-- nextMapName을 명시 전달: 텔레포트 직후 piece.CurrentMapName은 아직 이전 맵일 수 있음.
 				-- ★ 레벨업 게이트: 시작 타일로 레벨이 오르면(맵 진입은 상위 스테이지라 보통 상승),
@@ -475,7 +516,7 @@ script GameModeManager extends Logic
 						self:ShowMapSelectionFor(nextMapName, ownerUid)
 					end)
 				end
-
+		
 				-- 만약 바로 시작하면 TileManager의 타일 수집이 덜 끝날 수 있으므로 타이머 사용 권장
 				    _TimerService:SetTimerOnce(function()
 				        _SingleTurnManager:Start() -- 여기서 Start()가 호출되면 다시 TURN_START 단계부터 시작함

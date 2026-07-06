@@ -1,403 +1,362 @@
---[[
-    MultiTurnManager
-    ----------------------------------------------------------------------------
-    멀티플레이 턴 상태머신(Logic). 서버가 턴 전체를 관장한다.
-
-    싱글과 동일한 상태 순환을 가지되, 멀티 고유의 요소가 더해진다.
-      - 플레이어 등록/순서 관리(_playerUserIds, _currentPlayerIndex).
-      - "현재 턴 플레이어"만 주사위·이동을 할 수 있도록 senderUserId로 검증.
-      - 퇴장(UserLeave) 처리: 목록에서 빼고, 현재 턴이었다면 다음으로 넘김.
-
-    상태 순환:
-      TURN_START → DICE → MOVE → TILE → TURN_END → (다음 플레이어) TURN_START
-
-    상태 전환은 AdvanceToState("상태명")으로 명시적으로 지정한다(싱글의 AdvanceState와 다름).
---]]
 @Logic
 script MultiTurnManager extends Logic
 
-    @Sync
-    property string _currentState = "IDLE"
+	@Sync
+	property string _currentState = "IDLE"
 
-    @Sync
-    property boolean _isActive = false
+	@Sync
+	property boolean _isActive = false
 
-    @Sync
-    property integer _currentPlayerIndex = 0
+	@Sync
+	property integer _currentPlayerIndex = 0
 
-    @Sync
-    property string _currentPlayerUserId = ""
+	@Sync
+	property string _currentPlayerUserId = ""
 
-    @Sync
-    property integer remainDiceTotal = 0        -- 마지막 주사위 합계(MOVE에서 사용)
+	@Sync
+	property integer remainDiceTotal = 0
 
-    -- 주사위를 굴려 연출이 재생되는 동안 true. 연출 종료(OnDiceAnimationEnd)에서 해제.
-    -- DICE 상태가 연출 내내 유지되므로, 이 플래그가 없으면 연출 중 재굴림이 가능하다.
-    @Sync
-    property boolean _isRolling = false
+	@Sync
+	property boolean _isRolling = false
 
-    property any _playerUserIds = nil           -- 인덱스 -> userId 목록
-    property integer _playerCount = 0
-    property any _turnButtonHandler = nil
-    property any _userLeaveHandler = nil
-    property any _finishedUserIds = nil         -- 완주(End 도달) 순위 맵 {userId=완주순위(1=가장 먼저)}
-    property integer _finishedCount = 0         -- 지금까지 완주한 인원 수(완주 순위 부여용)
+	property any _playerUserIds = nil
 
-    -- ────────────────────────────── 생명주기 ──────────────────────────────
+	property integer _playerCount = 0
 
-    method void OnEndPlay()
-        -- 클라이언트: 턴 버튼 핸들러 해제 / 서버: 퇴장 이벤트 핸들러 해제
-        if self:IsClient() then
-            local btn = _EntityService:GetEntityByPath("/ui/DefaultGroup/UnderButton")
-            if isvalid(btn) and self._turnButtonHandler ~= nil then
-                btn:DisconnectEvent(ButtonClickEvent, self._turnButtonHandler)
-                self._turnButtonHandler = nil
-            end
-        else
-            if self._userLeaveHandler ~= nil then
-                self:DisconnectEvent(UserLeaveEvent, self._userLeaveHandler)
-                self._userLeaveHandler = nil
-            end
-        end
-    end
+	property any _turnButtonHandler = nil
 
-    -- 매칭된 userId 목록을 받아 턴 순서로 등록하고 첫 턴을 시작한다. (GameModeManager가 호출)
-    @ExecSpace("Server")
-    method void Start(table userIds)
-        -- 전달받은 매칭 목록을 그대로 0-based 순서표로 등록한다.
-        self._playerUserIds = {}
-        local count = 0
-        for _, userId in ipairs(userIds) do
-            self._playerUserIds[count] = userId
-            count += 1
-        end
+	property any _userLeaveHandler = nil
 
-        if count == 0 then
-            log_error("[MultiTurnManager] 등록된 플레이어가 없습니다.")
-            return
-        end
+	property any _finishedUserIds = nil
 
-        self._playerCount = count
-        self._isActive = true
-        self._currentPlayerIndex = 0
-        self._finishedUserIds = {}
-        self._finishedCount = 0
-        self._userLeaveHandler = self:ConnectEvent(UserLeaveEvent, self.OnUserLeave)
+	property integer _finishedCount = 0
 
-        log("[MultiTurnManager] " .. tostring(self._playerCount) .. "명으로 멀티플레이 시작")
-        self:SetCurrentPlayer(0)
-        self:AdvanceToState("TURN_START")
-    end
+	method void OnEndPlay()
+		        -- 클라이언트: 턴 버튼 핸들러 해제 / 서버: 퇴장 이벤트 핸들러 해제
+		        if self:IsClient() then
+		            local btn = _EntityService:GetEntityByPath("/ui/DefaultGroup/UnderButton")
+		            if isvalid(btn) and self._turnButtonHandler ~= nil then
+		                btn:DisconnectEvent(ButtonClickEvent, self._turnButtonHandler)
+		                self._turnButtonHandler = nil
+		            end
+		        else
+		            if self._userLeaveHandler ~= nil then
+		                self:DisconnectEvent(UserLeaveEvent, self._userLeaveHandler)
+		                self._userLeaveHandler = nil
+		            end
+		        end
+	end
 
-    -- 멀티 모드를 비활성화하고 상태를 초기화한다.
-    @ExecSpace("Server")
-    method void Stop()
-        self._isActive = false
-        self._currentState = "IDLE"
-        self._isRolling = false
-        self._currentPlayerUserId = ""
-        self._playerUserIds = nil
-        self._playerCount = 0
-        self._finishedUserIds = {}
-        self._finishedCount = 0
-        if self._userLeaveHandler ~= nil then
-            self:DisconnectEvent(UserLeaveEvent, self._userLeaveHandler)
-            self._userLeaveHandler = nil
-        end
-        log("[MultiTurnManager] 게임 종료")
-    end
+	@ExecSpace("Server")
+	method void Start(table userIds)
+		        -- 전달받은 매칭 목록을 그대로 0-based 순서표로 등록한다.
+		        self._playerUserIds = {}
+		        local count = 0
+		        for _, userId in ipairs(userIds) do
+		            self._playerUserIds[count] = userId
+		            count += 1
+		        end
+		
+		        if count == 0 then
+		            log_error("[MultiTurnManager] 등록된 플레이어가 없습니다.")
+		            return
+		        end
+		
+		        self._playerCount = count
+		        self._isActive = true
+		        self._currentPlayerIndex = 0
+		        self._finishedUserIds = {}
+		        self._finishedCount = 0
+		        self._userLeaveHandler = self:ConnectEvent(UserLeaveEvent, self.OnUserLeave)
+		
+		        log("[MultiTurnManager] " .. tostring(self._playerCount) .. "명으로 멀티플레이 시작")
+		        self:SetCurrentPlayer(0)
+		        self:AdvanceToState("TURN_START")
+	end
 
-    -- ─────────────────────────── 플레이어 관리 ───────────────────────────
+	@ExecSpace("Server")
+	method void Stop()
+		        self._isActive = false
+		        self._currentState = "IDLE"
+		        self._isRolling = false
+		        self._currentPlayerUserId = ""
+		        self._playerUserIds = nil
+		        self._playerCount = 0
+		        self._finishedUserIds = {}
+		        self._finishedCount = 0
+		        if self._userLeaveHandler ~= nil then
+		            self:DisconnectEvent(UserLeaveEvent, self._userLeaveHandler)
+		            self._userLeaveHandler = nil
+		        end
+		        log("[MultiTurnManager] 게임 종료")
+	end
 
-    -- 현재 턴 플레이어를 설정하고 userId를 클라에 동기화한다.
-    @ExecSpace("Server")
-    method void SetCurrentPlayer(integer idx)
-        self._currentPlayerIndex = idx
-        if self._playerUserIds ~= nil and self._playerUserIds[idx] ~= nil then
-            self._currentPlayerUserId = self._playerUserIds[idx]
-            log("[MultiTurnManager] 현재 플레이어: 인덱스=" .. tostring(idx) .. " userId=" .. self._currentPlayerUserId)
-        else
-            log_warning("[MultiTurnManager] 인덱스 " .. tostring(idx) .. "에 해당하는 플레이어 없음")
-        end
-    end
+	@ExecSpace("Server")
+	method void SetCurrentPlayer(integer idx)
+		        self._currentPlayerIndex = idx
+		        if self._playerUserIds ~= nil and self._playerUserIds[idx] ~= nil then
+		            self._currentPlayerUserId = self._playerUserIds[idx]
+		            log("[MultiTurnManager] 현재 플레이어: 인덱스=" .. tostring(idx) .. " userId=" .. self._currentPlayerUserId)
+		        else
+		            log_warning("[MultiTurnManager] 인덱스 " .. tostring(idx) .. "에 해당하는 플레이어 없음")
+		        end
+	end
 
-    -- 플레이어 퇴장 처리: 목록에서 제거하고 인덱스를 보정한다.
-    @ExecSpace("Server")
-    method void OnUserLeave(UserLeaveEvent event)
-        if not self._isActive then return end
-        local leftUserId = event.UserId
+	@ExecSpace("Server")
+	method void OnUserLeave(UserLeaveEvent event)
+		        if not self._isActive then return end
+		        local leftUserId = event.UserId
+		
+		        local removedIdx = -1
+		        for i = 0, self._playerCount - 1 do
+		            if self._playerUserIds[i] == leftUserId then
+		                removedIdx = i
+		                break
+		            end
+		        end
+		        if removedIdx == -1 then return end
+		
+		        -- 빈 슬롯을 앞으로 당겨 제거
+		        for i = removedIdx, self._playerCount - 2 do
+		            self._playerUserIds[i] = self._playerUserIds[i + 1]
+		        end
+		        self._playerUserIds[self._playerCount - 1] = nil
+		        self._playerCount -= 1
+		
+		        log("[MultiTurnManager] 플레이어 퇴장: userId=" .. leftUserId .. " (남은 인원: " .. tostring(self._playerCount) .. "명)")
+		
+		        if self._playerCount == 0 then
+		            _GameModeManager:EndGame()
+		            return
+		        end
+		
+		        if removedIdx == self._currentPlayerIndex then
+		            -- 퇴장한 플레이어가 현재 턴이면 즉시 다음 플레이어로 전환
+		            local nextIdx = self._currentPlayerIndex % self._playerCount
+		            self:SetCurrentPlayer(nextIdx)
+		            self:AdvanceToState("TURN_START")
+		        elseif removedIdx < self._currentPlayerIndex then
+		            -- 앞 순서가 빠졌으면 현재 인덱스를 한 칸 당김
+		            self._currentPlayerIndex -= 1
+		        end
+	end
 
-        local removedIdx = -1
-        for i = 0, self._playerCount - 1 do
-            if self._playerUserIds[i] == leftUserId then
-                removedIdx = i
-                break
-            end
-        end
-        if removedIdx == -1 then return end
+	@ExecSpace("Server")
+	method string GetNextState()
+		        if self._currentState == "IDLE" then return "TURN_START"
+		        elseif self._currentState == "TURN_START" then return "DICE"
+		        elseif self._currentState == "DICE" then return "MOVE"
+		        elseif self._currentState == "MOVE" then return "TILE"
+		        elseif self._currentState == "TILE" then return "TURN_END"
+		        elseif self._currentState == "TURN_END" then return "TURN_START"
+		        end
+		        return "IDLE"
+	end
 
-        -- 빈 슬롯을 앞으로 당겨 제거
-        for i = removedIdx, self._playerCount - 2 do
-            self._playerUserIds[i] = self._playerUserIds[i + 1]
-        end
-        self._playerUserIds[self._playerCount - 1] = nil
-        self._playerCount -= 1
+	@ExecSpace("Server")
+	method void AdvanceToState(string nextState)
+		        self._currentState = nextState
+		        log("[MultiTurnManager] 상태 전환 → " .. nextState)
+		        self:ExecuteCurrentState()
+	end
 
-        log("[MultiTurnManager] 플레이어 퇴장: userId=" .. leftUserId .. " (남은 인원: " .. tostring(self._playerCount) .. "명)")
+	@ExecSpace("Server")
+	method void ExecuteCurrentState()
+		        local s = self._currentState
+		        if s == "TURN_START" then self:OnTurnStart()
+		        elseif s == "DICE" then self:OnDice()
+		        elseif s == "MOVE" then self:OnMove()
+		        elseif s == "TILE" then self:OnTile()
+		        elseif s == "TURN_END" then self:OnTurnEnd()
+		        end
+	end
 
-        if self._playerCount == 0 then
-            _GameModeManager:EndGame()
-            return
-        end
+	@ExecSpace("Server")
+	method void OnTurnStart()
+		        log("[MultiTurnManager] 턴 시작 (플레이어 " .. tostring(self._currentPlayerIndex) .. ")")
+		        -- 턴 시작 시 현재 턴 플레이어의 데이트 버프 잔여 턴을 1 줄인다(3턴 후 소멸).
+		        for userId, userEntity in pairs(_UserService.UserEntities) do
+		            if userId == self._currentPlayerUserId then
+		                local rm = userEntity:GetComponent("script.RomanceManager")
+		                if isvalid(rm) then rm:OnTurnPassed() end
+		                break
+		            end
+		        end
+		        self:AdvanceToState("DICE")
+	end
 
-        if removedIdx == self._currentPlayerIndex then
-            -- 퇴장한 플레이어가 현재 턴이면 즉시 다음 플레이어로 전환
-            local nextIdx = self._currentPlayerIndex % self._playerCount
-            self:SetCurrentPlayer(nextIdx)
-            self:AdvanceToState("TURN_START")
-        elseif removedIdx < self._currentPlayerIndex then
-            -- 앞 순서가 빠졌으면 현재 인덱스를 한 칸 당김
-            self._currentPlayerIndex -= 1
-        end
-    end
+	@ExecSpace("Server")
+	method void OnDice()
+		        log("[MultiTurnManager] 주사위 단계 - 플레이어 " .. tostring(self._currentPlayerIndex) .. " 입력 대기")
+	end
 
-    -- ───────────────────────────── 상태머신 코어 ─────────────────────────────
+	@ExecSpace("Server")
+	method void OnMove()
+		        log("[MultiTurnManager] 이동 단계 (플레이어 " .. tostring(self._currentPlayerIndex) .. "), 주사위=" .. tostring(self.remainDiceTotal))
+		        for userId, userEntity in pairs(_UserService.UserEntities) do
+		            if userId == self._currentPlayerUserId then
+		                if userEntity.PlayerMovement ~= nil then
+		                    userEntity.PlayerMovement:MoveSteps(self.remainDiceTotal)
+		                end
+		                break
+		            end
+		        end
+	end
 
-    @ExecSpace("Server")
-    method string GetNextState()
-        if self._currentState == "IDLE" then return "TURN_START"
-        elseif self._currentState == "TURN_START" then return "DICE"
-        elseif self._currentState == "DICE" then return "MOVE"
-        elseif self._currentState == "MOVE" then return "TILE"
-        elseif self._currentState == "TILE" then return "TURN_END"
-        elseif self._currentState == "TURN_END" then return "TURN_START"
-        end
-        return "IDLE"
-    end
+	@ExecSpace("Server")
+	method void OnTile()
+		        local startedEvent = false
+		        local interactive = false
+		        for userId, userEntity in pairs(_UserService.UserEntities) do
+		            if userId == self._currentPlayerUserId then
+		                if userEntity.PlayerMovement ~= nil then
+		                    local mapName = userEntity.CurrentMapName
+		                    local tileName = userEntity.PlayerMovement.currentTile
+		                    startedEvent = _TileManager:TriggerArrive(mapName, tileName, userEntity)
+		                    interactive = _TileManager:IsInteractiveArrive(mapName, tileName, userEntity)
+		                end
+		                break
+		            end
+		        end
+		
+		        if startedEvent and interactive then
+		            -- 인터랙티브 타일(예: 마을): 타일이 _GameModeManager:NotifyTileEventDone()으로
+		            -- OnTileEventComplete를 호출할 때까지 대기(고정 타이머 없음).
+		            log("[MultiTurnManager] 인터랙티브 타일 도착 — 완료 신호 대기")
+		        elseif startedEvent then
+		            -- 이벤트 타일: TileEventUI 표시 시간만큼 기다린 뒤 TURN_END로 진행.
+		            local waitSec = _EventTileUI.AutoHideSeconds
+		            if waitSec == nil or waitSec <= 0 then waitSec = 5.0 end
+		            log("[MultiTurnManager] 이벤트 타일 도착 — " .. tostring(waitSec) .. "초 후 턴 종료로 진행")
+		            _TimerService:SetTimerOnce(function()
+		                self:OnTileEventComplete()
+		            end, waitSec)
+		        else
+		            self:AdvanceToState("TURN_END")
+		        end
+	end
 
-    -- 지정한 상태로 전환하고 해당 핸들러를 실행한다.
-    @ExecSpace("Server")
-    method void AdvanceToState(string nextState)
-        self._currentState = nextState
-        log("[MultiTurnManager] 상태 전환 → " .. nextState)
-        self:ExecuteCurrentState()
-    end
+	@ExecSpace("Server")
+	method void OnTileEventComplete()
+		        if not self._isActive then return end
+		        if self._currentState ~= "TILE" then return end
+		        self:AdvanceToState("TURN_END")
+	end
 
-    @ExecSpace("Server")
-    method void ExecuteCurrentState()
-        local s = self._currentState
-        if s == "TURN_START" then self:OnTurnStart()
-        elseif s == "DICE" then self:OnDice()
-        elseif s == "MOVE" then self:OnMove()
-        elseif s == "TILE" then self:OnTile()
-        elseif s == "TURN_END" then self:OnTurnEnd()
-        end
-    end
+	@ExecSpace("Server")
+	method void OnTurnEnd()
+		        if not self._isActive then return end
+		        for step = 1, self._playerCount do
+		            local idx = (self._currentPlayerIndex + step) % self._playerCount
+		            if not self:IsFinished(self._playerUserIds[idx]) then
+		                log("[MultiTurnManager] 턴 종료 → 다음 플레이어 인덱스=" .. tostring(idx))
+		                self:SetCurrentPlayer(idx)
+		                self:AdvanceToState("TURN_START")
+		                return
+		            end
+		        end
+		        -- 미완주 플레이어가 없음 = 전원 End 도달 → 승자 판정.
+		        log("[MultiTurnManager] 전원 완주 → 게임 종료")
+		        local ids = {}
+		        for i = 0, self._playerCount - 1 do
+		            table.insert(ids, self._playerUserIds[i])
+		        end
+		        _GameModeManager:FinishMulti(ids)
+	end
 
-    -- ─────────────────────────── 단계 핸들러(흐름 순) ───────────────────────────
+	@ExecSpace("Server")
+	method void MarkPlayerFinished(string userId)
+		        if not self._isActive then return end
+		        if self._finishedUserIds == nil then self._finishedUserIds = {} end
+		        -- 이미 완주한 경우 순위 유지(중복 호출 방어).
+		        if self._finishedUserIds[userId] == nil then
+		            self._finishedCount += 1
+		            self._finishedUserIds[userId] = self._finishedCount
+		            log("[MultiTurnManager] 완주: " .. userId .. " (" .. tostring(self._finishedCount) .. "위)")
+		        end
+	end
 
-    @ExecSpace("Server")
-    method void OnTurnStart()
-        log("[MultiTurnManager] 턴 시작 (플레이어 " .. tostring(self._currentPlayerIndex) .. ")")
-        -- 턴 시작 시 현재 턴 플레이어의 데이트 버프 잔여 턴을 1 줄인다(3턴 후 소멸).
-        for userId, userEntity in pairs(_UserService.UserEntities) do
-            if userId == self._currentPlayerUserId then
-                local rm = userEntity:GetComponent("script.RomanceManager")
-                if isvalid(rm) then rm:OnTurnPassed() end
-                break
-            end
-        end
-        self:AdvanceToState("DICE")
-    end
+	method boolean IsFinished(string userId)
+		        if self._finishedUserIds == nil then return false end
+		        return self._finishedUserIds[userId] ~= nil
+	end
 
-    -- 주사위 단계: 현재 플레이어의 입력 대기. 실제 굴리기는 RequestRollDice가 처리.
-    @ExecSpace("Server")
-    method void OnDice()
-        log("[MultiTurnManager] 주사위 단계 - 플레이어 " .. tostring(self._currentPlayerIndex) .. " 입력 대기")
-    end
+	method integer GetFinishRank(string userId)
+		        if self._finishedUserIds == nil then return 999999 end
+		        local r = self._finishedUserIds[userId]
+		        if r == nil then return 999999 end
+		        return r
+	end
 
-    -- 이동 단계: 현재 턴 플레이어만 골라 이동시킨다.
-    @ExecSpace("Server")
-    method void OnMove()
-        log("[MultiTurnManager] 이동 단계 (플레이어 " .. tostring(self._currentPlayerIndex) .. "), 주사위=" .. tostring(self.remainDiceTotal))
-        for userId, userEntity in pairs(_UserService.UserEntities) do
-            if userId == self._currentPlayerUserId then
-                if userEntity.PlayerMovement ~= nil then
-                    userEntity.PlayerMovement:MoveSteps(self.remainDiceTotal)
-                end
-                break
-            end
-        end
-    end
+	@ExecSpace("Server")
+	method void RequestRollDice()
+		        if not self._isActive then return end
+		        if self._currentState ~= "DICE" then
+		            log("[MultiTurnManager] 지금은 주사위 단계가 아님: " .. self._currentState)
+		            return
+		        end
+		        if senderUserId ~= self._currentPlayerUserId then
+		            log_warning("[MultiTurnManager] 잘못된 주사위 요청 발신자: " .. senderUserId)
+		            return
+		        end
+		        -- 이미 굴리는 중이면(연출 재생 중) 무시 — 연출 중 재굴림 방지
+		        if self._isRolling then
+		            log("[MultiTurnManager] 이미 주사위를 굴리는 중입니다. 요청 무시")
+		            return
+		        end
+		        self._isRolling = true
+		
+		        local total = _DiceManager:Roll()
+		        self.remainDiceTotal = total
+		        log("[MultiTurnManager] 주사위 결과: " .. tostring(total))
+		
+		        self:PlayDiceAnimation(_DiceManager._dice1, _DiceManager._dice2, total)
+		        -- ※ 여기서 MOVE로 넘기지 않음. 연출이 끝난 뒤 OnDiceAnimationEnd에서 진행.
+	end
 
-    -- 타일 이벤트 단계: 현재 턴 플레이어가 도착한 타일의 OnArrive 호출.
-    -- 이벤트 타일이면 TileEventUI 표시 시간만큼 기다린 뒤 턴 종료로 진행한다.
-    @ExecSpace("Server")
-    method void OnTile()
-        local startedEvent = false
-        local interactive = false
-        for userId, userEntity in pairs(_UserService.UserEntities) do
-            if userId == self._currentPlayerUserId then
-                if userEntity.PlayerMovement ~= nil then
-                    local mapName = userEntity.CurrentMapName
-                    local tileName = userEntity.PlayerMovement.currentTile
-                    startedEvent = _TileManager:TriggerArrive(mapName, tileName, userEntity)
-                    interactive = _TileManager:IsInteractiveArrive(mapName, tileName, userEntity)
-                end
-                break
-            end
-        end
+	@ExecSpace("Client")
+	method void PlayDiceAnimation(integer d1, integer d2, integer total)
+		        _RollDiceAnimationUI:Show(d1, d2, total, function()
+		            self:OnDiceAnimationEnd()
+		        end)
+	end
 
-        if startedEvent and interactive then
-            -- 인터랙티브 타일(예: 마을): 타일이 _GameModeManager:NotifyTileEventDone()으로
-            -- OnTileEventComplete를 호출할 때까지 대기(고정 타이머 없음).
-            log("[MultiTurnManager] 인터랙티브 타일 도착 — 완료 신호 대기")
-        elseif startedEvent then
-            -- 이벤트 타일: TileEventUI 표시 시간만큼 기다린 뒤 TURN_END로 진행.
-            local waitSec = _EventTileUI.AutoHideSeconds
-            if waitSec == nil or waitSec <= 0 then waitSec = 5.0 end
-            log("[MultiTurnManager] 이벤트 타일 도착 — " .. tostring(waitSec) .. "초 후 턴 종료로 진행")
-            _TimerService:SetTimerOnce(function()
-                self:OnTileEventComplete()
-            end, waitSec)
-        else
-            self:AdvanceToState("TURN_END")
-        end
-    end
+	@ExecSpace("Server")
+	method void OnDiceAnimationEnd()
+		        if not self._isActive then return end
+		        if self._currentState ~= "DICE" then return end
+		        self._isRolling = false   -- 연출 종료 → 굴림 잠금 해제
+		        self:AdvanceToState("MOVE")
+	end
 
-    -- TileEventUI 표시가 끝난 뒤 호출. TILE → TURN_END 진행.
-    @ExecSpace("Server")
-    method void OnTileEventComplete()
-        if not self._isActive then return end
-        if self._currentState ~= "TILE" then return end
-        self:AdvanceToState("TURN_END")
-    end
+	@ExecSpace("Server")
+	method void OnMoveComplete()
+		        if not self._isActive then return end
+		        if self._currentState ~= "MOVE" then return end
+		        log("[MultiTurnManager] 이동 완료 수신 → TILE 진행")
+		        self:AdvanceToState("TILE")
+	end
 
-    -- 턴 종료: 다음 '미완주' 플레이어로 순환. 미완주가 없으면 전원 완주 → 게임 종료.
-    @ExecSpace("Server")
-    method void OnTurnEnd()
-        if not self._isActive then return end
-        for step = 1, self._playerCount do
-            local idx = (self._currentPlayerIndex + step) % self._playerCount
-            if not self:IsFinished(self._playerUserIds[idx]) then
-                log("[MultiTurnManager] 턴 종료 → 다음 플레이어 인덱스=" .. tostring(idx))
-                self:SetCurrentPlayer(idx)
-                self:AdvanceToState("TURN_START")
-                return
-            end
-        end
-        -- 미완주 플레이어가 없음 = 전원 End 도달 → 승자 판정.
-        log("[MultiTurnManager] 전원 완주 → 게임 종료")
-        local ids = {}
-        for i = 0, self._playerCount - 1 do
-            table.insert(ids, self._playerUserIds[i])
-        end
-        _GameModeManager:FinishMulti(ids)
-    end
+	@ExecSpace("ClientOnly")
+	method void OnTurnButtonClicked(ButtonClickEvent event)
+		        if not self._isActive then return end
+		        local myUserId = _UserService.LocalPlayer.PlayerComponent.UserId
+		        if myUserId ~= self._currentPlayerUserId then
+		            log("[MultiTurnManager] 내 턴이 아닙니다. (현재: " .. self._currentPlayerUserId .. ")")
+		            return
+		        end
+		        self:RequestAdvanceTurn()
+	end
 
-    -- [End 칸] 해당 플레이어를 완주 처리한다(턴 순환에서 제외됨). 도착 순서대로 완주 순위를 매긴다. GameModeManager가 호출.
-    @ExecSpace("Server")
-    method void MarkPlayerFinished(string userId)
-        if not self._isActive then return end
-        if self._finishedUserIds == nil then self._finishedUserIds = {} end
-        -- 이미 완주한 경우 순위 유지(중복 호출 방어).
-        if self._finishedUserIds[userId] == nil then
-            self._finishedCount += 1
-            self._finishedUserIds[userId] = self._finishedCount
-            log("[MultiTurnManager] 완주: " .. userId .. " (" .. tostring(self._finishedCount) .. "위)")
-        end
-    end
-
-    method boolean IsFinished(string userId)
-        if self._finishedUserIds == nil then return false end
-        return self._finishedUserIds[userId] ~= nil
-    end
-
-    -- 완주 순위(1=가장 먼저 도착). 미완주/미등록은 매우 큰 값으로 취급해 뒤로 정렬되게 한다.
-    method integer GetFinishRank(string userId)
-        if self._finishedUserIds == nil then return 999999 end
-        local r = self._finishedUserIds[userId]
-        if r == nil then return 999999 end
-        return r
-    end
-
-    -- ──────────────────────────── 외부 요청 처리 ────────────────────────────
-
-    -- [주사위 요청] 굴리기 버튼이 호출. DICE 단계 + 현재 턴 플레이어만 유효.
-    @ExecSpace("Server")
-    method void RequestRollDice()
-        if not self._isActive then return end
-        if self._currentState ~= "DICE" then
-            log("[MultiTurnManager] 지금은 주사위 단계가 아님: " .. self._currentState)
-            return
-        end
-        if senderUserId ~= self._currentPlayerUserId then
-            log_warning("[MultiTurnManager] 잘못된 주사위 요청 발신자: " .. senderUserId)
-            return
-        end
-        -- 이미 굴리는 중이면(연출 재생 중) 무시 — 연출 중 재굴림 방지
-        if self._isRolling then
-            log("[MultiTurnManager] 이미 주사위를 굴리는 중입니다. 요청 무시")
-            return
-        end
-        self._isRolling = true
-
-        local total = _DiceManager:Roll()
-        self.remainDiceTotal = total
-        log("[MultiTurnManager] 주사위 결과: " .. tostring(total))
-
-        self:PlayDiceAnimation(_DiceManager._dice1, _DiceManager._dice2, total)
-        -- ※ 여기서 MOVE로 넘기지 않음. 연출이 끝난 뒤 OnDiceAnimationEnd에서 진행.
-    end
-
-    -- [클라 연출] 싱글과 동일한 주사위 연출. 끝나면 서버에 MOVE 진행을 요청한다.
-    @ExecSpace("Client")
-    method void PlayDiceAnimation(integer d1, integer d2, integer total)
-        _RollDiceAnimationUI:Show(d1, d2, total, function()
-            self:OnDiceAnimationEnd()
-        end)
-    end
-
-    -- [연출 종료 수신] 주사위 연출이 끝나면 DICE → MOVE.
-    @ExecSpace("Server")
-    method void OnDiceAnimationEnd()
-        if not self._isActive then return end
-        if self._currentState ~= "DICE" then return end
-        self._isRolling = false   -- 연출 종료 → 굴림 잠금 해제
-        self:AdvanceToState("MOVE")
-    end
-
-    -- [이동 완료 수신] PlayerMovement가 이동을 마치면 호출한다. MOVE → TILE.
-    @ExecSpace("Server")
-    method void OnMoveComplete()
-        if not self._isActive then return end
-        if self._currentState ~= "MOVE" then return end
-        log("[MultiTurnManager] 이동 완료 수신 → TILE 진행")
-        self:AdvanceToState("TILE")
-    end
-
-    -- [턴 진행 버튼] 내 턴일 때만 서버에 진행을 요청한다.
-    @ExecSpace("ClientOnly")
-    method void OnTurnButtonClicked(ButtonClickEvent event)
-        if not self._isActive then return end
-        local myUserId = _UserService.LocalPlayer.PlayerComponent.UserId
-        if myUserId ~= self._currentPlayerUserId then
-            log("[MultiTurnManager] 내 턴이 아닙니다. (현재: " .. self._currentPlayerUserId .. ")")
-            return
-        end
-        self:RequestAdvanceTurn()
-    end
-
-    -- 턴 진행 요청. 발신자가 현재 턴 플레이어인지 검증 후 다음 상태로.
-    @ExecSpace("Server")
-    method void RequestAdvanceTurn()
-        if not self._isActive then return end
-        if senderUserId ~= self._currentPlayerUserId then
-            log_warning("[MultiTurnManager] 잘못된 턴 진행 요청 발신자: " .. senderUserId)
-            return
-        end
-        log("[MultiTurnManager] 턴 진행 (플레이어 " .. tostring(self._currentPlayerIndex) .. ")")
-        self:AdvanceToState(self:GetNextState())
-    end
+	@ExecSpace("Server")
+	method void RequestAdvanceTurn()
+		        if not self._isActive then return end
+		        if senderUserId ~= self._currentPlayerUserId then
+		            log_warning("[MultiTurnManager] 잘못된 턴 진행 요청 발신자: " .. senderUserId)
+		            return
+		        end
+		        log("[MultiTurnManager] 턴 진행 (플레이어 " .. tostring(self._currentPlayerIndex) .. ")")
+		        self:AdvanceToState(self:GetNextState())
+	end
 
 end

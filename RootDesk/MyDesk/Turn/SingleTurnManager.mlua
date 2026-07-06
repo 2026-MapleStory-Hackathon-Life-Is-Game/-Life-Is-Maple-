@@ -15,7 +15,6 @@ script SingleTurnManager extends Logic
 
 	property any _turnButtonHandler = nil
 
-	-- 직전 도착 타일이 사냥(이벤트) 타일이면 true → 결과 주사위(RESULT_DICE)를 건너뛴다. (서버 전용 상태)
 	property boolean _skipResultDice = false
 
 	method void OnEndPlay()
@@ -169,25 +168,25 @@ script SingleTurnManager extends Logic
 
 	@ExecSpace("Server")
 	method void OnTileGated()
-	        -- 타일 단계(TILE) 진입점. 도착 타일로 레벨이 오르면 타일 이벤트(OnTile)가 발동하기 '전에'
-	        -- 먼저 레벨업 축하 배너를 띄우고, 배너가 닫힌 뒤 OnTile을 실행한다. 레벨업이 없으면 즉시 OnTile.
-	        -- (레벨은 배너와 동시에 선적용 → 이후 OnTile→TriggerArrive의 ApplyTileLevel은 단조 증가 가드로 통과.)
-	        for _, userEntity in pairs(_UserService.UserEntities) do
-	            if userEntity.PlayerMovement ~= nil then
-	                local mapName  = userEntity.CurrentMapName
-	                local tileName = userEntity.PlayerMovement.currentTile
-	                local peek = _TileManager:PeekArrival(mapName, tileName, userEntity)
-	                if peek.up then
-	                    _TileManager:ApplyArrivalLevel(mapName, tileName, userEntity)
-	                    _LevelUpCelebration:Gate(userEntity, true, peek.level, function()
-	                        self:OnTile()
-	                    end)
-	                    return
-	                end
-	            end
-	            break
-	        end
-	        self:OnTile()
+		        -- 타일 단계(TILE) 진입점. 도착 타일로 레벨이 오르면 타일 이벤트(OnTile)가 발동하기 '전에'
+		        -- 먼저 레벨업 축하 배너를 띄우고, 배너가 닫힌 뒤 OnTile을 실행한다. 레벨업이 없으면 즉시 OnTile.
+		        -- (레벨은 배너와 동시에 선적용 → 이후 OnTile→TriggerArrive의 ApplyTileLevel은 단조 증가 가드로 통과.)
+		        for _, userEntity in pairs(_UserService.UserEntities) do
+		            if userEntity.PlayerMovement ~= nil then
+		                local mapName  = userEntity.CurrentMapName
+		                local tileName = userEntity.PlayerMovement.currentTile
+		                local peek = _TileManager:PeekArrival(mapName, tileName, userEntity)
+		                if peek.up then
+		                    _TileManager:ApplyArrivalLevel(mapName, tileName, userEntity)
+		                    _LevelUpCelebration:Gate(userEntity, true, peek.level, function()
+		                        self:OnTile()
+		                    end)
+		                    return
+		                end
+		            end
+		            break
+		        end
+		        self:OnTile()
 	end
 
 	@ExecSpace("Server")
@@ -210,7 +209,7 @@ script SingleTurnManager extends Logic
 					end
 					break
 				end
-
+		
 				if startedEvent and interactive then
 					-- 인터랙티브 타일(예: 마을): 타일이 _GameModeManager:NotifyTileEventDone()으로
 					-- OnTileEventComplete를 호출할 때까지 대기(고정 타이머 없음).

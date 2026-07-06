@@ -187,7 +187,7 @@ script MatchManager extends Logic
 	end
 
 	method Vector3 GetGameSpawnPosition()
-		local startTile = _TileManager:GetTileEntity("Map_01", "Tile_01")
+		local startTile = _TileManager:GetTileEntity("Map_01", "Tile_1")
 		        
 		        if isvalid(startTile) then
 		            return startTile.TransformComponent.WorldPosition

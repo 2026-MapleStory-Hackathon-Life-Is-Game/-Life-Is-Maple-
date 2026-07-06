@@ -79,20 +79,20 @@ script ModeSelectUI extends Logic
 	@ExecSpace("ClientOnly")
 	method void OnClickSingle()
 		_SFXManager:PlayClick()
-		-- 오프닝 Lv.10 인트로 배너가 진영 선택보다 먼저 나오도록, 진영 자동표시를 억제 예약(클라 로컬 → 맵 진입 경쟁 없음).
-		_LevelUpCelebration:MarkOpeningCampPending()
-		_GameModeManager:StartSinglePlayer()
 		self:SetPanelEnable(self.modeSelectPanel, false)
 		self:SetPanelEnable(self.matchingPanel, false)
+		-- [룸 분리] 로비(스태틱 룸)에서는 '내 전용 인스턴스 룸 생성 + 이동'만 요청한다.
+		-- 오프닝 인트로/억제 플래그/실제 게임 시작은 인스턴스 룸의 Map_01 도착 시점(FirstMapManagement.OnMapEnter)에서 처리된다.
+		-- (로비의 클라 상태는 룸 이동으로 끊기므로 여기서 인트로를 띄우면 안 된다.)
+		_GameModeManager:StartSinglePlayer()
 	end
 
 	@ExecSpace("ClientOnly")
 	method void OnClickMulti()
+		-- [룸 분리 작업 중] 멀티는 임시 비활성화. 게임 맵(Map_01/02/03)이 인스턴스 맵으로 전환되어
+		-- 기존 멀티 흐름(스태틱 룸 텔레포트)이 동작하지 않는다. 멀티도 인스턴스 룸으로 옮긴 뒤 재활성화 예정.
 		_SFXManager:PlayClick()
-		_MatchManager:JoinMatch()
-		self:SetPanelEnable(self.modeSelectPanel, false)
-		self:SetPanelEnable(self.matchingPanel, true)
-		self:UpdateMatchingText(0, 4)
+		log("[ModeSelectUI] 멀티플레이는 현재 준비 중입니다(비활성화).")
 	end
 
 	@ExecSpace("ClientOnly")
