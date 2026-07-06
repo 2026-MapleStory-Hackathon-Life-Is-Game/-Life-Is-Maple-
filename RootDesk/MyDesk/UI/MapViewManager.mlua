@@ -3,7 +3,6 @@ script MapViewManager extends Logic
 
 	property boolean _isOpen = false
 
-	-- 인벤토리가 열려 있으면 휠은 카메라 줌이 아니라 인벤 목록 스크롤에 쓰여야 하므로 줌을 막는다.
 	property boolean _inventoryOpen = false
 
 	property number _camMoveSpeed = 6.0
@@ -14,37 +13,56 @@ script MapViewManager extends Logic
 
 	property boolean _origConfine = true
 
+	property Vector2 _origDamping = Vector2(2.5, 5.0)
+
 	property any _currentTween = nil
 
 	property any _scrollHandler = nil
 
-	-- 우클릭 드래그 패닝 상태.
+	property any _escHandler = nil
+
 	property boolean _dragging = false
+
 	property Vector2 _lastCursor = Vector2(0, 0)
-	-- 드래그 1px당 카메라 오프셋(월드) 이동량. 줌 비례 보정과 함께 사용.
+
 	property number _dragScale = 0.012
 
-	-- === 카메라 이동 범위(맵 경계) ===
-	-- 맵 뷰를 열 때 '도달 가능 타일 + 플레이어 위치'로 월드 바운딩 박스를 만들고,
-	-- 매 프레임 카메라 중심(플레이어 앵커 + CameraOffset)이 이 박스를 벗어나지 못하게 클램프한다.
-	-- 목적: WASD/드래그 패닝으로 미구현 영역까지 이동하는 것을 막는다.
 	property boolean _boundsReady = false
-	-- 콘텐츠 박스에 더할 여백(월드유닛). 클수록 가장자리 너머로 더 팬할 수 있다.
+
 	property number _boundsPadding = 1.5
-	-- 열 때 캡처한 플레이어 월드 위치(앵커). CameraOffset=0 == 카메라가 이 지점을 비춘다는 가정.
+
 	property number _anchorX = 0
+
 	property number _anchorY = 0
-	-- 카메라 중심 허용 범위(월드).
+
 	property number _boundMinX = 0
+
 	property number _boundMaxX = 0
+
 	property number _boundMinY = 0
+
 	property number _boundMaxY = 0
+
+	property boolean _branchPreview = false
+
+	property Vector2 _branchPreviewOffset = Vector2(0, -5)
 
 	@ExecSpace("ClientOnly")
 	method void OnBeginPlay()
 		self._scrollHandler = _InputService:ConnectEvent(MouseScrollEvent, self.OnMouseScroll)
+		-- ESC 키로 맵 뷰 닫기.
+		self._escHandler = _InputService:ConnectEvent(KeyDownEvent, self.OnKeyDown)
 		-- 엔진 내장 휠 줌(IsAllowZoomInOut)은 끈다. 맵뷰 줌은 OnMouseScroll에서만 직접 처리.
 		self:DisableEngineZoom()
+	end
+
+	@ExecSpace("ClientOnly")
+	method void OnKeyDown(KeyDownEvent event)
+		-- ESC: 맵 뷰가 열려 있으면 닫는다(HUD 복원 + 카메라 원복은 CloseMapView가 처리).
+		if event.key == KeyboardKey.Escape and self._isOpen then
+			self:CloseMapView()
+			log("[MapViewManager] ESC → 맵 뷰 닫기")
+		end
 	end
 
 	@ExecSpace("ClientOnly")
@@ -62,6 +80,10 @@ script MapViewManager extends Logic
 		if self._scrollHandler ~= nil then
 			_InputService:DisconnectEvent(MouseScrollEvent, self._scrollHandler)
 			self._scrollHandler = nil
+		end
+		if self._escHandler ~= nil then
+			_InputService:DisconnectEvent(KeyDownEvent, self._escHandler)
+			self._escHandler = nil
 		end
 	end
 
@@ -83,12 +105,12 @@ script MapViewManager extends Logic
 	method void OnUpdate(number delta)
 		-- 맵 전환으로 카메라가 모델에서 재생성되면 IsAllowZoomInOut이 다시 true가 될 수 있어 매 프레임 끈다(필요할 때만 write).
 		self:DisableEngineZoom()
-
+		
 		if not self._isOpen then return end
-
+		
 		local cam = _CameraService:GetCurrentCameraComponent()
 		if not isvalid(cam) then return end
-
+		
 		local spd = self._camMoveSpeed * delta
 		local dx = 0
 		local dy = 0
@@ -96,14 +118,14 @@ script MapViewManager extends Logic
 		if _InputService:IsKeyPressed(KeyboardKey.S) or _InputService:IsKeyPressed(KeyboardKey.DownArrow) then dy = dy - spd end
 		if _InputService:IsKeyPressed(KeyboardKey.A) or _InputService:IsKeyPressed(KeyboardKey.LeftArrow) then dx = dx - spd end
 		if _InputService:IsKeyPressed(KeyboardKey.D) or _InputService:IsKeyPressed(KeyboardKey.RightArrow) then dx = dx + spd end
-
+		
 		if dx ~= 0 or dy ~= 0 then
 			cam.CameraOffset = Vector2(cam.CameraOffset.x + dx, cam.CameraOffset.y + dy)
 		end
-
+		
 		-- 우클릭 드래그 패닝(맵뷰 한정). 맵을 '잡아끌기': 커서 이동 방향으로 맵이 따라온다.
 		self:UpdateDragPan(cam)
-
+		
 		-- 키보드/드래그 패닝이 모두 끝난 뒤, 카메라 중심을 맵 경계 박스 안으로 제한한다.
 		self:ClampCameraOffset(cam)
 	end
@@ -161,48 +183,141 @@ script MapViewManager extends Logic
 		if not isvalid(me) then return end
 		local pm = me:GetComponent("script.PlayerMovement")
 		if not isvalid(pm) then return end
-
+		
 		if next(_TileManager.tileGraph) == nil then
 			_TileManager:BuildTileGraph()
 		end
-
+		
 		local mapName = me.CurrentMapName
 		local currentTile = pm.currentTile
-
+		
 		local reachable = self:ComputeReachableTiles(mapName, currentTile)
 		if #reachable == 0 then
 			log("[MapViewManager] 도달 가능 타일 없음")
 			return
 		end
-
+		
 		self:ShowTileNumbers(reachable, mapName)
-
+		
 		-- 카메라 이동 범위(맵 경계) 계산: 도달 타일 + 플레이어 위치 기준 바운딩 박스.
 		self:ComputeViewBounds(me, reachable, mapName)
+		
+		-- 일반 맵 뷰(분기 미리보기 아님).
+		self._branchPreview = false
+		self:EnterCameraView()
+		log("[MapViewManager] 맵 뷰 열림: " .. tostring(#reachable) .. "개 타일 표시")
+	end
 
+	@ExecSpace("ClientOnly")
+	method void EnterCameraView()
+		-- 맵 뷰 / 분기 미리보기 공용 카메라 진입: 현재 상태 저장 → 클램프 해제 → 줌아웃 → HUD 숨김.
 		local cam = _CameraService:GetCurrentCameraComponent()
 		if not isvalid(cam) then
 			self._isOpen = true
 			self:SetHudHidden(true)
 			return
 		end
-
 		self:StopCurrentTween()
-
-		-- 현재 상태 저장
 		self._origCameraOffset = cam.CameraOffset
 		self._origZoom = cam.ZoomRatio
 		self._origConfine = cam.ConfineCameraArea
-
+		self._origDamping = cam.Damping
 		-- 맵 경계 클램프 해제: 줌 아웃 시 카메라가 맵 가장자리에 밀려 살짝 움직이는 현상 방지.
 		cam.ConfineCameraArea = false
-
-		-- 카메라 줌 축소 (0.4초 트윈)
+		-- 카메라 추적 스무딩(Damping) 완전 차단: 맵뷰 오프셋 이동이 엔진 추적 지연과 겹쳐
+		-- '애매하게 미끄러지는' 현상 방지. CameraOffset을 1:1 즉시 따라가게 한다(닫을 때 원복).
+		cam.Damping = Vector2(0, 0)
+		-- 카메라 줌 축소 (0.25초 트윈)
 		cam:SetZoomTo(50, 0.25)
-
 		self._isOpen = true
 		self:SetHudHidden(true)
-		log("[MapViewManager] 맵 뷰 열림: " .. tostring(#reachable) .. "개 타일 표시")
+	end
+
+	@ExecSpace("ClientOnly")
+	method void OpenBranchPreview(string mapName, table branchTiles, table branchLabels, integer remaining)
+		-- 기능 10: 각 분기의 '주사위 도착 칸'을 보드 위에 분기 라벨 마커로 표시하고 카메라를 줌아웃한다.
+		if next(_TileManager.tileGraph) == nil then _TileManager:BuildTileGraph() end
+		local me = _UserService.LocalPlayer
+		if not isvalid(me) then return end
+		local landings = {}
+		for i = 1, #branchTiles do
+			-- 분기 선택 시 그 칸으로 한 칸 이동한 뒤 (remaining-1)칸 더 진행 → 도착 칸.
+			local landing = _TileManager:PredictLanding(mapName, branchTiles[i], remaining - 1)
+			if landing == "" then landing = branchTiles[i] end   -- 도중 재분기면 최소한 분기 첫 칸을 표시.
+			table.insert(landings, {tileName = landing, label = branchLabels[i]})
+		end
+		self._branchPreview = true
+		self:ShowBranchMarkers(landings, mapName)
+		-- 도착 칸 + 플레이어 위치로 카메라 이동 범위를 잡는다(ComputeViewBounds는 entry.tileName만 읽음).
+		self:ComputeViewBounds(me, landings, mapName)
+		self:EnterCameraView()
+		
+		-- 분기 미리보기 한정: 카메라 중심을 모든 도착칸의 무게중심(centroid)으로 0.25초에 걸쳐 이동.
+		-- 카메라 중심 = 앵커(_anchorX/Y, 방금 ComputeViewBounds가 세팅) + CameraOffset 이므로
+		-- 목표 오프셋 = centroid − 앵커. centroid는 도착칸 min/max 안이라 ClampCameraOffset과 충돌 없음.
+		local cam = _CameraService:GetCurrentCameraComponent()
+		if isvalid(cam) then
+			local c = self:ComputeCentroid(landings, mapName)
+			-- 목표 오프셋 = (centroid − 앵커) + 사용자 지정 미세조정 오프셋(_branchPreviewOffset).
+			self:GlideCameraTo(cam, Vector2(
+				c.x - self._anchorX + self._branchPreviewOffset.x,
+				c.y - self._anchorY + self._branchPreviewOffset.y))
+		end
+		log("[MapViewManager] 분기 미리보기: " .. tostring(#landings) .. "개 도착칸 표시")
+	end
+
+	@ExecSpace("ClientOnly")
+	method Vector2 ComputeCentroid(table entries, string mapName)
+		-- entries의 각 tileName 엔티티 WorldPosition 평균(무게중심)을 월드 좌표로 반환.
+		local sx = 0
+		local sy = 0
+		local n = 0
+		for _, entry in ipairs(entries) do
+			local entity = _TileManager:GetTileEntity(mapName, entry.tileName)
+			if isvalid(entity) then
+				local tp = entity.TransformComponent.WorldPosition
+				sx = sx + tp.x
+				sy = sy + tp.y
+				n = n + 1
+			end
+		end
+		if n == 0 then return Vector2(self._anchorX, self._anchorY) end
+		return Vector2(sx / n, sy / n)
+	end
+
+	@ExecSpace("ClientOnly")
+	method void GlideCameraTo(any cam, Vector2 toOffset)
+		-- CameraOffset을 현재값 → toOffset으로 0.25초 트윈(option A). 닫기 트윈과 동일 채널(_currentTween).
+		if not isvalid(cam) then return end
+		self:StopCurrentTween()
+		local fromOffset = cam.CameraOffset
+		self._currentTween = _TweenLogic:PlayTween(
+			fromOffset, toOffset, 0.25, EaseType.QuadEaseOut,
+			function(v)
+				local c = _CameraService:GetCurrentCameraComponent()
+				if isvalid(c) then c.CameraOffset = v end
+			end
+		)
+		self._currentTween:SetOnEndCallback(function()
+			self._currentTween = nil
+		end)
+	end
+
+	@ExecSpace("ClientOnly")
+	method void ShowBranchMarkers(table landings, string mapName)
+		-- 도착 칸의 MapDistance_Panel 텍스트를 분기 라벨로 채워 마커로 쓴다(맵뷰 거리표시와 동일 채널).
+		-- 닫힐 때 HideTileNumbers가 모든 타일의 MapDistance_Panel을 다시 숨기므로 마커도 함께 정리된다.
+		for _, entry in ipairs(landings) do
+			local entity = _TileManager:GetTileEntity(mapName, entry.tileName)
+			if isvalid(entity) then
+				local textChild = entity:GetChildByName("MapDistance_Panel")
+				if isvalid(textChild) then
+					local tc = textChild.TextGUIRendererComponent
+					if isvalid(tc) then tc.Text = entry.label end
+					textChild.Enable = true
+				end
+			end
+		end
 	end
 
 	@ExecSpace("ClientOnly")
@@ -211,19 +326,25 @@ script MapViewManager extends Logic
 		self._isOpen = false
 		self._dragging = false
 		self._boundsReady = false
-
+		
+		-- 분기 미리보기로 열렸다면 분기 선택창을 다시 표시(카메라 유효 여부와 무관하게 먼저 처리).
+		if self._branchPreview then
+			self._branchPreview = false
+			_BranchSelectUI:OnMapPreviewClosed()
+		end
+		
 		self:HideTileNumbers()
 		self:SetHudHidden(false)
-
+		
 		local cam = _CameraService:GetCurrentCameraComponent()
 		if not isvalid(cam) then return end
-
+		
 		self:StopCurrentTween()
-
+		
 		-- 카메라 오프셋 원점으로 트윈 복귀
 		local fromOffset = cam.CameraOffset
 		local toOffset = self._origCameraOffset
-
+		
 		self._currentTween = _TweenLogic:PlayTween(
 			fromOffset, toOffset, 0.3, EaseType.QuadEaseOut,
 			function(v)
@@ -234,13 +355,15 @@ script MapViewManager extends Logic
 		self._currentTween:SetOnEndCallback(function()
 			self._currentTween = nil
 		end)
-
+		
 		-- 줌 원래대로 복귀 (0.3초 트윈)
 		cam:SetZoomTo(self._origZoom, 0.3)
-
+		
 		-- 맵 경계 클램프 원복
 		cam.ConfineCameraArea = self._origConfine
-
+		-- 카메라 추적 스무딩(Damping) 원복.
+		cam.Damping = self._origDamping
+		
 		log("[MapViewManager] 맵 뷰 닫힘")
 	end
 
@@ -328,14 +451,14 @@ script MapViewManager extends Logic
 		local pos = me.TransformComponent.WorldPosition
 		self._anchorX = pos.x
 		self._anchorY = pos.y
-
+		
 		-- 플레이어 위치를 시드로 사용: offset=0(=플레이어를 비추는 기본 뷰)이 항상 박스 안에 들어오게 해
 		-- 맵 뷰를 여는 순간 카메라가 튀는 것을 방지한다.
 		local minX = pos.x
 		local maxX = pos.x
 		local minY = pos.y
 		local maxY = pos.y
-
+		
 		local count = 0
 		for _, entry in ipairs(reachable) do
 			local entity = _TileManager:GetTileEntity(mapName, entry.tileName)
@@ -348,7 +471,7 @@ script MapViewManager extends Logic
 				count = count + 1
 			end
 		end
-
+		
 		local pad = self._boundsPadding
 		self._boundMinX = minX - pad
 		self._boundMaxX = maxX + pad
@@ -362,18 +485,20 @@ script MapViewManager extends Logic
 	@ExecSpace("ClientOnly")
 	method void ClampCameraOffset(any cam)
 		-- 카메라 중심(플레이어 앵커 + CameraOffset)을 콘텐츠 박스 안으로 제한한다.
+		-- 분기 미리보기 중에는 _branchPreviewOffset으로 박스 밖까지 자유롭게 밀 수 있어야 하므로 클램프하지 않는다.
+		if self._branchPreview then return end
 		if not self._boundsReady then return end
 		if not isvalid(cam) then return end
-
+		
 		local off = cam.CameraOffset
 		local centerX = self._anchorX + off.x
 		local centerY = self._anchorY + off.y
-
+		
 		if centerX < self._boundMinX then centerX = self._boundMinX end
 		if centerX > self._boundMaxX then centerX = self._boundMaxX end
 		if centerY < self._boundMinY then centerY = self._boundMinY end
 		if centerY > self._boundMaxY then centerY = self._boundMaxY end
-
+		
 		local newX = centerX - self._anchorX
 		local newY = centerY - self._anchorY
 		-- 변화가 있을 때만 write(불필요한 대입/동기화 방지).
