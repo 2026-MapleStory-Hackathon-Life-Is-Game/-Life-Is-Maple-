@@ -1,7 +1,6 @@
 @Component
 script TileEntity extends Component
 
-	-- Tile type: "NORMAL" | "HEAL" | "DAMAGE" | "EVENT" | "JOB"
 	property string tileType = "NORMAL"
 
 	@ExecSpace("ServerOnly")
@@ -11,21 +10,21 @@ script TileEntity extends Component
 			log_error("TileEntity.OnPieceEnter: invalid playerEntity")
 			return
 		end
-
+		
 		log("TileEntity: player landed on " .. self.tileType .. " tile")
-
+		
 		if self.tileType == "NORMAL" then
 			-- No effect; TurnManager advances phase automatically.
-
+		
 		elseif self.tileType == "HEAL" then
 			-- TODO: restore HP (TurnManager advances after this returns)
-
+		
 		elseif self.tileType == "DAMAGE" then
 			-- TODO: deal damage (TurnManager advances after this returns)
-
+		
 		elseif self.tileType == "EVENT" then
 			-- TODO: trigger random event (TurnManager advances after this returns)
-
+		
 		elseif self.tileType == "JOB" then
 			-- Show job selection UI on the landing player's client.
 			-- Phase does NOT advance here; JobManager.OnJobSelected calls AdvancePhase.
@@ -37,7 +36,7 @@ script TileEntity extends Component
 			local userId = pc.UserId
 			_JobManager:ShowJobSelect(userId)
 			return
-
+		
 		else
 			log_warning("TileEntity.OnPieceEnter: unknown tileType=" .. self.tileType)
 		end

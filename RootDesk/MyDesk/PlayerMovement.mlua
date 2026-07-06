@@ -30,6 +30,11 @@ script PlayerMovement extends Component
 				-- GameModeManager.MoveToNextMap의 레벨업 게이트(→ ShowMapSelectionFor)로 이관했다.
 				-- (게임은 항상 Map_01에서 시작해 MoveToNextMap으로만 Map_02/03에 진입하므로 여기서 빠져도 누락되지 않는다.)
 				if self.Entity.CurrentMapName == "Map_01" then
+					-- [룸 분리] 인스턴스 룸 싱글 플로우에서는 진영 선택을 BeginSingleRoomGame의 Lv.10 게이트가 연다.
+					-- 여기서 열면 '인트로 도중 조기 오픈' + '게이트 후 재오픈'(이중)이 된다.
+					-- (MarkOpeningCampPending는 FirstMapManagement의 클라 타이머로 늦게 켜져 UpdateMapUI가 먼저 실행되는 레이스가 있다.)
+					-- 인스턴스 룸이면 항상 게이트가 담당하므로 여기선 건너뛴다(타이밍 비의존).
+					if _RoomService ~= nil and _RoomService:IsInstanceRoom() then return end
 					-- 싱글 오프닝: Lv.10 인트로 배너가 먼저 나와야 하므로, 배너 게이트가 진영 선택을 열 예정이면 여기선 건너뛴다.
 					-- (멀티 등 게이트가 없으면 플래그가 꺼져 있어 기존대로 즉시 표시.)
 					if _LevelUpCelebration:IsOpeningCampPending() == false then
@@ -108,7 +113,7 @@ script PlayerMovement extends Component
 				        if #nextList >= 2 then
 				            -- 선택지 도착 Region이 다르면 한글 마을 이름, 같으면 BranchText("N번 분기점") 라벨.
 				            local branchTexts = _TileManager:GetBranchLabels(self.Entity.CurrentMapName, nextList)
-				            self:ShowBranchUI(nextList, branchTexts)
+				            self:ShowBranchUI(nextList, branchTexts, self.remainingSteps)
 				            return   -- 선택이 올 때까지 멈춤 (OnBranchSelected에서 재개)
 				        end
 				
@@ -226,8 +231,9 @@ script PlayerMovement extends Component
 	end
 
 	@ExecSpace("Client")
-	method void ShowBranchUI(table tileNames, table branchTexts)
-		        _BranchSelectUI:Show(tileNames, branchTexts)
+	method void ShowBranchUI(table tileNames, table branchTexts, integer remaining)
+		        -- remaining: 분기 시점의 남은 주사위 수. 각 분기의 도착 칸 예측에 사용된다.
+		        _BranchSelectUI:Show(tileNames, branchTexts, remaining)
 	end
 
 	@ExecSpace("Client")
