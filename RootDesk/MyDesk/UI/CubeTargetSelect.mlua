@@ -1,26 +1,26 @@
---[[
-    CubeTargetSelect
-    ----------------------------------------------------------------------------
-    미라클 큐브 사용 대상(장비) 선택 패널.
-    인벤 미라클 큐브 → '사용한다' → 이 패널을 연다.
-      - 무기/방어구/장신구 탭으로 카테고리 전환, 그리드에서 장비 선택.
-      - 장비 클릭 → CubeConfirmPopup("'장비'에 미라클 큐브를 사용하시겠습니까?") → 예 시 적용.
-      - 우측 상단 X(닫기) 또는 Dimmer 외부 클릭 없음(X로만 닫음).
---]]
 @Logic
 script CubeTargetSelect extends Logic
 
 	property Entity selectRoot = "3d02459c-d51d-478a-80d8-6142730bb198"
+
 	property Entity gridEntity = "d5e60ab2-74bc-4451-abcd-453b08ddc5be"
+
 	property Entity cellPrefab = "c93e88f3-3abb-479d-b474-6d67d15fb7bb"
+
 	property Entity tabWeapon = "4303b187-a324-4d90-8055-30f3d959cda0"
+
 	property Entity tabArmor = "0cfd1b79-1f40-4ad4-a328-7cb6a8686970"
+
 	property Entity tabAccessory = "5d75cb74-e0d6-4230-a529-8d182c42583f"
+
 	property Entity btnClose = "e43f15f7-c443-4f82-9b84-bba10ded8736"
 
 	property string activeCat = "Weapon"
+
 	property boolean isOpen = false
+
 	property any cellHandlers = nil
+
 	property any _tabH = nil
 
 	method void OnBeginPlay()
@@ -30,9 +30,9 @@ script CubeTargetSelect extends Logic
 		self.activeCat = "Weapon"
 		self.cellHandlers = {}
 		self._tabH = {}
-
+		
 		if isvalid(self.selectRoot) then self.selectRoot.Enable = false end
-
+		
 		if isvalid(self.gridEntity) and isvalid(self.cellPrefab) then
 			local gvc = self.gridEntity.GridViewComponent
 			if gvc ~= nil then
@@ -42,7 +42,7 @@ script CubeTargetSelect extends Logic
 				gvc.OnClear = function(index, cell) self:OnGridCellClear(index, cell) end
 			end
 		end
-
+		
 		self:WireTab(self.tabWeapon, "Weapon")
 		self:WireTab(self.tabArmor, "Armor")
 		self:WireTab(self.tabAccessory, "Accessory")
@@ -53,7 +53,7 @@ script CubeTargetSelect extends Logic
 			end)
 			table.insert(self._tabH, { entity = self.btnClose, evtH = hx })
 		end
-
+		
 		log("[CubeTargetSelect] OnBeginPlay OK")
 	end
 
@@ -101,10 +101,7 @@ script CubeTargetSelect extends Logic
 	end
 
 	method void BringToFront()
-		-- 인벤/결과 위에 표시되도록 형제 중 맨 앞으로.
-		if isvalid(self.selectRoot) == false then return end
-		local uit = self.selectRoot.UITransformComponent
-		if isvalid(uit) then _UILogic:SetSiblingIndex(uit, 1000000) end
+		-- z-order(형제 인덱스) 강제 로직 제거됨.
 	end
 
 	method void SelectTab(string cat)
@@ -134,16 +131,19 @@ script CubeTargetSelect extends Logic
 	end
 
 	method table CurrentList()
-		-- 현재 탭(카테고리) 장비 목록: 장착품(있으면 맨 앞) + 보유목록.
+		-- 현재 탭(카테고리) 장비 목록(인스턴스 레코드): 장착품(있으면 맨 앞) + 보유목록.
+		--   각 원소 = { id=인스턴스ID, name=equipName }.
 		local p = _UserService.LocalPlayer
 		if isvalid(p) == false then return {} end
+		---@type BaseEquipment
 		local m = _EquipmentRouter:ManagerFor(p, self.activeCat)
 		if isvalid(m) == false then return {} end
 		local out = {}
-		local eq = m.Equipped
-		if eq ~= nil and eq ~= "" then table.insert(out, eq) end
-		for _, n in ipairs(m:OwnedSorted()) do
-			if n ~= eq then table.insert(out, n) end
+		if m.EquippedId ~= "" and m.Equipped ~= "" then
+			table.insert(out, { id = m.EquippedId, name = m.Equipped })
+		end
+		for _, rec in ipairs(m:OwnedInstancesSorted()) do
+			table.insert(out, { id = rec.id, name = rec.name })
 		end
 		return out
 	end
@@ -164,11 +164,12 @@ script CubeTargetSelect extends Logic
 	end
 
 	method void OnGridCellRefresh(integer index, Entity cell)
-		-- 셀 1개를 (index+1)번째 장비로 채운다(아이콘 + 표시명).
+		-- 셀 1개를 (index+1)번째 장비 인스턴스로 채운다(아이콘 + 표시명).
 		local items = self._T.items
 		if items == nil then return end
-		local name = items[index + 1]
-		if name == nil then return end
+		local rec = items[index + 1]
+		if rec == nil then return end
+		local name = rec.name
 
 		-- 셀은 아이콘만 표시(기획: 아이템명 텍스트는 셀 밖으로 노출하지 않음).
 		local rend = cell.SpriteGUIRendererComponent
@@ -189,7 +190,7 @@ script CubeTargetSelect extends Logic
 			end
 			rend.Color = Color(1, 1, 1, 1)
 		end
-
+		
 		-- 이 셀의 기존 핸들러만 교체(누적 방지).
 		for i = #self.cellHandlers, 1, -1 do
 			local r = self.cellHandlers[i]
@@ -198,9 +199,10 @@ script CubeTargetSelect extends Logic
 				table.remove(self.cellHandlers, i)
 			end
 		end
-		local capturedName = name
+		local capturedId = rec.id
+		local capturedName = rec.name
 		local hs = cell:ConnectEvent(ButtonStateChangeEvent, function(ev)
-			self:OnCellState(capturedName, ev)
+			self:OnCellState(capturedId, capturedName, ev)
 		end)
 		table.insert(self.cellHandlers, { entity = cell, stateH = hs })
 	end
@@ -218,12 +220,12 @@ script CubeTargetSelect extends Logic
 		end
 	end
 
-	method void OnCellState(string equipName, ButtonStateChangeEvent ev)
+	method void OnCellState(string instanceId, string equipName, ButtonStateChangeEvent ev)
 		-- 셀 Pressed(=클릭) → 확인 팝업. (GridView 스크롤이 ButtonClickEvent를 먹으므로 Pressed 사용.)
 		if ev.state == ButtonState.Pressed then
 			_SFXManager:PlayClick()
-			_CubeConfirmPopup:Open(equipName)
-			log("[CubeTargetSelect] 대상 선택 → 확인: " .. equipName)
+			_CubeConfirmPopup:Open(instanceId, equipName)
+			log("[CubeTargetSelect] 대상 선택 → 확인: " .. equipName .. "(" .. instanceId .. ")")
 		end
 	end
 

@@ -1,59 +1,61 @@
---[[
-    PotentialCubePopup
-    ----------------------------------------------------------------------------
-    미라클 큐브 잠재 재설정 결과 팝업(메이플 "재설정 결과 선택" UI 참고).
-    PotentialManager:NotifyCubeResult(서버→클라)에서 Open이 호출된다.
-
-    선택은 '카드 클릭'으로 한다(별도 적용/취소 버튼 없음):
-      - AFTER 카드 클릭 = 새 잠재 적용
-      - BEFORE 카드 클릭 = 현재 잠재 유지(취소)
-      - 하단 [재설정] = 큐브 1개 더 써서 다시 굴리기
-    잠재가 없던 장비도 첫 큐브부터 BEFORE(없음)/AFTER 카드로 선택한다(자동확정 없음).
-
-    전투력 증가량 = 그 잠재가 '없을 때' 대비 총 전투력 증가분(CombatPowerManager 프리뷰).
---]]
 @Logic
 script PotentialCubePopup extends Logic
 
-	-- 그룹/공통
 	property Entity groupRoot = "26153b5b-2b6d-4d77-981e-345e09ff1db3"
+
 	property Entity titleText = "14c86555-2264-4c15-b492-d0bcb82ba1a3"
 
-	-- BEFORE 카드 (카드 자체가 클릭 버튼 = '현재 잠재 유지')
 	property Entity beforeCard = "830aa0e4-6f93-40be-9b2f-a205368b934b"
+
 	property ButtonComponent beforeBtn = "29c91bab-fe84-48f3-9997-b0087c04b504"
+
 	property Entity beforeHeader = "e62d24f0-6fd5-41c9-be34-885a468f9f0c"
+
 	property SpriteGUIRendererComponent beforeGradeBar = "be121aa5-bd20-4a9f-b217-b7e0b66557cb"
+
 	property Entity beforeGradeText = "82824afe-a687-4fbb-bbbb-4268797595b9"
+
 	property Entity beforeOptions = "25f92702-e5f9-48e0-ac93-56aed6b3a589"
+
 	property Entity beforePower = "c1bec1e5-922a-4a14-b217-0702f87ede50"
 
-	-- AFTER 카드 (카드 자체가 클릭 버튼 = '새 잠재 적용')
 	property ButtonComponent afterBtn = "408bf823-bcd8-46ba-9dc9-b250115277a7"
+
 	property Entity afterHeader = "452b1c04-c783-4af2-ab06-92486bb0df75"
+
 	property SpriteGUIRendererComponent afterGradeBar = "c8a8f8ff-3e8d-49c4-8b5f-48c13247c1a2"
+
 	property Entity afterGradeText = "0d7f424e-350b-4c7d-a834-1a50bcdbfb3d"
+
 	property Entity afterOptions = "cf9c40d9-7dd7-4db0-b067-f0680b1d3385"
+
 	property Entity afterPower = "a3ffd58f-6772-47e5-b55d-ab2de198e6b5"
 
-	-- 하단 버튼(재설정만)
 	property ButtonComponent btnReroll = "ba54cbfc-6d1b-4abe-8c47-3e492936d47a"
 
-	-- 상태/핸들러
 	property string _equipName = ""
+
+	property string _instanceId = ""
+
 	property boolean _autoMode = false
+
 	property any _beforeH = nil
+
 	property any _afterH = nil
+
 	property any _rerollH = nil
+
 	property any _beforeHoverH = nil
+
 	property any _afterHoverH = nil
+
 	property any _rerollHoverH = nil
 
 	method void OnBeginPlay()
 		-- 클라: 팝업 숨김 + 버튼 이벤트 배선.
 		if self:IsClient() == false then return end
 		if isvalid(self.groupRoot) then self.groupRoot.Enable = false end
-
+		
 		-- BEFORE/AFTER 카드 자체가 선택 버튼. After 클릭=적용, Before 클릭=유지(취소).
 		if isvalid(self.afterBtn) then
 			self._afterH = self.afterBtn.Entity:ConnectEvent(ButtonClickEvent, function() self:OnChooseAfter() end)
@@ -64,7 +66,7 @@ script PotentialCubePopup extends Logic
 		if isvalid(self.btnReroll) then
 			self._rerollH = self.btnReroll.Entity:ConnectEvent(ButtonClickEvent, function() self:OnReroll() end)
 		end
-
+		
 		-- 호버 강조: 카드는 흰색 오버레이가 살짝 떠오르고, 재설정 버튼은 더 밝은 파랑으로.
 		self._afterHoverH = self:WireHover(self.afterBtn, Color(1, 1, 1, 0), Color(1, 1, 1, 0.18))
 		self._beforeHoverH = self:WireHover(self.beforeBtn, Color(1, 1, 1, 0), Color(1, 1, 1, 0.18))
@@ -138,12 +140,13 @@ script PotentialCubePopup extends Logic
 	end
 
 	@ExecSpace("ClientOnly")
-	method void Open(string equipName, string before, string after, boolean autoConfirmed)
+	method void Open(string instanceId, string equipName, string before, string after, boolean autoConfirmed)
 		-- 큐브 결과 팝업 열기. 서버 NotifyCubeResult에서 호출.
 		if self:IsClient() == false then return end
+		self._instanceId = instanceId
 		self._equipName = equipName
 		self._autoMode = autoConfirmed
-
+		
 		-- 전투력 증가량 기준(없음 전투력). 자동확정은 이미 after가 적용된 상태이므로 applied=after,
 		-- 선택모드는 현재 적용 잠재(applied) 기준.
 		local applied = ""
@@ -152,14 +155,15 @@ script PotentialCubePopup extends Logic
 		if autoConfirmed then
 			applied = after
 		elseif isvalid(p) then
-			local comp = _EquipmentRouter:ManagerForItem(p, equipName)
-			if isvalid(comp) then applied = comp:GetPotential(equipName) end
+			---@type BaseEquipment
+			local comp = _EquipmentRouter:ManagerForInstance(p, instanceId)
+			if isvalid(comp) then applied = comp:GetInstancePotential(instanceId) end
 		end
 		if isvalid(p) then
 			local cp = p:GetComponent("script.CombatPowerManager")
 			if isvalid(cp) then cpNone = cp:PreviewPowerWithPotentialSwap(applied, "") end
 		end
-
+		
 		if autoConfirmed then
 			-- 잠재가 없던 장비: Before/After 선택 없이 '부여된 잠재' 결과만 표시(이미 강제 확정됨).
 			self:SetText(self.titleText, "잠재능력이 부여되었습니다  (카드를 눌러 닫기)")
@@ -175,14 +179,16 @@ script PotentialCubePopup extends Logic
 			self:FillCard(self.afterGradeBar, self.afterGradeText, self.afterOptions, self.afterPower, after, afterGain)
 			local beforeGain = self:GainOf(applied, before, cpNone)
 			self:FillCard(self.beforeGradeBar, self.beforeGradeText, self.beforeOptions, self.beforePower, before, beforeGain)
-
+		
 			self:SetText(self.titleText, "적용할 잠재 카드를 선택하세요  (재설정: 다시 굴리기)")
 			self:SetText(self.beforeHeader, "현재 (유지)")
 			self:SetText(self.afterHeader, "변경 후 (적용)")
 			if isvalid(self.beforeCard) then self.beforeCard.Enable = true end
 			self:ShowButton(self.btnReroll, true)
+			-- 남은 큐브가 없으면 재설정 버튼을 비활성 연출(회색+클릭 차단).
+			self:SetRerollEnabled(self:LocalCubeCount() > 0)
 		end
-
+		
 		if isvalid(self.groupRoot) then self.groupRoot.Enable = true end
 		self:BringToFront()
 		log("[PotentialCubePopup] Open " .. equipName .. " auto=" .. tostring(autoConfirmed))
@@ -192,6 +198,30 @@ script PotentialCubePopup extends Logic
 		-- 버튼 엔티티 표시/숨김.
 		if isvalid(btn) == false or isvalid(btn.Entity) == false then return end
 		btn.Entity.Enable = v
+	end
+
+	method integer LocalCubeCount()
+		-- 로컬 플레이어의 보유 미라클 큐브 수(@TargetUserSync라 클라에서 읽힘).
+		local p = _UserService.LocalPlayer
+		if isvalid(p) == false then return 0 end
+		local bag = p:GetComponent("script.CubeInventory")
+		if isvalid(bag) == false then return 0 end
+		return bag.MiracleCubeCount
+	end
+
+	method void SetRerollEnabled(boolean enabled)
+		-- 재설정 버튼 활성/비활성 '연출'.
+		--   비활성: 버튼 컴포넌트를 꺼서(Enable=false) 클릭·호버 색전이를 모두 차단하고,
+		--           배경 스프라이트를 회색으로 만들어 눌리지 않는 상태임을 시각적으로 표시.
+		--   (Selectable=false는 '선택 상태 유지' 플래그라 비활성 처리와 무관 → 여기선 쓰지 않는다.)
+		if isvalid(self.btnReroll) == false or isvalid(self.btnReroll.Entity) == false then return end
+		-- Enable을 먼저 켜야(활성화) 호버 이벤트가 다시 살아난다.
+		self.btnReroll.Enable = enabled
+		local sr = self.btnReroll.Entity.SpriteGUIRendererComponent
+		if isvalid(sr) then
+			-- 활성=WireHover의 normalC(파랑)로 복귀 / 비활성=흐린 회색.
+			sr.Color = enabled and Color(0.20, 0.45, 0.85, 1) or Color(0.32, 0.33, 0.37, 1)
+		end
 	end
 
 	method any WireHover(ButtonComponent btn, Color normalC, Color hoverC)
@@ -211,17 +241,14 @@ script PotentialCubePopup extends Logic
 	end
 
 	method void BringToFront()
-		-- 팝업 그룹을 형제 중 맨 앞(최상단)으로.
-		if isvalid(self.groupRoot) == false then return end
-		local uit = self.groupRoot.UITransformComponent
-		if isvalid(uit) then _UILogic:SetSiblingIndex(uit, 1000000) end
+		-- z-order(형제 인덱스) 강제 로직 제거됨.
 	end
 
 	method void OnChooseAfter()
 		-- AFTER 카드 클릭 = 새 잠재 적용. (자동확정 모드면 이미 적용됨 → 닫기만)
 		_SFXManager:PlayClick()
 		if self._autoMode then self:Close() return end
-		_PotentialManager:ChooseCube(self._equipName, true)
+		_PotentialManager:ChooseCube(self._instanceId, true)
 		self:Close()
 	end
 
@@ -229,15 +256,17 @@ script PotentialCubePopup extends Logic
 		-- BEFORE 카드 클릭 = 현재 잠재 유지(후보 폐기). (자동확정 모드면 닫기만)
 		_SFXManager:PlayClick()
 		if self._autoMode then self:Close() return end
-		_PotentialManager:ChooseCube(self._equipName, false)
+		_PotentialManager:ChooseCube(self._instanceId, false)
 		self:Close()
 	end
 
 	method void OnReroll()
 		-- 재설정: 큐브를 한 번 더 소모해 다시 굴린다. 서버가 새 후보로 팝업을 다시 열어주므로 닫지 않는다.
+		-- 큐브가 없으면 버튼을 비활성 연출로 막아두지만, 방어적으로 한 번 더 가드한다.
+		if self:LocalCubeCount() <= 0 then return end
 		-- 재설정도 큐브 1개를 소모하므로 큐브 사용 효과음을 재생한다.
 		_SFXManager:PlayCube()
-		_PotentialManager:RerollCube(self._equipName)
+		_PotentialManager:RerollCube(self._instanceId)
 	end
 
 	method void Close()

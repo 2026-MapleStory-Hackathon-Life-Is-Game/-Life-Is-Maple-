@@ -1,11 +1,7 @@
 @Logic
 script PotentialManager extends Logic
 
-	-- 잠재능력 시스템(미라클 큐브). 등급: ""(없음) < RARE < EPIC < UNIQUE < LEGENDARY.
-	-- 잠재 직렬화 포맷: "GRADE|key:val|key:val|key:val" (key=전투력 모디파이어 키). 없음 = "".
-	-- 데이터: PotentialOption(Grade,StatType,Value) / PotentialUpgrade(FromGrade,ToGrade,Percent).
-
-	property table _pending = {}   -- 서버: 재설정 후보 대기. key="userId:equipName" → 후보 직렬화 문자열.
+	property table _pending = {}
 
 	method integer LinesForGrade(string grade)
 		-- 전 등급 3줄 고정(기획 확정).
@@ -117,8 +113,6 @@ script PotentialManager extends Logic
 		return m
 	end
 
-	-- ===== 표시용(툴팁) =====
-
 	method string GradeKorean(string grade)
 		if grade == "RARE" then return "레어" end
 		if grade == "EPIC" then return "에픽" end
@@ -135,6 +129,19 @@ script PotentialManager extends Logic
 		if grade == "UNIQUE" then return Color(1.00, 0.84, 0.16, 1) end
 		if grade == "LEGENDARY" then return Color(0.63, 0.84, 0.20, 1) end
 		return Color(0.45, 0.47, 0.53, 1)
+	end
+
+	method void ApplyGradeOutline(SpriteGUIRendererComponent renderer, string potStr)
+		-- 아이템 아이콘 스프라이트에 잠재 등급 아웃라인을 반영(인벤/캐릭터정보 공통 단일 출처).
+		--   잠재 없음("") → 아웃라인 해제 / 잠재 있음 → 해당 등급색 아웃라인.
+		if isvalid(renderer) == false then return end
+		if potStr == nil or potStr == "" then
+			renderer.Outline = false
+			return
+		end
+		renderer.Outline = true
+		renderer.OutlineColor = self:GradeColor(self:GradeOf(potStr))
+		renderer.OutlineWidth = 1
 	end
 
 	method string KeyKorean(string key)
@@ -161,8 +168,6 @@ script PotentialManager extends Logic
 		return table.concat(out, "\n")
 	end
 
-	-- ===== 큐브 사용 흐름 =====
-
 	method any BagOf(Entity player)
 		return player:GetComponent("script.CubeInventory")
 	end
@@ -177,105 +182,109 @@ script PotentialManager extends Logic
 	end
 
 	@ExecSpace("Server")
-	method void RequestCube(string equipName)
-		-- 미라클 큐브 사용 요청. 없음→자동 확정, 있음→Before/After 대기(ChooseCube로 확정).
+	method void RequestCube(string instanceId)
+		-- 미라클 큐브 사용 요청(대상=장비 인스턴스). 없음→자동 확정, 있음→Before/After 대기(ChooseCube로 확정).
 		local player = _UserService:GetUserEntityByUserId(senderUserId)
 		if isvalid(player) == false then return end
-		local comp = _EquipmentRouter:ManagerForItem(player, equipName)
+		---@type BaseEquipment
+		local comp = _EquipmentRouter:ManagerForInstance(player, instanceId)
 		if isvalid(comp) == false then return end
-		if comp.Owned[equipName] ~= true and comp.Equipped ~= equipName then return end
-
-		-- [가드] 이 장비에 미확정 후보가 이미 있으면 큐브를 더 쓰지 않고 선택을 먼저 강제한다.
+		local name = comp:NameOfInstance(instanceId)
+		
+		-- [가드] 이 인스턴스에 미확정 후보가 이미 있으면 큐브를 더 쓰지 않고 선택을 먼저 강제한다.
 		-- (선택을 건너뛴 채 재요청해서 큐브가 증발하고 이전 후보가 소실되는 버그 방지)
-		local key = senderUserId .. ":" .. equipName
+		local key = senderUserId .. ":" .. instanceId
 		if self._pending[key] ~= nil then
 			log_warning("[PotentialManager] 선택 대기 중 재요청 거부: " .. key)
-			self:NotifyCubeResult(equipName, comp:GetPotential(equipName), self._pending[key], false, senderUserId)
+			self:NotifyCubeResult(instanceId, name, comp:GetInstancePotential(instanceId), self._pending[key], false, senderUserId)
 			return
 		end
-
+		
 		local bag = self:BagOf(player)
 		if isvalid(bag) == false or bag.MiracleCubeCount <= 0 then
 			log_warning("[PotentialManager] 미라클 큐브 부족: " .. tostring(senderUserId))
 			return
 		end
 		bag.MiracleCubeCount = bag.MiracleCubeCount - 1
-
-		local cur = comp:GetPotential(equipName)
+		
+		local cur = comp:GetInstancePotential(instanceId)
 		if cur == nil or cur == "" then
 			-- 잠재가 없던 장비: '없음 vs 새 잠재' 선택은 구도가 어색하므로 Before/After 없이 즉시 강제 확정.
 			local cand = self:RollPotential("")
-			comp:SetPotential(equipName, cand)
+			comp:SetInstancePotential(instanceId, cand)
 			comp:Recalc()
-			self:NotifyCubeResult(equipName, "", cand, true, senderUserId)
+			self:NotifyCubeResult(instanceId, name, "", cand, true, senderUserId)
 			return
 		end
-
+		
 		-- 잠재가 이미 있는 장비: 후보를 대기열에 넣고 Before/After 카드 선택으로 확정.
 		local cand = self:RollPotential(self:GradeOf(cur))
 		self._pending[key] = cand
-		self:NotifyCubeResult(equipName, cur, cand, false, senderUserId)
+		self:NotifyCubeResult(instanceId, name, cur, cand, false, senderUserId)
 	end
 
 	@ExecSpace("Server")
-	method void ChooseCube(string equipName, boolean accept)
+	method void ChooseCube(string instanceId, boolean accept)
 		-- Before/After 선택 확정. accept=true면 후보 적용, false면 기존 유지.
-		local key = senderUserId .. ":" .. equipName
+		local key = senderUserId .. ":" .. instanceId
 		local cand = self._pending[key]
 		if cand == nil then return end
 		self._pending[key] = nil
 		if accept == false then return end
 		local player = _UserService:GetUserEntityByUserId(senderUserId)
 		if isvalid(player) == false then return end
-		local comp = _EquipmentRouter:ManagerForItem(player, equipName)
+		---@type BaseEquipment
+		local comp = _EquipmentRouter:ManagerForInstance(player, instanceId)
 		if isvalid(comp) == false then return end
 		-- 소유/장착 재검증(대기 중 아이템을 잃었거나 부정 요청 방지).
-		if comp.Owned[equipName] ~= true and comp.Equipped ~= equipName then return end
-		comp:SetPotential(equipName, cand)
+		if comp:OwnsInstance(instanceId) == false then return end
+		comp:SetInstancePotential(instanceId, cand)
 		comp:Recalc()
 	end
 
 	@ExecSpace("Server")
-	method void RerollCube(string equipName)
+	method void RerollCube(string instanceId)
 		-- 재설정: 선택 대기(미확정 후보)가 있는 상태에서 큐브를 한 번 더 소모해 다시 굴린다.
 		-- 재추첨 기준은 '현재 적용된 잠재(Before)' 등급 — 미적용 후보(After)를 누적해 승급시키지 않는다.
 		local player = _UserService:GetUserEntityByUserId(senderUserId)
 		if isvalid(player) == false then return end
-		local comp = _EquipmentRouter:ManagerForItem(player, equipName)
+		---@type BaseEquipment
+		local comp = _EquipmentRouter:ManagerForInstance(player, instanceId)
 		if isvalid(comp) == false then return end
-		if comp.Owned[equipName] ~= true and comp.Equipped ~= equipName then return end
-
-		local key = senderUserId .. ":" .. equipName
+		if comp:OwnsInstance(instanceId) == false then return end
+		local name = comp:NameOfInstance(instanceId)
+		
+		local key = senderUserId .. ":" .. instanceId
 		-- 후보가 없으면(선택 모드가 아니면) 재설정 버튼이 노출될 일이 없지만, 방어적으로 무시.
 		if self._pending[key] == nil then
 			log_warning("[PotentialManager] 재설정 거부: 대기 후보 없음 " .. key)
 			return
 		end
-
+		
 		local bag = self:BagOf(player)
 		if isvalid(bag) == false or bag.MiracleCubeCount <= 0 then
 			-- 큐브 부족: 기존 후보를 유지한 채 팝업만 다시 띄운다(상태 손실 방지).
 			log_warning("[PotentialManager] 재설정: 미라클 큐브 부족 " .. tostring(senderUserId))
-			self:NotifyCubeResult(equipName, comp:GetPotential(equipName), self._pending[key], false, senderUserId)
+			self:NotifyCubeResult(instanceId, name, comp:GetInstancePotential(instanceId), self._pending[key], false, senderUserId)
 			return
 		end
 		bag.MiracleCubeCount = bag.MiracleCubeCount - 1
-
-		local cur = comp:GetPotential(equipName)
+		
+		local cur = comp:GetInstancePotential(instanceId)
 		local cand = self:RollPotential(self:GradeOf(cur))
 		self._pending[key] = cand
-		self:NotifyCubeResult(equipName, cur, cand, false, senderUserId)
+		self:NotifyCubeResult(instanceId, name, cur, cand, false, senderUserId)
 	end
 
 	@ExecSpace("Client")
-	method void NotifyCubeResult(string equipName, string before, string after, boolean autoConfirmed)
+	method void NotifyCubeResult(string instanceId, string equipName, string before, string after, boolean autoConfirmed)
 		-- 큐브 결과를 클라 팝업으로 통지. autoConfirmed면 결과+확인, 아니면 Before/After 선택.
 		if autoConfirmed then
-			log("[PotentialManager] 큐브 결과(자동확정) " .. equipName .. " → " .. after)
+			log("[PotentialManager] 큐브 결과(자동확정) " .. equipName .. "(" .. instanceId .. ") → " .. after)
 		else
-			log("[PotentialManager] 큐브 결과(선택) " .. equipName .. " | Before=" .. before .. " | After=" .. after)
+			log("[PotentialManager] 큐브 결과(선택) " .. equipName .. "(" .. instanceId .. ") | Before=" .. before .. " | After=" .. after)
 		end
-		_PotentialCubePopup:Open(equipName, before, after, autoConfirmed)
+		_PotentialCubePopup:Open(instanceId, equipName, before, after, autoConfirmed)
 	end
 
 end

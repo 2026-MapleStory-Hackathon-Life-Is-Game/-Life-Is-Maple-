@@ -11,7 +11,7 @@ script QuickEquipPopup extends Logic
 
 	property ButtonComponent closeButton = "f5ae8f2d-6e4e-46fd-b6c8-fcc6dae4643c"
 
-	property string pendingName = ""
+	property string pendingId = ""
 
 	property any queue = nil
 
@@ -23,19 +23,19 @@ script QuickEquipPopup extends Logic
 	method void OnBeginPlay()
 		-- 초기 숨김 + 버튼 이벤트 구독.
 		self.queue = {}
-
+		
 		if isvalid(self.popupRoot) then
 			self.popupRoot.Enable = false
 		end
-
+		
 		if isvalid(self.equipButton) and isvalid(self.equipButton.Entity) then
 			self.equipHandler = self.equipButton.Entity:ConnectEvent(ButtonClickEvent, self.OnClickEquip)
 		end
-
+		
 		if isvalid(self.closeButton) and isvalid(self.closeButton.Entity) then
 			self.closeHandler = self.closeButton.Entity:ConnectEvent(ButtonClickEvent, self.OnClickClose)
 		end
-
+		
 		log("[QuickEquip] OnBeginPlay OK")
 	end
 
@@ -51,13 +51,13 @@ script QuickEquipPopup extends Logic
 	end
 
 	@ExecSpace("Client")
-	method void Show(string equipName)
+	method void Show(string instanceId)
 		-- 호출부에서 targetUserId를 마지막 인자로 넘긴다(선언에는 포함 안 함). 큐에 추가 후 팝업 미표시 상태면 ShowNext.
 		if self.queue == nil then
 			self.queue = {}
 		end
-		table.insert(self.queue, equipName)
-
+		table.insert(self.queue, instanceId)
+		
 		if isvalid(self.popupRoot) and self.popupRoot.Enable == false then
 			self:ShowNext()
 		end
@@ -65,20 +65,31 @@ script QuickEquipPopup extends Logic
 
 	@ExecSpace("ClientOnly")
 	method void ShowNext()
-		-- 큐에서 다음 아이템을 꺼내 팝업 표시. 큐가 비면 팝업 닫기.
+		-- 큐에서 다음 인스턴스를 꺼내 팝업 표시. 큐가 비면 팝업 닫기.
 		if self.queue == nil or #self.queue == 0 then
 			if isvalid(self.popupRoot) then
 				self.popupRoot.Enable = false
 			end
-			self.pendingName = ""
+			self.pendingId = ""
 			return
 		end
 
-		local name = self.queue[1]
+		local instanceId = self.queue[1]
 		table.remove(self.queue, 1)
-		self.pendingName = name
+		self.pendingId = instanceId
 
-		-- 제목 갱신
+		-- 인스턴스 ID → equipName / 잠재(로컬 플레이어 기준 해석).
+		local name = instanceId
+		local potStr = ""
+		local player = _UserService.LocalPlayer
+		---@type BaseEquipment
+		local comp = _UserService.LocalPlayer and _EquipmentRouter:ManagerForInstance(_UserService.LocalPlayer, instanceId) or nil
+		if isvalid(comp) then
+			name = comp:NameOfInstance(instanceId)
+			potStr = comp:GetInstancePotential(instanceId)
+		end
+
+		-- 제목 갱신(표시명)
 		if isvalid(self.titleText) then
 			local tc = self.titleText:GetComponent("MOD.Core.TextComponent")
 			if tc ~= nil then
@@ -86,17 +97,16 @@ script QuickEquipPopup extends Logic
 			end
 		end
 
-		-- 전투력 증감 계산 (클라이언트 Sync 값 기반)
+		-- 전투력 증감 계산 (클라이언트 Sync 값 기반, 이 인스턴스의 잠재 포함)
 		local delta = 0
-		local player = _UserService.LocalPlayer
 		if isvalid(player) then
 			local cp = player:GetComponent("script.CombatPowerManager")
 			if isvalid(cp) then
-				local preview = cp:PreviewPowerWithSwap(name)
+				local preview = cp:PreviewPowerWithSwap(name, potStr)
 				delta = preview - cp.CombatPower
 			end
 		end
-
+		
 		-- 증감 텍스트 갱신
 		if isvalid(self.deltaText) then
 			local tc = self.deltaText:GetComponent("MOD.Core.TextComponent")
@@ -106,11 +116,11 @@ script QuickEquipPopup extends Logic
 				tc.Text = "전투력 " .. prefix .. tostring(math.floor(delta))
 			end
 		end
-
+		
 		if isvalid(self.popupRoot) then
 			self.popupRoot.Enable = true
 		end
-
+		
 		log("[QuickEquip] show " .. name .. " delta=" .. tostring(math.floor(delta)))
 	end
 
@@ -118,8 +128,8 @@ script QuickEquipPopup extends Logic
 	method void OnClickEquip(any event)
 		-- 장착 버튼 클릭: 서버에 장착 요청 후 ShowNext.
 		_SFXManager:PlayClick()
-		if self.pendingName ~= "" then
-			self:RequestEquipServer(self.pendingName)
+		if self.pendingId ~= "" then
+			self:RequestEquipServer(self.pendingId)
 		end
 		if isvalid(self.popupRoot) then
 			self.popupRoot.Enable = false
@@ -128,14 +138,14 @@ script QuickEquipPopup extends Logic
 	end
 
 	@ExecSpace("Server")
-	method void RequestEquipServer(string equipName)
-		-- 서버에서 EquipmentRouter로 장착 처리.
+	method void RequestEquipServer(string instanceId)
+		-- 서버에서 EquipmentRouter로 장착 처리(인스턴스 ID 기준).
 		local player = _UserService:GetUserEntityByUserId(senderUserId)
 		if not isvalid(player) then return end
-		local m = _EquipmentRouter:ManagerForItem(player, equipName)
+		local m = _EquipmentRouter:ManagerForInstance(player, instanceId)
 		if isvalid(m) then
-			m:RequestEquip(equipName)
-			log("[QuickEquip] Equip OK player=" .. tostring(senderUserId) .. " item=" .. equipName)
+			m:RequestEquip(instanceId)
+			log("[QuickEquip] Equip OK player=" .. tostring(senderUserId) .. " id=" .. instanceId)
 		end
 	end
 
