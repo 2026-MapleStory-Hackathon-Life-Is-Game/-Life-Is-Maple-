@@ -1,29 +1,17 @@
---[[
-    PetShopManager
-    ----------------------------------------------------------------------------
-    로비 상점(ShopPanel) 컨트롤러 + 월드코인(캐시) 펫 구매/지급/소유.
-
-    상점은 4개 카테고리(펫/잠재능력/길드/연애) 버튼으로 패널을 전환한다.
-    현재 '펫'만 실제 기능(월드코인 결제), 나머지 3개는 더미 패널.
-
-    [구매] (클라) 펫 카드의 구매 버튼 → _WorldShopService:PromptPurchase(productId)
-    [처리] (서버) OnBeginPlay에서 SetProcessPurchaseCallback 1회 →
-           결제 완료 시 콜백(info.ProductId/UserId) → 소유 저장 + 펫 소환 → return true
-    [소유] 유저별 DataStorage "EquippedPet"=productId. 재입장 시 자동 재소환.
-
-    ※ 상품 productId는 반드시 이 프로젝트 월드(503658f2...)에 등록돼야 함.
-    ※ DefaultShow는 건드리지 않고, 표시/숨김은 .Enable로만.
---]]
 @Logic
 script PetShopManager extends Logic
 
 	property string shopBtnPath = "/ui/LobbyUIGroup/ShopBtn"
+
 	property string shopPanelPath = "/ui/LobbyUIGroup/ShopPanel"
+
 	property string petPanelPath = "/ui/LobbyUIGroup/ShopPanel/PetPanel"
 
 	property any userEnterHandler = nil
-	property any _spawned = nil    -- userId -> pet entity (서버)
-	property any _btnH = nil       -- 클라 버튼 핸들 목록
+
+	property any _spawned = nil
+
+	property any _btnH = nil
 
 	method table PetList()
 		-- productId ↔ 이름 ↔ 인게임 팔로워/썸네일 스프라이트(쁘띠 move 애니). 서버/클라 공통.
@@ -68,8 +56,6 @@ script PetShopManager extends Logic
 		end
 	end
 
-	-- ================= 서버: 결제/지급/소환 =================
-
 	@ExecSpace("ServerOnly")
 	method boolean OnProcessPurchase(any info)
 		-- 결제 완료 콜백(WorldShopPurchaseInfo). 우리 펫 상품이면 지급 후 true(성공), 아니면 false.
@@ -110,10 +96,10 @@ script PetShopManager extends Logic
 		if isvalid(p) == false then return end
 		local map = p.CurrentMap
 		if isvalid(map) == false then return end
-
+		
 		-- 기존 펫 제거(중복 소환 방지).
 		self:DespawnPet(userId)
-
+		
 		local pos0 = p.TransformComponent.WorldPosition
 		local spawnPos = Vector3(pos0.x - 0.55, pos0.y + 0.15, pos0.z)
 		local e = _SpawnService:SpawnByModelId("pet", "Pet_" .. userId, spawnPos, map)
@@ -121,14 +107,14 @@ script PetShopManager extends Logic
 			log_warning("[PetShop] 펫 스폰 실패: " .. tostring(userId))
 			return
 		end
-
+		
 		local sr = e.SpriteRendererComponent
 		if isvalid(sr) then sr.SpriteRUID = pet.ruid end
-
+		
 		e:AddComponent("script.PetFollow")
 		local pf = e:GetComponent("script.PetFollow")
 		if isvalid(pf) then pf.OwnerUserId = userId end
-
+		
 		self._spawned[userId] = e
 		log("[PetShop] 펫 소환: " .. pet.name .. " (user=" .. tostring(userId) .. ")")
 	end
@@ -203,17 +189,15 @@ script PetShopManager extends Logic
 		end)
 	end
 
-	-- ================= 클라: 상점 UI =================
-
 	@ExecSpace("ClientOnly")
 	method void WireClient()
 		-- 열기/카테고리/닫기/구매 버튼 배선 + 펫 카드(이름/아이콘) 세팅. 상점은 시작 시 숨김.
 		self._btnH = {}
 		local shop = _EntityService:GetEntityByPath(self.shopPanelPath)
 		if isvalid(shop) then shop.Enable = false end
-
+		
 		self:WireBtn(self.shopBtnPath, function() self:OpenShop() end)
-
+		
 		-- 카테고리 버튼 + 각 패널 닫기 버튼 + 시작 시 패널 숨김.
 		for _, c in ipairs(self:Categories()) do
 			local key = c.key
@@ -222,11 +206,11 @@ script PetShopManager extends Logic
 			local pnl = _EntityService:GetEntityByPath(self.shopPanelPath .. "/" .. c.panel)
 			if isvalid(pnl) then pnl.Enable = false end
 		end
-
+		
 		-- 개발/테스트용 버튼(ShopPanel 직속): 전체 펫 지급 / 전체 펫 데이터 제거.
 		self:WireBtn(self.shopPanelPath .. "/GetAllPetData_Btn", function() self:OnGetAllClick() end)
 		self:WireBtn(self.shopPanelPath .. "/ResetAllPetData_Btn", function() self:OnResetAllClick() end)
-
+		
 		-- 펫 카드: 이름/아이콘(움직이는 펫 애니) 세팅 + 구매 버튼.
 		local pets = self:PetList()
 		for i = 1, #pets do
@@ -260,8 +244,6 @@ script PetShopManager extends Logic
 		local shop = _EntityService:GetEntityByPath(self.shopPanelPath)
 		if isvalid(shop) == false then return end
 		shop.Enable = true
-		local ut = shop.UITransformComponent
-		if isvalid(ut) then _UILogic:SetSiblingIndex(ut, 1000000) end
 		self:ShowCategory("Pet")
 	end
 
