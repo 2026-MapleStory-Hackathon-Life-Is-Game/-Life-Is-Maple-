@@ -1,12 +1,8 @@
 @Logic
 script DebugNextStageButton extends Logic
 
-	-- [임시/디버그] 인게임 HUD의 '다음스테이지(TEST)' 버튼 컨트롤러.
-	-- End 타일까지 완주하지 않아도 곧바로 다음 스테이지(맵)로 이동해 검증하기 위한 임시 버튼.
-	-- Map_01→Map_02, Map_02→Map_03, Map_03(마지막)→게임 종료. 싱글 게임 진행 중에만 동작.
-	-- ⚠️ 출시 전 제거: 이 스크립트 + InGameUIGroup의 DebugNextStageButton 엔티티.
-
 	property Entity DebugBtn = "5e03cb30-e1c1-40a8-b3f7-4abf66d3be26"
+
 	property any _handler = nil
 
 	@ExecSpace("ClientOnly")

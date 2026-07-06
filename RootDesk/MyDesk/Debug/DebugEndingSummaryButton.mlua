@@ -1,13 +1,13 @@
 @Logic
-script DebugEndButton extends Logic
+script DebugEndingSummaryButton extends Logic
 
-	property Entity DebugBtn = "f18b3307-490a-4094-a0cf-acfa3350b396"
+	property Entity DebugBtn = "0acd8711-a325-4a1c-a8d9-f7e9e0ac3f2a"
 
 	property any _handler = nil
 
 	@ExecSpace("ClientOnly")
 	method void OnBeginPlay()
-		-- 버튼 클릭 → 서버에 강제 종료 요청.
+		-- 버튼 클릭 → 서버에 엔딩 정리 표 강제 표시 요청.
 		if isvalid(self.DebugBtn) then
 			self._handler = self.DebugBtn:ConnectEvent(ButtonClickEvent, self.OnClick)
 		end
@@ -23,9 +23,10 @@ script DebugEndButton extends Logic
 
 	@ExecSpace("ClientOnly")
 	method void OnClick(ButtonClickEvent event)
-		-- 게임 종료 이벤트(싱글) 강제 실행.
-		log("[DebugEndButton] 게임종료(TEST) 클릭 → DebugFinishGame")
-		_GameModeManager:DebugFinishGame()
+		-- 엔딩 정리 표 강제 표시(디버그).
+		log("[DebugEndingSummaryButton] 엔딩표(TEST) 클릭 → DebugShowEndingSummary")
+		if _SFXManager ~= nil then _SFXManager:PlayClick() end
+		_GameModeManager:DebugShowEndingSummary()
 	end
 
 end
