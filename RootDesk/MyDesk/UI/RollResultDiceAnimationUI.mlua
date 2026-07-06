@@ -73,6 +73,8 @@ script RollResultDiceAnimationUI extends Logic
 
 	property any _pendOnComplete = nil
 
+	property string _pendActorUserId = ""
+
 	@ExecSpace("ClientOnly")
 	method void OnBeginPlay()
 		-- 눈금별 RUID 등록 (실제 RUID로 교체)
@@ -131,6 +133,7 @@ script RollResultDiceAnimationUI extends Logic
 		-- 변경: 패널이 뜨면 자동으로 굴리지 않는다. 보드(2~12) + '굴리기' 버튼만 표시하고,
 		--       플레이어가 굴리기 버튼을 눌러야(OnRollClicked) 실제 주사위 결과가 연출된다.
 				-- 굴리기 시 사용할 결과 데이터 보관.
+				self._pendActorUserId = ""   -- 싱글 경로 표식
 				self._pendD1 = d1
 				self._pendD2 = d2
 				self._pendTotal = total
@@ -152,51 +155,101 @@ script RollResultDiceAnimationUI extends Logic
 
 	@ExecSpace("ClientOnly")
 	method void OnRollClicked()
-		-- '굴리기' 버튼 클릭 → 실제 주사위 결과 연출. 이후(결과 표시/대기/완료 콜백)는 기존과 동일.
+		-- '굴리기' 클릭. 멀티면 서버에 공개 요청(전원 방송), 싱글이면 로컬 연출 후 '다음' 노출.
+			if self._pendActorUserId ~= "" then
 				if isvalid(self.RollButton) then self.RollButton.Enable = false end
-		
-				_SFXManager:PlayDice()   -- 주사위 굴림 효과음
-		
-				-- 주사위 눈/반짝임 표시 + 결과 텍스트.
-				if isvalid(self.dicePanel) then self.dicePanel.Enable = true end
-				if isvalid(self.diceParticle) then self.diceParticle.Enable = true end
-				-- 눈금별 주사위 표시: 1이면 전용 '1' 주사위, 그 외엔 일반 주사위에 스프라이트 적용.
-				self:ApplyDieFace(self._pendD1, self.leftDice, self.diceSprites, self.leftDiceEntity, self.leftOneDiceEntity)
-				self:ApplyDieFace(self._pendD2, self.rightDice, self.diceSprites, self.rightDiceEntity, self.rightOneDiceEntity)
-		
-		_TimerService:SetTimerOnce(function()
-			
-					-- 주사위 효과음
-				    _ResultDiceManager:PlayTotalResultDiceSFX(self._pendTotal)
-					
-					-- 결과 텍스트 패널 활성화
-					if isvalid(self.ResultTextPanel) then self.ResultTextPanel.Enable = true end
-			
-					-- 텍스트 지정
-					self.resultText.Text = tostring(self._pendTotal)
-					self.outcomeText.Text = self._pendOutcome .. "!"
-				end, 2.0)
-		
-				-- 변경: 자동으로 닫지 않는다. 결과를 확인한 뒤 '다음' 버튼을 눌러야(OnNextClicked) 진행한다.
-				if isvalid(self.NextButton) then self.NextButton.Enable = true end
-				
-				log("[RollResultDiceUI] 굴리기 클릭 → 주사위 연출 + '다음' 버튼 노출")
+				_MultiTurnManager:RequestRevealResultDice()
+				return
+			end
+			if isvalid(self.RollButton) then self.RollButton.Enable = false end
+			self:PlayRevealAnimation()
+			if isvalid(self.NextButton) then self.NextButton.Enable = true end
+			log("[RollResultDiceUI] 굴리기 클릭 → 주사위 연출 + '다음' 버튼 노출")
+	end
+
+	@ExecSpace("ClientOnly")
+	method void PlayRevealAnimation()
+			-- 공유: 주사위 눈/반짝임 표시 + 2초 후 합계/결과 텍스트. 싱글·멀티 공용(_pend* 값 사용).
+			_SFXManager:PlayDice()
+			if isvalid(self.dicePanel) then self.dicePanel.Enable = true end
+			if isvalid(self.diceParticle) then self.diceParticle.Enable = true end
+			self:ApplyDieFace(self._pendD1, self.leftDice, self.diceSprites, self.leftDiceEntity, self.leftOneDiceEntity)
+			self:ApplyDieFace(self._pendD2, self.rightDice, self.diceSprites, self.rightDiceEntity, self.rightOneDiceEntity)
+			_TimerService:SetTimerOnce(function()
+				_ResultDiceManager:PlayTotalResultDiceSFX(self._pendTotal)
+				if isvalid(self.ResultTextPanel) then self.ResultTextPanel.Enable = true end
+				self.resultText.Text = tostring(self._pendTotal)
+				self.outcomeText.Text = self._pendOutcome .. "!"
+			end, 2.0)
+	end
+
+	@ExecSpace("ClientOnly")
+	method void ClosePanel()
+			-- 공유: 결과 패널 닫기 + 반짝임 종료 + 주사위면 초기화. 싱글·멀티 공용(onComplete/상태진행은 호출자 담당).
+			if isvalid(self.NextButton) then self.NextButton.Enable = false end
+			if isvalid(self.panel) then self.panel.Enable = false end
+			if isvalid(self.diceParticle) then self.diceParticle.Enable = false end
+			self:ResetDiceFaces()
 	end
 
 	@ExecSpace("ClientOnly")
 	method void OnNextClicked()
-		-- '다음' 버튼 클릭 → 주사위 패널을 닫고 대기 중이던 완료 콜백(onComplete)을 실행해 다음 스크립트로 진행.
+		-- '다음' 클릭. 멀티면 서버에 종료 요청(닫기 방송 + 상태 진행), 싱글이면 로컬 닫기 + onComplete.
+			if self._pendActorUserId ~= "" then
 				if isvalid(self.NextButton) then self.NextButton.Enable = false end
-				if isvalid(self.panel) then self.panel.Enable = false end
-				if isvalid(self.diceParticle) then self.diceParticle.Enable = false end   -- 반짝임 종료
-				self:ResetDiceFaces()   -- 전용 '1' 주사위 상태 초기화(다음 판 잔상 방지)
-		
-				local onComplete = self._pendOnComplete
-				self._pendOnComplete = nil   -- 재진입/중복 실행 방지
-				log("[RollResultDiceUI] 다음 클릭 → 패널 닫고 onComplete 실행. cb=" .. tostring(onComplete ~= nil))
-				if onComplete ~= nil then
-					onComplete()
-				end
+				_MultiTurnManager:RequestFinishResultDice()
+				return
+			end
+			self:ClosePanel()
+			local onComplete = self._pendOnComplete
+			self._pendOnComplete = nil   -- 재진입/중복 실행 방지
+			log("[RollResultDiceUI] 다음 클릭 → 패널 닫고 onComplete 실행. cb=" .. tostring(onComplete ~= nil))
+			if onComplete ~= nil then
+				onComplete()
+			end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void ShowMulti(integer d1, integer d2, integer total, table resultTable, string gameOutcome, string actorUserId)
+			-- 멀티: 결과 보드를 전원에게 표시. 현재 턴 플레이어(actor)만 '굴리기' 버튼 노출, 나머지는 관전(대기).
+			self._pendD1 = d1
+			self._pendD2 = d2
+			self._pendTotal = total
+			self._pendOutcome = gameOutcome
+			self._pendOnComplete = nil
+			self._pendActorUserId = actorUserId
+
+			self:UpdateBoardUI(resultTable)
+			self.panel.Enable = true
+			self:BringToFront()
+			if isvalid(self.dicePanel) then self.dicePanel.Enable = false end
+			if isvalid(self.diceParticle) then self.diceParticle.Enable = false end
+			if isvalid(self.ResultTextPanel) then self.ResultTextPanel.Enable = false end
+			if isvalid(self.NextButton) then self.NextButton.Enable = false end
+
+			local isActor = false
+			local lp = _UserService.LocalPlayer
+			if isvalid(lp) and lp.PlayerComponent.UserId == actorUserId then isActor = true end
+			if isvalid(self.RollButton) then self.RollButton.Enable = isActor end
+			log("[RollResultDiceUI] ShowMulti actor=" .. actorUserId .. " isActor=" .. tostring(isActor))
+	end
+
+	@ExecSpace("ClientOnly")
+	method void RevealMulti()
+			-- 멀티: 전원 동시에 주사위 공개 연출. actor에게만 '다음' 버튼 노출.
+			self:PlayRevealAnimation()
+			local isActor = false
+			local lp = _UserService.LocalPlayer
+			if isvalid(lp) and lp.PlayerComponent.UserId == self._pendActorUserId then isActor = true end
+			if isActor and isvalid(self.NextButton) then self.NextButton.Enable = true end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void CloseMulti()
+			-- 멀티: 전원 패널 닫기(상태 진행은 서버가 소유하므로 onComplete 없음).
+			self:ClosePanel()
+			if isvalid(self.RollButton) then self.RollButton.Enable = false end
+			self._pendActorUserId = ""
 	end
 
 	@ExecSpace("ClientOnly")
