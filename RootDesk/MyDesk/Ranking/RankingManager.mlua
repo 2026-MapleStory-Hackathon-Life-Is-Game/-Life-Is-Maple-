@@ -11,8 +11,9 @@ script RankingManager extends Logic
 
 	property any _clientRecords = nil
 
-	property any _scoreStore = nil    -- SortableDataStorage: key=userId → 최고 전투력(int). 랭킹 정렬/공유의 원천.
-	property any _metaStore = nil     -- GlobalDataStorage: key=userId → 이름/직업/진영/코디 메타(표시용).
+	property any _scoreStore = nil
+
+	property any _metaStore = nil
 
 	property integer MaxEntries = 10
 
@@ -137,17 +138,17 @@ script RankingManager extends Logic
 		-- 게임 종료 시 호출. 유저별 '최고 전투력'만 유지. 실제 갱신될 때만 저장 + 재조회 + 브로드캐스트.
 		if isvalid(self._scoreStore) == false then self:AcquireStores() end
 		if isvalid(self._scoreStore) == false then return end
-
+		
 		-- 제출 시점 코디(Custom*Equip 슬롯) 캡처(리셋 전) → 정보창 아바타 재현용.
 		local avatar = self:CaptureCostume(userId)
-
+		
 		-- 저장된 최고 점수와 비교(신기록일 때만 기록). 없는 키는 best=nil(또는 NotFound)이라 nil 가드 필수.
 		local gec, best = self._scoreStore:GetAndWait(userId)
 		if gec == 0 and best ~= nil and power <= best then
 			log("[RankingManager] 기록 갱신 없음(기존 최고 유지): " .. tostring(name))
 			return
 		end
-
+		
 		-- 점수(Sortable) + 메타(Global) 동기 저장 후 재조회해야 새 기록이 반영된다(SetAndWait로 커밋 보장).
 		local sec = self._scoreStore:SetAndWait(userId, power)
 		if sec ~= 0 then log_warning("[RankingManager] 점수 저장 오류코드=" .. tostring(sec)) end
@@ -155,7 +156,7 @@ script RankingManager extends Logic
 			local mec = self._metaStore:SetAndWait(userId, self:SerializeMeta(name, job, camp, avatar))
 			if mec ~= 0 then log_warning("[RankingManager] 메타 저장 오류코드=" .. tostring(mec)) end
 		end
-
+		
 		-- 저장소 기준 top N 재구성 후 전체 클라 브로드캐스트(모든 유저 화면에 반영).
 		self:RebuildFromStorage()
 		self:BroadcastData(self:SerializeRecords())
@@ -411,7 +412,6 @@ script RankingManager extends Logic
 		local info = _EntityService:GetEntityByPath(self.infoPath)
 		if isvalid(info) then info.Enable = false end
 		ctx.Enable = true
-		if isvalid(ut) then _UILogic:SetSiblingIndex(ut, 1000000) end
 		_SFXManager:PlayClick()
 		log("[RankingManager] 컨텍스트 메뉴 열기: row=" .. tostring(row))
 	end
@@ -479,8 +479,6 @@ script RankingManager extends Logic
 		local notice = _EntityService:GetEntityByPath("/ui/LobbyUIGroup/RankNotice")
 		if isvalid(notice) then notice.Enable = false end
 		info.Enable = true
-		local ut = info.UITransformComponent
-		if isvalid(ut) then _UILogic:SetSiblingIndex(ut, 1000000) end
 	end
 
 	@ExecSpace("ClientOnly")
@@ -500,8 +498,6 @@ script RankingManager extends Logic
 		local info = _EntityService:GetEntityByPath(self.infoPath)
 		if isvalid(info) then info.Enable = false end
 		notice.Enable = true
-		local ut = notice.UITransformComponent
-		if isvalid(ut) then _UILogic:SetSiblingIndex(ut, 1000000) end
 	end
 
 	method void OnNoticeClose()

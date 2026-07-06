@@ -1,31 +1,37 @@
 @Logic
 script FriendManager extends Logic
 
-	-- 친구 저장소: key=내 userId → 친구 userId 목록(FS 구분). 일방향 팔로우(상대 동의 불필요).
 	property any _friendStore = nil
-	-- 랭킹 저장소 재사용: 친구의 전투력/전체순위(RankScore) + 이름/직업/진영/코디(RankMeta).
+
 	property any _scoreStore = nil
+
 	property any _metaStore = nil
-	-- 서버 캐시: ownerUserId → {친구 userId 배열}. 변경 시에만 저장.
+
 	property any _cache = nil
-	-- 클라 렌더용 친구 랭킹 레코드.
+
 	property any _clientFriends = nil
-	-- 친구 상한(값 4KB 이내 유지 목적).
+
 	property integer MaxFriends = 50
 
-	-- 클라 UI 경로/상태.
 	property string panelBase = "/ui/LobbyUIGroup/FriendPanel/"
-	property boolean _panelOpen = false
-	property integer RowCount = 8
-	property any _rowUserIds = nil   -- row(1..N) → userId(삭제용)
-	property any _btnH = nil          -- 클릭 버튼 이벤트 핸들 보관(OnEndPlay 해제용)
 
-	-- 우클릭 컨텍스트 메뉴(캐릭터 정보/친구 삭제/닫기).
+	property boolean _panelOpen = false
+
+	property integer RowCount = 8
+
+	property any _rowUserIds = nil
+
+	property any _btnH = nil
+
 	property string ctxPath = "/ui/LobbyUIGroup/FriendCtx"
+
 	property integer _hoverRow = 0
+
 	property boolean _lastMouse1 = false
+
 	property integer _ctxRow = 0
-	property any _rowH = nil          -- 행 호버 이벤트 핸들 보관
+
+	property any _rowH = nil
 
 	method void OnBeginPlay()
 		-- 서버: 저장소 확보 + 캐시 초기화. 클라: UI 배선 + 패널 숨김.
@@ -86,10 +92,6 @@ script FriendManager extends Logic
 		local panel = _EntityService:GetEntityByPath("/ui/LobbyUIGroup/FriendPanel")
 		if isvalid(panel) == false then return end
 		panel.Enable = on
-		if on then
-			local ut = panel.UITransformComponent
-			if isvalid(ut) then _UILogic:SetSiblingIndex(ut, 1000000) end
-		end
 	end
 
 	@ExecSpace("ClientOnly")
@@ -173,7 +175,6 @@ script FriendManager extends Logic
 		local ut = ctx.UITransformComponent
 		if isvalid(ut) then ut.anchoredPosition = Vector2(uiPos.x - 100, uiPos.y - 20) end
 		ctx.Enable = true
-		if isvalid(ut) then _UILogic:SetSiblingIndex(ut, 1000000) end
 		_SFXManager:PlayClick()
 	end
 
@@ -339,10 +340,10 @@ script FriendManager extends Logic
 		local recs = {}
 		local friends = self:LoadFriends(ownerUserId)
 		if #friends == 0 then return recs end
-
+		
 		local isFriend = {}
 		for _, id in ipairs(friends) do isFriend[id] = true end
-
+		
 		-- 전체 점수 1회 정렬 조회로 친구의 전투력 + 전체순위 수집(리스트정렬=1크레딧).
 		local powerMap = {}
 		local rankMap = {}
@@ -367,7 +368,7 @@ script FriendManager extends Logic
 				log_warning("[FriendManager] 점수 조회 오류코드=" .. tostring(ec))
 			end
 		end
-
+		
 		-- 친구 메타 일괄 조회.
 		local metaMap = {}
 		if isvalid(self._metaStore) then
@@ -383,7 +384,7 @@ script FriendManager extends Logic
 				log_warning("[FriendManager] 메타 일괄조회 오류코드=" .. tostring(mec))
 			end
 		end
-
+		
 		-- 레코드 조립(기록 없는 친구는 전투력 0 / 전체순위 0).
 		for _, uid in ipairs(friends) do
 			local m = self:ParseMeta(metaMap[uid])
@@ -392,7 +393,7 @@ script FriendManager extends Logic
 				power = powerMap[uid] or 0, globalRank = rankMap[uid] or 0,
 			})
 		end
-
+		
 		-- 전투력 내림차순. 동점이면 전체순위(0=기록없음은 뒤로), 그다음 이름.
 		table.sort(recs, function(a, b)
 			if a.power ~= b.power then return a.power > b.power end

@@ -1,23 +1,18 @@
 @Component
 script RomanceManager extends Component
 
-	-- 플레이어별 연애 진행 상태 홀더. 연애 타일은 맵에 1개뿐이고 여러 플레이어가 통과하므로,
-	-- 진행 상태는 반드시 말(piece = 플레이어 엔티티)에 저장한다. (GuildManager와 동일한 per-player 패턴)
-	--   Stage : 다음에 진행할 연애 이벤트 단계
-	--     0 = 상대 미선택      (다음 방문 → 연애상대선택 + 룰렛)
-	--     1 = 성공 후 결혼 대기 (다음 방문 → 결혼 이벤트, 자동)
-	--     2 = 결혼 완료        (다음 방문 → 데이트/유니온창설, 현재는 스텁 반복)
-	--   Partner : 선택한 연애 상대 Key(RomancePartner 데이터셋)
-	--   Married : 결혼 완료 여부
-	--   FamilyMembers : 데이트 대성공으로 모은 가족 구성원 수(2명 이상 → 유니온 창설)
-	--   UnionCreated : 유니온 창설 완료 여부
-	--   DateBuffName/DateBuffTurns : 현재 적용 중인 데이트 버프 이름 + 잔여 턴(0 되면 소멸)
 	property integer Stage = 0
+
 	property string Partner = ""
+
 	property boolean Married = false
+
 	property integer FamilyMembers = 0
+
 	property boolean UnionCreated = false
+
 	property string DateBuffName = ""
+
 	property integer DateBuffTurns = 0
 
 	method void OnBeginPlay()

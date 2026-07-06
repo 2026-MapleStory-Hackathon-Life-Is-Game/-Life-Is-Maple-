@@ -1,19 +1,12 @@
 @Component
 script GuildManager extends Component
 
-	-- 플레이어별 길드 진행 상태 홀더. 길드 타일은 맵에 1개뿐이고 여러 플레이어가 통과하므로,
-	-- 진행 상태는 반드시 말(piece = 플레이어 엔티티)에 저장한다. (BuffManager와 동일한 per-player 패턴)
-	--   Stage : 다음에 진행할 길드 이벤트 단계
-	--     0 = 길드 미창설      (다음 방문 → 길드창설: 주사위)
-	--     1 = 창설 완료        (다음 방문 → 부길마영입)
-	--     2 = 부길마 완료      (다음 방문 → 길드원영입 반복)
-	--   Tier : 0 없음 / 1 초보 길드 / 2 마스터 길드
-	--   GeneralMembers : 부길마를 제외한 일반 길드원 수(초보→마스터 승급 조건: 2명)
-	--   PromotionPending : 승급 조건을 충족했으나 아직 '길드 승급' 이벤트를 안 본 상태.
-	--     true면 다음 길드 타일 방문에서 승급 이벤트가 뜬다(Tier 상승/축복 강화는 그때 적용).
 	property integer Stage = 0
+
 	property integer Tier = 0
+
 	property integer GeneralMembers = 0
+
 	property boolean PromotionPending = false
 
 	method void OnBeginPlay()
