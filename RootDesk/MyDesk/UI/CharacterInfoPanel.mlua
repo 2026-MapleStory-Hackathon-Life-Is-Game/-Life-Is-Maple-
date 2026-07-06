@@ -69,6 +69,8 @@ script CharacterInfoPanel extends Component
 
 	property any _ctxHandlers = nil
 
+	property any escHandler = nil
+
 	method void OnBeginPlay()
 		-- 클라 전용: 패널 시작은 숨김 + 슬롯 호버/더블클릭 배선.
 		if self:IsClient() then
@@ -100,6 +102,19 @@ script CharacterInfoPanel extends Component
 				local hx = self.ctxBtnClose.Entity:ConnectEvent(ButtonClickEvent, function() self:OnCtxClose() end)
 				table.insert(self._ctxHandlers, { entity = self.ctxBtnClose.Entity, evtH = hx })
 			end
+			-- ESC 키로 캐릭터 정보 패널 닫기. _InputService의 KeyDownEvent 구독.
+			-- Close()를 직접 호출해도 UnderButton:OnUpdate가 openExclusive를 매 프레임 동기화하므로 desync 없음.
+			self.escHandler = _InputService:ConnectEvent(KeyDownEvent, self.OnKeyDown)
+		end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void OnKeyDown(KeyDownEvent event)
+		-- ESC: 캐릭터 정보 패널이 열려 있으면 닫는다(Close가 컨텍스트 메뉴/툴팁도 함께 정리).
+		if event.key == KeyboardKey.Escape and self.isOpen then
+			self:CloseContextMenu()
+			self:Close()
+			log("[CharacterInfoPanel] ESC → 패널 닫기")
 		end
 	end
 
@@ -122,6 +137,10 @@ script CharacterInfoPanel extends Component
 		-- 패널 닫기.
 		if self:IsClient() == false then return end
 		self.isOpen = false
+		-- ⚠ 툴팁은 이 패널의 자식이 아닌 독립 오버레이라, 슬롯 호버 중 닫으면 이탈(Normal)이 유실되어
+		--    툴팁이 그대로 남는다. 닫을 때 명시적으로 내리고 호버 추적을 해제한다.
+		_EquipTooltip:Hide()
+		self._hoverCat = ""
 		self:SetPanelVisible(false)
 	end
 
@@ -178,15 +197,18 @@ script CharacterInfoPanel extends Component
 		-- 장비칸 3슬롯 아이콘 갱신(빈 슬롯은 투명).
 		local p = _UserService.LocalPlayer
 		if isvalid(p) == false then return end
+		---@type BaseEquipment
 		local w = p:GetComponent("script.WeaponEquipment")
+		---@type BaseEquipment
 		local a = p:GetComponent("script.ArmorEquipment")
+		---@type BaseEquipment
 		local ac = p:GetComponent("script.AccessoryEquipment")
-		self:SetSlotIcon(self.weaponIcon, isvalid(w) and w.Equipped or "")
-		self:SetSlotIcon(self.armorIcon, isvalid(a) and a.Equipped or "")
-		self:SetSlotIcon(self.accessoryIcon, isvalid(ac) and ac.Equipped or "")
+		self:SetSlotIcon(self.weaponIcon, isvalid(w) and w.Equipped or "", isvalid(w) and w:GetInstancePotential(w.EquippedId) or "")
+		self:SetSlotIcon(self.armorIcon, isvalid(a) and a.Equipped or "", isvalid(a) and a:GetInstancePotential(a.EquippedId) or "")
+		self:SetSlotIcon(self.accessoryIcon, isvalid(ac) and ac.Equipped or "", isvalid(ac) and ac:GetInstancePotential(ac.EquippedId) or "")
 	end
 
-	method void SetSlotIcon(SpriteGUIRendererComponent renderer, string equipName)
+	method void SetSlotIcon(SpriteGUIRendererComponent renderer, string equipName, string potStr)
 		-- equipName의 Icon RUID를 슬롯에 적용 + 아이템명 텍스트 표시(아이콘 없어도 장착 확인 가능).
 		if isvalid(renderer) == false then return end
 		local e = renderer.Entity
@@ -220,9 +242,9 @@ script CharacterInfoPanel extends Component
 		else
 			renderer.Color = Color(1, 1, 1, 0)
 		end
-		-- 장착 슬롯은 아웃라인을 다시 켠다(미착용 시 껐던 것을 복원).
-		renderer.Outline = true
-		self:SetSlotLabel(e, dname, true)
+		-- 장착 슬롯 아웃라인 = 이 아이템의 잠재 등급색(잠재 없으면 아웃라인 해제). 인벤과 동일 규칙.
+		_PotentialManager:ApplyGradeOutline(renderer, potStr)
+		--self:SetSlotLabel(e, dname, true)
 	end
 
 	method void SetSlotLabel(Entity slotEntity, string text, boolean equipped)
@@ -255,6 +277,16 @@ script CharacterInfoPanel extends Component
 		if isvalid(p) == false then return "" end
 		local m = _EquipmentRouter:ManagerFor(p, category)
 		if isvalid(m) then return m.Equipped end
+		return ""
+	end
+
+	method string EquippedIdOf(string category)
+		-- 카테고리 슬롯의 현재 장착 인스턴스 ID 반환("" = 미장착). 툴팁/큐브 대상 지정용.
+		local p = _UserService.LocalPlayer
+		if isvalid(p) == false then return "" end
+		---@type BaseEquipment
+		local m = _EquipmentRouter:ManagerFor(p, category)
+		if isvalid(m) then return m.EquippedId end
 		return ""
 	end
 
@@ -305,7 +337,7 @@ script CharacterInfoPanel extends Component
 		-- 슬롯 호버 진입 → 스펙 툴팁 표시 + 우클릭 대상 추적, 이탈 → 숨김.
 		if ev.state == ButtonState.Hover then
 			self._hoverCat = category
-			_EquipTooltip:ShowItem(self:EquippedOf(category))
+			_EquipTooltip:ShowItem(self:EquippedIdOf(category))
 		elseif ev.state == ButtonState.Normal then
 			if self._hoverCat == category then self._hoverCat = "" end
 			_EquipTooltip:Hide()
@@ -358,7 +390,6 @@ script CharacterInfoPanel extends Component
 		-- 미라클 큐브 보유 여부로 '잠재능력 재설정' 버튼 활성/반투명 갱신.
 		self:UpdateCtxCubeButton()
 		self.ctxMenu.Enable = true
-		if isvalid(ut) then _UILogic:SetSiblingIndex(ut, 1000000) end
 		_EquipTooltip:Hide()
 		log("[CharacterInfoPanel] 컨텍스트 메뉴 열기: " .. category)
 	end
@@ -416,10 +447,11 @@ script CharacterInfoPanel extends Component
 		self:CloseContextMenu()
 		if cat == "" then return end
 		local eq = self:EquippedOf(cat)
-		if eq == "" then return end
+		local eqId = self:EquippedIdOf(cat)
+		if eq == "" or eqId == "" then return end
 		_EquipTooltip:Hide()
-		_CubeConfirmPopup:Open(eq)
-		log("[CharacterInfoPanel] 컨텍스트: 잠재 재설정 " .. eq)
+		_CubeConfirmPopup:Open(eqId, eq)
+		log("[CharacterInfoPanel] 컨텍스트: 잠재 재설정 " .. eq .. "(" .. eqId .. ")")
 	end
 
 	method void OnCtxClose()
@@ -457,7 +489,11 @@ script CharacterInfoPanel extends Component
 	end
 
 	method void OnEndPlay()
-		-- 슬롯 + 컨텍스트 메뉴 이벤트 핸들 해제.
+		-- 슬롯 + 컨텍스트 메뉴 + ESC 키 이벤트 핸들 해제.
+		if self.escHandler ~= nil then
+			_InputService:DisconnectEvent(KeyDownEvent, self.escHandler)
+			self.escHandler = nil
+		end
 		if self.slotHandlers ~= nil then
 			for _, r in ipairs(self.slotHandlers) do
 				if isvalid(r.entity) then

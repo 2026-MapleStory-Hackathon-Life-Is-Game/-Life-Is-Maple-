@@ -1,17 +1,10 @@
 @Component
 script RunStatsManager extends Component
 
-	-- 싱글 플레이 1회차(런) 기록. 플레이어 엔티티에 부착되어 Map_01→02→03 전환에도 유지된다.
-	-- (CombatPowerManager와 동일한 플레이어-부착/런-스코프 패턴.)
-	-- 갱신/조회가 모두 서버 측(OnTurnStart/TriggerArrive/FinishGame)이라 @Sync 불필요.
-
-	-- 런 시작 시각 baseline. _UtilLogic.ElapsedSeconds는 세션을 넘어 지속되므로 '차이'로만 사용한다.
 	property number StartElapsed = 0
 
-	-- 총 턴 수.
 	property integer TurnCount = 0
 
-	-- 타일 타입별 방문 수 { Village, Boss, Unlucky, Hunt, HuntPlus }.
 	property any TileVisits = nil
 
 	method table NewVisits()
@@ -71,6 +64,13 @@ script RunStatsManager extends Component
 			end
 		end
 		return best
+	end
+
+	method integer VisitCount(string t)
+		-- 특정 타일 타입의 방문 수(없으면 0).
+		self:EnsureVisits()
+		if t == nil or t == "" then return 0 end
+		return self.TileVisits[t] or 0
 	end
 
 	@ExecSpace("ServerOnly")

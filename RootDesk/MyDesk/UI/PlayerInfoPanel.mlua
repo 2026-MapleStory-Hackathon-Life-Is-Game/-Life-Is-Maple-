@@ -5,43 +5,43 @@ script PlayerInfoPanel extends Component
 
 	property TextGUIRendererComponent NewValue2 = "05b6f041-e1ba-4f09-a677-e21e0429fe46"
 
-	-- 전투력 표시 텍스트(UIText_1: "전투력: ..."). NewValue2는 .ui 오버라이드로 다른 텍스트를 가리켜
-	-- 별도 프로퍼티로 정확히 바인딩한다.
 	property TextGUIRendererComponent powerText = "05b6f041-e1ba-4f09-a677-e21e0429fe46"
 
-	-- 진영/직업 라벨 텍스트(content/UIText, 예전 "모험가/해적"). 실제 진영/직업을 반영한다.
 	property TextGUIRendererComponent campJobText = "b38deec1-0973-4ad3-9ab8-f3bff963349d"
 
-	-- 레벨 라벨(content/UIText_Level, 우측 하단). 서있는 타일로 결정된 CombatPowerManager.Level 표시.
 	property Entity levelText = "09edce29-fce5-4d8c-a0f9-f421113dbd03"
 
-	property any combatComp = nil      -- 로컬 플레이어의 CombatPowerManager (지연 캐시)
-	property number lastShownPower = -1 -- 마지막으로 표시한 전투력(값이 바뀔 때만 텍스트 갱신)
-	property integer lastShownLevel = -1 -- 마지막으로 표시한 레벨(값이 바뀔 때만 텍스트 갱신)
-	property any buffComp = nil          -- 로컬 플레이어의 BuffManager (진영 라벨용, 지연 캐시)
-	property string lastShownCampJob = "" -- 마지막으로 표시한 진영/직업(값이 바뀔 때만 갱신)
+	property any combatComp = nil
+
+	property number lastShownPower = -1
+
+	property integer lastShownLevel = -1
+
+	property any buffComp = nil
+
+	property string lastShownCampJob = ""
 
 	method void OnBeginPlay()
 		if self:IsClient() then
-
+		
 			-- 플레이어 정보 창의 Text값을 플레이어의 닉네임으로 설정합니다.
 			local player = _UserService.LocalPlayer
-
+		
 			self.UserName.Text = player.PlayerComponent.Nickname
-
+		
 			self.combatComp = nil
 			self.lastShownPower = -1
 			self.lastShownLevel = -1
-
+		
 		end
-
-
+		
+		
 	end
 
 	method void OnUpdate(number delta)
 		-- 로컬 플레이어의 전투력(@Sync)을 폴링해 값이 바뀌면 패널 텍스트를 갱신한다.
 		if self:IsClient() == false then return end
-
+		
 		-- CombatPowerManager는 입장 시 런타임 부착되므로 지연 캐시한다.
 		if isvalid(self.combatComp) == false then
 			local player = _UserService.LocalPlayer
@@ -50,7 +50,7 @@ script PlayerInfoPanel extends Component
 			end
 			if isvalid(self.combatComp) == false then return end
 		end
-
+		
 		---@type CombatPowerManager
 		local cp = self.combatComp
 		local power = cp.CombatPower
@@ -61,7 +61,7 @@ script PlayerInfoPanel extends Component
 				self.powerText.Text = self:FormatPower(power)
 			end
 		end
-
+		
 		-- 레벨: 서있는 타일(Stage,Tier)로 결정된 CombatPowerManager.Level(@Sync)을 폴링해 갱신.
 		local level = cp.Level
 		if level ~= self.lastShownLevel then
@@ -69,7 +69,7 @@ script PlayerInfoPanel extends Component
 			self:SetLevelText("Lv." .. tostring(level))
 			log("[PlayerInfoPanel] 레벨 라벨 = Lv." .. tostring(level))
 		end
-
+		
 		-- 진영/직업 라벨 갱신(진영=로컬 플레이어 BuffManager.CampName, 직업=전역 currentJob).
 		local campJob = self:CampKo(self:LocalCampKey()) .. "/" .. self:JobKo(self:CurrentJobKey())
 		if campJob ~= self.lastShownCampJob then

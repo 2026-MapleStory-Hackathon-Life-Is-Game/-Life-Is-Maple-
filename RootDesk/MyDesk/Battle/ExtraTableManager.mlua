@@ -30,12 +30,12 @@ script ExtraTableManager extends Component
 	method table GetExtra()
 		-- 같은 플레이어의 BuffManager + EquipmentRouter 수정자를 합산한다.
 		local extra = self:CreateEmptyExtra()
-
+		
 		local buff = self.Entity:GetComponent("script.BuffManager")
 		if isvalid(buff) then self:AddModifiers(extra, buff:GetModifiers()) end
-
+		
 		self:AddModifiers(extra, _EquipmentRouter:TotalModifiers(self.Entity))
-
+		
 		return extra
 	end
 
