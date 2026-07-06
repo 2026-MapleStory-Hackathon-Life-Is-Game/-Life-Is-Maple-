@@ -43,10 +43,20 @@ script EquipmentRouter extends Logic
 	end
 
 	@ExecSpace("ServerOnly")
-	method void Acquire(Entity player, string equipName)
-		-- 아이템을 올바른 타입 인벤토리에 보유시킨다.
+	method string Acquire(Entity player, string equipName)
+		-- 아이템을 올바른 타입 인벤토리에 새 인스턴스로 보유시킨다. 반환값=발급된 인스턴스 ID("" = 실패).
 		local m = self:ManagerForItem(player, equipName)
-		if isvalid(m) then m:Acquire(equipName) end
+		if isvalid(m) then return m:Acquire(equipName) end
+		return ""
+	end
+
+	method any ManagerForInstance(Entity player, string instanceId)
+		-- 해당 인스턴스를 보유(장착 포함)한 3개 장비 컴포넌트 중 하나를 반환(없으면 nil).
+		---@type BaseEquipment
+		for _, m in ipairs(self:AllManagers(player)) do
+			if m:OwnsInstance(instanceId) then return m end
+		end
+		return nil
 	end
 
 	method table EmptyMods()
@@ -76,12 +86,12 @@ script EquipmentRouter extends Logic
 		return acc
 	end
 
-	method table ModifiersWithSwap(Entity player, string candidate)
-		-- 후보 타입만 candidate로 스왑한 3컴포넌트 합산(미리보기용).
+	method table ModifiersWithSwap(Entity player, string candidate, string candidatePot)
+		-- 후보 타입만 candidate(+잠재 candidatePot)로 스왑한 3컴포넌트 합산(미리보기용).
 		local acc = self:EmptyMods()
 		---@type BaseEquipment
 		for _, m in ipairs(self:AllManagers(player)) do
-			self:Add(acc, m:ModifiersWith(candidate))
+			self:Add(acc, m:ModifiersWith(candidate, candidatePot))
 		end
 		return acc
 	end

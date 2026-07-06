@@ -1,7 +1,9 @@
 @Component
 script AccessoryEquipment extends BaseEquipment
+
 	method string EquipCategory()
 		-- 장신구 타입.
 		return "Accessory"
 	end
+
 end

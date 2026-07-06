@@ -1,5 +1,6 @@
 @Component
 script WeaponEquipment extends BaseEquipment
+
 	method string EquipCategory()
 		-- 무기 타입.
 		return "Weapon"
@@ -14,7 +15,7 @@ script WeaponEquipment extends BaseEquipment
 			log_error("WeaponEquipment.ApplyEquipVisual: CostumeManagerComponent가 없다")
 			return
 		end
-
+		
 		local equipName = self.Equipped
 		if equipName == "" then
 			-- 무기 해제: 모든 무기 슬롯을 빈칸으로.
@@ -24,7 +25,7 @@ script WeaponEquipment extends BaseEquipment
 			log("WeaponEquipment: 무기 해제 → 아바타 무기 슬롯 비움")
 			return
 		end
-
+		
 		local row = self:FindRow(equipName)
 		if row == -1 then
 			log_warning("WeaponEquipment.ApplyEquipVisual: EquipmentData에 " .. equipName .. " 행 없음")
@@ -37,7 +38,7 @@ script WeaponEquipment extends BaseEquipment
 			log_warning("WeaponEquipment.ApplyEquipVisual: " .. equipName .. " 의 Sprite RUID가 비어있음")
 			return
 		end
-
+		
 		-- Preset Name 접두로 한손/두손 구분. 상호배제: 한손이면 두손 비우고, 두손이면 한손+보조 비운다.
 		if string.find(preset, "twohandedweapon", 1, true) ~= nil then
 			costume.CustomTwoHandedWeaponEquip = ruid
@@ -51,4 +52,5 @@ script WeaponEquipment extends BaseEquipment
 			log("WeaponEquipment: 한손무기 아바타 적용 → " .. equipName)
 		end
 	end
+
 end
