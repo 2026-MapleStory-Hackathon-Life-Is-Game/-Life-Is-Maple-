@@ -5,12 +5,8 @@ script BuffManager extends Component
 
 	property table ListBuffs = {}
 
-	-- 타일/이벤트가 주는 동적(이름 없는) 수치 버프의 누적 합. CSV 버프와 별개로 GetModifiers에서 함께 합산된다.
 	property table DynamicMods = {}
 
-	-- 현재 진영 키(진영명 그대로, 예: "Nova"). 미선택 시 "".
-	-- Camp 슬롯 버프가 적용/해제될 때 갱신된다. 서버가 세팅하면 소유 클라로 동기화되어,
-	-- 클라가 자기 진영을 읽어 타일 시각을 로컬 교체하는 데 쓴다.
 	@TargetUserSync
 	property string CampName = ""
 
@@ -235,7 +231,7 @@ script BuffManager extends Component
 	method table GetModifiers()
 		-- 슬롯 딕셔너리 + 리스트 + 동적 modifier의 모든 버프를 합산해 modifier 하나로 반환한다.
 		local total = self:EmptyModifier()
-
+		
 		-- 1) 대분류 슬롯 버프 합산
 		for _, b in pairs(self.SlotBuffs) do
 			self:Accumulate(total, b)
@@ -246,7 +242,7 @@ script BuffManager extends Component
 		end
 		-- 3) 타일/이벤트가 준 동적 수치 버프 합산
 		self:Accumulate(total, self.DynamicMods)
-
+		
 		return total
 	end
 
