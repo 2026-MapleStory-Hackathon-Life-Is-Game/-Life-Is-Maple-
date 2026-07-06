@@ -85,7 +85,7 @@
           "Value": {
             "$type": "MOD.Core.MODVector2, MOD.Core",
             "x": 0.268,
-            "y": 0.7
+            "y": 0.0
           }
         },
         {
@@ -97,8 +97,8 @@
           },
           "Value": {
             "$type": "MOD.Core.MODVector2, MOD.Core",
-            "x": 2.5,
-            "y": 6.0
+            "x": 10.0,
+            "y": 24.0
           }
         },
         {
@@ -132,7 +132,7 @@
           },
           "Value": {
             "$type": "MOD.Core.MODVector2, MOD.Core",
-            "x": 2.0,
+            "x": 0.0,
             "y": 0.5
           }
         },
@@ -661,7 +661,7 @@
           },
           "Value": {
             "$type": "MOD.Core.MODVector2, MOD.Core",
-            "x": 2.0,
+            "x": 0.0,
             "y": 0.5
           }
         },
@@ -785,9 +785,31 @@
           },
           "Value": {
             "$type": "MOD.Core.MODVector2, MOD.Core",
-            "x": 2.5,
-            "y": 6.0
+            "x": 10.0,
+            "y": 24.0
           }
+        },
+        {
+          "TargetType": "MOD.Core.CameraComponent",
+          "Name": "SoftZone",
+          "ValueType": {
+            "$type": "MODNativeType",
+            "type": "MOD.Core.MODVector2, MOD.Core, Version=26.5.0.0, Culture=neutral, PublicKeyToken=null"
+          },
+          "Value": {
+            "$type": "MOD.Core.MODVector2, MOD.Core",
+            "x": 0.268,
+            "y": 0.0
+          }
+        },
+        {
+          "TargetType": "MOD.Core.CameraComponent",
+          "Name": "ZoomRatio",
+          "ValueType": {
+            "$type": "MODNativeType",
+            "type": "System.Single, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089"
+          },
+          "Value": 75.0
         }
       ],
       "EventLinks": [],
