@@ -1,0 +1,42 @@
+@Component
+script HelpOpenButton extends Component
+
+	property any clickHandler = nil
+
+	method void OnBeginPlay()
+		-- 클라 전용: 이 버튼(HelpButton) 클릭 시 도움말(HelpPanel)을 연다.
+		-- 어떤 패널의 HelpButton에든 이 컴포넌트만 붙이면 동작하는 재사용 버튼 컴포넌트.
+		if self:IsClient() == false then return end
+		self.clickHandler = self.Entity:ConnectEvent(ButtonClickEvent, self.OnClick)
+		log("[HelpOpenButton] wired: " .. self.Entity.Name)
+	end
+
+	method void OnClick(ButtonClickEvent event)
+		-- 클릭음 재생 후 HelpPanel:Toggle() 호출(열려 있으면 닫고, 닫혀 있으면 연다).
+		-- HelpPanel 컴포넌트는 전역 도움말 그룹의 /ui/HelpPanelGroup/HelpCtrl 엔티티에 부착돼 있어,
+		-- 어느 UI 그룹에서 눌러도 같은 도움말이 토글된다.
+		if _SFXManager ~= nil then _SFXManager:PlayClick() end
+		local e = _EntityService:GetEntityByPath("/ui/HelpPanelGroup/HelpCtrl")
+		if isvalid(e) == false then
+			log_warning("[HelpOpenButton] HelpCtrl 엔티티를 찾지 못함")
+			return
+		end
+		---@type HelpPanel
+		local hp = e:GetComponent("script.HelpPanel")
+		if isvalid(hp) then
+			hp:Toggle()
+			log("[HelpOpenButton] HelpPanel Toggle 요청: " .. self.Entity.Name)
+		else
+			log_warning("[HelpOpenButton] HelpPanel 컴포넌트를 찾지 못함")
+		end
+	end
+
+	method void OnEndPlay()
+		-- 클릭 핸들러 해제.
+		if self.clickHandler ~= nil then
+			self.Entity:DisconnectEvent(ButtonClickEvent, self.clickHandler)
+			self.clickHandler = nil
+		end
+	end
+
+end

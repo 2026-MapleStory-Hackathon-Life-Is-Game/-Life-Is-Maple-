@@ -1,28 +1,29 @@
 @Component
 script HelpPanel extends Component
 
-	-- '?' 토글 버튼(패널 밖, InGameUIGroup 직속). 열림/닫힘을 토글한다.
 	property Entity helpButton = "9f1dcbd8-e16f-46fa-b89a-03f8173cf4a5"
 
-	-- 도움말 패널 루트(DimBlack + 탭 + 내용). Enable로 표시/숨김.
 	property Entity helpPanel = "450d9f78-8de7-45e3-bf34-eed58cdf1edc"
 
-	-- 우하단 닫기 버튼.
 	property Entity closeButton = "6210374a-cc7c-404d-a49e-66c335feed76"
 
-	-- 좌측 탭 버튼 3종.
-	property Entity tabBasicBtn = "c757ebca-35b6-4fc0-8c70-73be17f94d5d"   -- 기본 조작
-	property Entity tabTileBtn  = "d60e0823-784b-483b-a015-fde672513ff2"   -- 타일의 종류
-	property Entity tabEquipBtn = "2a8ba7ca-e3d1-44c1-b1fa-7dbaaa6e8664"   -- 장비 장착&강화
+	property Entity tabBasicBtn = "c757ebca-35b6-4fc0-8c70-73be17f94d5d"
 
-	-- 각 탭의 내용 그룹(WholePanel 하위). 활성 탭만 Enable=true.
+	property Entity tabTileBtn = "d60e0823-784b-483b-a015-fde672513ff2"
+
+	property Entity tabEquipBtn = "2a8ba7ca-e3d1-44c1-b1fa-7dbaaa6e8664"
+
 	property Entity groupBasic = "eb02ebd2-f6b1-4de4-a9a2-6a2c83815468"
-	property Entity groupTile  = "1dabbc1a-8707-4861-82c9-d0be89de1d3a"
+
+	property Entity groupTile = "1dabbc1a-8707-4861-82c9-d0be89de1d3a"
+
 	property Entity groupEquip = "eada2412-6e9c-4d5e-a345-a1b405ab7a8e"
 
 	property boolean isOpen = false
-	property integer activeTab = 1        -- 1=기본조작 2=타일종류 3=장비장착강화
-	property any handlers = nil           -- { {entity, evtH}, ... }
+
+	property integer activeTab = 1
+
+	property any handlers = nil
 
 	method void OnBeginPlay()
 		-- 클라 전용: 버튼 이벤트 배선 + 패널 시작 숨김.
@@ -30,21 +31,21 @@ script HelpPanel extends Component
 		self.handlers = {}
 		self.isOpen = false
 		self.activeTab = 1
-
+		
 		-- 탭별 설정: 내용 그룹 / 페이지 컨테이너 이름 / 좌·우 화살표 이름 / 현재 페이지.
 		self._T.tabs = {
 			{ group = self.groupBasic, panels = "Panels",   left = "UIButton_2", right = "UIButton_3", page = 1 },
 			{ group = self.groupTile,  panels = "Panels_1", left = "UIButton_2", right = "UIButton_3", page = 1 },
 			{ group = self.groupEquip, panels = "Panels_2", left = "UIButton",   right = "UIButton_1", page = 1 },
 		}
-
+		
 		-- '?' 토글 / 닫기 / 탭 버튼 배선.
 		self:Connect(self.helpButton, function() self:Toggle() end)
 		self:Connect(self.closeButton, function() self:Close() end)
 		self:Connect(self.tabBasicBtn, function() self:SelectTab(1) end)
 		self:Connect(self.tabTileBtn,  function() self:SelectTab(2) end)
 		self:Connect(self.tabEquipBtn, function() self:SelectTab(3) end)
-
+		
 		-- 각 탭의 좌/우 화살표 배선(그룹 자식에서 이름으로 조회).
 		for i = 1, #self._T.tabs do
 			local t = self._T.tabs[i]
@@ -57,10 +58,10 @@ script HelpPanel extends Component
 				if isvalid(rb) then self:Connect(rb, function() self:ChangePage(idx, 1) end) end
 			end
 		end
-
+		
 		-- 시작 시 숨김(.ui 기본이 켜져 있어도 명시적으로 내린다).
 		if isvalid(self.helpPanel) then self.helpPanel.Enable = false end
-
+		
 		log("[HelpPanel] OnBeginPlay OK")
 	end
 
@@ -100,10 +101,7 @@ script HelpPanel extends Component
 	end
 
 	method void BringFront(Entity e, integer idx)
-		-- 엔티티를 같은 부모 형제 중 idx 위치(클수록 앞)로 올린다.
-		if isvalid(e) == false then return end
-		local ut = e.UITransformComponent
-		if isvalid(ut) then _UILogic:SetSiblingIndex(ut, idx) end
+		-- z-order(형제 인덱스) 강제 로직 제거됨.
 	end
 
 	method void SelectTab(integer tab)
@@ -159,19 +157,19 @@ script HelpPanel extends Component
 		if page < 1 then page = 1 end
 		if page > total then page = total end
 		t.page = page
-
+		
 		-- 페이지 엔티티 이름은 "1".."N". 대상 페이지만 켠다.
 		for _, pg in ipairs(list) do
 			if isvalid(pg) then pg.Enable = (pg.Name == tostring(page)) end
 		end
-
+		
 		-- 현재/전체 페이지 표시 텍스트(화살표 사이).
 		local pt = g:GetChildByName("PageText", false)
 		if isvalid(pt) then
 			local tc = pt:GetComponent("MOD.Core.TextComponent")
 			if tc ~= nil then tc.Text = tostring(page) .. " / " .. tostring(total) end
 		end
-
+		
 		log("[HelpPanel] tab=" .. tostring(tab) .. " page=" .. tostring(page) .. "/" .. tostring(total))
 	end
 
