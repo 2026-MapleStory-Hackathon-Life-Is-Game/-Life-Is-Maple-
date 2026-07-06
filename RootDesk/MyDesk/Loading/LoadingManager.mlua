@@ -9,7 +9,6 @@ script LoadingManager extends Logic
 
 	property TextComponent loadingText = "40f590fe-50a4-4495-b7e1-0e0cb691684e"
 
-	-- 튜토리얼 페이지 아래 안내 Tip 텍스트. 오버레이와 함께 켜고 끈다. UIBuilder 바인딩 주입으로 채워진다.
 	property Entity loadingTip = "a72aa2ce-f84a-45e1-b7a1-36cb35b3627c"
 
 	property string loadingBackgroundRUID = ""
@@ -24,7 +23,6 @@ script LoadingManager extends Logic
 
 	property integer _dotCount = 0
 
-	-- 로딩 화면 튜토리얼: ?버튼 도움말 12페이지(기본조작5/타일4/장비3) 중 1개를 로딩창에 그대로 클론해 표시.
 	property any _tutClone = nil
 
 	@ExecSpace("ClientOnly")
@@ -82,16 +80,7 @@ script LoadingManager extends Logic
 			self.loadingSprite.ImageRUID = self.loadingBackgroundRUID
 		end
 		self:SetOverlayEnable(true)
-		-- 선택창 그룹(UIType, GroupOrder 30~33)보다 확실히 위로: UIType + 더 높은 GroupOrder + 형제 최상단.
-		if isvalid(self.loadingGroup) then
-			if isvalid(self.loadingGroup.UIGroupComponent) then
-				self.loadingGroup.UIGroupComponent.GroupType = UIGroupType.UIType
-				self.loadingGroup.UIGroupComponent.GroupOrder = 100
-			end
-			if isvalid(self.loadingGroup.UITransformComponent) then
-				_UILogic:SetSiblingIndex(self.loadingGroup.UITransformComponent, 1000000)
-			end
-		end
+		-- z-order(GroupOrder / 형제 인덱스) 강제 로직 제거됨.
 		-- 'loading...' 점 애니메이션 시작.
 		self:StartDotAnim()
 		-- 튜토리얼 페이지 1장을 로딩창에 표시(로딩 종료 시 정리).
@@ -145,7 +134,6 @@ script LoadingManager extends Logic
 		clone.Enable = true
 		if isvalid(clone.UITransformComponent) then
 			clone.UITransformComponent.anchoredPosition = Vector2(0, 40)   -- 화면 중앙(하단 'loading' 텍스트와 겹치지 않게 살짝 위로)
-			_UILogic:SetSiblingIndex(clone.UITransformComponent, 999999)   -- loadingGroup 내 최상단(배경 위)
 		end
 		log("[LoadingManager] 로딩 튜토리얼 표시: " .. pick)
 	end

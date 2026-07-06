@@ -31,11 +31,11 @@ script ResultUI extends Logic
 		-- 싱글 리치 카드: 기본 숨김 + 확인/랭킹보기 버튼 배선.
 		local card = _EntityService:GetEntityByPath(self.cardPath)
 		if isvalid(card) then card.Enable = false end
-		local btnC = _EntityService:GetEntityByPath(self.cardPath .. "/BtnConfirm")
+		local btnC = _EntityService:GetEntityByPath(self.cardPath .. "/BtnArea/BtnConfirm")
 		if isvalid(btnC) then
 			self.hCardConfirm = btnC:ConnectEvent(ButtonClickEvent, function() self:HideCard() end)
 		end
-		local btnR = _EntityService:GetEntityByPath(self.cardPath .. "/BtnRanking")
+		local btnR = _EntityService:GetEntityByPath(self.cardPath .. "/BtnArea/BtnRanking")
 		if isvalid(btnR) then
 			self.hCardRanking = btnR:ConnectEvent(ButtonClickEvent, function() self:HideCard() end)
 		end
@@ -47,21 +47,38 @@ script ResultUI extends Logic
 			self.confirmButton.Entity:DisconnectEvent(ButtonClickEvent, self.hConfirm)
 			self.hConfirm = nil
 		end
-		local btnC = _EntityService:GetEntityByPath(self.cardPath .. "/BtnConfirm")
+		local btnC = _EntityService:GetEntityByPath(self.cardPath .. "/BtnArea/BtnConfirm")
 		if self.hCardConfirm ~= nil and isvalid(btnC) then
 			btnC:DisconnectEvent(ButtonClickEvent, self.hCardConfirm)
 			self.hCardConfirm = nil
 		end
-		local btnR = _EntityService:GetEntityByPath(self.cardPath .. "/BtnRanking")
+		local btnR = _EntityService:GetEntityByPath(self.cardPath .. "/BtnArea/BtnRanking")
 		if self.hCardRanking ~= nil and isvalid(btnR) then
 			btnR:DisconnectEvent(ButtonClickEvent, self.hCardRanking)
 			self.hCardRanking = nil
 		end
 	end
 
+	method string TypeKo(string t)
+		-- 타일 타입키 → 한글 라벨.
+		if t == "Village" then return "마을" end
+		if t == "Boss" then return "보스" end
+		if t == "Unlucky" then return "불행" end
+		if t == "Hunt" then return "사냥" end
+		if t == "HuntPlus" then return "사냥+" end
+		return tostring(t)
+	end
+
+	method string TypeJosa(string t)
+		-- {타일} 뒤 목적격 조사(받침 유무). 보스만 '를', 나머지(마을/불행/사냥/사냥+)는 '을'.
+		if t == "Boss" then return "를" end
+		return "을"
+	end
+
 	@ExecSpace("Client")
-	method void ShowSingle(string name, integer power, string job, string camp, integer rank, boolean isNewRecord, string avatar)
-		-- 싱글 완주 리치 결과 카드. 좌측 아바타(캡처 코디) + 우측 전투력/전체순위/신기록/스펙.
+	method void ShowSingle(string name, integer power, string job, string camp, integer rank, boolean isNewRecord, string avatar, integer minutes, string lifeInfo, string titleType, integer turns, integer visits)
+		-- 싱글 완주 리치 결과 카드(엔딩 요약 통합본).
+		-- 좌측 아바타(캡처 코디) + 우측 통계(플레이시간/인생분기/랭킹/전투력) + 최다방문 타이틀 + 신기록/신원.
 		_SFXManager:PlayWin()
 		local card = _EntityService:GetEntityByPath(self.cardPath)
 		if isvalid(card) == false then return end
@@ -70,11 +87,30 @@ script ResultUI extends Logic
 		local dim = _EntityService:GetEntityByPath(self.dimPath)
 		if isvalid(dim) then dim.Enable = true end
 		
+		-- 전투력(값). 라벨(PowerCap/RankBig/TotalPlaytime/LifeBranch)은 .ui 고정 문구.
 		self:SetCardText("PowerBig", _RankingManager:FormatPower(power))
+		-- 랭킹(값): 기록 제출 후 계산된 전체 순위.
 		if rank > 0 then
-			self:SetCardText("RankBig", "전체 " .. tostring(rank) .. "위")
+			self:SetCardText("RankBig_1", "전체 " .. tostring(rank) .. "위")
 		else
-			self:SetCardText("RankBig", "")
+			self:SetCardText("RankBig_1", "-")
+		end
+		-- 총 플레이 시간(값).
+		self:SetCardText("TotalPlaytime_1", tostring(minutes) .. "분")
+		-- 인생 분기(값): 길드/애인 등.
+		if lifeInfo ~= nil and lifeInfo ~= "" then
+			self:SetCardText("LifeBranch_1", lifeInfo)
+		else
+			self:SetCardText("LifeBranch_1", "-")
+		end
+		-- 최다 방문 전문가 타이틀(전체폭 문구).
+		if titleType ~= nil and titleType ~= "" then
+			local ko = self:TypeKo(titleType)
+			self:SetCardText("LifeBranch_2", "총 " .. tostring(turns) .. "턴 중 " .. ko .. self:TypeJosa(titleType)
+				.. " " .. tostring(visits) .. "번으로 최다 방문하셨습니다!\n"
+				.. ko .. " 전문가 타이틀을 획득하셨습니다!")
+		else
+			self:SetCardText("LifeBranch_2", "")
 		end
 		local badge = _EntityService:GetEntityByPath(self.cardPath .. "/Badge")
 		if isvalid(badge) then badge.Enable = isNewRecord end
@@ -95,8 +131,9 @@ script ResultUI extends Logic
 		end
 		
 		card.Enable = true
-		local ut = card.UITransformComponent
-		if isvalid(ut) then _UILogic:SetSiblingIndex(ut, 1000000) end
+		log("[ResultUI] ShowSingle(통합) name=" .. tostring(name) .. " power=" .. tostring(power)
+			.. " rank=" .. tostring(rank) .. " min=" .. tostring(minutes) .. " turns=" .. tostring(turns)
+			.. " visits=" .. tostring(visits) .. " title=" .. tostring(titleType) .. " life=" .. tostring(lifeInfo))
 	end
 
 	@ExecSpace("ClientOnly")

@@ -21,10 +21,10 @@
           "name": "PopupGroup",
           "path": "/ui/PopupGroup",
           "nameEditable": true,
-          "enable": true,
+          "enable": false,
           "visible": true,
           "localize": true,
-          "displayOrder": 3,
+          "displayOrder": 2,
           "pathConstraints": "//",
           "revision": 0,
           "origin": {
@@ -95,8 +95,8 @@
             },
             {
               "@type": "MOD.Core.UIGroupComponent",
-              "DefaultShow": false,
-              "GroupOrder": 2,
+              "DefaultShow": true,
+              "GroupOrder": 1,
               "GroupType": 1,
               "Enable": true
             },

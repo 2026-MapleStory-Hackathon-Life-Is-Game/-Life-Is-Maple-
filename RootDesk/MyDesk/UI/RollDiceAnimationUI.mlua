@@ -7,10 +7,12 @@ script RollDiceAnimationUI extends Logic
 
 	property SpriteGUIRendererComponent rightDice = "03c58a3f-6538-4721-8720-4ab090eea81b"
 
-	-- 주사위 엔티티(활성/비활성 토글용). 눈금이 1일 때만 전용 '1' 주사위를 켜고 일반 주사위를 끈다.
 	property Entity leftDiceEntity = "6ee9f4af-07be-46d9-b226-aed331a42dbe"
+
 	property Entity leftOneDiceEntity = "cabf5cf6-ed1d-49aa-b42d-b75cacbc1736"
+
 	property Entity rightDiceEntity = "03c58a3f-6538-4721-8720-4ab090eea81b"
+
 	property Entity rightOneDiceEntity = "4d633474-5970-47e7-8a90-664a24b767d7"
 
 	property TextGUIRendererComponent resultText = "0746379f-0e16-4898-93ff-a8363188d3d0"
@@ -57,7 +59,7 @@ script RollDiceAnimationUI extends Logic
 		if isvalid(self.resultPanel) then
 			self.resultPanel.Enable = false
 		end
-
+		
 		-- 주사위 눈금 표시를 기본 상태(일반 주사위 활성 / 전용 '1' 주사위 비활성)로 초기화.
 		self:ResetDiceFaces()
 	end

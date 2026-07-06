@@ -21,10 +21,10 @@
           "name": "ToastGroup",
           "path": "/ui/ToastGroup",
           "nameEditable": true,
-          "enable": true,
+          "enable": false,
           "visible": true,
           "localize": true,
-          "displayOrder": 4,
+          "displayOrder": 3,
           "pathConstraints": "//",
           "revision": 0,
           "origin": {
@@ -95,8 +95,8 @@
             },
             {
               "@type": "MOD.Core.UIGroupComponent",
-              "DefaultShow": false,
-              "GroupOrder": 3,
+              "DefaultShow": true,
+              "GroupOrder": 2,
               "GroupType": 1,
               "Enable": true
             },

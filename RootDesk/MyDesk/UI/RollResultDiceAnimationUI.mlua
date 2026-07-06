@@ -201,11 +201,7 @@ script RollResultDiceAnimationUI extends Logic
 
 	@ExecSpace("ClientOnly")
 	method void BringToFront()
-		-- 그룹 루트를 /ui 형제 중 맨 뒤(=최상단 렌더)로 이동해 EventTileGroup 등 다른 그룹 위에 뜨게 한다.
-		-- GroupOrder/displayOrder는 Maker 재직렬화로 흔들리므로, 다른 팝업들과 동일하게 런타임에서 강제한다.
-		if isvalid(self.groupRoot) == false then return end
-		local ut = self.groupRoot.UITransformComponent
-		if isvalid(ut) then _UILogic:SetSiblingIndex(ut, 1000000) end
+		-- z-order(형제 인덱스) 강제 로직 제거됨.
 	end
 
 	@ExecSpace("ClientOnly")

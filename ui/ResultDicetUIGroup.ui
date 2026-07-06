@@ -24,9 +24,9 @@
           "enable": true,
           "visible": true,
           "localize": true,
-          "displayOrder": 14,
+          "displayOrder": 11,
           "pathConstraints": "//",
-          "revision": 1,
+          "revision": 3,
           "origin": {
             "type": "Model",
             "entry_id": "uigroup",
@@ -86,7 +86,7 @@
             {
               "@type": "MOD.Core.UIGroupComponent",
               "DefaultShow": true,
-              "GroupOrder": 11,
+              "GroupOrder": 13,
               "GroupType": 2,
               "Enable": true
             },
@@ -3426,7 +3426,7 @@
           "localize": true,
           "displayOrder": 0,
           "pathConstraints": "/////",
-          "revision": 1,
+          "revision": 2,
           "origin": {
             "type": "Model",
             "entry_id": "uiempty",
@@ -3495,7 +3495,7 @@
             },
             {
               "@type": "MOD.Core.SpriteGUIRendererComponent",
-              "AnimClipPlayType": 0,
+              "AnimClipPlayType": 1,
               "ImageRUID": {
                 "DataId": "a2ab7e2cb3734c6d9d35e09b602670aa"
               },
@@ -3526,7 +3526,7 @@
           "localize": true,
           "displayOrder": 1,
           "pathConstraints": "/////",
-          "revision": 1,
+          "revision": 2,
           "origin": {
             "type": "Model",
             "entry_id": "uiempty",
@@ -3595,7 +3595,7 @@
             },
             {
               "@type": "MOD.Core.SpriteGUIRendererComponent",
-              "AnimClipPlayType": 0,
+              "AnimClipPlayType": 1,
               "ImageRUID": {
                 "DataId": "a2ab7e2cb3734c6d9d35e09b602670aa"
               },
@@ -3627,7 +3627,7 @@
           "localize": true,
           "displayOrder": 2,
           "pathConstraints": "/////",
-          "revision": 0,
+          "revision": 1,
           "origin": {
             "type": "Model",
             "entry_id": "UISprite",
@@ -3651,20 +3651,20 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 100.0,
-                "y": 450.0
+                "x": 197.901581,
+                "y": 459.43103
               },
               "OffsetMin": {
-                "x": -350.0,
-                "y": -150.0
+                "x": -424.6362,
+                "y": -63.4776154
               },
               "Pivot": {
                 "x": 0.5,
                 "y": 0.5
               },
               "RectSize": {
-                "x": 450.0,
-                "y": 600.0
+                "x": 622.5378,
+                "y": 522.9086
               },
               "UIMode": 1,
               "UIScale": {
@@ -3674,12 +3674,12 @@
               },
               "UIVersion": 2,
               "anchoredPosition": {
-                "x": -125.0,
-                "y": 150.0
+                "x": -113.3673,
+                "y": 197.9767
               },
               "Position": {
-                "x": -125.0,
-                "y": 150.0,
+                "x": -113.3673,
+                "y": 197.9767,
                 "z": 0.0
               },
               "QuaternionRotation": {
@@ -3714,7 +3714,7 @@
               "MaterialId": "",
               "OrderInLayer": 0,
               "OverrideSorting": false,
-              "PlayRate": 0.8,
+              "PlayRate": 0.86,
               "PreserveSprite": 0,
               "SortingLayer": "UI",
               "StartFrameIndex": 0,
@@ -3772,7 +3772,7 @@
           "localize": true,
           "displayOrder": 3,
           "pathConstraints": "/////",
-          "revision": 0,
+          "revision": 1,
           "origin": {
             "type": "Model",
             "entry_id": "UISprite",
@@ -3796,20 +3796,20 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 350.0,
-                "y": 450.0
+                "x": 431.904938,
+                "y": 462.7865
               },
               "OffsetMin": {
-                "x": -100.0,
-                "y": -150.0
+                "x": -222.448334,
+                "y": -89.4902954
               },
               "Pivot": {
                 "x": 0.5,
                 "y": 0.5
               },
               "RectSize": {
-                "x": 450.0,
-                "y": 600.0
+                "x": 654.3533,
+                "y": 552.2768
               },
               "UIMode": 1,
               "UIScale": {
@@ -3819,12 +3819,12 @@
               },
               "UIVersion": 2,
               "anchoredPosition": {
-                "x": 125.0,
-                "y": 150.0
+                "x": 104.7283,
+                "y": 186.6481
               },
               "Position": {
-                "x": 125.0,
-                "y": 150.0,
+                "x": 104.7283,
+                "y": 186.6481,
                 "z": 0.0
               },
               "QuaternionRotation": {
@@ -3859,7 +3859,7 @@
               "MaterialId": "",
               "OrderInLayer": 0,
               "OverrideSorting": false,
-              "PlayRate": 0.8,
+              "PlayRate": 0.86,
               "PreserveSprite": 0,
               "SortingLayer": "UI",
               "StartFrameIndex": 0,
@@ -4313,7 +4313,7 @@
               "PlayOnEnable": true,
               "PlaySpeed": 1.0,
               "Prewarm": false,
-              "RandomSeed": 3192084934,
+              "RandomSeed": 1857998378,
               "Enable": true
             }
           ],

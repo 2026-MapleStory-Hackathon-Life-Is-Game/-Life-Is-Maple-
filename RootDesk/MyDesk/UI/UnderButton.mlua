@@ -25,7 +25,6 @@ script UnderButton extends Component
 
 	property ButtonComponent BagButton = "620689f7-d644-4347-94c3-9a74de27cc46"
 
-	-- 주사위 버튼 자리에 겹쳐 놓는 상황별 버튼: 맵뷰=돌아가기 / 캐릭터정보=닫기.
 	property ButtonComponent btnMapBack = "0533069c-9624-4b11-bb19-720ff7977b62"
 
 	property ButtonComponent btnCharClose = "a1a14fd7-6fbf-442e-bdcd-e06f1e5f96f9"
@@ -46,12 +45,11 @@ script UnderButton extends Component
 
 	property string openExclusive = ""
 
-	-- 주사위(열기) 버튼의 마지막 적용 Enable 상태(변할 때만 기록, nil=최초 적용 강제).
 	property any _lastDiceEnable = nil
 
 	method void OnBeginPlay()
 		if self:IsServer() then
-
+		
 		else
 			-- 클라이언트: 버튼 이벤트 구독, 반환된 핸들을 저장
 			self.openHandler = self.OpenDicePanelButton.Entity:ConnectEvent(ButtonClickEvent,self.OnDicePanelClickOpen)
@@ -60,7 +58,7 @@ script UnderButton extends Component
 			if isvalid(self.MapViewButton.Entity) then
 				self.mapHandler = self.MapViewButton.Entity:ConnectEvent(ButtonClickEvent, self.OnClickMap)
 			end
-
+		
 			-- 캐릭터 정보 / 배낭 패널 컨트롤러 바인딩
 			local charCtrlEntity = _EntityService:GetEntityByPath("/ui/InGameUIGroup/CharacterInfo_Panel/Ctrl")
 			if isvalid(charCtrlEntity) then
@@ -71,14 +69,14 @@ script UnderButton extends Component
 				self.invPanel = invCtrlEntity:GetComponent("script.InventoryPanel")
 			end
 			self.openExclusive = ""
-
+		
 			if isvalid(self.CharInfoButton) and isvalid(self.CharInfoButton.Entity) then
 				self.charInfoHandler = self.CharInfoButton.Entity:ConnectEvent(ButtonClickEvent, self.OnClickCharInfo)
 			end
 			if isvalid(self.BagButton) and isvalid(self.BagButton.Entity) then
 				self.bagHandler = self.BagButton.Entity:ConnectEvent(ButtonClickEvent, self.OnClickBag)
 			end
-
+		
 			-- 상황별 버튼(돌아가기/닫기) 배선 + 시작 숨김.
 			self._hudCtx = ""
 			if isvalid(self.btnMapBack) and isvalid(self.btnMapBack.Entity) then
@@ -89,10 +87,10 @@ script UnderButton extends Component
 				self.btnCharClose.Entity.Enable = false
 				self.charCloseHandler = self.btnCharClose.Entity:ConnectEvent(ButtonClickEvent, self.OnClickCharClose)
 			end
-
+		
 			self.DicePanel.Visible = false
 		end
-
+		
 	end
 
 	method void OnEndPlay()
@@ -129,7 +127,7 @@ script UnderButton extends Component
 		-- openExclusive가 "BAG"/"CHAR"로 남아 주사위 차단·토글 오작동을 일으킨다.
 		-- 매 프레임 실제 패널 isOpen과 동기화해 desync를 제거한다.
 		if self:IsClient() == false then return end
-
+		
 		-- 캐릭터 정보 패널(Ctrl)은 숨겨진 UIGroup 내부라 자체 OnUpdate가 tick되지 않는다.
 		-- 항상 tick하는 이 HUD가 열린 동안의 라이브 갱신(스탯/장비 변경 폴링, 우클릭 메뉴 엣지)을 대신 구동한다.
 		-- → 올스탯 +10 같은 이벤트가 패널이 열린 채로 발생해도 즉시 반영된다.
@@ -143,7 +141,7 @@ script UnderButton extends Component
 				self.openExclusive = ""
 			end
 		end
-
+		
 		-- 주사위 버튼 자리에 상황별 버튼을 보이고(맵뷰=돌아가기 / 캐릭터정보=닫기), 주사위 버튼은 숨긴다.
 		-- 상태 변할 때만 적용(매 프레임 Enable 쓰기 방지).
 		local ctx = "none"
@@ -156,7 +154,7 @@ script UnderButton extends Component
 			self._hudCtx = ctx
 			self:ApplyHudContext(ctx)
 		end
-
+		
 		-- 주사위(열기) 버튼 활성/비활성: 굴릴 수 있는 상태(내 DICE 차례 · 굴리는 중 아님 · 맵/캐릭터뷰 아님)에서만 활성.
 		-- 주사위를 굴리면 DICE 단계를 벗어나 자동으로 비활성 → 다음 DICE 차례에 다시 활성된다.
 		local wantDice = (ctx == "none") and self:CanOpenDicePanel()
@@ -208,7 +206,7 @@ script UnderButton extends Component
 		_SFXManager:PlayClick()
 		_SingleTurnManager:RequestRollDice()
 		_MultiTurnManager:RequestRollDice()
-
+		
 		self.DicePanel.Visible = false
 		self.WholePanel.Visible = true
 	end
@@ -268,13 +266,13 @@ script UnderButton extends Component
 	method boolean CanOpenDicePanel()
 		-- 캐릭터정보/배낭 패널이 열려 있으면 주사위 열기 차단.
 		if self:IsExclusiveOpen() then return false end
-
+		
 		local mode = _GameModeManager._activeMode
-
+		
 				if mode == "SINGLE" then
 					-- 싱글: DICE 단계 + 굴리는 중이 아니어야 OK (연출 중 재오픈 차단)
 					return _SingleTurnManager._currentState == "DICE" and _SingleTurnManager._isRolling == false
-
+		
 				elseif mode == "MULTI" then
 					-- 멀티: DICE 단계 + 굴리는 중 아님 + 내가 현재 턴 플레이어여야 함
 					if _MultiTurnManager._currentState ~= "DICE" then
@@ -286,7 +284,7 @@ script UnderButton extends Component
 					local myUserId = _UserService.LocalPlayer.PlayerComponent.UserId
 					return myUserId == _MultiTurnManager._currentPlayerUserId
 				end
-
+		
 				-- 그 외(NONE 등): 못 엶
 				return false
 	end

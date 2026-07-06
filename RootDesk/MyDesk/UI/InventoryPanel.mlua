@@ -35,15 +35,41 @@ script InventoryPanel extends Component
 
 	property ButtonComponent ctxBtnClose = "160a192d-b859-4ac9-9fa3-9ae0bd99a0d8"
 
-	property string _hoverEquip = ""
+	property string _hoverId = ""
+
+	property string _hoverName = ""
 
 	property boolean _lastMouse1 = false
 
-	property string _ctxTarget = ""
+	property string _ctxTargetId = ""
+
+	property string _ctxTargetName = ""
 
 	property any _ctxHandlers = nil
 
 	property string _ctxEquipLabel = "장착 / 교체"
+
+	property any escHandler = nil
+
+	-- 모바일 여부(플랫폼). PC면 롱프레스 무장을 건너뛰어 기존 우클릭 로직을 100% 그대로 둔다.
+	property boolean _isMobile = false
+
+	-- 모바일 롱프레스(꾹 누르기) 추적 상태.
+	property boolean _pressActive = false
+	property string _pressId = ""
+	property string _pressName = ""
+	property number _pressStart = 0
+	property boolean _pressFired = false
+	property any _pressCursor = nil
+
+	-- 컨텍스트 메뉴 영역(바깥 클릭 판정용): 열 때의 UI중심/크기/시각.
+	property any _ctxCenter = nil
+	property any _ctxSize = nil
+	property number _ctxOpenTime = 0
+
+	-- 화면 터치/클릭(다운/릴리즈) 구독 핸들.
+	property any touchDownHandler = nil
+	property any touchUpHandler = nil
 
 	method void OnBeginPlay()
 		-- 클라: 패널 숨김 + GridView 셀 프리팹 주입 + 탭 버튼 이벤트 배선.
@@ -116,9 +142,11 @@ script InventoryPanel extends Component
 		
 		-- 우클릭 컨텍스트 메뉴: 기본 숨김 + 3버튼 클릭 배선.
 		self._ctxHandlers = {}
-		self._hoverEquip = ""
+		self._hoverId = ""
+		self._hoverName = ""
 		self._lastMouse1 = false
-		self._ctxTarget = ""
+		self._ctxTargetId = ""
+		self._ctxTargetName = ""
 		if isvalid(self.ctxMenu) then self.ctxMenu.Enable = false end
 		if isvalid(self.ctxBtnEquip) then
 			local he = self.ctxBtnEquip.Entity:ConnectEvent(ButtonClickEvent, function() self:OnCtxEquip() end)
@@ -137,8 +165,40 @@ script InventoryPanel extends Component
 			local etc = self.ctxBtnEquip.Entity:GetComponent("MOD.Core.TextComponent")
 			if etc ~= nil and etc.Text ~= nil and etc.Text ~= "" then self._ctxEquipLabel = etc.Text end
 		end
+		
+		-- ESC 키로 인벤토리 닫기. _InputService의 KeyDownEvent 구독(엔티티가 아닌 서비스에서 구독).
+		-- Close()를 직접 호출해도 UnderButton:OnUpdate가 openExclusive를 매 프레임 동기화하므로 desync 없음.
+		self.escHandler = _InputService:ConnectEvent(KeyDownEvent, self.OnKeyDown)
 
-		log("[InventoryPanel] OnBeginPlay OK")
+		-- 플랫폼 판별: 모바일에서만 롱프레스(꾹 누르기)로 컨텍스트 메뉴를 연다. PC는 우클릭 그대로.
+		self._isMobile = false
+		if Environment ~= nil then self._isMobile = Environment:IsMobilePlatform() end
+		self._pressActive = false
+		self._pressFired = false
+		self._pressId = ""
+		self._pressName = ""
+		self._pressCursor = nil
+		self._ctxCenter = nil
+		self._ctxSize = nil
+		self._ctxOpenTime = 0
+
+		-- 화면 터치/클릭 구독:
+		--   다운(ScreenTouchEvent) → 컨텍스트 메뉴 바깥을 누르면 메뉴 닫기(PC 좌클릭·모바일 탭 공통).
+		--   릴리즈(ScreenTouchReleaseEvent) → 손가락/버튼을 떼면 대기 중이던 롱프레스 취소.
+		--   우클릭(Mouse1)은 ScreenTouchEvent를 발생시키지 않아 PC 우클릭으로 연 메뉴가 자기 클릭에 닫히지 않는다.
+		self.touchDownHandler = _InputService:ConnectEvent(ScreenTouchEvent, self.OnScreenTouchDown)
+		self.touchUpHandler = _InputService:ConnectEvent(ScreenTouchReleaseEvent, self.OnScreenTouchUp)
+
+		log("[InventoryPanel] OnBeginPlay OK mobile=" .. tostring(self._isMobile))
+	end
+
+	@ExecSpace("ClientOnly")
+	method void OnKeyDown(KeyDownEvent event)
+		-- ESC: 인벤토리가 열려 있으면 닫는다(Close가 컨텍스트 메뉴/툴팁도 함께 정리).
+		if event.key == KeyboardKey.Escape and self.isOpen then
+			self:Close()
+			log("[InventoryPanel] ESC → 인벤 닫기")
+		end
 	end
 
 	method integer CubeCount()
@@ -200,8 +260,25 @@ script InventoryPanel extends Component
 	end
 
 	method string ListSig(table items)
-		-- 목록 변경 감지용 시그니처. Item 탭(비큐브모드)은 큐브 보유수도 반영해 수량 변동 시 갱신되게.
-		local s = table.concat(items, ",")
+		-- 목록 변경 감지용 시그니처. items = 레코드 배열(kind=cube/equip).
+		-- 인스턴스 ID를 이어붙여 '중복 아이템 추가/제거/장착 이동'이 모두 서명에 반영되게 한다.
+		local parts = {}
+		local p = _UserService.LocalPlayer
+		for _, rec in ipairs(items) do
+			if rec.kind == "cube" then
+				table.insert(parts, "cube")
+			else
+				-- id + 잠재 등급을 함께 서명 → 큐브로 잠재가 바뀌면 아웃라인이 즉시 갱신되도록 Rebuild 유도.
+				local g = ""
+				if isvalid(p) then
+					---@type BaseEquipment
+					local mgr = _EquipmentRouter:ManagerForInstance(p, rec.id)
+					if isvalid(mgr) then g = _PotentialManager:GradeOf(mgr:GetInstancePotential(rec.id)) end
+				end
+				table.insert(parts, rec.id .. "@" .. g)
+			end
+		end
+		local s = table.concat(parts, ",")
 		if self.activeTab == "Item" and self._cubeUseMode == false then
 			s = s .. "|cube" .. tostring(self:CubeCount())
 		end
@@ -209,23 +286,19 @@ script InventoryPanel extends Component
 	end
 
 	method table AllEquipList(Entity p)
-		-- 큐브 사용 대상 후보: 보유+장착 장비 전체(무기/방어구/장신구), 중복 제거.
+		-- 큐브 사용 대상 후보: 보유+장착 장비 전체(무기/방어구/장신구)를 인스턴스 레코드로.
+		-- 각 원소 = { kind="equip", id=인스턴스ID, name=equipName }. 인스턴스는 유일하므로 중복 제거 불필요.
 		local out = {}
-		local seen = {}
 		local tabs = { "Armor", "Weapon", "Accessory" }
+		---@type BaseEquipment
 		for _, tab in ipairs(tabs) do
 			local m = _EquipmentRouter:ManagerFor(p, tab)
 			if isvalid(m) then
-				local eq = m.Equipped
-				if eq ~= nil and eq ~= "" and seen[eq] == nil then
-					table.insert(out, eq)
-					seen[eq] = true
+				if m.EquippedId ~= "" and m.Equipped ~= "" then
+					table.insert(out, { kind = "equip", id = m.EquippedId, name = m.Equipped })
 				end
-				for _, n in ipairs(m:OwnedSorted()) do
-					if seen[n] == nil then
-						table.insert(out, n)
-						seen[n] = true
-					end
+				for _, rec in ipairs(m:OwnedInstancesSorted()) do
+					table.insert(out, { kind = "equip", id = rec.id, name = rec.name })
 				end
 			end
 		end
@@ -258,17 +331,17 @@ script InventoryPanel extends Component
 		if isvalid(self.panelRoot) then
 			self.panelRoot.Enable = true
 		end
-		-- 인벤 최상위 그룹을 형제 중 맨 앞으로 올린다. InGameUIGroup 정적 순서상 Inventory_Panel이
-		-- UnderButton(HUD 하단바)보다 뒤라, 이 처리가 없으면 주사위/열기 버튼이 인벤 하단 닫기 버튼을 덮는다.
-		-- (다른 팝업/툴팁도 열릴 때 동일하게 SetSiblingIndex로 맨 앞으로 올리므로 그들이 가려지지 않는다.)
-		local grp = self.Entity.Parent
-		if isvalid(grp) then
-			local gut = grp.UITransformComponent
-			if isvalid(gut) then _UILogic:SetSiblingIndex(gut, 1000000) end
-		end
 		-- 인벤 열림 동안 마우스 휠은 카메라 줌이 아니라 인벤 스크롤에 쓰이도록 맵뷰에 통지.
 		if _MapViewManager ~= nil then _MapViewManager:SetInventoryOpen(true) end
 		self:Rebuild()
+	end
+
+	method void HideTooltip()
+		-- 툴팁(핫패널) 강제 숨김 + 호버 추적 해제. 셀 이탈(Normal) 이벤트가 유실되는 경로
+		-- (패널 닫힘 / 셀 재활용 / 스크롤)에서 툴팁이 주인 없이 남는 것을 막는 단일 진입점.
+		_EquipTooltip:Hide()
+		self._hoverId = ""
+		self._hoverName = ""
 	end
 
 	method void Close()
@@ -276,6 +349,10 @@ script InventoryPanel extends Component
 		if self:IsClient() == false then return end
 		self.isOpen = false
 		self:CloseContextMenu()
+		-- ⚠ 툴팁은 인벤 패널의 자식이 아닌 독립 오버레이(/ui/InGameUIGroup/EquipTooltip)라,
+		--    패널만 끄면 호버 셀이 비활성화되어 이탈(Normal) 이벤트가 사라지고 툴팁이 그대로 남는다.
+		--    닫을 때 명시적으로 내린다.
+		self:HideTooltip()
 		if isvalid(self.panelRoot) then
 			self.panelRoot.Enable = false
 		end
@@ -292,19 +369,25 @@ script InventoryPanel extends Component
 	end
 
 	method table CurrentList()
-		-- 현재 탭 목록. Item 탭: 평소엔 미라클 큐브 1칸, 큐브 사용 모드면 전체 장비(재설정 대상).
+		-- 현재 탭 목록(레코드 배열). Item 탭: 평소엔 미라클 큐브 1칸, 큐브 사용 모드면 전체 장비(재설정 대상).
+		--   cube 레코드 = { kind="cube" } / equip 레코드 = { kind="equip", id=, name= }.
 		local p = _UserService.LocalPlayer
 		if isvalid(p) == false then return {} end
 		if self.activeTab == "Item" then
 			if self._cubeUseMode then return self:AllEquipList(p) end
-			if self:CubeCount() > 0 then return { "__MIRACLE_CUBE__" } end
+			if self:CubeCount() > 0 then return { { kind = "cube" } } end
 			return {}
 		end
+		---@type BaseEquipment
 		local m = _EquipmentRouter:ManagerFor(p, self.activeTab)
 		if isvalid(m) == false then return {} end
 		-- 장착중인 아이템은 인벤토리에 표시하지 않는다(캐릭터 정보 패널에서만 보임).
-		-- OwnedSorted()는 이미 장착품(Equipped)을 제외한 보유목록이므로 그대로 반환.
-		return m:OwnedSorted()
+		-- OwnedInstancesSorted()는 이미 장착품(EquippedId)을 제외한 보유목록이므로 레코드로 변환.
+		local out = {}
+		for _, rec in ipairs(m:OwnedInstancesSorted()) do
+			table.insert(out, { kind = "equip", id = rec.id, name = rec.name })
+		end
+		return out
 	end
 
 	method void Rebuild()
@@ -314,6 +397,9 @@ script InventoryPanel extends Component
 		-- ⚠ Rebuild에서는 셀 핸들러를 건드리지 않는다. TotalCount가 같으면 gvc:Refresh()가
 		--   OnRefresh를 다시 부르지 않아, 여기서 해제하면 핸들러가 영영 재연결되지 않는다(호버 사망).
 		--   핸들러 교체/해제는 셀 생애주기 콜백(OnGridCellRefresh/Clear)에서만 처리한다.
+		-- ⚠ 재구성은 셀을 재활용하므로 호버 중이던 셀의 이탈(Normal) 이벤트가 유실된다 → 툴팁 고아.
+		--   먼저 툴팁을 내리고 호버 추적을 해제한다. 재구성 후 커서가 여전히 셀 위면 Hover가 다시 떠 올바른 툴팁이 복원된다.
+		self:HideTooltip()
 		local items = self:CurrentList()
 		self._T.items = items
 		-- 깜빡임 방지: 시그니처를 여기서 동기화해 OnUpdate 폴러가 중복 Rebuild를 또 트리거하지 않게 한다.
@@ -332,21 +418,24 @@ script InventoryPanel extends Component
 	end
 
 	method void OnGridCellRefresh(integer index, Entity cell)
-		-- GridView OnRefresh 콜백: 셀 1개를 (index+1)번째 아이템으로 채운다.
+		-- GridView OnRefresh 콜백: 셀 1개를 (index+1)번째 아이템(레코드)으로 채운다.
 		local items = self._T.items
 		if items == nil then return end
-		local name = items[index + 1]
-		if name == nil then return end
-		
+		local rec = items[index + 1]
+		if rec == nil then return end
+		local name = rec.name or ""
+
 		local rend = cell.SpriteGUIRendererComponent
 		local tc = cell:GetComponent("MOD.Core.TextComponent")
-		
-		if name == "__MIRACLE_CUBE__" then
+
+		if rec.kind == "cube" then
 			-- 미라클 큐브 셀: 아이콘 RUID가 없으므로 보라색 틴트 + 보유 수 텍스트로 표현.
 			if isvalid(rend) then
 				-- 미라클 큐브 아이콘(sprite RUID → thumbnail:// 없이 직접). 흰색으로 제 색 표시.
 				rend.ImageRUID = DataRef("07b0f309e17d4b4ca5564b0c038d889d")
 				rend.Color = Color(1, 1, 1, 1)
+				-- 큐브는 잠재 개념이 없으므로 아웃라인 해제(셀 재사용 시 이전 잠재 아웃라인 잔상 제거).
+				rend.Outline = false
 			end
 			if tc ~= nil then
 				-- TextComponent는 '아이템'일 때만 보유 수량 숫자를 나타낸다(이름 표시 없음). 셀 오른쪽 하단 배치.
@@ -372,25 +461,45 @@ script InventoryPanel extends Component
 					rend.ImageRUID = DataRef("thumbnail://" .. ruid)
 				end
 				rend.Color = Color(1, 1, 1, 1)
+				-- 이 인스턴스의 잠재 등급에 맞춰 아웃라인 색 반영(잠재 없으면 아웃라인 해제).
+				local pot = ""
+				local p = _UserService.LocalPlayer
+				if isvalid(p) then
+					---@type BaseEquipment
+					local mgr = _EquipmentRouter:ManagerForInstance(p, rec.id)
+					if isvalid(mgr) then pot = mgr:GetInstancePotential(rec.id) end
+				end
+				_PotentialManager:ApplyGradeOutline(rend, pot)
 			end
 			-- 장비/방어구/장신구 셀에는 이름 텍스트를 표시하지 않는다(이름 표시 로직 제거).
 			if tc ~= nil then tc.Text = "" end
 		end
 		
+		-- 호버/클릭 핸들러 연결. 인스턴스 ID+이름을 클로저에 캡처(큐브 셀은 id 센티넬 "__MIRACLE_CUBE__").
+		-- 클릭은 OnCellState의 Pressed로 처리. (capturedId를 아래 재활용 감지에도 재사용)
+		local capturedId = "__MIRACLE_CUBE__"
+		local capturedName = ""
+		if rec.kind == "equip" then
+			capturedId = rec.id
+			capturedName = rec.name
+		end
 		-- 이 셀의 기존 핸들러만 교체(누적 방지). Rebuild는 핸들러를 안 건드리므로 여기서 관리한다.
 		for i = #self.cellHandlers, 1, -1 do
 			local r = self.cellHandlers[i]
 			if r.entity == cell then
 				if r.stateH ~= nil then cell:DisconnectEvent(ButtonStateChangeEvent, r.stateH) end
+				-- 이 셀이 지금 툴팁을 띄운(호버 중) 아이템이었고 다른 아이템으로 재사용된다면,
+				-- 이탈(Normal) 이벤트가 유실되므로 여기서 강제로 툴팁을 내린다(스크롤 재활용 대비).
+				if r.id ~= nil and r.id ~= "" and r.id == self._hoverId and r.id ~= capturedId then
+					self:HideTooltip()
+				end
 				table.remove(self.cellHandlers, i)
 			end
 		end
-		-- 호버/클릭 핸들러 연결. 이름은 클로저에 캡처. 클릭은 OnCellState의 Pressed로 처리.
-		local capturedName = name
 		local hs = cell:ConnectEvent(ButtonStateChangeEvent, function(ev)
-			self:OnCellState(capturedName, ev)
+			self:OnCellState(capturedId, capturedName, ev)
 		end)
-		table.insert(self.cellHandlers, { entity = cell, stateH = hs })
+		table.insert(self.cellHandlers, { entity = cell, stateH = hs, id = capturedId })
 	end
 
 	method void OnGridCellClear(integer index, Entity cell)
@@ -398,6 +507,8 @@ script InventoryPanel extends Component
 		local rend = cell.SpriteGUIRendererComponent
 		if isvalid(rend) then
 			rend.Color = Color(1, 1, 1, 0)
+			-- 빈 셀은 아웃라인도 해제(셀 재사용 시 이전 잠재 등급 아웃라인 잔상 방지).
+			rend.Outline = false
 		end
 		local tc = cell:GetComponent("MOD.Core.TextComponent")
 		if tc ~= nil then tc.Text = "" end
@@ -405,57 +516,68 @@ script InventoryPanel extends Component
 			local r = self.cellHandlers[i]
 			if r.entity == cell then
 				if r.stateH ~= nil then cell:DisconnectEvent(ButtonStateChangeEvent, r.stateH) end
+				-- 호버 중이던 셀이 비워지면(스크롤로 화면 밖) 이탈(Normal) 이벤트가 유실되므로 툴팁을 내린다.
+				if r.id ~= nil and r.id ~= "" and r.id == self._hoverId then
+					self:HideTooltip()
+				end
 				table.remove(self.cellHandlers, i)
 			end
 		end
 	end
 
-	method void OnCellState(string equipName, ButtonStateChangeEvent ev)
-		-- 인벤 셀: 호버→비교 툴팁, 이탈→숨김, Pressed→클릭 처리.
+	method void OnCellState(string instanceId, string equipName, ButtonStateChangeEvent ev)
+		-- 인벤 셀: 호버→비교 툴팁, 이탈→숨김, Pressed→클릭 처리. instanceId=인스턴스ID(큐브는 "__MIRACLE_CUBE__").
 		-- ⚠ GridView(스크롤) 안의 셀은 ButtonClickEvent가 스크롤에 먹혀 안 뜬다. 작동하는
 		--    ButtonStateChangeEvent의 Pressed(=2) 상태로 클릭/더블클릭을 감지한다.
-		if equipName == "__MIRACLE_CUBE__" then
+		if instanceId == "__MIRACLE_CUBE__" then
 			-- 미라클 큐브 셀(장비 셀과 동일한 상호작용):
 			--   호버 → 우클릭 폴백용 추적 / 우클릭 → 컨텍스트 메뉴 / 더블클릭 → 큐브 사용.
 			--   단일 좌클릭으로 바로 사용되지 않게(오작동 방지) OnCellClicked의 더블클릭 판정을 탄다.
 			if ev.state == ButtonState.Hover then
-				self._hoverEquip = "__MIRACLE_CUBE__"
+				self._hoverId = "__MIRACLE_CUBE__"
+				self._hoverName = ""
 			elseif ev.state == ButtonState.Pressed then
 				if _InputService:IsKeyPressed(KeyboardKey.Mouse1) then
-					self._hoverEquip = "__MIRACLE_CUBE__"
-					self:OpenContextMenu("__MIRACLE_CUBE__")
+					self._hoverId = "__MIRACLE_CUBE__"
+					self._hoverName = ""
+					self:OpenContextMenu("__MIRACLE_CUBE__", "")
 				else
-					self:OnCellClicked("__MIRACLE_CUBE__")
+					self:OnCellClicked("__MIRACLE_CUBE__", "")
+					-- 모바일: 이 셀을 눌러 유지하면 롱프레스로 컨텍스트 메뉴를 연다(PC에선 무장이 no-op).
+					self:ArmLongPress("__MIRACLE_CUBE__", "")
 				end
 			elseif ev.state == ButtonState.Normal then
-				if self._hoverEquip == "__MIRACLE_CUBE__" then self._hoverEquip = "" end
+				if self._hoverId == "__MIRACLE_CUBE__" then self._hoverId = "" end
 			end
 			return
 		end
 		if ev.state == ButtonState.Hover then
-			-- 우클릭 메뉴 대상 추적: 지금 호버 중인 장비를 기억.
-			self._hoverEquip = equipName
-			local cur = ""
+			-- 우클릭 메뉴 대상 추적: 지금 호버 중인 인스턴스를 기억.
+			self._hoverId = instanceId
+			self._hoverName = equipName
+			local curId = ""
 			local p = _UserService.LocalPlayer
 			if isvalid(p) then
+				---@type BaseEquipment
 				local m = _EquipmentRouter:ManagerForItem(p, equipName)
-				if isvalid(m) then cur = m.Equipped end
+				if isvalid(m) then curId = m.EquippedId end
 			end
-			_EquipTooltip:ShowCompare(equipName, cur)
+			_EquipTooltip:ShowCompare(instanceId, curId)
 		elseif ev.state == ButtonState.Pressed then
 			-- 우클릭이면 컨텍스트 메뉴(좌클릭 장착 로직은 타지 않음 → 메뉴 즉시 닫힘 경합 방지).
 			-- 큐브 사용 모드(재설정 대상 선택 중)에는 우클릭 메뉴를 열지 않는다.
 			if _InputService:IsKeyPressed(KeyboardKey.Mouse1) then
 				if self._cubeUseMode == false then
-					self._hoverEquip = equipName
-					self:OpenContextMenu(equipName)
+					self._hoverId = instanceId
+					self._hoverName = equipName
+					self:OpenContextMenu(instanceId, equipName)
 				end
 			else
-				self:OnCellClicked(equipName)
+				self:OnCellClicked(instanceId, equipName)
 			end
 		elseif ev.state == ButtonState.Normal then
 			-- 이 셀에서 마우스가 빠지면 호버 추적 해제(다른 셀이 이미 잡았으면 건드리지 않음).
-			if self._hoverEquip == equipName then self._hoverEquip = "" end
+			if self._hoverId == instanceId then self._hoverId = "" end
 			_EquipTooltip:Hide()
 		end
 	end
@@ -466,7 +588,10 @@ script InventoryPanel extends Component
 		
 		-- 우클릭 엣지 감지(매 프레임): 장비 셀 위 우클릭 → 컨텍스트 메뉴 열기(폴백 경로).
 		self:UpdateRightClick()
-		
+
+		-- 모바일 롱프레스(꾹 누르기) 처리: 셀을 눌러 유지하면 컨텍스트 메뉴를 연다.
+		self:UpdateLongPress()
+
 		self._pollTimer = self._pollTimer + delta
 		if self._pollTimer < 0.2 then return end
 		self._pollTimer = 0
@@ -480,35 +605,36 @@ script InventoryPanel extends Component
 		end
 	end
 
-	method void OnCellClicked(string equipName)
-		-- 큐브 사용 모드: 클릭한 장비를 재설정 대상으로 큐브 사용 요청.
-		-- 일반 모드: 더블클릭(0.3초 내 같은 아이템 2회) → 장착 요청.
+	method void OnCellClicked(string instanceId, string equipName)
+		-- 큐브 사용 모드: 클릭한 장비 인스턴스를 재설정 대상으로 큐브 사용 요청.
+		-- 일반 모드: 더블클릭(0.3초 내 같은 인스턴스 2회) → 장착 요청.
 		-- 좌클릭이 들어오면 떠 있던 우클릭 메뉴는 닫는다.
 		self:CloseContextMenu()
 		_SFXManager:PlayClick()
 		if self._cubeUseMode then
 			-- 바로 사용하지 않고 확인 패널을 먼저 띄운다(예→실제 사용 / 아니오→취소).
 			-- 모드 종료/RequestCube는 CubeConfirmPopup:OnYes에서 처리.
-			log("[InventoryPanel] 큐브 대상 선택(확인 대기): " .. equipName)
+			log("[InventoryPanel] 큐브 대상 선택(확인 대기): " .. equipName .. "(" .. instanceId .. ")")
 			_EquipTooltip:Hide()
-			_CubeConfirmPopup:Open(equipName)
+			_CubeConfirmPopup:Open(instanceId, equipName)
 			return
 		end
 		local now = _UtilLogic.ElapsedSeconds
-		if self._lastClickName == equipName and (now - self._lastClickTime) <= 0.3 then
+		if self._lastClickName == instanceId and (now - self._lastClickTime) <= 0.3 then
 			self._lastClickName = ""
 			-- 미라클 큐브 셀: 더블클릭 시 장비 선택 패널 열기.
-			if equipName == "__MIRACLE_CUBE__" then
+			if instanceId == "__MIRACLE_CUBE__" then
 				log("[InventoryPanel] 큐브 더블클릭 → 선택 패널")
 				_CubeTargetSelect:Open()
 				return
 			end
-			log("[InventoryPanel] 더블클릭 장착: " .. equipName)
+			log("[InventoryPanel] 더블클릭 장착: " .. equipName .. "(" .. instanceId .. ")")
 			local p = _UserService.LocalPlayer
 			if isvalid(p) then
+				---@type BaseEquipment
 				local m = _EquipmentRouter:ManagerForItem(p, equipName)
 				if isvalid(m) then
-					m:RequestEquip(equipName)
+					m:RequestEquip(instanceId)
 				end
 			end
 			-- 장착되면 그 아이템 셀이 인벤에서 빠지는데, 마우스가 그 자리에 남아 Normal(=Hide)이
@@ -516,42 +642,87 @@ script InventoryPanel extends Component
 			_EquipTooltip:Hide()
 			self:Rebuild()
 		else
-			self._lastClickName = equipName
+			self._lastClickName = instanceId
 			self._lastClickTime = now
-			log("[InventoryPanel] 첫 클릭: " .. equipName)
+			log("[InventoryPanel] 첫 클릭: " .. equipName .. "(" .. instanceId .. ")")
 		end
 	end
 
 	method void UpdateRightClick()
-		-- 매 프레임 호출. 우클릭 눌림 엣지에서, 호버 중인 장비가 있으면 컨텍스트 메뉴를 띄운다.
+		-- 매 프레임 호출. 우클릭 눌림 엣지에서, 호버 중인 인스턴스가 있으면 컨텍스트 메뉴를 띄운다.
 		local down = _InputService:IsKeyPressed(KeyboardKey.Mouse1)
 		if down and self._lastMouse1 == false then
-			-- 우클릭 눌림 엣지. 큐브 사용 모드가 아니고 호버 중인 장비가 있으면 메뉴를 연다.
+			-- 우클릭 눌림 엣지. 큐브 사용 모드가 아니고 호버 중인 인스턴스가 있으면 메뉴를 연다.
 			-- (셀 Pressed 이벤트가 우클릭을 직접 처리하지 못하는 경우의 폴백 경로.)
 			-- 빈 곳 우클릭 시 자동 닫기는 이벤트 경로와의 경합을 막기 위해 하지 않는다(닫기는 닫기 버튼/좌클릭으로).
-			if self._cubeUseMode == false and self._hoverEquip ~= "" then
-				self:OpenContextMenu(self._hoverEquip)
+			if self._cubeUseMode == false and self._hoverId ~= "" then
+				self:OpenContextMenu(self._hoverId, self._hoverName)
 			end
 		end
 		self._lastMouse1 = down
 	end
 
-	method void OpenContextMenu(string equipName)
+	method void ArmLongPress(string instanceId, string equipName)
+		-- 모바일 롱프레스 무장: 이 셀을 눌러 유지하면 UpdateLongPress가 0.5초 뒤 컨텍스트 메뉴를 연다.
+		-- PC에서는 _isMobile=false라 아무 것도 하지 않아 기존 우클릭 로직이 그대로 유지된다.
+		if self._isMobile == false then return end
+		if self._cubeUseMode then return end
+		self._pressActive = true
+		self._pressFired = false
+		self._pressId = instanceId
+		self._pressName = equipName
+		self._pressStart = _UtilLogic.ElapsedSeconds
+		self._pressCursor = _InputService:GetCursorPosition()
+	end
+
+	method void UpdateLongPress()
+		-- 매 프레임(모바일). 무장된 셀을 계속 누르고 있으면 0.5초 뒤 컨텍스트 메뉴를 연다.
+		-- 손가락이 크게 움직이면(스크롤) 취소, 손을 떼면 OnScreenTouchUp에서 취소된다.
+		if self._isMobile == false then return end
+		if self._pressActive == false or self._pressFired then return end
+		-- 이동(스크롤) 감지: 시작 지점에서 50px 이상 벗어나면 롱프레스 취소.
+		local cur = _InputService:GetCursorPosition()
+		if self._pressCursor ~= nil then
+			local dx = cur.x - self._pressCursor.x
+			local dy = cur.y - self._pressCursor.y
+			if (dx * dx + dy * dy) > (50 * 50) then
+				self._pressActive = false
+				return
+			end
+		end
+		if (_UtilLogic.ElapsedSeconds - self._pressStart) >= 0.5 then
+			self._pressFired = true
+			self._pressActive = false
+			-- 롱프레스로 확정 → 대기 중이던 더블탭(첫 탭) 취소해 이후 탭이 장착으로 오인되지 않게 한다.
+			self._lastClickName = ""
+			if self._pressId ~= "" and self._cubeUseMode == false then
+				self:OpenContextMenu(self._pressId, self._pressName)
+				log("[InventoryPanel] 롱프레스 → 컨텍스트 메뉴: " .. self._pressName .. "(" .. self._pressId .. ")")
+			end
+		end
+	end
+
+	method void OpenContextMenu(string instanceId, string equipName)
 		-- 장비 셀 옆(커서 기준 오른쪽 약간 아래)에 3버튼 메뉴를 띄운다.
 		if isvalid(self.ctxMenu) == false then return end
-		self._ctxTarget = equipName
+		self._ctxTargetId = instanceId
+		self._ctxTargetName = equipName
 		local cur = _InputService:GetCursorPosition()
 		local uiPos = _UILogic:ScreenToUIPosition(cur)
 		-- 대상에 맞춰 메뉴 버튼 구성(큐브 셀: 2행 '미라클 큐브 사용/닫기', 장비: 3행).
-		self:ConfigureCtxMenu(equipName == "__MIRACLE_CUBE__")
+		self:ConfigureCtxMenu(instanceId == "__MIRACLE_CUBE__")
 		local ut = self.ctxMenu.UITransformComponent
+		local center = Vector2(uiPos.x + 110, uiPos.y - 30)
 		if isvalid(ut) then
 			-- 메뉴 중심을 커서 오른쪽으로 약 110px(메뉴폭 절반+여백) 이동 → 왼쪽 변이 커서 옆에 붙는다.
-			ut.anchoredPosition = Vector2(uiPos.x + 110, uiPos.y - 30)
+			ut.anchoredPosition = center
 		end
 		self.ctxMenu.Enable = true
-		-- 같은 부모(인벤 패널) 형제 중 맨 앞으로(그리드/창 위에 표시).
-		if isvalid(ut) then _UILogic:SetSiblingIndex(ut, 1000000) end
+		-- 바깥 클릭 닫기용 영역 저장: 메뉴 중심(anchoredPosition과 동일 UI좌표계)과 크기(RectSize).
+		-- ScreenToUIPosition으로 배치했으므로, 같은 함수로 변환한 터치점과 이 중심±크기/2로 히트테스트한다.
+		self._ctxCenter = center
+		if isvalid(ut) then self._ctxSize = ut.RectSize end
+		self._ctxOpenTime = _UtilLogic.ElapsedSeconds
 		_EquipTooltip:Hide()
 		log("[InventoryPanel] 컨텍스트 메뉴 열기: " .. equipName)
 	end
@@ -561,7 +732,12 @@ script InventoryPanel extends Component
 		if isvalid(self.ctxMenu) and self.ctxMenu.Enable then
 			self.ctxMenu.Enable = false
 		end
-		self._ctxTarget = ""
+		self._ctxTargetId = ""
+		self._ctxTargetName = ""
+		self._ctxCenter = nil
+		self._ctxSize = nil
+		-- 대기 중이던 롱프레스도 정리(메뉴가 닫히면 재무장 전까지 발동 금지).
+		self._pressActive = false
 	end
 
 	method void UpdateCtxCubeButton()
@@ -622,22 +798,24 @@ script InventoryPanel extends Component
 	method void OnCtxEquip()
 		-- 장비: '장착/교체' → 장착 요청. 큐브 셀: '미라클 큐브 사용' → 사용(장비 선택) 모드 진입.
 		_SFXManager:PlayClick()
-		local eq = self._ctxTarget
+		local id = self._ctxTargetId
+		local name = self._ctxTargetName
 		self:CloseContextMenu()
-		if eq == "" then return end
-		if eq == "__MIRACLE_CUBE__" then
+		if id == "" then return end
+		if id == "__MIRACLE_CUBE__" then
 			-- '사용한다' → 장비 선택 패널 열기(무기/방어구/장신구 탭에서 대상 선택).
 			_CubeTargetSelect:Open()
 			return
 		end
 		local p = _UserService.LocalPlayer
 		if isvalid(p) then
-			local m = _EquipmentRouter:ManagerForItem(p, eq)
-			if isvalid(m) then m:RequestEquip(eq) end
+			---@type BaseEquipment
+			local m = _EquipmentRouter:ManagerForItem(p, name)
+			if isvalid(m) then m:RequestEquip(id) end
 		end
 		_EquipTooltip:Hide()
 		self:Rebuild()
-		log("[InventoryPanel] 컨텍스트: 장착/교체 " .. eq)
+		log("[InventoryPanel] 컨텍스트: 장착/교체 " .. name .. "(" .. id .. ")")
 	end
 
 	method void OnCtxCube()
@@ -647,12 +825,13 @@ script InventoryPanel extends Component
 			return
 		end
 		_SFXManager:PlayClick()
-		local eq = self._ctxTarget
+		local id = self._ctxTargetId
+		local name = self._ctxTargetName
 		self:CloseContextMenu()
-		if eq == "" then return end
+		if id == "" or id == "__MIRACLE_CUBE__" then return end
 		_EquipTooltip:Hide()
-		_CubeConfirmPopup:Open(eq)
-		log("[InventoryPanel] 컨텍스트: 잠재능력 재설정 " .. eq)
+		_CubeConfirmPopup:Open(id, name)
+		log("[InventoryPanel] 컨텍스트: 잠재능력 재설정 " .. name .. "(" .. id .. ")")
 	end
 
 	method void OnCtxClose()
@@ -661,8 +840,47 @@ script InventoryPanel extends Component
 		self:CloseContextMenu()
 	end
 
+	@ExecSpace("ClientOnly")
+	method void OnScreenTouchDown(ScreenTouchEvent event)
+		-- 컨텍스트 메뉴가 열려 있을 때, 메뉴 영역 밖을 누르면(=다른 부분 클릭/탭) 메뉴를 닫는다.
+		-- PC 좌클릭(TouchId=1)과 모바일 탭 모두 이 이벤트로 들어온다. 우클릭(Mouse1)은 발생시키지 않는다.
+		if self.isOpen == false then return end
+		if isvalid(self.ctxMenu) == false or self.ctxMenu.Enable == false then return end
+		-- 방금 연 메뉴가 같은 입력에 즉시 닫히는 것 방지(오픈 직후 가드).
+		if (_UtilLogic.ElapsedSeconds - self._ctxOpenTime) < 0.15 then return end
+		if self._ctxCenter == nil or self._ctxSize == nil then return end
+		-- 메뉴 배치와 동일한 변환(ScreenToUIPosition)으로 터치점을 UI좌표로 바꿔 메뉴 사각형과 비교.
+		local uiPt = _UILogic:ScreenToUIPosition(event.TouchPoint)
+		local hx = self._ctxSize.x * 0.5
+		local hy = self._ctxSize.y * 0.5
+		if math.abs(uiPt.x - self._ctxCenter.x) <= hx and math.abs(uiPt.y - self._ctxCenter.y) <= hy then
+			-- 메뉴 내부 클릭 → 버튼이 직접 처리하도록 두고 여기서 닫지 않는다(다운에서 닫으면 버튼 클릭이 소실됨).
+			return
+		end
+		self:CloseContextMenu()
+		log("[InventoryPanel] 바깥 클릭 → 컨텍스트 메뉴 닫기")
+	end
+
+	@ExecSpace("ClientOnly")
+	method void OnScreenTouchUp(ScreenTouchReleaseEvent event)
+		-- 손가락/버튼을 떼면 대기 중이던 롱프레스를 취소한다(짧은 탭은 메뉴를 열지 않음).
+		self._pressActive = false
+	end
+
 	method void OnEndPlay()
-		-- 셀 핸들(클릭+호버) + 탭 핸들 모두 해제.
+		-- 셀 핸들(클릭+호버) + 탭 핸들 + ESC 키 핸들 모두 해제.
+		if self.escHandler ~= nil then
+			_InputService:DisconnectEvent(KeyDownEvent, self.escHandler)
+			self.escHandler = nil
+		end
+		if self.touchDownHandler ~= nil then
+			_InputService:DisconnectEvent(ScreenTouchEvent, self.touchDownHandler)
+			self.touchDownHandler = nil
+		end
+		if self.touchUpHandler ~= nil then
+			_InputService:DisconnectEvent(ScreenTouchReleaseEvent, self.touchUpHandler)
+			self.touchUpHandler = nil
+		end
 		if self._ctxHandlers ~= nil then
 			for _, r in ipairs(self._ctxHandlers) do
 				if isvalid(r.entity) and r.evtH ~= nil then
