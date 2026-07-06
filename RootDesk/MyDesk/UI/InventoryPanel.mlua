@@ -51,24 +51,28 @@ script InventoryPanel extends Component
 
 	property any escHandler = nil
 
-	-- 모바일 여부(플랫폼). PC면 롱프레스 무장을 건너뛰어 기존 우클릭 로직을 100% 그대로 둔다.
 	property boolean _isMobile = false
 
-	-- 모바일 롱프레스(꾹 누르기) 추적 상태.
 	property boolean _pressActive = false
+
 	property string _pressId = ""
+
 	property string _pressName = ""
+
 	property number _pressStart = 0
+
 	property boolean _pressFired = false
+
 	property any _pressCursor = nil
 
-	-- 컨텍스트 메뉴 영역(바깥 클릭 판정용): 열 때의 UI중심/크기/시각.
 	property any _ctxCenter = nil
+
 	property any _ctxSize = nil
+
 	property number _ctxOpenTime = 0
 
-	-- 화면 터치/클릭(다운/릴리즈) 구독 핸들.
 	property any touchDownHandler = nil
+
 	property any touchUpHandler = nil
 
 	method void OnBeginPlay()
@@ -169,7 +173,7 @@ script InventoryPanel extends Component
 		-- ESC 키로 인벤토리 닫기. _InputService의 KeyDownEvent 구독(엔티티가 아닌 서비스에서 구독).
 		-- Close()를 직접 호출해도 UnderButton:OnUpdate가 openExclusive를 매 프레임 동기화하므로 desync 없음.
 		self.escHandler = _InputService:ConnectEvent(KeyDownEvent, self.OnKeyDown)
-
+		
 		-- 플랫폼 판별: 모바일에서만 롱프레스(꾹 누르기)로 컨텍스트 메뉴를 연다. PC는 우클릭 그대로.
 		self._isMobile = false
 		if Environment ~= nil then self._isMobile = Environment:IsMobilePlatform() end
@@ -181,14 +185,14 @@ script InventoryPanel extends Component
 		self._ctxCenter = nil
 		self._ctxSize = nil
 		self._ctxOpenTime = 0
-
+		
 		-- 화면 터치/클릭 구독:
 		--   다운(ScreenTouchEvent) → 컨텍스트 메뉴 바깥을 누르면 메뉴 닫기(PC 좌클릭·모바일 탭 공통).
 		--   릴리즈(ScreenTouchReleaseEvent) → 손가락/버튼을 떼면 대기 중이던 롱프레스 취소.
 		--   우클릭(Mouse1)은 ScreenTouchEvent를 발생시키지 않아 PC 우클릭으로 연 메뉴가 자기 클릭에 닫히지 않는다.
 		self.touchDownHandler = _InputService:ConnectEvent(ScreenTouchEvent, self.OnScreenTouchDown)
 		self.touchUpHandler = _InputService:ConnectEvent(ScreenTouchReleaseEvent, self.OnScreenTouchUp)
-
+		
 		log("[InventoryPanel] OnBeginPlay OK mobile=" .. tostring(self._isMobile))
 	end
 
@@ -424,10 +428,10 @@ script InventoryPanel extends Component
 		local rec = items[index + 1]
 		if rec == nil then return end
 		local name = rec.name or ""
-
+		
 		local rend = cell.SpriteGUIRendererComponent
 		local tc = cell:GetComponent("MOD.Core.TextComponent")
-
+		
 		if rec.kind == "cube" then
 			-- 미라클 큐브 셀: 아이콘 RUID가 없으므로 보라색 틴트 + 보유 수 텍스트로 표현.
 			if isvalid(rend) then
@@ -541,10 +545,11 @@ script InventoryPanel extends Component
 					self._hoverId = "__MIRACLE_CUBE__"
 					self._hoverName = ""
 					self:OpenContextMenu("__MIRACLE_CUBE__", "")
+				elseif self._isMobile then
+					-- 모바일: 탭 1번 → 왼쪽 메뉴('미라클 큐브 사용/닫기') 표시.
+					self:OpenMobilePanels("__MIRACLE_CUBE__", "")
 				else
 					self:OnCellClicked("__MIRACLE_CUBE__", "")
-					-- 모바일: 이 셀을 눌러 유지하면 롱프레스로 컨텍스트 메뉴를 연다(PC에선 무장이 no-op).
-					self:ArmLongPress("__MIRACLE_CUBE__", "")
 				end
 			elseif ev.state == ButtonState.Normal then
 				if self._hoverId == "__MIRACLE_CUBE__" then self._hoverId = "" end
@@ -555,14 +560,17 @@ script InventoryPanel extends Component
 			-- 우클릭 메뉴 대상 추적: 지금 호버 중인 인스턴스를 기억.
 			self._hoverId = instanceId
 			self._hoverName = equipName
-			local curId = ""
-			local p = _UserService.LocalPlayer
-			if isvalid(p) then
-				---@type BaseEquipment
-				local m = _EquipmentRouter:ManagerForItem(p, equipName)
-				if isvalid(m) then curId = m.EquippedId end
+			-- PC만 호버로 툴팁을 띄운다. 모바일은 '호버'가 손가락 누름이라, 탭(Pressed)에서만 패널을 연다.
+			if self._isMobile == false then
+				local curId = ""
+				local p = _UserService.LocalPlayer
+				if isvalid(p) then
+					---@type BaseEquipment
+					local m = _EquipmentRouter:ManagerForItem(p, equipName)
+					if isvalid(m) then curId = m.EquippedId end
+				end
+				_EquipTooltip:ShowCompare(instanceId, curId)
 			end
-			_EquipTooltip:ShowCompare(instanceId, curId)
 		elseif ev.state == ButtonState.Pressed then
 			-- 우클릭이면 컨텍스트 메뉴(좌클릭 장착 로직은 타지 않음 → 메뉴 즉시 닫힘 경합 방지).
 			-- 큐브 사용 모드(재설정 대상 선택 중)에는 우클릭 메뉴를 열지 않는다.
@@ -572,13 +580,21 @@ script InventoryPanel extends Component
 					self._hoverName = equipName
 					self:OpenContextMenu(instanceId, equipName)
 				end
+			elseif self._isMobile then
+				-- 모바일: 탭 1번 → 오른쪽 정보 + 왼쪽 장착/닫기 메뉴(고정). 장착은 메뉴 버튼으로.
+				if self._cubeUseMode then
+					self:OnCellClicked(instanceId, equipName)   -- 큐브 사용 모드에선 대상 선택이 우선.
+				else
+					self:OpenMobilePanels(instanceId, equipName)
+				end
 			else
 				self:OnCellClicked(instanceId, equipName)
 			end
 		elseif ev.state == ButtonState.Normal then
 			-- 이 셀에서 마우스가 빠지면 호버 추적 해제(다른 셀이 이미 잡았으면 건드리지 않음).
 			if self._hoverId == instanceId then self._hoverId = "" end
-			_EquipTooltip:Hide()
+			-- 모바일: 손가락을 떼도(=Normal) 패널을 닫지 않는다(바깥 탭/닫기 버튼으로만 닫힘).
+			if self._isMobile == false then _EquipTooltip:Hide() end
 		end
 	end
 
@@ -588,10 +604,10 @@ script InventoryPanel extends Component
 		
 		-- 우클릭 엣지 감지(매 프레임): 장비 셀 위 우클릭 → 컨텍스트 메뉴 열기(폴백 경로).
 		self:UpdateRightClick()
-
+		
 		-- 모바일 롱프레스(꾹 누르기) 처리: 셀을 눌러 유지하면 컨텍스트 메뉴를 연다.
 		self:UpdateLongPress()
-
+		
 		self._pollTimer = self._pollTimer + delta
 		if self._pollTimer < 0.2 then return end
 		self._pollTimer = 0
@@ -646,6 +662,27 @@ script InventoryPanel extends Component
 			self._lastClickTime = now
 			log("[InventoryPanel] 첫 클릭: " .. equipName .. "(" .. instanceId .. ")")
 		end
+	end
+
+	method void OpenMobilePanels(string instanceId, string equipName)
+		-- 모바일: 셀 탭 1번 → 왼쪽 장착/닫기 메뉴 + 오른쪽 아이템 정보(둘 다 고정). 장착은 메뉴 '장착' 버튼으로.
+		-- (더블탭=장착, 롱프레스=메뉴는 모바일에서 이 경로로 대체된다.)
+		self._hoverId = instanceId
+		self._hoverName = equipName
+		self:OpenContextMenu(instanceId, equipName)   -- 왼쪽 고정(모바일 분기). 모바일에선 툴팁을 숨기지 않음.
+		if instanceId == "__MIRACLE_CUBE__" then
+			-- 큐브는 비교할 장비가 없어 오른쪽 정보 패널 생략(메뉴만 표시).
+			_EquipTooltip:Hide()
+			return
+		end
+		local curId = ""
+		local p = _UserService.LocalPlayer
+		if isvalid(p) then
+			---@type BaseEquipment
+			local m = _EquipmentRouter:ManagerForItem(p, equipName)
+			if isvalid(m) then curId = m.EquippedId end
+		end
+		_EquipTooltip:ShowCompare(instanceId, curId)   -- 오른쪽 고정(모바일=PlaceFixedRight, 추적 안 함)
 	end
 
 	method void UpdateRightClick()
@@ -707,23 +744,30 @@ script InventoryPanel extends Component
 		if isvalid(self.ctxMenu) == false then return end
 		self._ctxTargetId = instanceId
 		self._ctxTargetName = equipName
-		local cur = _InputService:GetCursorPosition()
-		local uiPos = _UILogic:ScreenToUIPosition(cur)
-		-- 대상에 맞춰 메뉴 버튼 구성(큐브 셀: 2행 '미라클 큐브 사용/닫기', 장비: 3행).
+		-- 대상에 맞춰 메뉴 버튼 구성(큐브 셀: 2행 '미라클 큐브 사용/닫기', 장비: 3행). RectSize도 여기서 확정.
 		self:ConfigureCtxMenu(instanceId == "__MIRACLE_CUBE__")
 		local ut = self.ctxMenu.UITransformComponent
-		local center = Vector2(uiPos.x + 110, uiPos.y - 30)
+		local center
+		if self._isMobile then
+			-- 모바일: 커서(터치) 추적 없이 화면 왼쪽에 고정(세로 중앙). 캔버스 ±960 기준, 왼쪽 여백 40.
+			local hw = 94
+			if isvalid(ut) then hw = ut.RectSize.x * 0.5 end
+			center = Vector2(-960 + hw + 40, 0)
+		else
+			-- PC: 메뉴 중심을 커서 오른쪽으로 약 110px 이동 → 왼쪽 변이 커서 옆에 붙는다.
+			local uiPos = _UILogic:ScreenToUIPosition(_InputService:GetCursorPosition())
+			center = Vector2(uiPos.x + 110, uiPos.y - 30)
+		end
 		if isvalid(ut) then
-			-- 메뉴 중심을 커서 오른쪽으로 약 110px(메뉴폭 절반+여백) 이동 → 왼쪽 변이 커서 옆에 붙는다.
 			ut.anchoredPosition = center
 		end
 		self.ctxMenu.Enable = true
 		-- 바깥 클릭 닫기용 영역 저장: 메뉴 중심(anchoredPosition과 동일 UI좌표계)과 크기(RectSize).
-		-- ScreenToUIPosition으로 배치했으므로, 같은 함수로 변환한 터치점과 이 중심±크기/2로 히트테스트한다.
 		self._ctxCenter = center
 		if isvalid(ut) then self._ctxSize = ut.RectSize end
 		self._ctxOpenTime = _UtilLogic.ElapsedSeconds
-		_EquipTooltip:Hide()
+		-- PC: 우클릭 메뉴를 열면 호버 툴팁을 숨긴다. 모바일: 오른쪽 정보 패널을 함께 띄우므로 숨기지 않는다.
+		if self._isMobile == false then _EquipTooltip:Hide() end
 		log("[InventoryPanel] 컨텍스트 메뉴 열기: " .. equipName)
 	end
 
@@ -738,6 +782,8 @@ script InventoryPanel extends Component
 		self._ctxSize = nil
 		-- 대기 중이던 롱프레스도 정리(메뉴가 닫히면 재무장 전까지 발동 금지).
 		self._pressActive = false
+		-- 모바일: 메뉴(왼쪽)와 정보 패널(오른쪽)은 함께 뜨고 함께 닫힌다.
+		if self._isMobile then _EquipTooltip:Hide() end
 	end
 
 	method void UpdateCtxCubeButton()

@@ -170,7 +170,7 @@ script CubeTargetSelect extends Logic
 		local rec = items[index + 1]
 		if rec == nil then return end
 		local name = rec.name
-
+		
 		-- 셀은 아이콘만 표시(기획: 아이템명 텍스트는 셀 밖으로 노출하지 않음).
 		local rend = cell.SpriteGUIRendererComponent
 		local ds = _DataService:GetTable("EquipmentData")

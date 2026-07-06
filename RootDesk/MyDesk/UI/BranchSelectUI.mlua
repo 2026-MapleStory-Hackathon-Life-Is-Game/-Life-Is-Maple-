@@ -15,21 +15,18 @@ script BranchSelectUI extends Logic
 
 	property Entity dimBack = "2c4d55ed-32eb-4b7d-9d33-94f4b9a680a8"
 
-	-- 기능 10: 맵 미리보기 버튼 + 미리보기 중 숨길 분기창 콘텐츠(분기 버튼 컨테이너 / 제목).
 	property ButtonComponent mapViewBtn = "a634fbcb-3d75-4fbc-8e41-f88aaff25061"
 
 	property Entity btnContainer = "f28fbe30-6756-4318-94bb-ad3a3a13d8d5"
 
 	property Entity title = "71b7d146-018c-4089-bfb3-54b381c294d4"
 
-	-- 미리보기 중 함께 숨길 도움말 버튼(/ui/BranchSelectGroup/Panel/HelpButton).
 	property Entity helpButton = "54f67d67-f85c-401a-a6ce-dc8a318a5f01"
 
 	property table choiceTiles = {}
 
 	property table handlers = {}
 
-	-- 분기 시점 상태(도착 예측 / 미리보기 마커용).
 	property integer _remaining = 0
 
 	property table _branchLabels = {}
@@ -62,20 +59,20 @@ script BranchSelectUI extends Logic
 		if isvalid(self.dimBack) then self.dimBack.Enable = true end
 		self.panel.Enable = true
 		log("패널 켜짐, count=" .. #tileNames)
-
+		
 		self.choiceTiles = tileNames
 		self._branchLabels = branchTexts
 		self._remaining = remaining
-
+		
 		-- 도착 예측을 위해 클라 타일 그래프 확보(맵뷰와 동일 패턴).
 		if next(_TileManager.tileGraph) == nil then _TileManager:BuildTileGraph() end
 		local map = ""
 		local me = _UserService.LocalPlayer
 		if isvalid(me) then map = me.CurrentMapName end
-
+		
 		local buttons = {self.Btn_1, self.Btn_2, self.Btn_3, self.Btn_4, self.Btn_5}
 		local count = #tileNames
-
+		
 		for i = 1, 5 do
 			local btn = buttons[i]
 			if i <= count then
@@ -111,7 +108,12 @@ script BranchSelectUI extends Logic
 			return
 		end
 		local tileType = _TileManager:GetTileType(mapName, dest)
-		local ruid = _TileManager:TileTypeIconRUID(tileType)
+		-- 'Guild' 타일은 내 인생분기(LifePath)에 따라 표시 종류가 갈린다(Romance→연애/Union).
+		-- 보드 스프라이트/칸 아이콘(TileManager:LifePathTileArt·TileTypeIconRUID)과 동일 규칙으로 해석해
+		-- 아이콘과 한글 텍스트가 어긋나지 않게(예: 연애 아이콘 + "길드" 글자) 맞춘다.
+		local displayType = tileType
+		if tileType == "Guild" then displayType = _TileManager:LocalLifePathArtType() end
+		local ruid = _TileManager:TileTypeIconRUID(displayType)
 		if isvalid(iconEnt) then
 			local sr = iconEnt.SpriteGUIRendererComponent
 			if ruid ~= "" and isvalid(sr) then
@@ -123,7 +125,7 @@ script BranchSelectUI extends Logic
 			end
 		end
 		if isvalid(textEnt) and isvalid(textEnt.TextGUIRendererComponent) then
-			textEnt.TextGUIRendererComponent.Text = self:TypeKorean(tileType)
+			textEnt.TextGUIRendererComponent.Text = self:TypeKorean(displayType)
 		end
 	end
 
@@ -203,11 +205,11 @@ script BranchSelectUI extends Logic
 	method void SelectBranch(string tileName)
 		_SFXManager:PlayClick()
 		log("분기 선택: " .. tileName)
-
+		
 		-- 로컬 플레이어의 PlayerMovement 컴포넌트를 찾아 서버로 전달
 		local player = _UserService.LocalPlayer   -- 접근자 이름은 프로젝트 기준 확인
 		player.PlayerMovement:OnBranchSelected(tileName)
-
+		
 		self:Hide()   -- 선택했으니 UI 닫기
 	end
 

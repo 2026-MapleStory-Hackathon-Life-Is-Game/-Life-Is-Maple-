@@ -29,9 +29,14 @@ script EquipTooltip extends Logic
 
 	property Entity rightPotential = "e4cdf68f-c8b2-44df-aaa5-0ad923f5dbe4"
 
+	-- 모바일이면 툴팁을 커서(터치) 추적하지 않고 화면 오른쪽 고정 위치에 둔다.
+	property boolean _isMobile = false
+
 	method void OnBeginPlay()
 		-- 클라: 툴팁 패널 숨김 + 입력 비차단 설정.
 		if self:IsClient() then
+			-- 플랫폼 판별(모바일=고정 위치). bare Environment 사용(_Environment는 nil).
+			if Environment ~= nil then self._isMobile = Environment:IsMobilePlatform() end
 			if isvalid(self.tipRoot) then self.tipRoot.Enable = false end
 			-- 툴팁은 전체화면 그룹이라, 맨 앞으로 올렸을 때 BlocksRaycasts/Interactable이 켜져 있으면
 			-- 뒤 UI(인벤 셀 등)의 클릭/호버를 가로챈다. 수동 표시 오버레이이므로 입력을 막지 않게 한다.
@@ -187,7 +192,7 @@ script EquipTooltip extends Logic
 		if isvalid(self.rightPanel) then self.rightPanel.Enable = false end
 		if isvalid(self.tipRoot) then self.tipRoot.Enable = true end
 		self:BringToFront()
-		self:FollowCursor()
+		self:PlacePanel()
 		log("[EquipTooltip] ShowItem: " .. name .. "(" .. instanceId .. ")")
 	end
 
@@ -215,7 +220,7 @@ script EquipTooltip extends Logic
 		end
 		if isvalid(self.tipRoot) then self.tipRoot.Enable = true end
 		self:BringToFront()
-		self:FollowCursor()
+		self:PlacePanel()
 		log("[EquipTooltip] ShowCompare: " .. newName .. " vs " .. currentName)
 	end
 
@@ -223,6 +228,28 @@ script EquipTooltip extends Logic
 		-- 툴팁 패널 숨김.
 		if self:IsClient() then
 			if isvalid(self.tipRoot) then self.tipRoot.Enable = false end
+		end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void PlaceFixedRight()
+		-- 모바일: 툴팁을 커서 추적 없이 화면 오른쪽에 고정 배치(세로 중앙).
+		-- (캔버스 1920x1080 → X ±960, Y ±540. 패널 전체가 화면 안에 들어오게 오른쪽 여백 40.)
+		if isvalid(self.tipRoot) == false then return end
+		local uit = self.tipRoot.UITransformComponent
+		if isvalid(uit) == false then return end
+		local hw = uit.RectSize.x * 0.5
+		local cx = 960 - hw - 40
+		uit.anchoredPosition = Vector2(cx, 0)
+	end
+
+	@ExecSpace("ClientOnly")
+	method void PlacePanel()
+		-- 모바일=오른쪽 고정, PC=커서 추적.
+		if self._isMobile then
+			self:PlaceFixedRight()
+		else
+			self:FollowCursor()
 		end
 	end
 
@@ -254,7 +281,8 @@ script EquipTooltip extends Logic
 
 	@ExecSpace("ClientOnly")
 	method void OnUpdate(number delta)
-		-- 핫패널이 떠 있는 동안만 매 프레임 커서를 따라 이동.
+		-- 핫패널이 떠 있는 동안만 커서 추적. 모바일은 고정 위치(PlaceFixedRight)라 추적하지 않는다.
+		if self._isMobile then return end
 		if isvalid(self.tipRoot) and self.tipRoot.Enable then
 			self:FollowCursor()
 		end

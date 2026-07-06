@@ -73,11 +73,11 @@ script QuickEquipPopup extends Logic
 			self.pendingId = ""
 			return
 		end
-
+		
 		local instanceId = self.queue[1]
 		table.remove(self.queue, 1)
 		self.pendingId = instanceId
-
+		
 		-- 인스턴스 ID → equipName / 잠재(로컬 플레이어 기준 해석).
 		local name = instanceId
 		local potStr = ""
@@ -88,7 +88,7 @@ script QuickEquipPopup extends Logic
 			name = comp:NameOfInstance(instanceId)
 			potStr = comp:GetInstancePotential(instanceId)
 		end
-
+		
 		-- 제목 갱신(표시명)
 		if isvalid(self.titleText) then
 			local tc = self.titleText:GetComponent("MOD.Core.TextComponent")
@@ -96,7 +96,7 @@ script QuickEquipPopup extends Logic
 				tc.Text = name
 			end
 		end
-
+		
 		-- 전투력 증감 계산 (클라이언트 Sync 값 기반, 이 인스턴스의 잠재 포함)
 		local delta = 0
 		if isvalid(player) then
