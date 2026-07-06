@@ -1,18 +1,6 @@
 @Component
 script HuntTile extends EventTileBase
 
-	-- 일반 사냥 이벤트 타일.
-	-- 이벤트 값(사냥터 이름/등장 몬스터/시간·수치 티어/보상 스탯)은 스크립트 밖 데이터셋 'HuntEvent'
-	--   (HuntEvent.userdataset + .csv)에서 관리한다. 도착 타일의 (Stage,Region)과 일치하는 행 중
-	--   Weight 가중치로 1개를 뽑고, 그 행의 시간/수치 티어를 다시 하나 골라 보상과 문구에 반영한다.
-	--   (Stage,Region) 일치 행이 없으면 기존 로직(지역명+사냥터, 1~2시간, +15/티어)으로 폴백한다.
-	--   CSV 컬럼: Stage / Region / HuntingGround / Monster / MonsterRUID / Weight / StatKind / Times / Values
-	--     · HuntingGround : 문구에 넣을 사냥터 이름(예: "헤네시스 사냥터1"). 기존 {지역명+사냥터} 대신 사용.
-	--     · Monster       : 등장 적 이름(참고/향후 RUID 연동용)
-	--     · MonsterRUID   : 팝업에 띄울 몬스터 STAND 스프라이트 RUID(비면 타일 배정 몬스터로 폴백)
-	--     · StatKind      : 보상 스탯 — "all"(올스탯) / "main"(주스탯) 등 (EventTileBase.ApplyReward 키와 동일)
-	--     · Times / Values: '|' 구분 티어. 서로 1:1 대응(예: 30분|1시간|2시간 ↔ 5|10|20). 시간=표시, 수치=적용
-
 	method table RollEvent(Entity piece)
 		-- 일반 사냥 타일: 사냥 결과를 굴려 반환(EventTileBase.OnArrive가 보상/표시 처리).
 		-- (사냥+ 타일이 기본 사냥 결과를 재사용할 수 있도록 실제 롤 로직은 RollHuntEvent로 분리했다.)
@@ -25,7 +13,7 @@ script HuntTile extends EventTileBase
 		local tile = self.Entity.Name
 		local region = _TileManager:GetTileRegion(map, tile)
 		local stage = _TileManager:GetTileStage(map, tile)
-
+		
 		local ds = _DataService:GetTable("HuntEvent")
 		if isvalid(ds) == false then
 			return self:FallbackEvent(map, tile, region, stage)
@@ -35,7 +23,7 @@ script HuntTile extends EventTileBase
 			return (tonumber(ds:GetCell(i, "Stage")) or 0) == stage
 				and ds:GetCell(i, "Region") == region
 		end
-
+		
 		-- (Stage,Region) 일치 행 가중 추첨.
 		local total = 0
 		for i = 1, rows do
@@ -57,7 +45,7 @@ script HuntTile extends EventTileBase
 			end
 		end
 		if pick == 0 then return self:FallbackEvent(map, tile, region, stage) end
-
+		
 		-- 시간/수치 티어(1:1)에서 하나를 고른다.
 		local times = self:SplitPipe(ds:GetCell(pick, "Times"))
 		local values = self:SplitPipe(ds:GetCell(pick, "Values"))
@@ -67,17 +55,17 @@ script HuntTile extends EventTileBase
 		local ti = _UtilLogic:RandomIntegerRange(1, n)
 		local timeLabel = times[ti]
 		local gain = tonumber(values[ti]) or 0
-
+		
 		local statKind = ds:GetCell(pick, "StatKind")
 		local statName = self:StatDisplayName(statKind)
 		local huntingGround = ds:GetCell(pick, "HuntingGround")
 		local message = huntingGround .. "에서 " .. timeLabel .. "동안 몬스터를 사냥했다!\n"
 			.. statName .. "이 " .. tostring(gain) .. "만큼 올랐다."
-
+		
 		-- 몬스터 이미지: 행의 RUID가 있으면 사용, 없으면 타일 배정 몬스터(TileMonster)로 폴백.
 		local monsterRUID = ds:GetCell(pick, "MonsterRUID")
 		if monsterRUID == "" then monsterRUID = _TileManager:GetTileMonsterRUID(map, tile) end
-
+		
 		return {
 			eventType   = "Hunt",
 			message     = message,

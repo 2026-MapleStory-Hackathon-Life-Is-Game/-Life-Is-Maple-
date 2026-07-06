@@ -1,24 +1,15 @@
 @Component
 script BossTile extends EventTileBase
 
-	-- 보스(인터랙티브) 이벤트 타일.
-	-- 흐름: 도착 → BossUI 보스 선택(지역 로스터) → 카드 클릭 시 상세(난이도/드랍) → 난이도 선택(RequestSelect) →
-	--        EventTileGroup 전투 연출(플레이어 공격 모션 + 상대 NPCImage 보스 stand) + 도전 문구 →
-	--        '다음' → 결과 주사위(성공/대성공/실패 판정 + 보상) →
-	--        EventTileGroup 복귀: 성공/대성공이면 보스 die 애니 재생, 실패면 보스 기본 유지(플레이어는 idle 복귀) + 결과 문구.
-	-- 대사·보상은 BossDialog 데이터셋(Group=all)에서 관리한다: intro/challenge/fail/success/great.
-	--   Text에 {boss}(선택 보스명)·{drop}(BossProbability.DropEquip) 치환자, Reward에 보상 토큰(main%/attack%/cube).
-	--   실패=주스탯3% / 성공=미라클큐브x5+주스탯6%+공격력6% / 대성공=드랍장비+주스탯9%+공격력9%.
-	-- 완료 시 _GameModeManager:NotifyTileEventDone()으로 턴 진행을 신호한다.
+	@Sync
+	property string introText = "신규 장비를 모아 더 강해지고 싶다! \n 어떤 보스를 처치하러 갈까?"
 
-	-- 선택 전 EventTileGroup에 표시할 안내 문구(BossDialog가 없을 때의 폴백).
-	@Sync property string introText = "신규 장비를 모아 더 강해지고 싶다! \n 어떤 보스를 처치하러 갈까?"
-
-	-- 진행 중인 도착 플레이어(서버 상태). 턴제라 동시 1명.
 	property any _currentPiece = nil
-	-- 최종 선택 정보. {선택한보스이름} default = 노말 스우. bossKey는 BossProbability.csv의 BossName(영문키).
+
 	property string _selectedBossName = "노말스우"
+
 	property string _selectedBossKey = "Lotus"
+
 	property string _selectedDiff = "Normal"
 
 	method boolean IsInteractiveTile()
@@ -108,7 +99,7 @@ script BossTile extends EventTileBase
 		local piece = self._currentPiece
 		if isvalid(piece) == false then return end
 		if senderUserId ~= self:OwnerUserId(piece) then return end
-
+		
 		-- 결과 주사위: 보스 표(BossProbability) 기반 판정. 현재 전투력을 적정전투력(RequiredPower)과 비교해
 		-- 미만/이상 밴드의 실패:성공:대성공 확률을 적용한다(폐기된 CP 비례식 대신).
 		local cp = 0
@@ -119,7 +110,7 @@ script BossTile extends EventTileBase
 		local d2 = _ResultDiceManager._dice2
 		local outcome = _ResultDiceManager.GameOutcome
 		local resultTable = _ResultDiceManager:GetResultTable()
-
+		
 		-- 결과 등급 → BossDialog(all) 키. 등급별 보상 토큰 적용 + 대성공은 드랍 장비 지급.
 		local key = "fail"
 		if outcome == "성공" then key = "success"
@@ -137,7 +128,7 @@ script BossTile extends EventTileBase
 		end
 		local outcomeText = self:BossText("all", key, self._selectedBossName, drop)
 		log("[BossTile] 도전 " .. outcome .. " → " .. key)
-
+		
 		local ownerId = self:OwnerUserId(piece)
 		self:ShowChallengeDice(d1, d2, total, resultTable, outcome, outcomeText, self._selectedBossKey, ownerId)
 	end
@@ -155,8 +146,6 @@ script BossTile extends EventTileBase
 		self._currentPiece = nil
 		_GameModeManager:NotifyTileEventDone()
 	end
-
-	-- ===== 보스/난이도 설정 (임시값 — 추후 table 연동) =====
 
 	method string BossName(string key)
 		-- 보스 키 → 표시명(BossProbability.BossNameKR). 없으면 키 그대로.
@@ -263,8 +252,6 @@ script BossTile extends EventTileBase
 		end
 		return ""
 	end
-
-	-- ===== BossDialog(대사·보상 데이터) =====
 
 	method table BossLine(string group, string key)
 		-- BossDialog에서 (Group,Key) 행 → { reward, text }. 없으면 nil.

@@ -17,7 +17,6 @@ script TileManager extends Logic
 
 	property integer _visualRetries = 0
 
-	-- 사냥 타일 몬스터: 서버가 맵 시작 시 (Region,Tier) 가중 롤로 1회 결정 → 클라가 동기화 받아 타일 위 스프라이트 적용.
 	@Sync
 	property SyncTable<string, string> TileMonster
 
@@ -136,6 +135,22 @@ script TileManager extends Logic
 		return self.tileEntities[mapName .. "_" .. tileName]
 	end
 
+	method string PredictLanding(string mapName, string startTile, integer steps)
+		-- startTile에서 steps칸 진행했을 때 도착하는 타일을 반환한다(그래프 추종).
+		--   막다른 길(End)을 만나면 그 칸이 최종 도착지.
+		--   도중에 분기(다음 후보 2개 이상)를 만나면 확정 불가 → "" 반환.
+		-- 분기 선택창의 '도착 결과' 미리보기 / 맵뷰 도착칸 마커에 공용으로 쓴다.
+		local tile = startTile
+		while steps > 0 do
+			local nexts = self:GetNextTiles(mapName, tile)
+			if #nexts == 0 then break end
+			if #nexts >= 2 then return "" end
+			tile = nexts[1]
+			steps = steps - 1
+		end
+		return tile
+	end
+
 	method string GetTileBranch(string mapName, string tileName)
 		local key = mapName .. "_" .. tileName
 		    if self.tileGraph[key] then
@@ -244,7 +259,7 @@ script TileManager extends Logic
 				allSame = false
 			end
 		end
-
+		
 		local labels = {}
 		for i = 1, #tileNames do
 			if allSame then
@@ -294,11 +309,11 @@ script TileManager extends Logic
 		-- 도착 타일 효과를 실행하고 '이벤트 UI를 띄우는 타일이었는지'를 반환한다.
 		-- 반환 true면 호출측(턴 매니저)이 UI 표시 시간만큼 대기한 뒤 다음 단계로 진행한다.
 		local key = mapName .. "_" .. tileName
-
+		
 		-- 엔딩 정리용: 이 도착 타일의 타입(Village/Boss/Unlucky/Hunt/HuntPlus만)을 런 방문 통계에 집계.
 		local rs = piece:GetComponent("script.RunStatsManager")
 		if isvalid(rs) then rs:AddVisit(self:GetTileType(mapName, tileName)) end
-
+		
 		-- [테스트] 강제 이벤트 오버라이드(_TileEventTester.ForceEvent). None이면 nil → 정상 동작.
 		local ov = _TileEventTester:OverrideFor(self.tileEntities[key])
 		if isvalid(ov) then
@@ -306,10 +321,10 @@ script TileManager extends Logic
 			ov:OnArrive(piece)
 			return ov:IsEventTile()
 		end
-
+		
 		-- 레벨: 도착 타일의 (Stage,Tier)로 단조 증가 설정. 타일 효과(OnArrive)보다 먼저 → 효과가 갱신된 레벨 참조 가능.
 		self:ApplyTileLevel(key, piece)
-
+		
 		-- 도착 타일 컴포넌트 해석(진영 변형 타일이면 진영별 컴포넌트).
 		---@type BaseTile
 		local comp = nil
@@ -321,7 +336,7 @@ script TileManager extends Logic
 		else
 			comp = self.tileComponents[key]
 		end
-
+		
 		-- 인생 분기: Stage3 'Guild' 타일은 플레이어 LifePath로 GuildTile↔RomanceTile 교체.
 		comp = self:LifePathComp(key, piece, comp)
 		if comp == nil then return false end
@@ -454,8 +469,6 @@ script TileManager extends Logic
 		return 10
 	end
 
-	-- ===== 사냥 타일 몬스터 스폰 (서버 1회 롤 → @Sync → 클라 적용) =====
-
 	@ExecSpace("ServerOnly")
 	method void RollAllTileMonsters()
 		-- 맵 시작 시 사냥 타일마다 (Region,Tier) 가중 롤로 몬스터 1종 결정 → 동기화 테이블에 저장.
@@ -531,7 +544,7 @@ script TileManager extends Logic
 					-- 칸 표시 아이콘(Dummy_TileSprite): 타일 유형별 아이콘을 적용한다.
 					-- (몬스터 @Sync와 무관 → 매 재시도 패스마다 idempotent하게 적용해도 무방.)
 					self:ApplyTileTypeIcon(entity, data.type)
-
+		
 					local ruid = ""
 					if data.type == "Hunt" or data.type == "HuntPlus" then
 						local mn = self.TileMonster[key]
@@ -697,7 +710,7 @@ script TileManager extends Logic
 		local function add(r)
 			if r ~= nil and r ~= "" then table.insert(out, r) end
 		end
-
+		
 		-- 사냥/사냥+: 맵 시작 시 확정된 기본 사냥 몬스터(결정적).
 		if t == "Hunt" or t == "HuntPlus" then
 			add(self:GetTileMonsterRUID(mapName, tileName))

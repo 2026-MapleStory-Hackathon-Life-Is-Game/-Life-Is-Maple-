@@ -1,17 +1,6 @@
 @Component
 script UnluckyTile extends EventTileBase
 
-	-- 불행(부정) 이벤트 타일. 텍스트 팝업 + '다음'으로 진행(페이지=씬). 보상은 주로 스탯 하락(음수).
-	-- 이벤트 값(지역/등장NPC/애니/보상/문구)은 스크립트 밖 데이터셋 'UnluckyEvent'
-	--   (UnluckyEvent.userdataset + .csv)에서 관리한다. 도착 타일의 (Stage,Region)과 일치하는 행 중
-	--   Weight 가중치로 1개를 추첨한다. 값/문구 추가·수정은 CSV만 편집하면 된다.
-	--   CSV 컬럼: Stage / Region / NPC / Weight / PlayerAnim / Reward / Text
-	--     · NPC      : 등장 NPC 이름 키. '씬(페이지)별 교체'는 ';'로 나열(예: 'Helena;Helena;Nineheart' → 페이지1/2/3).
-	--                  단일 키면 모든 페이지 동일. NPC 없으면 빈 값. NpcInfo에서 RUID 조회.
-	--     · Reward   : 보상 인코딩('main:-10' / 'main:10;attack:-5' / 'main:-10;cube:3' 등). VillageEventFlow와 동일 문법.
-	--                  음수=감소, 다중 보상은 ';'로 나열, 큐브는 'cube:N'. ApplyRewardString이 파싱·적용한다.
-	--     · Text     : 문구. 줄바꿈은 '\n', 페이지(씬 경계)는 '\n\n' 리터럴로 저장(런타임에 복원)
-
 	@ExecSpace("ServerOnly")
 	method void OnArrive(Entity piece)
 		-- 불행 이벤트: (Stage,Region) 가중 추첨 → 보상 적용(RollEvent) → 씬(페이지)별 NPC로 표시.
@@ -39,7 +28,7 @@ script UnluckyTile extends EventTileBase
 		local tile = self.Entity.Name
 		local region = _TileManager:GetTileRegion(map, tile)
 		local stage = _TileManager:GetTileStage(map, tile)
-
+		
 		local ds = _DataService:GetTable("UnluckyEvent")
 		if isvalid(ds) == false then
 			log_error("[UnluckyTile] UnluckyEvent 데이터셋 없음")
@@ -50,7 +39,7 @@ script UnluckyTile extends EventTileBase
 			return (tonumber(ds:GetCell(i, "Stage")) or 0) == stage
 				and ds:GetCell(i, "Region") == region
 		end
-
+		
 		-- (Stage,Region) 일치 행 가중치 합.
 		local total = 0
 		for i = 1, rows do
@@ -60,7 +49,7 @@ script UnluckyTile extends EventTileBase
 			log_warning("[UnluckyTile] 해당 (Stage,Region) 불행 이벤트 없음 stage=" .. tostring(stage) .. " region=" .. tostring(region))
 			return nil
 		end
-
+		
 		-- 가중 추첨.
 		local roll = _UtilLogic:RandomIntegerRange(1, total)
 		local acc = 0
@@ -75,7 +64,7 @@ script UnluckyTile extends EventTileBase
 			end
 		end
 		if pick == 0 then return nil end
-
+		
 		local anim = ds:GetCell(pick, "PlayerAnim")
 		if anim == "" then anim = "idle" end
 		-- 보상 적용: Reward 문자열('main:-10;attack:-5;cube:3' 등)을 이 자리에서 직접 적용하고,

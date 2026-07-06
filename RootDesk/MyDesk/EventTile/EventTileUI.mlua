@@ -11,17 +11,10 @@ script EventTileUI extends Logic
 
 	property number VillageStepSeconds = 5.0
 
-	-- 사냥 몬스터 이미지 전역 배율. 슬롯은 PreserveSprite=NativeSize(원본 크기)로 렌더되고,
-	-- 여기에 이 값 × 몬스터별 UIScale(TierMonster)을 곱해 최종 표시 크기가 정해진다.
-	-- 전체 몬스터가 너무 크/작으면 이 값 하나만 조절하면 된다(개별 조정 불필요).
 	property number MonsterNativeScale = 2.0
 
-	-- 인게임 보스 이미지(NPC 슬롯) 전역 배율. 원본 크기(NativeSize)에 이 값 × 보스별 UIScale(BossImage)을 곱한다.
-	-- stand/die 애니가 바뀌어도 동일하게 적용돼 크기가 유지된다.
 	property number BossNativeScale = 2.0
 
-	-- 인게임 보스 이미지 전역 세로 오프셋(음수 = 아래로). 보스가 커서 위로 떠 보이는 것을 한 번에 내린다.
-	-- 개별 보스는 BossImage.UIOffsetY로 추가 보정(이 값에 더해진다).
 	property number BossOffsetY = -70.0
 
 	property Entity NextButton = "838ae8b4-920f-4448-bc4b-b551594cba6d"
@@ -30,7 +23,6 @@ script EventTileUI extends Logic
 
 	property Entity DeclineButton = "27c567d9-0abf-44ed-8536-a916699f3a8b"
 
-	-- 2지선다 버튼 배경 이미지 RUID. 파랑=수락/중립 공용, 회색=거절 전용.
 	property string BinaryBlueRUID = "a1f11905b0b742abb57aacce3ca36539"
 
 	property string BinaryGrayRUID = "c7cad644979244cfb2dbce2aeb6e81e4"
@@ -57,20 +49,24 @@ script EventTileUI extends Logic
 
 	property Entity NPCImage = "1fbf3532-d2e1-452f-8796-3a990a65660e"
 
-	-- 이벤트 배경(EventBack/BackgroundMap). 이벤트 표시(ShowGroup) 때 현재 지역 배경 RUID로 항상 교체한다.
 	property Entity BackgroundMap = "81c3c4e4-83ea-4c11-8f35-60ac2cc4f5b4"
 
-	-- 사냥 몬스터 연출 상태(개별 오브젝트마다 방향/위상/처치 타이밍이 다르다).
-	property table _monAnims = {}          -- STAND RUID 역조회로 얻은 { move, stand, hit, die, attack }
-	property integer _monBobTimer = 0      -- 좌우 흔들림 반복 타이머(3개 이미지를 각기 다른 위상으로 갱신)
-	property number _monBobPhase = 0       -- 흔들림 공통 위상(이미지별로 오프셋을 더한다)
-	property table _monBaseXs = {}         -- 이미지별 기준 x(디자인 위치)
-	property boolean _monBaseSet = false   -- 기준 x 캡처 여부(첫 표시 전 위치 훼손 방지)
-	property table _monTimers = {}         -- 처치 시퀀스(이미지별 hit→die→사라짐) 타이머 목록
-	property boolean _monBusy = false      -- 처치 연출 시작(첫 사망) 여부 — 초상화 attack 1회 트리거용
-	property table _monDone = {}           -- 이미지별 '처치 시작' 여부(true면 흔들림 제외)
+	property table _monAnims = {}
 
-	-- 슬롯(몬스터/NPC/보스)별 '원본' anchoredPosition 캐시(고유 문자열 키 → {x,y}). RUID별 오프셋 누적 방지.
+	property integer _monBobTimer = 0
+
+	property number _monBobPhase = 0
+
+	property table _monBaseXs = {}
+
+	property boolean _monBaseSet = false
+
+	property table _monTimers = {}
+
+	property boolean _monBusy = false
+
+	property table _monDone = {}
+
 	property table _slotBase = {}
 
 	property any _activeTile = nil
@@ -79,30 +75,42 @@ script EventTileUI extends Logic
 
 	property string _portraitState = "idle"
 
-	-- 결과 표정/동작(초상화 PlayerPortrait) 연출용.
-	property number EmoteHoldSeconds = 600.0       -- 결과 표정 유지 시간(초). 이벤트가 끝날 때까지 유지되도록 충분히 길게.
-	property number PortraitHopHeight = 60.0       -- 웃음 제자리 점프 높이(UI px)
-	property number PortraitHopDuration = 0.4      -- 점프 1회 총 시간(초)
+	property number EmoteHoldSeconds = 600.0
+
+	property number PortraitHopHeight = 60.0
+
+	property number PortraitHopDuration = 0.4
+
 	property integer _portraitHopTimer = 0
+
 	property number _portraitHopT = 0
+
 	property Vector2 _portraitHopBase = Vector2(0, 0)
 
-	-- 레벨업 배너: 초상화(PlayerPortrait) 중앙 이동용 원위치 캐시(최초 1회).
 	property Vector2 _luPortraitBase = Vector2(0, 0)
+
 	property boolean _luPortraitCached = false
 
-	-- 레벨업 배너 이펙트: 초상화 자식 스프라이트(LevelUpFx)에 메이플 LevelUp_Fast 애니메이션클립을 1회 재생.
-	-- 초상화 자식이라 중앙 이동/제자리 폴짝을 자동으로 따라간다. 평소엔 비활성, ShowLevelUp에서만 켠다.
 	property string LevelUpFxPath = "/ui/EventTileGroup/EventBack/BackgroundMap/PlayerPortrait/LevelUpFx"
-	property string LevelUpFxRUID = "d92f2ec742d94285af771d33086773d3"
-	property number LevelUpFxSeconds = 1.5
-	property number LevelUpFxDelay = 0.5      -- 로딩 오버레이가 사라진 뒤 이펙트 재생까지의 여유
-	property integer _luFxTimer = 0           -- 자동 숨김 타이머
-	property integer _luFxSchedTimer = 0      -- 로딩 대기/지연 재생 타이머
-	property boolean _luFxWanted = false      -- 배너가 이펙트를 원하는 상태(배너가 닫히면 false → 예약 취소)
 
-	-- 레벨업 배너 표시 동안 인게임 HUD(InGameUIGroup)를 숨겼다가 배너 종료 시 복원(BossUI 패턴).
+	property string LevelUpFxRUID = "d92f2ec742d94285af771d33086773d3"
+
+	property number LevelUpFxSeconds = 1.5
+
+	property number LevelUpFxDelay = 0.5
+
+	property integer _luFxTimer = 0
+
+	property integer _luFxSchedTimer = 0
+
+	property boolean _luFxWanted = false
+
+	property boolean _openingLevelUpDeferred = false
+
+	property integer _luFxFallbackTimer = 0
+
 	property Entity InGameGroup = "a322b09a-023e-427d-9c6c-19724156dab7"
+
 	property boolean _luHidHud = false
 
 	property any _nextHandler = nil
@@ -139,9 +147,8 @@ script EventTileUI extends Logic
 
 	property table _pageNpcRUIDs = {}
 
-	-- 페이지 진행 중 '마지막 페이지'에 도달하는 순간 1회 재생할 초상화 연출.
-	-- 불행칸: 스탯 감소 문구가 항상 마지막 페이지에 나오므로, 시작이 아니라 그때 울도록 예약한다.
 	property string _pageEndEmote = ""
+
 	property boolean _pageEndEmoteFired = false
 
 	property number TypeInterval = 0.03
@@ -158,8 +165,8 @@ script EventTileUI extends Logic
 
 	property any _textComp = nil
 
-	-- 장비/장신구/아이템 이름(파랑) 캐시. EquipmentData.Name에서 1회 구축(+미라클큐브), 길이 내림차순 정렬.
 	property table _nameKws = {}
+
 	property boolean _nameLoaded = false
 
 	@ExecSpace("ClientOnly")
@@ -721,23 +728,23 @@ script EventTileUI extends Logic
 		self._monBusy = false
 		self._monDone = {}
 		self._monAnims = {}
-
+		
 		local anims = _TileManager:MonsterAnimsByStand(standRUID)
 		if anims == nil then return end   -- 연출 데이터 없으면 정적 STAND 유지.
 		self._monAnims = anims
-
+		
 		-- 크기/기준 위치(_monBaseXs)는 SetMonsterImages → SizeMonsterSlots에서 이미 설정됨(anim 유무 무관).
 		local imgs = self:MonImgs()
-
+		
 		-- MOVE(없으면 STAND) 재생.
 		local moveClip = anims.move
 		if moveClip == nil or moveClip == "" then moveClip = anims.stand end
 		if moveClip ~= nil and moveClip ~= "" then self:SetMonstersClip(moveClip) end
-
+		
 		-- 좌우 흔들림 시작(한 타이머로 3개를 각기 다른 위상/방향/진폭으로 갱신).
 		self._monBobPhase = 0
 		self._monBobTimer = _TimerService:SetTimerRepeat(function() self:MonBob() end, 0.05)
-
+		
 		-- 문구 표시 후 자동 처치: 처치 순서를 랜덤으로 섞고, 세 마리를 최대 ~5초에 걸쳐
 		-- 랜덤 간격으로 '한 마리씩' 순차 처치한다.
 		local order = {}
@@ -1169,11 +1176,39 @@ script EventTileUI extends Logic
 		self:PortraitResetPose()
 		self:ClearPortrait()
 		self:HideLevelUpFx()          -- 레벨업 이펙트 정리
+		self:ClearEventImages()       -- ★ 공유 NPC/몬스터 이미지의 RUID를 완전히 비워 다음 이벤트의 '뒤늦게 교체'(잔상) 방지
 		if self._luHidHud then        -- 레벨업 배너가 숨긴 HUD만 복원(다른 이벤트 Hide는 HUD를 건드리지 않음)
 			if isvalid(self.InGameGroup) then self.InGameGroup.Enable = true end
 			self._luHidHud = false
 		end
 		if isvalid(self.EventGroup) then self.EventGroup.Enable = false end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void ClearEventImages()
+		-- 이벤트 종료(패널 닫힘) 시 공유 이미지(NPCImage/몬스터 3개)의 RUID를 빈 값으로 완전히 비운다.
+		-- NPCImage·MonsterImage는 매 이벤트가 재사용하는 '공유 엔티티'라, RUID를 남겨두면 다음 이벤트가
+		-- 새 RUID를 렌더러에 반영하기 전 '이전 이벤트 스프라이트'가 한 프레임 노출되어 '뒤늦게 교체'되는 잔상이 생긴다.
+		-- 여기서 비워 두면 다음 표시 때 잔상 없이 (프리로드된) 새 스프라이트만 나타난다.
+		if isvalid(self.NPCImage) then
+			self.NPCImage.Enable = false
+			if isvalid(self.NPCImage.SpriteGUIRendererComponent) then
+				self.NPCImage.SpriteGUIRendererComponent.ImageRUID = DataRef("")
+				self.NPCImage.SpriteGUIRendererComponent.FlipX = false   -- 공유 엔티티 반전 잔류 방지(여신 조각상 등)
+			end
+		end
+		local imgs = self:MonImgs()
+		for i = 1, #imgs do
+			local e = imgs[i]
+			if isvalid(e) then
+				e.Enable = false
+				if isvalid(e.SpriteGUIRendererComponent) then
+					e.SpriteGUIRendererComponent.ImageRUID = DataRef("")
+				end
+			end
+		end
+		if isvalid(self.MonstersGroup) then self.MonstersGroup.Enable = false end
+		log("[EventTileUI] ClearEventImages: NPC/몬스터 이미지 RUID 비움")
 	end
 
 	@ExecSpace("ClientOnly")
@@ -1267,6 +1302,16 @@ script EventTileUI extends Logic
 	end
 
 	@ExecSpace("ClientOnly")
+	method void PlayOpeningLevelUpFx()
+		-- 인트로(또는 폴백 타이머)가 호출: 보류했던 오프닝 레벨업 이펙트를 지금 재생한다.
+		-- 로딩 오버레이는 이미 걷힌 상태 → ShowLevelUpFx가 LevelUpFxDelay 후 재생한다.
+		if self._openingLevelUpDeferred == false then return end
+		self._openingLevelUpDeferred = false
+		if self._luFxFallbackTimer ~= 0 then _TimerService:ClearTimer(self._luFxFallbackTimer) self._luFxFallbackTimer = 0 end
+		self:ShowLevelUpFx()
+	end
+
+	@ExecSpace("ClientOnly")
 	method void ScheduleLevelUpFx()
 		-- 로딩 오버레이가 끝날 때까지 폴링 대기 → 끝나면 LevelUpFxDelay 후 재생. 배너가 닫혔으면(_luFxWanted=false) 취소.
 		if self._luFxWanted == false then return end
@@ -1305,10 +1350,46 @@ script EventTileUI extends Logic
 	method void HideLevelUpFx()
 		-- 이펙트 숨김 + 예약/자동숨김 타이머 정리(배너 종료/자동 종료 공용). 로딩 중 배너가 닫히면 예약도 취소된다.
 		self._luFxWanted = false
+		self._openingLevelUpDeferred = false
+		if self._luFxFallbackTimer ~= 0 then _TimerService:ClearTimer(self._luFxFallbackTimer) self._luFxFallbackTimer = 0 end
 		self:ClearLuFxSched()
 		if self._luFxTimer ~= 0 then _TimerService:ClearTimer(self._luFxTimer) self._luFxTimer = 0 end
 		local e = _EntityService:GetEntityByPath(self.LevelUpFxPath)
 		if isvalid(e) then e.Enable = false end
+	end
+
+	method string StripQuotes(string s)
+		-- 손으로 쓴 CSV에서 쉼표 때문에 "..."로 감싼 필드는 런타임에 리터럴 따옴표가 남는다 → 감싼 따옴표 1쌍 제거.
+		if s == nil then return "" end
+		if #s >= 2 and string.sub(s, 1, 1) == "\"" and string.sub(s, #s, #s) == "\"" then
+			return string.sub(s, 2, #s - 1)
+		end
+		return s
+	end
+
+	method string NormalizePages(string s)
+		-- CSV 문구를 페이지 텍스트로 변환. '|' 또는 '\n\n'(줄바꿈 두 번) = 다음 페이지, '\n' = 같은 페이지 줄바꿈.
+		if s == nil then return "" end
+		s = string.gsub(s, "|", "\n\n")     -- '|' → 페이지 경계
+		s = string.gsub(s, "\\n", "\n")     -- 리터럴 '\n' → 실제 개행(연속 두 개면 '\n\n'=페이지 경계)
+		return s
+	end
+
+	@ExecSpace("ClientOnly")
+	method string LevelBannerText(integer level)
+		-- 레벨업 배너 헤드라인(1페이지~). LevelDialogue.Banner에 값이 있으면 그 문구,
+		-- 없으면 기본 "Lv.N 달성!". → 문구는 CSV의 Banner 칸만 고치면 코드 수정 없이 바뀐다.
+		local ds = _DataService:GetTable("LevelDialogue")
+		if isvalid(ds) then
+			for i = 1, ds:GetRowCount() do
+				if tonumber(ds:GetCell(i, "Level")) == level then
+					local b = ds:GetCell(i, "Banner")
+					if b ~= nil and b ~= "" then return self:StripQuotes(b) end
+					break
+				end
+			end
+		end
+		return "Lv." .. tostring(level) .. " 달성!"
 	end
 
 	@ExecSpace("ClientOnly")
@@ -1321,7 +1402,7 @@ script EventTileUI extends Logic
 			if tonumber(ds:GetCell(i, "Level")) == level then
 				local t = ds:GetCell(i, "Text")
 				if t == nil then return "" end
-				return t
+				return self:StripQuotes(t)
 			end
 		end
 		return ""
@@ -1340,15 +1421,25 @@ script EventTileUI extends Logic
 		self:CenterPortrait(true)        -- 초상화를 수평 중앙으로(원위치 캐시)
 		self:SetPortrait("idle")         -- 초상화 외형을 로컬 플레이어와 동일하게 고정
 		self:PortraitEmoteKind("happy")  -- Cheers 표정 + 제자리 폴짝
-		self:ShowLevelUpFx()             -- 초상화 중심에 레벨업 이펙트 1회 재생
-		local banner = "Lv." .. tostring(level) .. " 달성!"
-		local line = self:LevelDialogueText(level)
-		if line ~= "" then
-			-- '\n\n'(빈 줄) 경계로 페이지 분할 → 1페이지 배너, 2페이지 내레이션.
-			self:ShowPagedText(banner .. "\n\n" .. line, self.OnLevelUpNext)
+		-- 오프닝(Lv.10) 배너면: 인트로가 단풍잎을 머리에 안착시킨 뒤 이펙트를 재생하도록 '보류'한다.
+		-- 인트로가 없거나 오프닝이 아니면 기존대로 즉시 예약.
+		if isvalid(_IntroCutscene) and isvalid(_LevelUpCelebration) and _LevelUpCelebration:IsOpeningCampPending() then
+			self._openingLevelUpDeferred = true
+			_IntroCutscene:OnOpeningBannerReady()
+			if self._luFxFallbackTimer ~= 0 then _TimerService:ClearTimer(self._luFxFallbackTimer) end
+			self._luFxFallbackTimer = _TimerService:SetTimerOnce(function() self:PlayOpeningLevelUpFx() end, 12.0)
+			log("[EventTileUI] 오프닝 레벨업 이펙트 보류(인트로 트리거 대기)")
 		else
-			self:ShowPagedText(banner, self.OnLevelUpNext)
+			self:ShowLevelUpFx()             -- 초상화 중심에 레벨업 이펙트 1회 재생
 		end
+		-- 배너(1페이지~) + 내레이션을 합쳐 페이지로 나눈다. 페이지/줄바꿈 규칙은 CSV에서 관리:
+		--   '|' 또는 '\n\n'(줄바꿈 두 번) = 다음 스크립트(페이지)로 넘김,  '\n' = 같은 페이지 줄바꿈.
+		-- Banner 칸에 '|'로 여러 페이지를 넣어도, Text 칸의 '\n\n'로 넘겨도 모두 동작한다.
+		local banner = self:LevelBannerText(level)
+		local line = self:LevelDialogueText(level)
+		local full = banner
+		if line ~= "" then full = banner .. "\n\n" .. line end
+		self:ShowPagedText(self:NormalizePages(full), self.OnLevelUpNext)
 		log("[EventTileUI] 레벨업 배너 표시 Lv." .. tostring(level) .. " 대사=" .. tostring(line ~= ""))
 	end
 

@@ -1,36 +1,11 @@
 @Component
 script HuntPlusTile extends HuntTile
 
-	-- 사냥+ 타일 — '기본 사냥'을 먼저 하고, '이어서' 사냥+ 고유 이벤트가 발생하는 인터랙티브 이벤트 타일.
-	--   1) 기본 사냥: HuntTile과 동일하게 HuntEvent 데이터셋으로 사냥 결과를 굴려 보상(주스탯/올스탯 등).
-	--   2) 이어서(둘 중 하나, 지역별 데이터로 결정):
-	--      · 몬스터 조우(monster): {마을 사냥터}에서 강력한 몬스터 조우 → 처치 → 스탯 상승.
-	--      · NPC 조우(npc): {마을 사냥터}에서 사냥 중 NPC를 만남(응원/축복 등) → 스탯 상승.
-	-- 두 문구는 '\n\n'(빈 줄=팝업 페이지 경계)으로 이어 붙여 '다음' 클릭으로 한 장씩 넘긴다.
-	--   보상은 '기본 사냥 보상 + 사냥+ 보상'을 모두 적용한다(둘 다 RollEvent에서 직접 적용).
-	-- HuntTile을 상속하므로 기본 사냥 롤(RollHuntEvent)/SplitPipe/StatDisplayName/FallbackEvent를 재사용한다.
-	-- 흐름은 EventTileBase와 동일: 도착 → RollEvent → 보상 적용 → 도착 플레이어 클라에 팝업 → '다음'으로 종료.
-	-- '마을 사냥터' 이름은 HuntTile과 동일하게 현재 타일 지역(마을)의 한글명 + " 사냥터"로 합성한다.
-	--
-	-- 이벤트 값(지역/가중치/이미지/스탯/문구)은 스크립트 밖 데이터셋
-	--   'HuntPlusEvent'(HuntPlusEvent.userdataset + .csv)에서 관리한다. 도착 타일의 (Stage,Region)과
-	--   일치하는 행 중 Weight 가중치로 하나를 뽑는다. 일치 행이 없으면 FallbackPlusEvent로 대체.
-	--   CSV 컬럼: Stage / Region / Weight / ImageKind / TargetKey / StatKind / StatMode / StatGain / Text
-	--     · Stage/Region: 이 이벤트가 붙는 타일의 단계/지역(HuntEvent와 동일 키)
-	--     · Weight      : (Stage,Region) 내 가중치(같은 지역에 여러 개면 가중 추첨)
-	--     · ImageKind   : "monster"(엘리트 몬스터 조우) / "npc"(NPC 조우) — 초상화 애니 + 이미지 조회처 결정
-	--     · TargetKey   : 페이지2 이미지 대상 키. monster면 TierMonster.MonsterName(STAND 조회), npc면 NpcInfo.Name(스프라이트 조회)
-	--       (몬스터 스프라이트의 정식 원본은 TierMonster, NPC는 NpcInfo — 각 엔티티는 자기 저장소에서만 관리한다.)
-	--     · StatKind    : 보상 종류 — "main"(주스탯) / "attack"(공/마) 등 (EventTileBase.ApplyReward 키와 동일)
-	--     · StatMode    : "flat"(고정) / "percent"(%)
-	--     · StatGain    : 증가량(문구에 표시한 값과 동일)
-	--     · Text        : 사냥+ 씬 문구(줄바꿈은 '\n' 리터럴, 페이지2에 표시)
-
 	method table RollEvent(Entity piece)
 		-- 사냥+ 타일: 기본 사냥 결과를 먼저 굴리고, 이어서 사냥+ 고유 이벤트(몬스터/NPC)를 이어붙인다.
 		local huntEv = self:RollHuntEvent(piece)   -- 1) 기본 사냥(HuntTile 로직 상속)
 		local plusEv = self:RollPlusEvent(piece)   -- 2) 사냥+ 고유 이벤트(지역별 몬스터/NPC)
-
+		
 		-- 폴백: 사냥+ 데이터셋이 없으면 기본 사냥 결과만 표시(OnArrive가 사냥 보상 적용).
 		if plusEv == nil then
 			log_warning("[HuntPlusTile] 사냥+ 이벤트 nil — 기본 사냥만 표시")
@@ -40,12 +15,12 @@ script HuntPlusTile extends HuntTile
 		if huntEv == nil then
 			return plusEv
 		end
-
+		
 		-- 두 보상('기본 사냥' + '사냥+')을 이 자리에서 모두 적용하고,
 		-- 반환 table의 statKind는 비워 OnArrive의 ApplyReward가 중복 적용하지 않도록 한다.
 		self:ApplyReward(piece, huntEv)
 		self:ApplyReward(piece, plusEv)
-
+		
 		-- 문구 결합: [기본 사냥 씬(1장)] → '\n\n'(페이지 경계) → [사냥+ 씬(1장)].
 		-- 이미지: 페이지1(기본 사냥)은 사냥 몬스터 이미지, 페이지2(사냥+ 씬)부터 사냥+ 이미지로 전환(npcFromPage=2).
 		--   → EventTileUI가 '다음'으로 페이지2에 도달하는 순간 몬스터→사냥+ 이미지(엘리트 몬스터/NPC)로 교체한다.
@@ -73,7 +48,7 @@ script HuntPlusTile extends HuntTile
 		local region = _TileManager:GetTileRegion(map, tile)
 		local stage = _TileManager:GetTileStage(map, tile)
 		local huntingGround = _TileManager:RegionDisplayName(region) .. " 사냥터"
-
+		
 		local ds = _DataService:GetTable("HuntPlusEvent")
 		if isvalid(ds) == false then
 			log_warning("[HuntPlusTile] HuntPlusEvent 데이터셋 없음 → 폴백")
@@ -84,7 +59,7 @@ script HuntPlusTile extends HuntTile
 			return (tonumber(ds:GetCell(i, "Stage")) or 0) == stage
 				and ds:GetCell(i, "Region") == region
 		end
-
+		
 		-- (Stage,Region) 일치 행 가중 추첨.
 		local total = 0
 		for i = 1, rows do
@@ -106,7 +81,7 @@ script HuntPlusTile extends HuntTile
 			end
 		end
 		if pick == 0 then return self:FallbackPlusEvent(huntingGround) end
-
+		
 		-- 선택된 행의 값 읽기.
 		local imageKind = ds:GetCell(pick, "ImageKind")
 		local targetKey = ds:GetCell(pick, "TargetKey")

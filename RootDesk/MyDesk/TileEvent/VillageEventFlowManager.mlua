@@ -1,15 +1,7 @@
 @Logic
 script VillageEventFlowManager extends Logic
 
-	-- 스테이지1의 '첫' 마을 이벤트를 1번 플로우로 강제하기 위한 1회성 잠금(서버 전용).
-	-- 게임 시작(GameModeManager.StartSinglePlayer/StartMultiPlayer) 시 ResetStage1Lock()으로 해제된다.
 	property boolean _stage1FirstDone = false
-
-	-- 마을 이벤트 플로우 데이터(VillageEventFlow / VillageEventFlowScene / VillageEventFlowBranch)
-	-- 접근·추첨·파싱 전담 레이어. 데이터셋은 serveronly=false 라 서버/클라 양쪽에서 읽기 가능하다.
-	--   - 추첨(RollEvent/RollBranch)은 권위가 필요하므로 서버에서 호출 → 결과 키(EventId/BranchKey)만 클라에 전달.
-	--   - 텍스트/씬 조회(GetScene/GetBranch)는 키만 있으면 클라가 로컬에서 읽어 출력.
-	-- 보상 키(main/all/attack/damage/crit)는 EventTileBase/BaseTile의 스탯 증감 함수와 동일하게 맞춰져 있다.
 
 	method string DecodeText(string raw)
 		-- CSV에 '\n' 리터럴로 저장한 줄바꿈을 실제 개행으로 복원한다(셀을 한 물리 행으로 유지하기 위함).

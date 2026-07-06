@@ -144,12 +144,13 @@ script BaseTile extends Component
 		-- (마을 이벤트·보스 드랍 보상처럼 '정해진 아이템(EquipName)'을 바로 줄 때 쓴다.)
 		if equipName == nil or equipName == "" then return end
 		if isvalid(piece) == false then return end
-		_EquipmentRouter:Acquire(piece, equipName)
+		local id = _EquipmentRouter:Acquire(piece, equipName)
 		local cp = self:CP(piece)
-		if isvalid(cp) and isvalid(piece.PlayerComponent) then
-			local delta = cp:PreviewPowerWithSwap(equipName) - cp.CombatPower
+		if isvalid(cp) and isvalid(piece.PlayerComponent) and id ~= "" then
+			-- 새로 얻은 인스턴스는 잠재가 없으므로 미리보기 잠재는 ""(기본 CSV 기준).
+			local delta = cp:PreviewPowerWithSwap(equipName, "") - cp.CombatPower
 			if delta > 0 then
-				_QuickEquipPopup:Show(equipName, piece.PlayerComponent.UserId)
+				_QuickEquipPopup:Show(id, piece.PlayerComponent.UserId)
 			end
 		end
 		log("[BaseTile] 아이템 지급 → " .. equipName)

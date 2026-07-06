@@ -1,20 +1,14 @@
 @Component
 script VillageTile extends EventTileBase
 
-	-- 마을(인터랙티브) 이벤트 타일 — 데이터 테이블 기반 씬 재생.
-	-- 흐름: 도착(서버) → 타일 지역으로 VillageEventFlow 가중 추첨 → 시작 씬부터 순차 재생.
-	--   text   씬: 텍스트 + 초상화 애니 표시 → 도착 플레이어가 '다음'으로 진행.
-	--   choice 씬: 선택지 버튼 표시 → 선택 → 해당 분기의 NextScene 으로 이동.
-	--   roll   씬: 서버가 VillageEventFlowBranch 가중 추첨 → 보상 적용 → 결과 문구 표시.
-	-- 보상/추첨은 모두 서버 권위. 클라(EventTileUI)는 표시와 입력만 담당하고 진행/선택을 서버로 되돌린다.
-	-- 완료 시 _GameModeManager:NotifyTileEventDone() 으로 턴 진행을 신호한다.
-
-	-- 진행 중인 도착 플레이어(서버 상태). 턴제라 동시 1명.
 	property any _currentPiece = nil
-	-- 현재 재생 중인 이벤트/씬 상태(서버 전용).
+
 	property string _eventId = ""
+
 	property integer _seq = 0
+
 	property integer _pendingNext = 0
+
 	property string _choiceGroup = ""
 
 	method boolean IsInteractiveTile()
@@ -32,7 +26,7 @@ script VillageTile extends EventTileBase
 			_GameModeManager:NotifyTileEventDone()
 			return
 		end
-
+		
 		local region = _TileManager:GetTileRegion(self.Entity.CurrentMapName, self.Entity.Name)
 		local stage = _TileManager:GetTileStage(self.Entity.CurrentMapName, self.Entity.Name)
 		local isLast = _TileManager:IsLastVillageTile(self.Entity.CurrentMapName, self.Entity.Name)
@@ -42,7 +36,7 @@ script VillageTile extends EventTileBase
 			self:FinishEvent()
 			return
 		end
-
+		
 		self._eventId = eventId
 		self._seq = _VillageEventFlowManager:FirstScene(eventId)
 		log("[VillageTile] 마을 이벤트 시작 event=" .. eventId .. " stage=" .. tostring(stage) .. " region=" .. tostring(region) .. " firstScene=" .. tostring(self._seq))
@@ -55,31 +49,31 @@ script VillageTile extends EventTileBase
 		local piece = self._currentPiece
 		if isvalid(piece) == false then self:FinishEvent() return end
 		if self._seq <= 0 then self:FinishEvent() return end
-
+		
 		local scene = _VillageEventFlowManager:GetScene(self._eventId, self._seq)
 		if scene == nil then
 			log_warning("[VillageTile] 씬 없음 event=" .. self._eventId .. " seq=" .. tostring(self._seq))
 			self:FinishEvent()
 			return
 		end
-
+		
 		-- 씬 자체 보상(텍스트 씬에 보상이 달린 경우, 예: 연극 관람 올스탯+20).
 		if scene.reward ~= nil and scene.reward ~= "" then
 			self:ApplyRewardString(piece, scene.reward)
 		end
-
+		
 		local ownerId = self:OwnerUserId(piece)
 		-- 등장 NPC 이름 키: 씬에 지정된 NpcKey가 있으면 우선(씬별 교체), 없으면 이벤트 기본 NPC(VillageEventFlow.NPC).
 		local npcKey = scene.npcKey
 		if npcKey == nil or npcKey == "" then npcKey = _VillageEventFlowManager:EventNPC(self._eventId) end
-
+		
 		if scene.nodeType == "choice" then
 			self._choiceGroup = scene.branchGroup
 			local choices = _VillageEventFlowManager:GetChoices(scene.branchGroup)
 			local labels = {}
 			for i = 1, #choices do labels[i] = choices[i].label end
 			self:ClientShowChoices(scene.text, scene.anim, labels, npcKey, ownerId)
-
+		
 		elseif scene.nodeType == "roll" then
 			-- 확률게임: 대성공/성공/실패 확률을 '확률 테이블'(VillageEventFlowManager)에서 조회한다.
 			-- 테이블에 없으면 분기 Weight를 정규화해 사용(폴백). 분기(보상/문구/다음씬)는 키로 매칭한다.
@@ -90,7 +84,7 @@ script VillageTile extends EventTileBase
 				byKey[branches[i].key] = branches[i]
 				totalW += branches[i].weight
 			end
-
+		
 			local greatPct = 0
 			local successPct = 0
 			local failPct = 0
@@ -110,14 +104,14 @@ script VillageTile extends EventTileBase
 			greatPct = np.great
 			successPct = np.success
 			failPct = np.fail
-
+		
 			-- 결과판(주사위합 2~12 → 0실패/1성공/2대성공). 서버 권위 판정용.
 			local board = _ResultDiceManager:PlaceOutcomes(failPct, successPct, greatPct)
 			local d1 = _UtilLogic:RandomIntegerRange(1, 6)
 			local d2 = _UtilLogic:RandomIntegerRange(1, 6)
 			local sum = d1 + d2
 			local tier = board[sum] or 1
-
+		
 			-- tier: 0=실패 / 1=성공 / 2=대성공 → 해당 키의 분기 선택.
 			local outcomeLabel = "성공"
 			local chosen = byKey["success"]
@@ -131,7 +125,7 @@ script VillageTile extends EventTileBase
 			-- 해당 등급 분기가 없으면 성공 → 첫 분기 순으로 폴백(결과가 항상 존재하도록).
 			if chosen == nil then chosen = byKey["success"] end
 			if chosen == nil and #branches > 0 then chosen = branches[1] end
-
+		
 			local resultText = ""
 			if chosen ~= nil then
 				if chosen.reward ~= nil and chosen.reward ~= "" then
@@ -147,7 +141,7 @@ script VillageTile extends EventTileBase
 				.. " 주사위=" .. tostring(d1) .. "+" .. tostring(d2) .. "=" .. tostring(sum) .. " → " .. outcomeLabel)
 			-- 클라 표시는 확률을 넘겨 SetProbabilities로 결과판을 구성하게 한다.
 			self:ClientShowRoll(scene.text, scene.anim, resultText, d1, d2, sum, greatPct, successPct, failPct, outcomeLabel, npcKey, ownerId)
-
+		
 		else
 			-- text
 			self._pendingNext = tonumber(scene.nextSeq) or 0
@@ -171,7 +165,7 @@ script VillageTile extends EventTileBase
 		local piece = self._currentPiece
 		if isvalid(piece) == false then return end
 		if senderUserId ~= self:OwnerUserId(piece) then return end
-
+		
 		local choices = _VillageEventFlowManager:GetChoices(self._choiceGroup)
 		if index < 1 or index > #choices then return end
 		local chosen = choices[index]
@@ -179,7 +173,7 @@ script VillageTile extends EventTileBase
 		if branch ~= nil and branch.reward ~= nil and branch.reward ~= "" then
 			self:ApplyRewardString(piece, branch.reward)
 		end
-
+		
 		local nxt = tonumber(chosen.nextScene)
 		if nxt == nil and branch ~= nil then nxt = tonumber(branch.nextScene) end
 		self._seq = nxt or 0

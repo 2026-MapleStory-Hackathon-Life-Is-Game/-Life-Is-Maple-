@@ -1,16 +1,12 @@
 @Component
 script HuntEventTile extends Component
 
-	-- 사냥터 이름. 이후 테이블 연동 시 SetHuntingGround 로 교체. 지금은 임시값.
 	property string HuntingGround = "헤네시스 사냥터1"
 
-	-- ATTACK 모션을 보여줄 PlayerPortrait 의 경로 (8종 이벤트가 같은 UI 그룹을 공유).
 	property string PortraitPath = "/ui/EventTileGroup/EventBack/BackgroundMap/PlayerPortrait"
 
-	-- ATTACK 모션 유지용 반복 타이머 id.
 	property integer attackTimer = 0
 
-	-- ATTACK 적용 로그를 1회만 남기기 위한 플래그.
 	property boolean portraitStarted = false
 
 	@ExecSpace("ClientOnly")
@@ -46,12 +42,12 @@ script HuntEventTile extends Component
 		if isvalid(portrait) == false then
 			return
 		end
-
+		
 		local event = BodyActionStateChangeEvent()
 		event.ActionState = MapleAvatarBodyActionState.Attack
 		event.needResetAction = false
 		portrait:SendEvent(event)
-
+		
 		if self.portraitStarted == false then
 			self.portraitStarted = true
 			log("HuntEventTile: PlayerPortrait ATTACK 모션 적용 완료")
@@ -73,23 +69,23 @@ script HuntEventTile extends Component
 			log_error("HuntEventTile: TextComponent 가 없습니다. UIText 엔티티에 부착하세요.")
 			return
 		end
-
+		
 		-- {n} 분: 10 ~ 120 (양 끝 포함)
 		local minutes = _UtilLogic:RandomIntegerRange(10, 120)
-
+		
 		-- {주스탯}: 주스탯 / 올스탯 중 하나
 		local statName = "주스탯"
 		if _UtilLogic:RandomIntegerRange(1, 2) == 2 then
 			statName = "올스탯"
 		end
-
+		
 		-- {n} 상승치: 1 ~ 10 (양 끝 포함)
 		local statGain = _UtilLogic:RandomIntegerRange(1, 10)
-
+		
 		local line1 = self.HuntingGround .. "에서 " .. tostring(minutes) .. "분동안 몬스터를 사냥했다!"
 		local line2 = statName .. "이 " .. tostring(statGain) .. "만큼 올랐다!"
 		local message = line1 .. "\n" .. line2
-
+		
 		textComp.Text = message
 		log("HuntEventTile 출력: " .. message)
 	end

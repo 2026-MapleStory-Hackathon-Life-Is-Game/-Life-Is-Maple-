@@ -1,18 +1,10 @@
 @Component
 script EndTile extends BaseTile
 
-	-- 종료 칸.
-	--   Stage 1·2 End: 도착 즉시 게임 종료/맵 전환(기존 동작).
-	--   Stage 3 End(TileEventData의 마지막 END — Limina, TileIndex 133): 검은 마법사 최종 결전.
-	--     보스 타일처럼 BossUI 단일 선택(검은 마법사/하드, 선택지 1개)으로 진입 → CP 판정
-	--     (적정 전투력 이상=승리 / 미만=패배) → win/lose 문구 → 승·패 모두 게임 종료(재도전 없음).
-	--     대사는 BossDialog(Group=blackmage)에서 관리(intro=선택 화면 안내 / challenge / win / lose).
-	-- 결전 흐름: BossUI 단일 선택(intro) → 하드 선택(RequestSelect) → challenge → '다음' → CP 판정 → win/lose → '다음' → 종료.
-	-- '최종 결전' 여부는 이 종료칸의 Stage(_TileManager:GetTileStage)가 3인지로 자동 판정한다(수동 지정 불필요).
-
-	-- 결전 진행 상태(서버 전용).
 	property any _piece = nil
+
 	property integer _step = 0
+
 	property boolean _won = false
 
 	method boolean IsFinalBattle()
@@ -51,7 +43,7 @@ script EndTile extends BaseTile
 			_SingleTurnManager:Stop()
 			return
 		end
-
+		
 		self._piece = piece
 		local ownerId = self:OwnerUserId(piece)
 		if ownerId == "" then
@@ -83,7 +75,7 @@ script EndTile extends BaseTile
 		if isvalid(piece) == false then return end
 		if senderUserId ~= self:OwnerUserId(piece) then return end
 		local ownerId = self:OwnerUserId(piece)
-
+		
 		if self._step == 2 then
 			-- CP 판정: 현재 전투력이 하드 검은 마법사 적정 전투력 이상이면 승리.
 			local cp = 0
@@ -110,10 +102,10 @@ script EndTile extends BaseTile
 		self._piece = nil
 		self._step = 0
 		if ownerId ~= "" then self:ClientHide(ownerId) end
-		-- 엔딩 정리 표를 먼저 띄우고, 그 '다음'에서 기존 종료 흐름(OnPlayerReachedEnd→결과화면)이 진행된다.
-		if isvalid(piece) then _GameModeManager:ShowEndingSummary(piece) end
+		-- 엔딩 요약을 결과창과 통합 → 별도 정리 표/'다음' 없이 바로 종료 흐름(OnPlayerReachedEnd→통합 결과 카드)으로 진행.
+		if isvalid(piece) then _GameModeManager:OnPlayerReachedEnd(piece) end
 		_SingleTurnManager:Stop()
-		log("[EndTile] 검은 마법사 결전 종료(won=" .. tostring(self._won) .. ") → 엔딩 정리 표")
+		log("[EndTile] 검은 마법사 결전 종료(won=" .. tostring(self._won) .. ") → 통합 결과 카드")
 	end
 
 	method integer BlackMageRequiredPower()
