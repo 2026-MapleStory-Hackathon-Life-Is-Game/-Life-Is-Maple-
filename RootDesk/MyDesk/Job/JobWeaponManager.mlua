@@ -101,11 +101,11 @@ script JobWeaponManager extends Logic
 		local equipName = self:StarterWeaponFor(jobName)
 		if equipName == "" then return end
 		if isvalid(playerEntity) == false then return end
-		-- 1) 보유함에 추가.
-		_EquipmentRouter:Acquire(playerEntity, equipName)
+		-- 1) 보유함에 새 인스턴스로 추가.
+		local id = _EquipmentRouter:Acquire(playerEntity, equipName)
 		-- 2) 보유→장착(전투력 재계산 포함).
 		local m = _EquipmentRouter:ManagerForItem(playerEntity, equipName)
-		if isvalid(m) then m:RequestEquip(equipName) end
+		if isvalid(m) and id ~= "" then m:RequestEquip(id) end
 		log("JobWeaponManager: 직업 기본무기 지급+장착 → " .. equipName)
 	end
 
@@ -115,11 +115,11 @@ script JobWeaponManager extends Logic
 		-- 아바타 비주얼은 Beginner 무기 RUID가 곧 Cudgel의 Sprite RUID라 이미 몽둥이를 들고 있고,
 		-- 여기서 WeaponEquipment 슬롯에 실제 장착시켜 전투력/캐릭터 패널에도 반영되게 한다.
 		if isvalid(playerEntity) == false then return end
-		-- 1) 보유함에 추가(중복 안전).
-		_EquipmentRouter:Acquire(playerEntity, "Cudgel")
+		-- 1) 보유함에 새 인스턴스로 추가.
+		local id = _EquipmentRouter:Acquire(playerEntity, "Cudgel")
 		-- 2) 보유→장착(전투력 재계산 포함). Weapon 슬롯에 다른 무기가 있으면 보유로 되돌아간다.
 		local m = _EquipmentRouter:ManagerForItem(playerEntity, "Cudgel")
-		if isvalid(m) then m:RequestEquip("Cudgel") end
+		if isvalid(m) and id ~= "" then m:RequestEquip(id) end
 		log("JobWeaponManager: 게임 시작 기본무기(몽둥이) 지급+장착")
 	end
 

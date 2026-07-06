@@ -124,7 +124,7 @@ script CampSelectUI extends Logic
 		elseif campName == "Nova" then
 			self.campDesc.Text = "용의 힘이 깨어납니다!"
 		end
-
+		
 	end
 
 	method string CampImageRUID(string campName)

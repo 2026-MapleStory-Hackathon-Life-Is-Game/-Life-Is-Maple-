@@ -1,11 +1,6 @@
 @Component
 script LifePathManager extends Component
 
-	-- 플레이어별 '인생 분기' 상태 홀더. 3스테이지(Map_03) 진입 시 길드/연애 중 하나를 선택하며,
-	-- 선택 값에 따라 Stage3의 이벤트 타일이 GuildTile / RomanceTile로 per-player 동작·표시된다.
-	--   LifePath : "" 미선택 / "Guild" / "Romance"
-	-- @TargetUserSync 라 서버가 세팅하면 소유 클라로 동기화된다(클라가 자기 분기를 읽어 타일 비주얼을 로컬 교체).
-	-- (BuffManager.CampName과 동일한 per-player 동기화 패턴)
 	@TargetUserSync
 	property string LifePath = ""
 

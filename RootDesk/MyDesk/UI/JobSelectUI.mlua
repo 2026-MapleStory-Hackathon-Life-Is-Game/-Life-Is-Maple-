@@ -13,12 +13,12 @@ script JobSelectUI extends Logic
 
 	property ButtonComponent btnPirate = "f6fe7b29-dde2-4a1e-a396-86c8b958ff32"
 
-	-- 팝업 뒤 반투명 검정 디머(패널과 함께 토글).
 	property Entity dimBack = "e1f3aa40-5079-47ae-92d0-643835a45322"
 
-	-- 선택 후 결과 패널(대사→장비 안내 순차 재사용, 각 2초). UUID는 UIBuilder bind로 주입.
 	property Entity resultPanel = "96878c22-cd37-4ac4-8d54-e11c0fe88ad1"
+
 	property SpriteGUIRendererComponent jobImage = "7522cc96-9ea7-4451-9d5c-a49db58f4c4e"
+
 	property TextComponent resultText = "c208f966-ac2c-49b7-985b-a9af1416d954"
 
 	property any handlerWarrior = nil
@@ -54,7 +54,7 @@ script JobSelectUI extends Logic
 		if isvalid(self.panel) == false then return end
 		if isvalid(self.dimBack) then self.dimBack.Enable = true end
 		self.panel.Enable = true
-
+		
 		-- 재오픈 시 중복 구독 방지: 기존 핸들러를 먼저 끊고 다시 연결한다.
 		self:DisconnectAll()
 		self.handlerWarrior = self.btnWarrior.Entity:ConnectEvent(ButtonClickEvent, function()
@@ -92,23 +92,23 @@ script JobSelectUI extends Logic
 		-- 선택 직업을 서버에 전달(무기/주스탯 적용) 후, 결과 패널을 대사(2초) → 장비 안내(2초) 순으로 보여준다.
 		_SFXManager:PlayClick()
 		_JobWeaponManager:OnJobSelected(jobName, 1)
-
+		
 		-- 선택 버튼 패널은 닫고, 디머는 유지한 채 결과 패널로 전환.
 		self:DisconnectAll()
 		if isvalid(self.panel) then self.panel.Enable = false end
 		if isvalid(self.dimBack) then self.dimBack.Enable = true end
-
+		
 		-- 결과 이미지: 직업별 지정 스프라이트 RUID를 적용.
 		if isvalid(self.jobImage) then
 			self.jobImage.ImageRUID = self:JobImageRUID(jobName)
 		end
 		if isvalid(self.resultPanel) then self.resultPanel.Enable = true end
-
+		
 		-- 1) 주스탯 대사.
 		if isvalid(self.resultText) then
 			self.resultText.Text = "전투력이 " .. self:JobStat(jobName) .. " 수치를 중심으로 반영됩니다!"
 		end
-
+		
 		-- 2) 2초 뒤 장비 안내.
 		_TimerService:SetTimerOnce(function()
 			if isvalid(self.resultText) then

@@ -15,16 +15,16 @@
     "Entities": [
       {
         "id": "fbefbe58-a3d0-4071-8b3e-f57eea152298",
-        "path": "/ui/LifePathSelectGroup",
+        "path": "/ui/Third_LifePathSelectGroup",
         "componentNames": "MOD.Core.UITransformComponent,MOD.Core.UIGroupComponent,MOD.Core.CanvasGroupComponent",
         "jsonString": {
-          "name": "LifePathSelectGroup",
-          "path": "/ui/LifePathSelectGroup",
+          "name": "Third_LifePathSelectGroup",
+          "path": "/ui/Third_LifePathSelectGroup",
           "nameEditable": true,
           "enable": true,
           "visible": true,
           "localize": true,
-          "displayOrder": 0,
+          "displayOrder": 17,
           "pathConstraints": "//",
           "revision": 0,
           "origin": {
@@ -97,7 +97,7 @@
             {
               "@type": "MOD.Core.UIGroupComponent",
               "DefaultShow": true,
-              "GroupOrder": 15,
+              "GroupOrder": 8,
               "GroupType": 1,
               "Enable": true
             },
@@ -114,11 +114,11 @@
       },
       {
         "id": "f67da57c-86ad-472d-8016-455485c2622b",
-        "path": "/ui/LifePathSelectGroup/DimBack",
+        "path": "/ui/Third_LifePathSelectGroup/DimBack",
         "componentNames": "MOD.Core.UITransformComponent,MOD.Core.SpriteGUIRendererComponent",
         "jsonString": {
           "name": "DimBack",
-          "path": "/ui/LifePathSelectGroup/DimBack",
+          "path": "/ui/Third_LifePathSelectGroup/DimBack",
           "nameEditable": true,
           "enable": false,
           "visible": true,
@@ -259,11 +259,11 @@
       },
       {
         "id": "373df2f6-e2f3-4ce0-8df4-17ad0c68bb27",
-        "path": "/ui/LifePathSelectGroup/SelectPanel",
+        "path": "/ui/Third_LifePathSelectGroup/SelectPanel",
         "componentNames": "MOD.Core.UITransformComponent,MOD.Core.SpriteGUIRendererComponent",
         "jsonString": {
           "name": "SelectPanel",
-          "path": "/ui/LifePathSelectGroup/SelectPanel",
+          "path": "/ui/Third_LifePathSelectGroup/SelectPanel",
           "nameEditable": true,
           "enable": true,
           "visible": true,
@@ -404,11 +404,11 @@
       },
       {
         "id": "c26a3e96-3d9c-4a8d-9a05-b6347e3057ae",
-        "path": "/ui/LifePathSelectGroup/SelectPanel/Title",
+        "path": "/ui/Third_LifePathSelectGroup/SelectPanel/Title",
         "componentNames": "MOD.Core.UITransformComponent,MOD.Core.SpriteGUIRendererComponent,MOD.Core.TextComponent",
         "jsonString": {
           "name": "Title",
-          "path": "/ui/LifePathSelectGroup/SelectPanel/Title",
+          "path": "/ui/Third_LifePathSelectGroup/SelectPanel/Title",
           "nameEditable": true,
           "enable": true,
           "visible": true,
@@ -606,11 +606,11 @@
       },
       {
         "id": "cb4c7b1f-6e96-47f6-bf71-9e365077da27",
-        "path": "/ui/LifePathSelectGroup/SelectPanel/UIEmpty",
+        "path": "/ui/Third_LifePathSelectGroup/SelectPanel/UIEmpty",
         "componentNames": "MOD.Core.UITransformComponent,MOD.Core.ScrollLayoutGroupComponent",
         "jsonString": {
           "name": "UIEmpty",
-          "path": "/ui/LifePathSelectGroup/SelectPanel/UIEmpty",
+          "path": "/ui/Third_LifePathSelectGroup/SelectPanel/UIEmpty",
           "nameEditable": true,
           "enable": true,
           "visible": true,
@@ -704,11 +704,11 @@
       },
       {
         "id": "91ff35b7-f788-47ac-b140-5fa687430bdd",
-        "path": "/ui/LifePathSelectGroup/SelectPanel/UIEmpty/BtnGuild",
+        "path": "/ui/Third_LifePathSelectGroup/SelectPanel/UIEmpty/BtnGuild",
         "componentNames": "MOD.Core.UITransformComponent,MOD.Core.SpriteGUIRendererComponent,MOD.Core.ButtonComponent,MOD.Core.TextComponent",
         "jsonString": {
           "name": "BtnGuild",
-          "path": "/ui/LifePathSelectGroup/SelectPanel/UIEmpty/BtnGuild",
+          "path": "/ui/Third_LifePathSelectGroup/SelectPanel/UIEmpty/BtnGuild",
           "nameEditable": true,
           "enable": true,
           "visible": true,
@@ -956,11 +956,11 @@
       },
       {
         "id": "d2b94e92-40b8-42e0-9fa9-ad735a6a0cb4",
-        "path": "/ui/LifePathSelectGroup/SelectPanel/UIEmpty/BtnGuild/GuildDesc",
+        "path": "/ui/Third_LifePathSelectGroup/SelectPanel/UIEmpty/BtnGuild/GuildDesc",
         "componentNames": "MOD.Core.UITransformComponent,MOD.Core.SpriteGUIRendererComponent,MOD.Core.TextComponent",
         "jsonString": {
           "name": "GuildDesc",
-          "path": "/ui/LifePathSelectGroup/SelectPanel/UIEmpty/BtnGuild/GuildDesc",
+          "path": "/ui/Third_LifePathSelectGroup/SelectPanel/UIEmpty/BtnGuild/GuildDesc",
           "nameEditable": true,
           "enable": true,
           "visible": true,
@@ -1165,11 +1165,11 @@
       },
       {
         "id": "e6226a1a-09e1-4df2-b2df-7c7cb336fc82",
-        "path": "/ui/LifePathSelectGroup/SelectPanel/UIEmpty/BtnRomance",
+        "path": "/ui/Third_LifePathSelectGroup/SelectPanel/UIEmpty/BtnRomance",
         "componentNames": "MOD.Core.UITransformComponent,MOD.Core.SpriteGUIRendererComponent,MOD.Core.ButtonComponent,MOD.Core.TextComponent",
         "jsonString": {
           "name": "BtnRomance",
-          "path": "/ui/LifePathSelectGroup/SelectPanel/UIEmpty/BtnRomance",
+          "path": "/ui/Third_LifePathSelectGroup/SelectPanel/UIEmpty/BtnRomance",
           "nameEditable": true,
           "enable": true,
           "visible": true,
@@ -1417,11 +1417,11 @@
       },
       {
         "id": "1209880a-aebe-496a-8551-feb578de0e12",
-        "path": "/ui/LifePathSelectGroup/SelectPanel/UIEmpty/BtnRomance/RomanceDesc",
+        "path": "/ui/Third_LifePathSelectGroup/SelectPanel/UIEmpty/BtnRomance/RomanceDesc",
         "componentNames": "MOD.Core.UITransformComponent,MOD.Core.SpriteGUIRendererComponent,MOD.Core.TextComponent",
         "jsonString": {
           "name": "RomanceDesc",
-          "path": "/ui/LifePathSelectGroup/SelectPanel/UIEmpty/BtnRomance/RomanceDesc",
+          "path": "/ui/Third_LifePathSelectGroup/SelectPanel/UIEmpty/BtnRomance/RomanceDesc",
           "nameEditable": true,
           "enable": true,
           "visible": true,
@@ -1625,12 +1625,375 @@
         }
       },
       {
+        "id": "1f721e34-6f9f-4768-ac87-fc2bcc71f72b",
+        "path": "/ui/Third_LifePathSelectGroup/SelectPanel/HelpButton",
+        "componentNames": "MOD.Core.UITransformComponent,MOD.Core.SpriteGUIRendererComponent,MOD.Core.ButtonComponent,script.HelpOpenButton",
+        "jsonString": {
+          "name": "HelpButton",
+          "path": "/ui/Third_LifePathSelectGroup/SelectPanel/HelpButton",
+          "nameEditable": true,
+          "enable": true,
+          "visible": true,
+          "localize": true,
+          "displayOrder": 2,
+          "pathConstraints": "////",
+          "revision": 2,
+          "origin": {
+            "type": "Model",
+            "entry_id": "uibutton",
+            "sub_entity_id": null,
+            "root_entity_id": "7df1641c-9d1a-407e-ad9a-222fcc7864ce",
+            "replaced_model_id": null
+          },
+          "modelId": "uibutton",
+          "@components": [
+            {
+              "@type": "MOD.Core.UITransformComponent",
+              "AlignmentOption": 0,
+              "AnchorsMax": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "AnchorsMin": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "MobileOnly": false,
+              "OffsetMax": {
+                "x": 53.1362343,
+                "y": -276.356354
+              },
+              "OffsetMin": {
+                "x": -53.4114342,
+                "y": -382.904022
+              },
+              "Pivot": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "RectSize": {
+                "x": 106.547668,
+                "y": 106.547668
+              },
+              "UIMode": 1,
+              "UIScale": {
+                "x": 1.0,
+                "y": 1.0,
+                "z": 1.0
+              },
+              "UIVersion": 2,
+              "anchoredPosition": {
+                "x": -0.1376,
+                "y": -329.6302
+              },
+              "Rotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+              },
+              "Position": {
+                "x": -0.1376,
+                "y": -329.6302,
+                "z": 0.0
+              },
+              "QuaternionRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": -1.0
+              },
+              "Scale": {
+                "x": 1.0,
+                "y": 1.0,
+                "z": 1.0
+              },
+              "ZRotation": 0.0,
+              "Enable": true
+            },
+            {
+              "@type": "MOD.Core.SpriteGUIRendererComponent",
+              "ImageRUID": {
+                "DataId": "7187c7d26aa743428e674348c3a62310"
+              },
+              "OverrideSorting": false,
+              "PreserveSprite": 2,
+              "SortingLayer": "MapLayer0",
+              "Color": {
+                "r": 1.0,
+                "g": 1.0,
+                "b": 1.0,
+                "a": 1.0
+              },
+              "Enable": true
+            },
+            {
+              "@type": "MOD.Core.ButtonComponent",
+              "Colors": {
+                "NormalColor": {
+                  "r": 1.0,
+                  "g": 1.0,
+                  "b": 1.0,
+                  "a": 1.0
+                },
+                "HighlightedColor": {
+                  "r": 0.9607843,
+                  "g": 0.9607843,
+                  "b": 0.9607843,
+                  "a": 1.0
+                },
+                "PressedColor": {
+                  "r": 0.784313738,
+                  "g": 0.784313738,
+                  "b": 0.784313738,
+                  "a": 1.0
+                },
+                "SelectedColor": {
+                  "r": 0.9607843,
+                  "g": 0.9607843,
+                  "b": 0.9607843,
+                  "a": 1.0
+                },
+                "DisabledColor": {
+                  "r": 0.784313738,
+                  "g": 0.784313738,
+                  "b": 0.784313738,
+                  "a": 0.5019608
+                },
+                "ColorMultiplier": 1.0,
+                "FadeDuration": 0.1
+              },
+              "ImageRUIDs": {
+                "HighlightedSprite": null,
+                "PressedSprite": null,
+                "SelectedSprite": null,
+                "DisabledSprite": null
+              },
+              "OverrideSorting": false,
+              "Enable": true
+            },
+            {
+              "@type": "script.HelpOpenButton",
+              "Enable": true
+            }
+          ],
+          "@version": 1
+        }
+      },
+      {
+        "id": "a7589f78-be2b-4175-a62c-079675fdd94b",
+        "path": "/ui/Third_LifePathSelectGroup/SelectPanel/HelpButton/UIText",
+        "componentNames": "MOD.Core.UITransformComponent,MOD.Core.SpriteGUIRendererComponent,MOD.Core.TextComponent",
+        "jsonString": {
+          "name": "UIText",
+          "path": "/ui/Third_LifePathSelectGroup/SelectPanel/HelpButton/UIText",
+          "nameEditable": true,
+          "enable": true,
+          "visible": true,
+          "localize": true,
+          "displayOrder": 0,
+          "pathConstraints": "/////",
+          "revision": 0,
+          "origin": {
+            "type": "Model",
+            "entry_id": "UIText",
+            "sub_entity_id": null,
+            "root_entity_id": null,
+            "replaced_model_id": null
+          },
+          "modelId": "uitext",
+          "@components": [
+            {
+              "@type": "MOD.Core.UITransformComponent",
+              "ActivePlatform": 255,
+              "AlignmentOption": 0,
+              "AnchorsMax": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "AnchorsMin": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "MobileOnly": false,
+              "OffsetMax": {
+                "x": 75.0,
+                "y": -43.57
+              },
+              "OffsetMin": {
+                "x": -75.0,
+                "y": -73.57
+              },
+              "Pivot": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "RectSize": {
+                "x": 150.0,
+                "y": 30.0
+              },
+              "UIMode": 1,
+              "UIScale": {
+                "x": 1.0,
+                "y": 1.0,
+                "z": 1.0
+              },
+              "UIVersion": 2,
+              "anchoredPosition": {
+                "x": 0.0,
+                "y": -58.57
+              },
+              "Rotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+              },
+              "Position": {
+                "x": 0.0,
+                "y": -58.57,
+                "z": 0.0
+              },
+              "QuaternionRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": -1.0
+              },
+              "Scale": {
+                "x": 1.0,
+                "y": 1.0,
+                "z": 1.0
+              },
+              "ZRotation": 0.0,
+              "Enable": true
+            },
+            {
+              "@type": "MOD.Core.SpriteGUIRendererComponent",
+              "AnimClipPlayType": 0,
+              "EndFrameIndex": 2147483647,
+              "IgnoreMapLayerCheck": false,
+              "ImageRUID": {
+                "DataId": "3e9d52ed52d64794bbd6f72bab8ee3d9"
+              },
+              "LocalPosition": {
+                "x": 0.0,
+                "y": 0.0
+              },
+              "LocalScale": {
+                "x": 1.0,
+                "y": 1.0
+              },
+              "MaterialId": "",
+              "OrderInLayer": 0,
+              "OverrideSorting": false,
+              "PlayRate": 1.0,
+              "PreserveSprite": 0,
+              "SortingLayer": "MapLayer0",
+              "StartFrameIndex": 0,
+              "Color": {
+                "r": 0.168627456,
+                "g": 0.254901975,
+                "b": 0.784313738,
+                "a": 1.0
+              },
+              "DropShadow": false,
+              "DropShadowAngle": 120.0,
+              "DropShadowColor": {
+                "r": 0.0,
+                "g": 0.0,
+                "b": 0.0,
+                "a": 0.72
+              },
+              "DropShadowDistance": 3.0,
+              "FillAmount": 1.0,
+              "FillCenter": true,
+              "FillClockWise": true,
+              "FillMethod": 0,
+              "FillOrigin": 0,
+              "FlipX": false,
+              "FlipY": false,
+              "FrameColumn": 1,
+              "FrameRate": 0,
+              "FrameRow": 1,
+              "Outline": false,
+              "OutlineColor": {
+                "r": 0.0,
+                "g": 0.0,
+                "b": 0.0,
+                "a": 1.0
+              },
+              "OutlineWidth": 3.0,
+              "RaycastTarget": false,
+              "Type": 0,
+              "Enable": true
+            },
+            {
+              "@type": "MOD.Core.TextComponent",
+              "Alignment": 4,
+              "AllowAutomaticTranslation": true,
+              "BestFit": false,
+              "Bold": false,
+              "ConstraintX": 100.0,
+              "ConstraintY": 100.0,
+              "DropShadow": false,
+              "DropShadowAngle": 120.0,
+              "DropShadowColor": {
+                "r": 0.0,
+                "g": 0.0,
+                "b": 0.0,
+                "a": 0.72
+              },
+              "DropShadowDistance": 3.0,
+              "Font": 1,
+              "FontColor": {
+                "r": 0.0,
+                "g": 0.116316706,
+                "b": 0.8300781,
+                "a": 1.0
+              },
+              "FontSize": 23,
+              "IgnoreMapLayerCheck": false,
+              "IsLocalizationKey": false,
+              "MaxSize": 40,
+              "MinSize": 10,
+              "OrderInLayer": 0,
+              "OutlineColor": {
+                "r": 0.9019608,
+                "g": 0.972549,
+                "b": 1.0,
+                "a": 1.0
+              },
+              "OutlineDistance": {
+                "x": 1.0,
+                "y": -1.0
+              },
+              "OutlineWidth": 2.0,
+              "Overflow": 0,
+              "OverrideSorting": false,
+              "Padding": {
+                "left": 0,
+                "right": 0,
+                "top": 0,
+                "bottom": 0
+              },
+              "SizeFit": false,
+              "SortingLayer": "UI",
+              "Text": "도움말",
+              "UseConstraintX": false,
+              "UseConstraintY": false,
+              "UseOutLine": true,
+              "Enable": true
+            }
+          ],
+          "@version": 1
+        }
+      },
+      {
         "id": "839bed6c-d99a-4f0e-a811-feab1f34ab7e",
-        "path": "/ui/LifePathSelectGroup/ResultPanel",
+        "path": "/ui/Third_LifePathSelectGroup/ResultPanel",
         "componentNames": "MOD.Core.UITransformComponent,MOD.Core.SpriteGUIRendererComponent",
         "jsonString": {
           "name": "ResultPanel",
-          "path": "/ui/LifePathSelectGroup/ResultPanel",
+          "path": "/ui/Third_LifePathSelectGroup/ResultPanel",
           "nameEditable": true,
           "enable": false,
           "visible": true,
@@ -1771,11 +2134,11 @@
       },
       {
         "id": "fa623cee-aba5-40df-8795-30afa2b34a5b",
-        "path": "/ui/LifePathSelectGroup/ResultPanel/ResultText",
+        "path": "/ui/Third_LifePathSelectGroup/ResultPanel/ResultText",
         "componentNames": "MOD.Core.UITransformComponent,MOD.Core.SpriteGUIRendererComponent,MOD.Core.TextComponent",
         "jsonString": {
           "name": "ResultText",
-          "path": "/ui/LifePathSelectGroup/ResultPanel/ResultText",
+          "path": "/ui/Third_LifePathSelectGroup/ResultPanel/ResultText",
           "nameEditable": true,
           "enable": true,
           "visible": true,

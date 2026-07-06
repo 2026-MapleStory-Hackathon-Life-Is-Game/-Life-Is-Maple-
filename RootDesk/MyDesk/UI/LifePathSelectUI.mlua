@@ -1,18 +1,20 @@
 @Logic
 script LifePathSelectUI extends Logic
 
-	-- 인생 분기(길드/연애) 선택 UI. 3스테이지(Map_03) 진입 시 표시된다.
-	-- CampSelectUI와 동일 패턴: selectPanel(2택 버튼+설명) → 선택 → resultPanel(안내, 2초 자동종료) → dimBack.
-	-- @ExecSpace("Client")/ClientOnly라 각 클라에서 개별 표시(per-player). 서버는 OnPathSelected에서 senderUserId로 분기 세팅.
-
 	property Entity selectPanel = "373df2f6-e2f3-4ce0-8df4-17ad0c68bb27"
+
 	property ButtonComponent BtnGuild = "91ff35b7-f788-47ac-b140-5fa687430bdd"
+
 	property ButtonComponent BtnRomance = "e6226a1a-09e1-4df2-b2df-7c7cb336fc82"
+
 	property any handlerGuild = nil
+
 	property any handlerRomance = nil
 
 	property Entity resultPanel = "839bed6c-d99a-4f0e-a811-feab1f34ab7e"
+
 	property TextComponent resultText = "fa623cee-aba5-40df-8795-30afa2b34a5b"
+
 	property Entity dimBack = "f67da57c-86ad-472d-8016-455485c2622b"
 
 	@ExecSpace("ClientOnly")
