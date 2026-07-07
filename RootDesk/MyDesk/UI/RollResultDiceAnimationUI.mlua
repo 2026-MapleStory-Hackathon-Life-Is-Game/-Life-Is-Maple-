@@ -75,6 +75,18 @@ script RollResultDiceAnimationUI extends Logic
 
 	property string _pendActorUserId = ""
 
+	property boolean _pendAllowNext = false
+
+	property number SpectatorBoardHold = 1.0
+
+	property number SpectatorResultHold = 4.0
+
+	property integer _spectatorTimer1 = 0
+
+	property integer _spectatorTimer2 = 0
+
+	property integer _revealTextTimer = 0
+
 	@ExecSpace("ClientOnly")
 	method void OnBeginPlay()
 		-- 눈금별 RUID 등록 (실제 RUID로 교체)
@@ -132,6 +144,9 @@ script RollResultDiceAnimationUI extends Logic
 	method void Show(integer d1, integer d2, integer total, table resultTable, string gameOutcome, any onComplete)
 		-- 변경: 패널이 뜨면 자동으로 굴리지 않는다. 보드(2~12) + '굴리기' 버튼만 표시하고,
 		--       플레이어가 굴리기 버튼을 눌러야(OnRollClicked) 실제 주사위 결과가 연출된다.
+			if self._spectatorTimer1 ~= 0 then _TimerService:ClearTimer(self._spectatorTimer1) self._spectatorTimer1 = 0 end
+			if self._spectatorTimer2 ~= 0 then _TimerService:ClearTimer(self._spectatorTimer2) self._spectatorTimer2 = 0 end
+			if self._revealTextTimer ~= 0 then _TimerService:ClearTimer(self._revealTextTimer) self._revealTextTimer = 0 end
 				-- 굴리기 시 사용할 결과 데이터 보관.
 				self._pendActorUserId = ""   -- 싱글 경로 표식
 				self._pendD1 = d1
@@ -163,29 +178,37 @@ script RollResultDiceAnimationUI extends Logic
 			end
 			if isvalid(self.RollButton) then self.RollButton.Enable = false end
 			self:PlayRevealAnimation()
-			if isvalid(self.NextButton) then self.NextButton.Enable = true end
-			log("[RollResultDiceUI] 굴리기 클릭 → 주사위 연출 + '다음' 버튼 노출")
+			self._pendAllowNext = true   -- '다음'은 공개 연출(2초) 종료 후에만 노출(결과 확정 전 조기 진행/공개 방지)
+			log("[RollResultDiceUI] 굴리기 클릭 → 주사위 연출(끝난 뒤 '다음' 노출)")
 	end
 
 	@ExecSpace("ClientOnly")
 	method void PlayRevealAnimation()
 			-- 공유: 주사위 눈/반짝임 표시 + 2초 후 합계/결과 텍스트. 싱글·멀티 공용(_pend* 값 사용).
+			-- 진입 시 '다음' 노출 플래그를 내린다. 호출자(OnRollClicked/RevealMulti)가 호출 직후 다시 켠다.
+			-- 관전자 자동 경로(ShowSpectatorAuto)는 켜지 않으므로 false 유지 → 관전자에겐 '다음' 버튼이 안 뜬다.
+			self._pendAllowNext = false
+			if self._revealTextTimer ~= 0 then _TimerService:ClearTimer(self._revealTextTimer) self._revealTextTimer = 0 end
 			_SFXManager:PlayDice()
 			if isvalid(self.dicePanel) then self.dicePanel.Enable = true end
 			if isvalid(self.diceParticle) then self.diceParticle.Enable = true end
 			self:ApplyDieFace(self._pendD1, self.leftDice, self.diceSprites, self.leftDiceEntity, self.leftOneDiceEntity)
 			self:ApplyDieFace(self._pendD2, self.rightDice, self.diceSprites, self.rightDiceEntity, self.rightOneDiceEntity)
-			_TimerService:SetTimerOnce(function()
+			self._revealTextTimer = _TimerService:SetTimerOnce(function()
+				self._revealTextTimer = 0
 				_ResultDiceManager:PlayTotalResultDiceSFX(self._pendTotal)
 				if isvalid(self.ResultTextPanel) then self.ResultTextPanel.Enable = true end
 				self.resultText.Text = tostring(self._pendTotal)
 				self.outcomeText.Text = self._pendOutcome .. "!"
+				-- 결과가 완전히 드러난 뒤에만 '다음'을 노출한다(대사/결과 조기 진행·조기 공개 차단).
+				if self._pendAllowNext and isvalid(self.NextButton) then self.NextButton.Enable = true end
 			end, 2.0)
 	end
 
 	@ExecSpace("ClientOnly")
 	method void ClosePanel()
 			-- 공유: 결과 패널 닫기 + 반짝임 종료 + 주사위면 초기화. 싱글·멀티 공용(onComplete/상태진행은 호출자 담당).
+			if self._revealTextTimer ~= 0 then _TimerService:ClearTimer(self._revealTextTimer) self._revealTextTimer = 0 end
 			if isvalid(self.NextButton) then self.NextButton.Enable = false end
 			if isvalid(self.panel) then self.panel.Enable = false end
 			if isvalid(self.diceParticle) then self.diceParticle.Enable = false end
@@ -212,6 +235,9 @@ script RollResultDiceAnimationUI extends Logic
 	@ExecSpace("ClientOnly")
 	method void ShowMulti(integer d1, integer d2, integer total, table resultTable, string gameOutcome, string actorUserId)
 			-- 멀티: 결과 보드를 전원에게 표시. 현재 턴 플레이어(actor)만 '굴리기' 버튼 노출, 나머지는 관전(대기).
+			if self._spectatorTimer1 ~= 0 then _TimerService:ClearTimer(self._spectatorTimer1) self._spectatorTimer1 = 0 end
+			if self._spectatorTimer2 ~= 0 then _TimerService:ClearTimer(self._spectatorTimer2) self._spectatorTimer2 = 0 end
+			if self._revealTextTimer ~= 0 then _TimerService:ClearTimer(self._revealTextTimer) self._revealTextTimer = 0 end
 			self._pendD1 = d1
 			self._pendD2 = d2
 			self._pendTotal = total
@@ -241,7 +267,7 @@ script RollResultDiceAnimationUI extends Logic
 			local isActor = false
 			local lp = _UserService.LocalPlayer
 			if isvalid(lp) and lp.PlayerComponent.UserId == self._pendActorUserId then isActor = true end
-			if isActor and isvalid(self.NextButton) then self.NextButton.Enable = true end
+			self._pendAllowNext = isActor   -- actor에게만, 그리고 공개 연출(2초) 종료 후에 '다음' 노출(조기 진행/공개 방지)
 	end
 
 	@ExecSpace("ClientOnly")
@@ -250,6 +276,49 @@ script RollResultDiceAnimationUI extends Logic
 			self:ClosePanel()
 			if isvalid(self.RollButton) then self.RollButton.Enable = false end
 			self._pendActorUserId = ""
+	end
+
+	@ExecSpace("Client")
+	method void SpectatorDiceBroadcast(integer d1, integer d2, integer total, table resultTable, string gameOutcome, string actorUserId)
+			-- 이벤트/보스 결과 주사위를 관전자(비-actor)에게 자동 재생으로 방송한다. actor는 자기 인터랙티브 경로를 쓰므로 스킵.
+			local lp = _UserService.LocalPlayer
+			if isvalid(lp) and lp.PlayerComponent.UserId == actorUserId then
+				log("[RollResultDiceUI] SpectatorDice 스킵(actor=" .. actorUserId .. ")")
+				return
+			end
+			log("[RollResultDiceUI] SpectatorDice 재생(actor=" .. actorUserId .. ")")
+			self:ShowSpectatorAuto(d1, d2, total, resultTable, gameOutcome)
+	end
+
+	@ExecSpace("ClientOnly")
+	method void ShowSpectatorAuto(integer d1, integer d2, integer total, table resultTable, string gameOutcome)
+			-- 관전자 전용 자동 시퀀스: 보드 → (BoardHold) 공개 → (ResultHold) 자동 닫힘. 버튼/서버콜백 없음.
+			if self._spectatorTimer1 ~= 0 then _TimerService:ClearTimer(self._spectatorTimer1) self._spectatorTimer1 = 0 end
+			if self._spectatorTimer2 ~= 0 then _TimerService:ClearTimer(self._spectatorTimer2) self._spectatorTimer2 = 0 end
+			if self._revealTextTimer ~= 0 then _TimerService:ClearTimer(self._revealTextTimer) self._revealTextTimer = 0 end
+			self._pendD1 = d1
+			self._pendD2 = d2
+			self._pendTotal = total
+			self._pendOutcome = gameOutcome
+			self._pendOnComplete = nil
+			self._pendActorUserId = ""
+			self:UpdateBoardUI(resultTable)
+			self.panel.Enable = true
+			self:BringToFront()
+			if isvalid(self.dicePanel) then self.dicePanel.Enable = false end
+			if isvalid(self.diceParticle) then self.diceParticle.Enable = false end
+			if isvalid(self.ResultTextPanel) then self.ResultTextPanel.Enable = false end
+			if isvalid(self.RollButton) then self.RollButton.Enable = false end
+			if isvalid(self.NextButton) then self.NextButton.Enable = false end
+			self._spectatorTimer1 = _TimerService:SetTimerOnce(function()
+				self._spectatorTimer1 = 0
+				self:PlayRevealAnimation()
+				self._spectatorTimer2 = _TimerService:SetTimerOnce(function()
+					self._spectatorTimer2 = 0
+					self:ClosePanel()
+					log("[RollResultDiceUI] SpectatorDice 자동 닫힘")
+				end, self.SpectatorResultHold)
+			end, self.SpectatorBoardHold)
 	end
 
 	@ExecSpace("ClientOnly")

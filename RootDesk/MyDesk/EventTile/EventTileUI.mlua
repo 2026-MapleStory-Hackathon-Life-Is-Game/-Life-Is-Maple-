@@ -137,6 +137,18 @@ script EventTileUI extends Logic
 
 	property integer _pageIdx = 0
 
+	property table _specPages = {}
+
+	property integer _specPageIdx = 0
+
+	property integer _specPageTimer = 0
+
+	property string _specActorUserId = ""
+
+	property number SpectatorPageInterval = 2.5
+
+	property number SpectatorRollLeadHold = 3.0
+
 	property any _pageDone = nil
 
 	property table _choiceLabels = {}
@@ -462,10 +474,11 @@ script EventTileUI extends Logic
 
 	@ExecSpace("ClientOnly")
 	method void ApplyRegionBackground()
-		-- 로컬 플레이어(=이벤트 도착자)의 현재 타일 지역으로 BackgroundMap 스프라이트를 교체한다.
-		-- 이벤트 UI는 도착 플레이어의 클라에만 뜨므로 LocalPlayer.currentTile이 곧 이 이벤트의 타일이다.
-		-- 지역 배경이 미등록(예: 사자왕성)이면 기존 배경을 그대로 둔다.
+		-- 정체성 주체의 현재 타일 지역으로 BackgroundMap 스프라이트를 교체한다.
+		-- 마커(_specActorUserId)가 있으면 관전 모드 → actor의 지역, 없으면 LocalPlayer(=이벤트 도착 본인).
+		-- 지역 배경이 미등록(예: 사자왕성)이거나 주체 미발견이면 기존 배경을 그대로 둔다.
 		local me = _UserService.LocalPlayer
+		if self._specActorUserId ~= "" then me = _UserService:GetUserEntityByUserId(self._specActorUserId) end
 		if isvalid(me) == false then return end
 		local pm = me:GetComponent("script.PlayerMovement")
 		if isvalid(pm) == false then return end
@@ -860,29 +873,40 @@ script EventTileUI extends Logic
 
 	@ExecSpace("ClientOnly")
 	method void EnsurePortraitIdentity()
-		-- 초상화 아바타를 로컬 플레이어와 동일 외형으로 맞춘다.
+		-- 초상화 아바타를 '정체성 주체'와 동일 외형으로 맞춘다.
+		-- 마커(_specActorUserId)가 있으면 관전 모드 → actor 정체성, 없으면 LocalPlayer(=이벤트 도착 본인).
 		-- 빈 DefaultEquipUserId면 계정 아바타 로드 전 순간에 MSW 기본 아바타(토벤머리)로 폴백 → 이벤트마다 정체성을 다시 고정한다.
 		local portrait = _EntityService:GetEntityByPath(self.PortraitPath)
 		if isvalid(portrait) == false then return end
 		local cm = portrait.CostumeManagerComponent
 		if isvalid(cm) == false then return end
-		local me = _UserService.LocalPlayer
-		if isvalid(me) == false or me.PlayerComponent == nil then
-			log_warning("[EventTileUI] EnsurePortraitIdentity: LocalPlayer 미확보 — 초상화 외형 고정 실패")
-			return
+		local identityUserId = ""
+		local source = nil
+		if self._specActorUserId ~= "" then
+			identityUserId = self._specActorUserId
+			source = _UserService:GetUserEntityByUserId(self._specActorUserId)
+		else
+			source = _UserService.LocalPlayer
+			if isvalid(source) == false or source.PlayerComponent == nil then
+				log_warning("[EventTileUI] EnsurePortraitIdentity: LocalPlayer 미확보 — 초상화 외형 고정 실패")
+				return
+			end
+			identityUserId = tostring(source.PlayerComponent.UserId)
 		end
-		-- 계정 기본 체형/헤어/얼굴을 DefaultEquipUserId로 깔고,
+		-- 계정 기본 체형/헤어/얼굴을 DefaultEquipUserId로 깐다(엔티티 미발견이어도 기본 아바타 확보).
 		cm.UseCustomEquipOnly = false
-		cm.DefaultEquipUserId = tostring(me.PlayerComponent.UserId)
-		-- 그 위에 라이브 플레이어의 런타임 코디(직업 무기 등)를 슬롯별로 덮어써 공격 모션이 실제 무기 스윙으로 나오게 한다.
-		local pcm = me.CostumeManagerComponent
-		if isvalid(pcm) then
-			for _, d in ipairs(self:PortraitSlotDefs()) do
-				local v = pcm[d.p]
-				if v ~= nil and v ~= "" then cm:SetEquip(d.c, v) end
+		cm.DefaultEquipUserId = identityUserId
+		-- 그 위에 정체성 주체의 런타임 코디(직업 무기 등)를 슬롯별로 덮어써 공격 모션이 실제 무기 스윙으로 나오게 한다.
+		if isvalid(source) then
+			local pcm = source.CostumeManagerComponent
+			if isvalid(pcm) then
+				for _, d in ipairs(self:PortraitSlotDefs()) do
+					local v = pcm[d.p]
+					if v ~= nil and v ~= "" then cm:SetEquip(d.c, v) end
+				end
 			end
 		end
-		log("[EventTileUI] 초상화 외형 고정 완료 user=" .. tostring(me.PlayerComponent.UserId))
+		log("[EventTileUI] 초상화 외형 고정 완료 user=" .. identityUserId .. " spec=" .. self._specActorUserId)
 	end
 
 	@ExecSpace("ClientOnly")
@@ -1670,6 +1694,217 @@ script EventTileUI extends Logic
 			self:ShowPagedText(outcomeText, self.OnDiceNext)
 			self:PortraitEmote(outcome)   -- 결과 표정+동작을 초상화에 연출(SetPortrait("idle") 뒤에 덮어씀)
 		end)
+	end
+
+	@ExecSpace("ClientOnly")
+	method void StopSpectatorTimers()
+		-- 관전 자동 넘김 타이머 정지(새 씬 진입/닫기 시 잔상·이중 넘김 방지).
+		if self._specPageTimer ~= 0 then _TimerService:ClearTimer(self._specPageTimer) self._specPageTimer = 0 end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void ShowSpectatorPaged(table pages, any onLast)
+		-- 관전 페이지 자동 넘김: pages[1] 표시 → SpectatorPageInterval마다 다음 페이지 → 마지막 도달 시 정지 + onLast(있으면) 1회.
+		self:StopSpectatorTimers()
+		self._specPages = pages
+		self._specPageIdx = 1
+		local n = #pages
+		if n == 0 then
+			if onLast ~= nil then onLast() end
+			return
+		end
+		self:SetText(pages[1])
+		if n == 1 then
+			if onLast ~= nil then onLast() end
+			return
+		end
+		self._specPageTimer = _TimerService:SetTimerRepeat(function()
+			self._specPageIdx = self._specPageIdx + 1
+			if self._specPageIdx >= n then
+				self:SetText(pages[n])
+				if self._specPageTimer ~= 0 then _TimerService:ClearTimer(self._specPageTimer) self._specPageTimer = 0 end
+				if onLast ~= nil then onLast() end
+			else
+				self:SetText(pages[self._specPageIdx])
+			end
+		end, self.SpectatorPageInterval)
+	end
+
+	@ExecSpace("Client")
+	method void SpectatorSceneText(string text, string anim, string npcKey, string actorUserId)
+		-- 관전자: 텍스트 씬 읽기전용 미러(자동 넘김). actor는 자기 인터랙티브 경로를 쓰므로 스킵.
+		local lp = _UserService.LocalPlayer
+		if isvalid(lp) and lp.PlayerComponent.UserId == actorUserId then return end
+		self._specActorUserId = actorUserId
+		self:ShowSpectatorText(text, anim, npcKey)
+	end
+
+	@ExecSpace("ClientOnly")
+	method void ShowSpectatorText(string text, string anim, string npcKey)
+		-- 관전 텍스트 표시: 그룹/NPC이미지/초상화 + 자동 넘김 페이지.
+		self:StopSpectatorTimers()
+		self:ShowGroup()
+		self:SetNPCImage(true, _NpcInfoManager:GetNpcRUID(npcKey))
+		self:SetPortrait(anim)
+		self:ShowSpectatorPaged(self:SplitPages(text), nil)
+	end
+
+	@ExecSpace("Client")
+	method void SpectatorSceneChoices(string text, string anim, table labels, string npcKey, string actorUserId)
+		-- 관전자: 선택지 씬 읽기전용 미러(프롬프트 자동 넘김 → 선택지 라벨 정적 표시). 버튼 미생성. actor 스킵.
+		local lp = _UserService.LocalPlayer
+		if isvalid(lp) and lp.PlayerComponent.UserId == actorUserId then return end
+		self._specActorUserId = actorUserId
+		self:ShowSpectatorChoices(text, anim, labels, npcKey)
+	end
+
+	@ExecSpace("ClientOnly")
+	method void ShowSpectatorChoices(string text, string anim, table labels, string npcKey)
+		-- 관전 선택지 표시: 프롬프트 페이지 뒤에 선택지 라벨을 담은 합성 페이지를 붙여 자동 넘김. 실제 버튼은 만들지 않는다.
+		self:StopSpectatorTimers()
+		self:ShowGroup()
+		self:SetNPCImage(true, _NpcInfoManager:GetNpcRUID(npcKey))
+		self:SetPortrait(anim)
+		local pages = self:SplitPages(text)
+		local labelText = ""
+		for i = 1, #labels do
+			if labels[i] ~= nil and labels[i] ~= "" then
+				if labelText ~= "" then labelText = labelText .. "\n" end
+				labelText = labelText .. "▶ " .. labels[i]
+			end
+		end
+		if labelText ~= "" then table.insert(pages, labelText) end
+		self:ShowSpectatorPaged(pages, nil)
+	end
+
+	@ExecSpace("Client")
+	method void SpectatorSceneRoll(string leadText, string resultText, string anim, string npcKey, string actorUserId)
+		-- 관전자: roll 씬 리드/결과 문구 미러(주사위 자체는 2a 병행). actor 스킵.
+		local lp = _UserService.LocalPlayer
+		if isvalid(lp) and lp.PlayerComponent.UserId == actorUserId then return end
+		self._specActorUserId = actorUserId
+		self:ShowSpectatorRoll(leadText, resultText, anim, npcKey)
+	end
+
+	@ExecSpace("ClientOnly")
+	method void ShowSpectatorRoll(string leadText, string resultText, string anim, string npcKey)
+		-- 관전 roll 표시: 리드 대사 자동 넘김 → SpectatorRollLeadHold 뒤 결과 문구 자동 넘김(주사위는 2a 오버레이).
+		self:StopSpectatorTimers()
+		self:ShowGroup()
+		self:SetNPCImage(true, _NpcInfoManager:GetNpcRUID(npcKey))
+		self:SetPortrait(anim)
+		self:ShowSpectatorPaged(self:SplitPages(leadText), function()
+			self._specPageTimer = _TimerService:SetTimerOnce(function()
+				self._specPageTimer = 0
+				self:ShowSpectatorPaged(self:SplitPages(resultText), nil)
+			end, self.SpectatorRollLeadHold)
+		end)
+	end
+
+	@ExecSpace("Client")
+	method void SpectatorBossFightText(string challengeText, string bossStandRUID, string actorUserId)
+		-- 관전자: 보스 도전 문구 미러. actor 스킵.
+		local lp = _UserService.LocalPlayer
+		if isvalid(lp) and lp.PlayerComponent.UserId == actorUserId then return end
+		self._specActorUserId = actorUserId
+		self:ShowSpectatorBossFight(challengeText, bossStandRUID)
+	end
+
+	@ExecSpace("ClientOnly")
+	method void ShowSpectatorBossFight(string challengeText, string bossStandRUID)
+		-- 관전 보스 도전: 초상화 attack + 보스 stand 이미지 + 도전 문구 자동 넘김.
+		self:StopSpectatorTimers()
+		self:ShowGroup()
+		self:SetPortrait("attack")
+		self:SetBossFightImage(bossStandRUID)
+		self:ShowSpectatorPaged(self:SplitPages(challengeText), nil)
+	end
+
+	@ExecSpace("Client")
+	method void SpectatorBossFollow(boolean win, string outcome, string outcomeText, string bossDieRUID, string actorUserId)
+		-- 관전자: 보스 결과 후속(성공 시 die 이미지 + 결과 문구) 미러. actor 스킵.
+		local lp = _UserService.LocalPlayer
+		if isvalid(lp) and lp.PlayerComponent.UserId == actorUserId then return end
+		self._specActorUserId = actorUserId
+		self:ShowSpectatorBossFollow(win, outcome, outcomeText, bossDieRUID)
+	end
+
+	@ExecSpace("ClientOnly")
+	method void ShowSpectatorBossFollow(boolean win, string outcome, string outcomeText, string bossDieRUID)
+		-- 관전 보스 후속: 그룹 유지 + 초상화 idle + (성공 시 보스 die 이미지) + 결과 문구 자동 넘김 + 표정.
+		self:StopSpectatorTimers()
+		self:ShowGroup()
+		self:SetPortrait("idle")
+		if win and bossDieRUID ~= "" then self:SetBossFightImage(bossDieRUID) end
+		self:ShowSpectatorPaged(self:SplitPages(outcomeText), nil)
+		self:PortraitEmote(outcome)
+	end
+
+	@ExecSpace("Client")
+	method void SpectatorSceneHide(string actorUserId)
+		-- 관전자: 씬 미러 닫기. actor는 자기 ClientHide를 쓰므로 스킵.
+		local lp = _UserService.LocalPlayer
+		if isvalid(lp) and lp.PlayerComponent.UserId == actorUserId then return end
+		self:HideSpectatorScene()
+	end
+
+	@ExecSpace("ClientOnly")
+	method void HideSpectatorScene()
+		-- 관전 씬 정리: 타이머 정지 + 패널 닫기 + 정체성 마커 리셋.
+		self:StopSpectatorTimers()
+		self:Hide()
+		self._specActorUserId = ""
+	end
+
+	@ExecSpace("Client")
+	method void SpectatorEventText(string message, string anim, string monsterRUID, string imageKind, string npcKey, string page2Ruid, string actorUserId)
+		-- 관전자: 사냥/사냥+ 등 EventTileBase 텍스트 이벤트 미러(몬스터/NPC 이미지 + 자동 넘김). actor 스킵.
+		local lp = _UserService.LocalPlayer
+		if isvalid(lp) and lp.PlayerComponent.UserId == actorUserId then return end
+		self._specActorUserId = actorUserId
+		self:ShowSpectatorEvent(message, anim, monsterRUID, imageKind, npcKey, page2Ruid)
+	end
+
+	@ExecSpace("ClientOnly")
+	method void ShowSpectatorEvent(string message, string anim, string monsterRUID, string imageKind, string npcKey, string page2Ruid)
+		-- 관전 표시: 이미지(사냥=몬스터 / 사냥+·NPC=NPC 이미지) + 초상화(anim, actor 정체성) + 자동 넘김 텍스트.
+		self:StopSpectatorTimers()
+		self:ShowGroup()
+		if imageKind == "npc" then
+			self:SetNPCImage(true, _NpcInfoManager:GetNpcRUID(npcKey))
+		elseif page2Ruid ~= nil and page2Ruid ~= "" then
+			self:SetNPCImage(true, page2Ruid)
+		else
+			self:SetMonsterImages(monsterRUID)
+		end
+		self:SetPortrait(anim)
+		self:ShowSpectatorPaged(self:SplitPages(message), nil)
+	end
+
+	@ExecSpace("Client")
+	method void SpectatorUnlucky(string message, string anim, string npcRuidsCsv, string actorUserId)
+		-- 관전자: 불행 이벤트 미러(첫 페이지 NPC 이미지 + 자동 넘김 + 마지막 울음). actor 스킵.
+		local lp = _UserService.LocalPlayer
+		if isvalid(lp) and lp.PlayerComponent.UserId == actorUserId then return end
+		self._specActorUserId = actorUserId
+		self:ShowSpectatorUnlucky(message, anim, npcRuidsCsv)
+	end
+
+	@ExecSpace("ClientOnly")
+	method void ShowSpectatorUnlucky(string message, string anim, string npcRuidsCsv)
+		-- 관전 불행 표시: 첫 NPC 이미지(있으면) + 초상화(anim) + 자동 넘김, 마지막 페이지에서 울음 표정.
+		self:StopSpectatorTimers()
+		self:ShowGroup()
+		local ruids = self:SplitSemi(npcRuidsCsv)
+		local first = ""
+		if #ruids > 0 then first = ruids[1] end
+		if first ~= "" then
+			self:SetNPCImage(true, first)
+		else
+			self:SetNPCImage(false, "")
+		end
+		self:SetPortrait(anim)
+		self:ShowSpectatorPaged(self:SplitPages(message), function() self:PortraitEmoteKind("cry") end)
 	end
 
 end

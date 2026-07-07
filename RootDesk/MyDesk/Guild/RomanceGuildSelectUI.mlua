@@ -110,4 +110,36 @@ script RomanceGuildSelectUI extends Logic
 		self._handlers = {}
 	end
 
+	@ExecSpace("Client")
+	method void SpectatorShow(string title, table names, table ruids, string actorUserId)
+			-- 관전자에게 선택 카드를 읽기전용으로 방송. actor는 자기 인터랙티브 경로를 쓰므로 스킵.
+			local lp = _UserService.LocalPlayer
+			if isvalid(lp) and lp.PlayerComponent.UserId == actorUserId then return end
+			self:ShowReadOnly(title, names, ruids)
+	end
+
+	@ExecSpace("ClientOnly")
+	method void ShowReadOnly(string title, table names, table ruids)
+			-- 관전 표시: 타이틀 + 5장 카드(이름/사진)만 채우고 창을 연다. 클릭 핸들러/활성 타일을 걸지 않는다(읽기전용).
+			self:ClearHandlers()
+			if isvalid(self.TitleText) then self.TitleText.Text = title end
+			local photos = self:Photos()
+			local nameTexts = self:NameTexts()
+			for i = 1, 5 do
+				local nm = names[i] or ""
+				local ruid = ruids[i] or ""
+				if isvalid(nameTexts[i]) then nameTexts[i].Text = nm end
+				if isvalid(photos[i]) and ruid ~= "" then photos[i].ImageRUID = DataRef(ruid) end
+			end
+			if isvalid(self.Group) then self.Group.Enable = true end
+	end
+
+	@ExecSpace("Client")
+	method void SpectatorHide(string actorUserId)
+			-- 관전자 선택 카드 닫기. actor 스킵.
+			local lp = _UserService.LocalPlayer
+			if isvalid(lp) and lp.PlayerComponent.UserId == actorUserId then return end
+			self:Hide()
+	end
+
 end

@@ -73,7 +73,8 @@ script VillageTile extends EventTileBase
 			local labels = {}
 			for i = 1, #choices do labels[i] = choices[i].label end
 			self:ClientShowChoices(scene.text, scene.anim, labels, npcKey, ownerId)
-		
+			_EventTileUI:SpectatorSceneChoices(scene.text, scene.anim, labels, npcKey, ownerId)
+
 		elseif scene.nodeType == "roll" then
 			-- 확률게임: 대성공/성공/실패 확률을 '확률 테이블'(VillageEventFlowManager)에서 조회한다.
 			-- 테이블에 없으면 분기 Weight를 정규화해 사용(폴백). 분기(보상/문구/다음씬)는 키로 매칭한다.
@@ -141,11 +142,14 @@ script VillageTile extends EventTileBase
 				.. " 주사위=" .. tostring(d1) .. "+" .. tostring(d2) .. "=" .. tostring(sum) .. " → " .. outcomeLabel)
 			-- 클라 표시는 확률을 넘겨 SetProbabilities로 결과판을 구성하게 한다.
 			self:ClientShowRoll(scene.text, scene.anim, resultText, d1, d2, sum, greatPct, successPct, failPct, outcomeLabel, npcKey, ownerId)
-		
+			_RollResultDiceAnimationUI:SpectatorDiceBroadcast(d1, d2, sum, board, outcomeLabel, ownerId)
+			_EventTileUI:SpectatorSceneRoll(scene.text, resultText, scene.anim, npcKey, ownerId)
+
 		else
 			-- text
 			self._pendingNext = tonumber(scene.nextSeq) or 0
 			self:ClientShowText(scene.text, scene.anim, npcKey, ownerId)
+			_EventTileUI:SpectatorSceneText(scene.text, scene.anim, npcKey, ownerId)
 		end
 	end
 
@@ -190,7 +194,10 @@ script VillageTile extends EventTileBase
 		self._seq = 0
 		self._pendingNext = 0
 		self._choiceGroup = ""
-		if ownerId ~= "" then self:ClientHide(ownerId) end
+		if ownerId ~= "" then
+			self:ClientHide(ownerId)
+			_EventTileUI:SpectatorSceneHide(ownerId)
+		end
 		_GameModeManager:NotifyTileEventDone()
 		log("[VillageTile] 마을 이벤트 종료")
 	end

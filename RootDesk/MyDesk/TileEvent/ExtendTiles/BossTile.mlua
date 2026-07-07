@@ -82,6 +82,7 @@ script BossTile extends EventTileBase
 		local challengeText = self:BossText("all", "challenge", self._selectedBossName, "")
 		if challengeText == "" then challengeText = self._selectedBossName .. " 처치에 도전하였다!\n각오해라!" end
 		self:StartChallenge(challengeText, bossKey, ownerId)
+		_EventTileUI:SpectatorBossFightText(challengeText, self:BossStandRUID(bossKey), ownerId)
 		log("[BossTile] 선택: " .. self._selectedBossName)
 	end
 
@@ -131,6 +132,8 @@ script BossTile extends EventTileBase
 		
 		local ownerId = self:OwnerUserId(piece)
 		self:ShowChallengeDice(d1, d2, total, resultTable, outcome, outcomeText, self._selectedBossKey, ownerId)
+		_RollResultDiceAnimationUI:SpectatorDiceBroadcast(d1, d2, total, resultTable, outcome, ownerId)
+		_EventTileUI:SpectatorBossFollow((outcome == "성공" or outcome == "대성공"), outcome, outcomeText, self:BossDieRUID(self._selectedBossKey), ownerId)
 	end
 
 	@ExecSpace("Client")
@@ -143,6 +146,9 @@ script BossTile extends EventTileBase
 	method void RequestFinish()
 		-- 클라가 도전 연출(결과 문구 표시까지)을 끝냈음을 알림 → 턴 진행 신호.
 		log("[BossTile] 도전 연출 종료 — 이벤트 종료")
+		local ownerId = ""
+		if isvalid(self._currentPiece) then ownerId = self:OwnerUserId(self._currentPiece) end
+		if ownerId ~= "" then _EventTileUI:SpectatorSceneHide(ownerId) end
 		self._currentPiece = nil
 		_GameModeManager:NotifyTileEventDone()
 	end

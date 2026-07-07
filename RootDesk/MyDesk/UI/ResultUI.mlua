@@ -21,6 +21,10 @@ script ResultUI extends Logic
 
 	property any hCardRanking = nil
 
+	property string multiCardPath = "/ui/ResultGroup/MultiResultCard"
+
+	property any hMultiConfirm = nil
+
 	@ExecSpace("ClientOnly")
 	method void OnBeginPlay()
 		-- 시작 시 결과 패널은 숨김. 확인 버튼 연결.
@@ -39,6 +43,13 @@ script ResultUI extends Logic
 		if isvalid(btnR) then
 			self.hCardRanking = btnR:ConnectEvent(ButtonClickEvent, function() self:HideCard() end)
 		end
+		-- 멀티 결과 카드: 기본 숨김 + 확인 버튼 배선.
+		local mcard = _EntityService:GetEntityByPath(self.multiCardPath)
+		if isvalid(mcard) then mcard.Enable = false end
+		local mBtn = _EntityService:GetEntityByPath(self.multiCardPath .. "/BtnConfirm")
+		if isvalid(mBtn) then
+			self.hMultiConfirm = mBtn:ConnectEvent(ButtonClickEvent, function() self:HideMulti() end)
+		end
 	end
 
 	@ExecSpace("ClientOnly")
@@ -56,6 +67,11 @@ script ResultUI extends Logic
 		if self.hCardRanking ~= nil and isvalid(btnR) then
 			btnR:DisconnectEvent(ButtonClickEvent, self.hCardRanking)
 			self.hCardRanking = nil
+		end
+		local mBtn = _EntityService:GetEntityByPath(self.multiCardPath .. "/BtnConfirm")
+		if self.hMultiConfirm ~= nil and isvalid(mBtn) then
+			mBtn:DisconnectEvent(ButtonClickEvent, self.hMultiConfirm)
+			self.hMultiConfirm = nil
 		end
 	end
 
@@ -182,6 +198,63 @@ script ResultUI extends Logic
 		local grp = isvalid(self.panel) and self.panel.Parent or nil
 		if isvalid(grp) then grp.Enable = false end
 		log("[ResultUI] 결과 닫힘")
+	end
+
+	@ExecSpace("ClientOnly")
+	method void SetMultiText(integer row, string node, string text)
+		-- 멀티 카드 행 텍스트 노드 Text 설정.
+		local e = _EntityService:GetEntityByPath(self.multiCardPath .. "/MRow" .. tostring(row) .. "/" .. node)
+		if isvalid(e) and isvalid(e.TextComponent) then e.TextComponent.Text = text end
+	end
+
+	@ExecSpace("Client")
+	method void ShowMulti(table names, table powers, table jobs, table camps, table avatars, table userIds, integer winnerIndex)
+		-- 멀티 매치 결과 리치 순위표(최대 4행). 각 행 아바타+순위+이름+전투력+직업+진영, 1위 우승 배지.
+		_SFXManager:PlayWin()
+		local grp = _EntityService:GetEntityByPath(self.groupPath)
+		if isvalid(grp) then grp.Enable = true end
+		local dim = _EntityService:GetEntityByPath(self.dimPath)
+		if isvalid(dim) then dim.Enable = true end
+		local card = _EntityService:GetEntityByPath(self.multiCardPath)
+		if isvalid(card) == false then return end
+
+		local n = #names
+		for i = 1, 4 do
+			local row = _EntityService:GetEntityByPath(self.multiCardPath .. "/MRow" .. tostring(i))
+			if isvalid(row) then row.Enable = (i <= n) end
+			if i <= n then
+				self:SetMultiText(i, "Rank", tostring(i) .. "위")
+				self:SetMultiText(i, "Name", tostring(names[i]))
+				self:SetMultiText(i, "Power", "전투력 " .. _RankingManager:FormatPower(powers[i]))
+				self:SetMultiText(i, "Job", _RankingManager:JobKo(tostring(jobs[i])))
+				self:SetMultiText(i, "Camp", _RankingManager:CampKo(tostring(camps[i])))
+				local badge = _EntityService:GetEntityByPath(self.multiCardPath .. "/MRow" .. tostring(i) .. "/WinnerBadge")
+				if isvalid(badge) then badge.Enable = (i == winnerIndex) end
+				local av = _EntityService:GetEntityByPath(self.multiCardPath .. "/MRow" .. tostring(i) .. "/Avatar")
+				if isvalid(av) and isvalid(av.CostumeManagerComponent) then
+					local cm = av.CostumeManagerComponent
+					cm.UseCustomEquipOnly = false
+					cm.DefaultEquipUserId = tostring(userIds[i])
+					_RankingManager:ApplyCostume(cm, tostring(avatars[i]))
+				end
+			end
+		end
+		card.Enable = true
+		log("[ResultUI] ShowMulti rows=" .. tostring(n) .. " winner=" .. tostring(winnerIndex))
+	end
+
+	@ExecSpace("ClientOnly")
+	method void HideMulti()
+		-- 멀티 결과 카드 닫기 → 로딩 오버레이로 룸 전환을 가린 뒤 per-user 로비 복귀(싱글 HideCard와 동일).
+		_SFXManager:PlayClick()
+		_LoadingManager:ShowLoadingAndPreload()
+		local card = _EntityService:GetEntityByPath(self.multiCardPath)
+		if isvalid(card) then card.Enable = false end
+		local dim = _EntityService:GetEntityByPath(self.dimPath)
+		if isvalid(dim) then dim.Enable = false end
+		local grp = _EntityService:GetEntityByPath(self.groupPath)
+		if isvalid(grp) then grp.Enable = false end
+		_GameModeManager:ReturnToLobbyAfterResult()
 	end
 
 end

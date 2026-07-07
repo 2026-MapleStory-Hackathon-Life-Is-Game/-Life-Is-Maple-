@@ -248,6 +248,7 @@ script RomanceTile extends BaseTile
 				end
 			end
 			self:ClientShowSelect(text, names, ruids, ownerId)
+			_RomanceGuildSelectUI:SpectatorShow(text, names, ruids, ownerId)
 		
 		elseif step.node == "dateselect" then
 			-- 데이트 장소 선택(EventTileUI 다지선다): RomanceDate 전체 행을 버튼 라벨로 채운다.
@@ -263,6 +264,7 @@ script RomanceTile extends BaseTile
 				end
 			end
 			self:ClientShowDateChoices(text, "idle", labels, npcKey, ownerId)
+			_EventTileUI:SpectatorSceneChoices(text, "idle", labels, npcKey, ownerId)
 		
 		elseif step.node == "roll" then
 			self:PlayRoll(piece, rm, step, ownerId, npcKey, text)
@@ -271,6 +273,7 @@ script RomanceTile extends BaseTile
 			-- text
 			self._pendingNext = step.next
 			self:ClientShowText(text, "idle", npcKey, ownerId)
+			_EventTileUI:SpectatorSceneText(text, "idle", npcKey, ownerId)
 		end
 	end
 
@@ -316,6 +319,8 @@ script RomanceTile extends BaseTile
 			.. " 확률(대/성/실)=" .. tostring(greatPct) .. "/" .. tostring(successPct) .. "/" .. tostring(failPct)
 			.. " 주사위=" .. tostring(d1) .. "+" .. tostring(d2) .. "=" .. tostring(sum) .. " → " .. outcomeLabel)
 		self:ClientShowRoll(leadText, "idle", resultText, d1, d2, sum, greatPct, successPct, failPct, outcomeLabel, npcKey, ownerId)
+		_RollResultDiceAnimationUI:SpectatorDiceBroadcast(d1, d2, sum, board, outcomeLabel, ownerId)
+		_EventTileUI:SpectatorSceneRoll(leadText, resultText, "idle", npcKey, ownerId)
 	end
 
 	@ExecSpace("ServerOnly")
@@ -383,6 +388,7 @@ script RomanceTile extends BaseTile
 			self._selectedPartnerKey = key
 			if isvalid(rm) then rm:SelectPartner(key) end
 			self:ClientHideSelect(self:OwnerUserId(piece))
+			_RomanceGuildSelectUI:SpectatorHide(self:OwnerUserId(piece))
 			self._selectMode = ""
 			self._seq = self._pendingNext
 			if self._seq <= 0 then self:FinishEvent() else self:PlayScene() end
@@ -415,6 +421,7 @@ script RomanceTile extends BaseTile
 		self._pendingNext = 0
 		self._selectMode = ""
 		if ownerId ~= "" then self:ClientHide(ownerId) end
+		if ownerId ~= "" then _EventTileUI:SpectatorSceneHide(ownerId) end
 		_GameModeManager:NotifyTileEventDone()
 		log("[RomanceTile] 연애 이벤트 종료")
 	end

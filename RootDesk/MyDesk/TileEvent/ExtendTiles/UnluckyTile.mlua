@@ -19,6 +19,8 @@ script UnluckyTile extends EventTileBase
 		-- NPC 이름 키 목록(';' 구분)을 페이지별 RUID 목록으로 해석해 클라에 전달한다.
 		local npcCsv = self:ResolvePageNpcRUIDs(ev.npcKey)
 		self:ClientShowUnlucky(ev.message, ev.anim or "idle", npcCsv, ownerId)
+		-- 관전자 미러(전원 방송, actor 스킵): 불행 이벤트도 나머지 유저가 보게 한다.
+		_EventTileUI:SpectatorUnlucky(ev.message, ev.anim or "idle", npcCsv, ownerId)
 		log("[UnluckyTile] 불행 이벤트 발생 tile=" .. self.Entity.Name)
 	end
 

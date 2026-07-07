@@ -40,7 +40,9 @@ script EventTileBase extends BaseTile
 		-- 페이지2 이미지의 이미 해석된 RUID(엘리트 몬스터/NPC). 있으면 npcKey 조회보다 우선.
 		local page2Ruid = ev.page2Ruid or ""
 		self:ShowEventUI(ev.message, anim, monsterRUID, imageKind, npcKey, npcFromPage, page2Ruid, ownerId)
-		
+		-- 관전자 미러(전원 방송, actor 스킵): 사냥/사냥+ 등 텍스트 이벤트도 나머지 유저가 보게 한다.
+		_EventTileUI:SpectatorEventText(ev.message, anim, monsterRUID, imageKind, npcKey, page2Ruid, ownerId)
+
 		log("[EventTileBase] 이벤트 발생 tile=" .. self.Entity.Name
 			.. " type=" .. tostring(ev.eventType))
 	end
@@ -58,8 +60,11 @@ script EventTileBase extends BaseTile
 
 	@ExecSpace("ServerOnly")
 	method void FinishEventTile()
-		-- 이벤트 종료: 상태 초기화 + 턴 진행 신호.
+		-- 이벤트 종료: 상태 초기화 + 관전 미러 닫기 + 턴 진행 신호.
+		local ownerId = ""
+		if isvalid(self._eventPiece) then ownerId = self:OwnerUserId(self._eventPiece) end
 		self._eventPiece = nil
+		if ownerId ~= "" then _EventTileUI:SpectatorSceneHide(ownerId) end
 		_GameModeManager:NotifyTileEventDone()
 	end
 

@@ -31,6 +31,15 @@ script MultiTurnManager extends Logic
 
 	property integer _finishedCount = 0
 
+	property string _currentMapName = "Map_01"
+
+	property boolean _skipResultDice = false
+
+	property boolean _isResultRolling = false
+
+	@Sync
+	property SyncTable<string, integer> _finishSync
+
 	method void OnEndPlay()
 		        -- 클라이언트: 턴 버튼 핸들러 해제 / 서버: 퇴장 이벤트 핸들러 해제
 		        if self:IsClient() then
@@ -67,9 +76,11 @@ script MultiTurnManager extends Logic
 		        self._currentPlayerIndex = 0
 		        self._finishedUserIds = {}
 		        self._finishedCount = 0
+		        self._currentMapName = "Map_01"
 		        self._userLeaveHandler = self:ConnectEvent(UserLeaveEvent, self.OnUserLeave)
 		
-		        log("[MultiTurnManager] " .. tostring(self._playerCount) .. "명으로 멀티플레이 시작")
+		        self:ClearFinishSync()
+	        log("[MultiTurnManager] " .. tostring(self._playerCount) .. "명으로 멀티플레이 시작")
 		        self:SetCurrentPlayer(0)
 		        self:AdvanceToState("TURN_START")
 	end
@@ -84,11 +95,14 @@ script MultiTurnManager extends Logic
 		        self._playerCount = 0
 		        self._finishedUserIds = {}
 		        self._finishedCount = 0
+		        self._skipResultDice = false
+		        self._isResultRolling = false
 		        if self._userLeaveHandler ~= nil then
 		            self:DisconnectEvent(UserLeaveEvent, self._userLeaveHandler)
 		            self._userLeaveHandler = nil
 		        end
-		        log("[MultiTurnManager] 게임 종료")
+		        self:ClearFinishSync()
+	        log("[MultiTurnManager] 게임 종료")
 	end
 
 	@ExecSpace("Server")
@@ -132,7 +146,14 @@ script MultiTurnManager extends Logic
 		
 		        if removedIdx == self._currentPlayerIndex then
 		            -- 퇴장한 플레이어가 현재 턴이면 즉시 다음 플레이어로 전환
-		            local nextIdx = self._currentPlayerIndex % self._playerCount
+		            if self._currentState == "RESULT_DICE" then
+		                self:BroadcastClose()
+		                self._isResultRolling = false
+		            end
+		            -- DICE 연출 중 퇴장 등 어떤 단계에서든 굴림 잠금 해제(안 하면 다음 플레이어가 영원히 못 굴림 → 무한 대기).
+	            self._isRolling = false
+	            self._isResultRolling = false
+	            local nextIdx = self._currentPlayerIndex % self._playerCount
 		            self:SetCurrentPlayer(nextIdx)
 		            self:AdvanceToState("TURN_START")
 		        elseif removedIdx < self._currentPlayerIndex then
@@ -147,10 +168,18 @@ script MultiTurnManager extends Logic
 		        elseif self._currentState == "TURN_START" then return "DICE"
 		        elseif self._currentState == "DICE" then return "MOVE"
 		        elseif self._currentState == "MOVE" then return "TILE"
-		        elseif self._currentState == "TILE" then return "TURN_END"
+		        elseif self._currentState == "TILE" then return "RESULT_DICE"
+		        elseif self._currentState == "RESULT_DICE" then return "TURN_END"
 		        elseif self._currentState == "TURN_END" then return "TURN_START"
 		        end
 		        return "IDLE"
+	end
+
+	method string GetNextMapName(string mapName)
+		        -- 다음 스테이지 맵 이름. 마지막(Map_03)이면 "" 반환.
+		        if mapName == "Map_01" then return "Map_02"
+		        elseif mapName == "Map_02" then return "Map_03" end
+		        return ""
 	end
 
 	@ExecSpace("Server")
@@ -167,6 +196,7 @@ script MultiTurnManager extends Logic
 		        elseif s == "DICE" then self:OnDice()
 		        elseif s == "MOVE" then self:OnMove()
 		        elseif s == "TILE" then self:OnTile()
+		        elseif s == "RESULT_DICE" then self:OnResultDice()
 		        elseif s == "TURN_END" then self:OnTurnEnd()
 		        end
 	end
@@ -207,6 +237,7 @@ script MultiTurnManager extends Logic
 	method void OnTile()
 		        local startedEvent = false
 		        local interactive = false
+		        self._skipResultDice = false
 		        for userId, userEntity in pairs(_UserService.UserEntities) do
 		            if userId == self._currentPlayerUserId then
 		                if userEntity.PlayerMovement ~= nil then
@@ -214,6 +245,7 @@ script MultiTurnManager extends Logic
 		                    local tileName = userEntity.PlayerMovement.currentTile
 		                    startedEvent = _TileManager:TriggerArrive(mapName, tileName, userEntity)
 		                    interactive = _TileManager:IsInteractiveArrive(mapName, tileName, userEntity)
+		                    self._skipResultDice = _TileManager:IsEventArrive(mapName, tileName, userEntity)
 		                end
 		                break
 		            end
@@ -232,7 +264,7 @@ script MultiTurnManager extends Logic
 		                self:OnTileEventComplete()
 		            end, waitSec)
 		        else
-		            self:AdvanceToState("TURN_END")
+		            self:AdvanceToState("RESULT_DICE")
 		        end
 	end
 
@@ -240,6 +272,90 @@ script MultiTurnManager extends Logic
 	method void OnTileEventComplete()
 		        if not self._isActive then return end
 		        if self._currentState ~= "TILE" then return end
+		        if self._skipResultDice then
+		            log("[MultiTurnManager] 이벤트 타일 — 결과 주사위 생략 → 턴 종료")
+		            self:AdvanceToState("TURN_END")
+		        else
+		            log("[MultiTurnManager] 타일 이벤트 종료 → 결과 주사위 진행")
+		            self:AdvanceToState("RESULT_DICE")
+		        end
+	end
+
+	@ExecSpace("Server")
+	method void OnResultDice()
+		        -- 결과 주사위 단계 진입. 서버가 즉시 굴림을 요청한다.
+		        log("[MultiTurnManager] 결과 주사위 단계 진입 → 굴림 요청")
+		        self:RequestRollResultDice()
+	end
+
+	@ExecSpace("Server")
+	method void RequestRollResultDice()
+		        -- 서버에서 결과 주사위를 굴려 값을 계산하고 전원에게 보드를 방송한다.
+		        if not self._isActive then return end
+		        if self._currentState ~= "RESULT_DICE" then return end
+		        local total = _ResultDiceManager:Roll()
+		        self.remainDiceTotal = total
+		        local d1 = _ResultDiceManager._dice1
+		        local d2 = _ResultDiceManager._dice2
+		        local gameOutcome = _ResultDiceManager.GameOutcome
+		        local resultTable = _ResultDiceManager:GetResultTable()
+		        self._isResultRolling = false
+		        log("[MultiTurnManager] 결과주사위 계산: " .. tostring(d1) .. "+" .. tostring(d2) .. "=" .. tostring(total) .. " (" .. gameOutcome .. ")")
+		        self:PlayResultDiceBoard(d1, d2, total, resultTable, gameOutcome, self._currentPlayerUserId)
+	end
+
+	@ExecSpace("Client")
+	method void PlayResultDiceBoard(integer d1, integer d2, integer total, table resultTable, string gameOutcome, string actorUserId)
+		        -- 전원 클라에 결과 보드 표시(ShowMulti). actor만 굴리기 버튼이 뜬다.
+		        _RollResultDiceAnimationUI:ShowMulti(d1, d2, total, resultTable, gameOutcome, actorUserId)
+	end
+
+	@ExecSpace("Server")
+	method void RequestRevealResultDice()
+		        -- actor의 '굴리기' 요청을 검증한 뒤 전원에게 공개 연출을 방송한다.
+		        if not self._isActive then return end
+		        if self._currentState ~= "RESULT_DICE" then return end
+		        if senderUserId ~= self._currentPlayerUserId then
+		            log_warning("[MultiTurnManager] 잘못된 결과주사위 공개 요청 발신자: " .. senderUserId)
+		            return
+		        end
+		        if self._isResultRolling then return end
+		        self._isResultRolling = true
+		        log("[MultiTurnManager] 결과주사위 공개 방송")
+		        self:BroadcastReveal()
+	end
+
+	@ExecSpace("Client")
+	method void BroadcastReveal()
+		        -- 전원 클라에서 결과 주사위 공개 연출을 재생한다.
+		        _RollResultDiceAnimationUI:RevealMulti()
+	end
+
+	@ExecSpace("Server")
+	method void RequestFinishResultDice()
+		        -- actor의 '다음' 요청을 검증한 뒤 전원 닫기 방송 + 턴을 진행한다.
+		        if not self._isActive then return end
+		        if self._currentState ~= "RESULT_DICE" then return end
+		        if senderUserId ~= self._currentPlayerUserId then
+		            log_warning("[MultiTurnManager] 잘못된 결과주사위 종료 요청 발신자: " .. senderUserId)
+		            return
+		        end
+		        self:BroadcastClose()
+		        self._isResultRolling = false
+		        self:OnResultDiceAnimationEnd()
+	end
+
+	@ExecSpace("Client")
+	method void BroadcastClose()
+		        -- 전원 클라에서 결과 주사위 패널을 닫는다.
+		        _RollResultDiceAnimationUI:CloseMulti()
+	end
+
+	@ExecSpace("Server")
+	method void OnResultDiceAnimationEnd()
+		        -- 결과 주사위 종료 → 턴 종료 단계로 진행한다.
+		        if not self._isActive then return end
+		        if self._currentState ~= "RESULT_DICE" then return end
 		        self:AdvanceToState("TURN_END")
 	end
 
@@ -255,13 +371,35 @@ script MultiTurnManager extends Logic
 		                return
 		            end
 		        end
-		        -- 미완주 플레이어가 없음 = 전원 End 도달 → 승자 판정.
-		        log("[MultiTurnManager] 전원 완주 → 게임 종료")
+		        -- 미완주 플레이어 없음 = 전원 현재 맵 완주.
 		        local ids = {}
 		        for i = 0, self._playerCount - 1 do
 		            table.insert(ids, self._playerUserIds[i])
 		        end
-		        _GameModeManager:FinishMulti(ids)
+		        local nextMap = self:GetNextMapName(self._currentMapName)
+		        if nextMap ~= "" then
+		            log("[MultiTurnManager] 전원 " .. self._currentMapName .. " 완주 → " .. nextMap .. " 이동")
+		            self._currentState = "IDLE"
+		            _GameModeManager:MoveMultiToNextMap(ids, nextMap)
+		        else
+		            log("[MultiTurnManager] 전원 최종 완주 → 게임 종료")
+		            _GameModeManager:FinishMulti(ids)
+		        end
+	end
+
+	@ExecSpace("Server")
+	method void ResumeOnMap(string mapName)
+		        -- 도착 게이트 통과 후 다음 맵에서 턴 재개. per-map 완주셋을 비우고 0번 플레이어부터.
+		        if not self._isActive then return end
+		        self._currentMapName = mapName
+		        self._finishedUserIds = {}
+		        self._finishedCount = 0
+		        self._skipResultDice = false
+		        self._isResultRolling = false
+		        self:ClearFinishSync()
+	        log("[MultiTurnManager] " .. mapName .. " 전원 도착 → 턴 재개")
+		        self:SetCurrentPlayer(0)
+		        self:AdvanceToState("TURN_START")
 	end
 
 	@ExecSpace("Server")
@@ -272,8 +410,16 @@ script MultiTurnManager extends Logic
 		        if self._finishedUserIds[userId] == nil then
 		            self._finishedCount += 1
 		            self._finishedUserIds[userId] = self._finishedCount
+			self._finishSync[userId] = self._finishedCount   -- 클라(다른 유저 패널 완주 뱃지)에서 읽도록 미러
 		            log("[MultiTurnManager] 완주: " .. userId .. " (" .. tostring(self._finishedCount) .. "위)")
 		        end
+	end
+
+	method void ClearFinishSync()
+		-- @Sync SyncTable엔 :Clear()가 없으므로 pairs+nil로 비운다(신규 판/맵 재개 시 이전 완주 뱃지 잔재 제거).
+		for k, _ in pairs(self._finishSync) do
+			self._finishSync[k] = nil
+		end
 	end
 
 	method boolean IsFinished(string userId)

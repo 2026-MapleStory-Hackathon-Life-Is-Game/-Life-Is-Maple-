@@ -179,6 +179,7 @@ script GuildTile extends EventTileBase
 			-- 부길마 선택 노드: 직업군별 랜덤 후보로 5칸 카드 선택창 표시 → RequestChoice(index).
 			self:PrepareVice()
 			self:ClientShowViceSelect("부길드마스터를 영입하세요", self._viceNames, self._viceRuids, ownerId)
+			_RomanceGuildSelectUI:SpectatorShow("부길드마스터를 영입하세요", self._viceNames, self._viceRuids, ownerId)
 		
 		elseif node.type == "roll" then
 			-- 확률게임: 같은 Event+Seq의 결과 행(success/great/fail)에서 확률(Weight)·보상·결과문을 읽는다.
@@ -231,11 +232,14 @@ script GuildTile extends EventTileBase
 				.. " 주사위=" .. tostring(d1) .. "+" .. tostring(d2) .. "=" .. tostring(sum) .. " → " .. outcomeLabel)
 			-- 길드 롤(창설/신규 길드원 가입)은 outcome 기반: 성공/대성공=웃음, 실패=울음.
 			self:ClientShowRoll(node.text, "idle", resultText, d1, d2, sum, greatPct, successPct, failPct, outcomeLabel, npcKey, ownerId)
-		
+			_RollResultDiceAnimationUI:SpectatorDiceBroadcast(d1, d2, sum, board, outcomeLabel, ownerId)
+			_EventTileUI:SpectatorSceneRoll(node.text, resultText, "idle", npcKey, ownerId)
+
 		else
 			-- text
 			self._pendingNext = tonumber(node.nextSeq) or 0
 			self:ClientShowText(node.text, "idle", npcKey, ownerId)
+			_EventTileUI:SpectatorSceneText(node.text, "idle", npcKey, ownerId)
 		end
 	end
 
@@ -299,7 +303,7 @@ script GuildTile extends EventTileBase
 		local statKind = ds:GetCell(row, "StatKind")
 		local statGain = tonumber(ds:GetCell(row, "StatGain")) or 0
 		local attackGain = tonumber(ds:GetCell(row, "AttackGain")) or 0
-		local flavor = ds:GetCell(row, "Flavor")
+		local flavor = _VillageEventFlowManager:DecodeText(ds:GetCell(row, "Flavor"))
 		
 		if statKind ~= "" and statGain ~= 0 then self:AddSpecificStat(piece, statKind, statGain) end
 		if attackGain ~= 0 then self:AddMainAttack(piece, "flat", attackGain) end
@@ -312,12 +316,14 @@ script GuildTile extends EventTileBase
 		self._curNodeType = ""
 		self._pendingNext = 0
 		self:ClientHideViceSelect(ownerId)
+		_RomanceGuildSelectUI:SpectatorHide(ownerId)
 		-- 결과 문구: 데이터(ViceMaster.Flavor + 스탯)로 구성. '다음'(RequestAdvance) → 종료.
 		local msg = "이 사람으로 결정했다!\n" .. tostring(flavor)
 			.. "\n\n앞으로 길드 운영이 더 단단해질 것 같다!\n"
 			.. self:StatLabel(statKind) .. "이 " .. tostring(statGain) .. "만큼 오르고 공격력/마력이 " .. tostring(attackGain) .. "만큼 올랐다."
 		-- 부길마 선택 결과도 길드 이벤트이므로 등장 NPC는 레아로 고정. 길드원 영입 → 울음 표정.
 		self:ClientViceResult(msg, ownerId)
+		_EventTileUI:SpectatorSceneText(msg, "idle", "Lea", ownerId)
 	end
 
 	@ExecSpace("ServerOnly")
@@ -331,6 +337,7 @@ script GuildTile extends EventTileBase
 		self._pendingNext = 0
 		self._curNodeType = ""
 		if ownerId ~= "" then self:ClientHide(ownerId) end
+		if ownerId ~= "" then _EventTileUI:SpectatorSceneHide(ownerId) end
 		_GameModeManager:NotifyTileEventDone()
 		log("[GuildTile] 길드 이벤트 종료")
 	end
