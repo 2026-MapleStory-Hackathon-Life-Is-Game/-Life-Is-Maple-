@@ -14,6 +14,9 @@ script BaseEquipment extends Component
 	property SyncTable<string, string> PotentialById
 
 	@Sync
+	property SyncTable<string, integer> StarById
+
+	@Sync
 	property integer InstanceSeq = 0
 
 	method string EquipCategory()
@@ -117,8 +120,14 @@ script BaseEquipment extends Component
 	end
 
 	method table EquippedModifiers()
-		-- 현재 장착품의 modifier(기본 + 장착 인스턴스 잠재).
-		return self:FullModifiersFor(self.Equipped, self:GetInstancePotential(self.EquippedId))
+		-- 현재 장착품의 modifier(기본 + 장착 인스턴스 잠재 + 스타포스 강화).
+		local m = self:FullModifiersFor(self.Equipped, self:GetInstancePotential(self.EquippedId))
+		local star = self:StarModifiers(self.EquippedId)
+		m.statFlat = m.statFlat + star.statFlat
+		m.statPct = m.statPct + star.statPct
+		m.attackFlat = m.attackFlat + star.attackFlat
+		m.attackPct = m.attackPct + star.attackPct
+		return m
 	end
 
 	method table ModifiersWith(string candidate, string candidatePot)
@@ -129,14 +138,59 @@ script BaseEquipment extends Component
 
 	method string Acquire(string equipName)
 		-- 보유함에 새 인스턴스로 추가(미장착). 타입 불일치면 무시하고 "" 반환. 반환값=발급된 인스턴스 ID.
+		-- 중복 보유(같은 EquipName)면 새 인스턴스 대신 기존 인스턴스를 스타포스 강화한다(손해 방지).
 		if self:Accepts(equipName) == false then
 			log_warning("BaseEquipment.Acquire: " .. equipName .. " not " .. self:EquipCategory())
 			return ""
+		end
+		local dupId = self:FindInstanceByName(equipName)
+		if dupId ~= "" then
+			self:AddStar(dupId, 1)
+			log(self:EquipCategory() .. "Eq: [중복→★강화] " .. equipName .. " (" .. dupId .. ") star=" .. tostring(self:GetStar(dupId)))
+			return dupId
 		end
 		local id = self:NewInstanceId()
 		self.Owned[id] = equipName
 		log(self:EquipCategory() .. "Eq: [보유+] " .. equipName .. " (" .. id .. ")")
 		return id
+	end
+
+	method string FindInstanceByName(string equipName)
+		-- 같은 EquipName의 기존 인스턴스 ID(장착 우선, 없으면 보유 첫 번째). 없으면 "".
+		if equipName == "" then return "" end
+		if self.EquippedId ~= "" and self.Equipped == equipName then return self.EquippedId end
+		for id, nm in pairs(self.Owned) do
+			if nm == equipName then return id end
+		end
+		return ""
+	end
+
+	@ExecSpace("ServerOnly")
+	method void AddStar(string instanceId, integer n)
+		-- 인스턴스 스타포스 강화(중복 장비 흡수). 강화 후 전투력 재계산.
+		if instanceId == "" or n == nil or n <= 0 then return end
+		local cur = self.StarById[instanceId]
+		if cur == nil then cur = 0 end
+		self.StarById[instanceId] = cur + n
+		self:Recalc()
+	end
+
+	method integer GetStar(string instanceId)
+		-- 인스턴스의 스타포스 강화 수치(없으면 0).
+		if instanceId == "" then return 0 end
+		local s = self.StarById[instanceId]
+		if s == nil then return 0 end
+		return s
+	end
+
+	method table StarModifiers(string instanceId)
+		-- 스타포스 수치 보정(더미: 별 1개당 주스탯 +5%, 공격/마력 +5%). 기본/잠재와 별개로 합산.
+		local m = { statFlat = 0, statPct = 0, attackFlat = 0, attackPct = 0, damagePct = 0, bossDamagePct = 0, allStatFlat = 0, allStatPct = 0 }
+		local star = self:GetStar(instanceId)
+		if star <= 0 then return m end
+		m.statPct = star * 5
+		m.attackPct = star * 5
+		return m
 	end
 
 	@ExecSpace("Server")
@@ -198,6 +252,7 @@ script BaseEquipment extends Component
 		self.EquippedId = ""
 		self:ClearSyncTable(self.Owned)
 		self:ClearSyncTable(self.PotentialById)
+		self:ClearSyncTable(self.StarById)
 		self.InstanceSeq = 0
 		self:Recalc()
 	end
