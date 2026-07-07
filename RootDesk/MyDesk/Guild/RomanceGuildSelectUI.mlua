@@ -78,6 +78,7 @@ script RomanceGuildSelectUI extends Logic
 			if isvalid(photos[i]) and ruid ~= "" then photos[i].ImageRUID = DataRef(ruid) end
 			local btn = cards[i]
 			if isvalid(btn) then
+				if isvalid(btn.ButtonComponent) then btn.ButtonComponent.Enable = true end   -- 이전 관전(비활성) 잔재 복구
 				local idx = i
 				local hd = btn:ConnectEvent(ButtonClickEvent, function() self:OnPick(idx) end)
 				table.insert(self._handlers, { entity = btn, hd = hd })
@@ -115,14 +116,22 @@ script RomanceGuildSelectUI extends Logic
 			-- 관전자에게 선택 카드를 읽기전용으로 방송. actor는 자기 인터랙티브 경로를 쓰므로 스킵.
 			local lp = _UserService.LocalPlayer
 			if isvalid(lp) and lp.PlayerComponent.UserId == actorUserId then return end
-			self:ShowReadOnly(title, names, ruids)
+			-- actor 닉네임을 상태문구에 넣는다("OO 고르는 중...").
+			local who = "다른 유저"
+			local ae = _UserService:GetUserEntityByUserId(actorUserId)
+			if isvalid(ae) and ae.PlayerComponent ~= nil and ae.PlayerComponent.Nickname ~= nil and ae.PlayerComponent.Nickname ~= "" then
+				who = ae.PlayerComponent.Nickname
+			end
+			self:ShowReadOnly(title, names, ruids, who)
 	end
 
 	@ExecSpace("ClientOnly")
-	method void ShowReadOnly(string title, table names, table ruids)
-			-- 관전 표시: 타이틀 + 5장 카드(이름/사진)만 채우고 창을 연다. 클릭 핸들러/활성 타일을 걸지 않는다(읽기전용).
+	method void ShowReadOnly(string title, table names, table ruids, string who)
+			-- 관전 표시: 타이틀(+'고르는 중' 상태) + 5장 카드(이름/사진)만 채우고 창을 연다.
+			-- 클릭 핸들러를 안 걸고, 카드 버튼 컴포넌트도 비활성화해 눌림/호버 연출이 안 나게 한다(읽기전용).
 			self:ClearHandlers()
-			if isvalid(self.TitleText) then self.TitleText.Text = title end
+			if isvalid(self.TitleText) then self.TitleText.Text = title .. "\n(" .. who .. " 고르는 중...)" end
+			local cards = self:Cards()
 			local photos = self:Photos()
 			local nameTexts = self:NameTexts()
 			for i = 1, 5 do
@@ -130,6 +139,7 @@ script RomanceGuildSelectUI extends Logic
 				local ruid = ruids[i] or ""
 				if isvalid(nameTexts[i]) then nameTexts[i].Text = nm end
 				if isvalid(photos[i]) and ruid ~= "" then photos[i].ImageRUID = DataRef(ruid) end
+				if isvalid(cards[i]) and isvalid(cards[i].ButtonComponent) then cards[i].ButtonComponent.Enable = false end
 			end
 			if isvalid(self.Group) then self.Group.Enable = true end
 	end
