@@ -16516,7 +16516,7 @@
               "QuaternionRotation": {
                 "x": 0,
                 "y": 0,
-                "z": 2.235174E-08,
+                "z": 2.235174e-8,
                 "w": 1
               },
               "Scale": {
@@ -51535,7 +51535,7 @@
       {
         "id": "46cf63b2-001e-4bfa-96ec-2e274e05ba21",
         "path": "/maps/Map_01/FirstMapManagement",
-        "componentNames": "MOD.Core.TransformComponent,script.FirstMapManagement",
+        "componentNames": "MOD.Core.TransformComponent,script.Single_FirstMapManagement,script.Multi_FirstMapManagement",
         "jsonString": {
           "name": "FirstMapManagement",
           "path": "/maps/Map_01/FirstMapManagement",
@@ -51571,8 +51571,10 @@
               "Enable": true
             },
             {
-              "@type": "script.FirstMapManagement",
-              "Enable": true
+              "@type": "script.Single_FirstMapManagement"
+            },
+            {
+              "@type": "script.Multi_FirstMapManagement"
             }
           ],
           "@version": 1
