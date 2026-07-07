@@ -115,6 +115,7 @@ script PlayerMovement extends Component
 				            local branchTexts = _TileManager:GetBranchLabels(self.Entity.CurrentMapName, nextList)
 				            self:ShowBranchUI(nextList, branchTexts, self.remainingSteps, self.Entity.PlayerComponent.UserId)   -- actor에게만 타깃(userId 없으면 전원 브로드캐스트 → 남의 턴 분기 이동 버그)
 		            _BranchSelectUI:SpectatorNotice(self.Entity.PlayerComponent.UserId)   -- 관전자에 '분기점 선택 중' 중앙 알림 방송(피드백 13)
+		            self:StartBranchWatch(nextList[1])   -- 멀티: 30초 내 미선택 시 자동으로 첫 분기 선택(피드백 6)
 				            return   -- 선택이 올 때까지 멈춤 (OnBranchSelected에서 재개)
 				        end
 				
@@ -154,6 +155,12 @@ script PlayerMovement extends Component
 			log_warning("[PlayerMovement] 분기 선택 거부 — 현재 턴 플레이어가 아님: " .. tostring(senderUserId))
 			return
 		end
+		self:ClearBranchWatch()   -- actor가 직접 선택 → 자동선택 감시 해제(피드백 6)
+		self:ApplyBranch(tileName)
+	end
+
+	method void ApplyBranch(string tileName)
+		-- 분기 확정 후 이동 실행(검증 없는 내부 경로: 수동 선택/자동 선택 공통).
 		_BranchSelectUI:CloseForAll()   -- 분기 확정 → 전 클라 분기창 강제 닫기(actor 외 잔재 방어)
 		local mapName = self.Entity.CurrentMapName
 		local prevRegion = _TileManager:GetTileRegion(mapName, self.currentTile)
@@ -167,6 +174,42 @@ script PlayerMovement extends Component
 		else
 			self:MoveToTile(tileName)
 		end
+	end
+
+	property integer _branchTimerId = 0
+
+	method void StartBranchWatch(string firstTile)
+		-- 멀티에서 분기창을 띄운 뒤, 30초 내 미선택 시 자동으로 첫 분기를 선택한다(AFK 방지, 피드백 6).
+		-- 싱글은 대기해도 게임이 멈추지 않으므로(1인) 감시하지 않는다.
+		self:ClearBranchWatch()
+		if _MultiTurnManager == nil or _MultiTurnManager._isActive == false then return end
+		self._branchTimerId = _TimerService:SetTimerOnce(function()
+			self:OnBranchTimeout(firstTile)
+		end, 30.0)
+	end
+
+	method void ClearBranchWatch()
+		-- 분기 자동선택 감시 해제.
+		if self._branchTimerId ~= 0 then
+			_TimerService:ClearTimer(self._branchTimerId)
+			self._branchTimerId = 0
+		end
+	end
+
+	@ExecSpace("Server")
+	method void OnBranchTimeout(string tileName)
+		-- 분기 미선택 30초 초과 → 자동으로 첫 분기 선택 + 턴 매니저에 AFK 자동이동 스트라이크 통지.
+		self._branchTimerId = 0
+		local uid = ""
+		if self.Entity.PlayerComponent ~= nil then uid = self.Entity.PlayerComponent.UserId end
+		-- 그새 턴이 바뀌었거나(다른 유저가 현재 턴) 순서가 리셋돼 이동(MOVE) 단계가 아니면 자동 선택하지 않는다(잔재 방지).
+		if _MultiTurnManager ~= nil and _MultiTurnManager._isActive then
+			if _MultiTurnManager._currentPlayerUserId ~= uid then return end
+			if _MultiTurnManager._currentState ~= "MOVE" then return end
+		end
+		log("[PlayerMovement] 분기 시간 초과 — 자동 선택: " .. tostring(tileName))
+		if uid ~= "" and _MultiTurnManager ~= nil then _MultiTurnManager:NotifyAutoBranch(uid) end
+		self:ApplyBranch(tileName)
 	end
 
 	@ExecSpace("Client")
