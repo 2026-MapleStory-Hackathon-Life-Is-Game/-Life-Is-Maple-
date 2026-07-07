@@ -41,6 +41,8 @@ script BossTile extends EventTileBase
 		local intro = self:BossText("all", "intro", "", "")
 		if intro == "" then intro = self.introText end
 		self:OpenBossSelection(intro, roster.keys, roster.diffs, ownerId)
+		-- 관전자에게도 로스터를 읽기전용으로 방송 → 어떤 보스를 고르는지 보이게 한다(피드백 11).
+		_BossUI:SpectatorShowRoster(intro, roster.keys, roster.diffs, ownerId)
 		log("[BossTile] 보스 선택 표시 tile=" .. self.Entity.Name
 			.. " region=" .. tostring(region) .. " 보스수=" .. tostring(#roster.keys))
 	end
@@ -82,6 +84,7 @@ script BossTile extends EventTileBase
 		local challengeText = self:BossText("all", "challenge", self._selectedBossName, "")
 		if challengeText == "" then challengeText = self._selectedBossName .. " 처치에 도전하였다!\n각오해라!" end
 		self:StartChallenge(challengeText, bossKey, ownerId)
+		_BossUI:SpectatorHide(ownerId)   -- 관전자 로스터 닫고 전투 연출로 전환(피드백 11)
 		_EventTileUI:SpectatorBossFightText(challengeText, self:BossStandRUID(bossKey), ownerId)
 		log("[BossTile] 선택: " .. self._selectedBossName)
 	end

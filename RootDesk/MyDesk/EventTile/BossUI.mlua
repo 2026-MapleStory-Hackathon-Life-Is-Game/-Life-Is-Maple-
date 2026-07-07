@@ -380,7 +380,10 @@ script BossUI extends Logic
 		-- N개 카드만 노출 + 이름/보스 선택 이미지 설정. 나머지 카드는 숨김.
 		local cards = { self.BossCard1, self.BossCard2, self.BossCard3, self.BossCard4 }
 		for i = 1, 4 do
-			if isvalid(cards[i]) then cards[i].Enable = (i <= n) end
+			if isvalid(cards[i]) then
+				cards[i].Enable = (i <= n)
+				if isvalid(cards[i].ButtonComponent) then cards[i].ButtonComponent.Enable = true end   -- 이전 관전(비활성) 잔재 복구
+			end
 			if i <= n then
 				self:SetCardName(i, self._bossNames[i])
 				self:SetCardImage(i, self._bossKeys[i])
@@ -416,6 +419,56 @@ script BossUI extends Logic
 		self:SetCardImage(1, bossKey) -- 1번 카드 보스 선택 이미지도 교체
 		self:SetCardDrops(1, bossKey, nil) -- 단일 모드: 제한 없음(BossProbability 실존 난이도 전부)
 		log("[BossUI] 단일 보스 선택 표시: " .. tostring(bossName))
+	end
+
+	@ExecSpace("Client")
+	method void SpectatorShowRoster(string introText, table bossKeys, table bossDiffs, string actorUserId)
+		-- 관전자: actor의 보스 로스터를 읽기전용으로 방송(어떤 보스를 고르는지 보이게, 피드백 11). actor는 자기 경로를 쓰므로 스킵.
+		local lp = _UserService.LocalPlayer
+		if isvalid(lp) and lp.PlayerComponent.UserId == actorUserId then return end
+		local who = "다른 유저"
+		local ae = _UserService:GetUserEntityByUserId(actorUserId)
+		if isvalid(ae) and ae.PlayerComponent ~= nil and ae.PlayerComponent.Nickname ~= nil and ae.PlayerComponent.Nickname ~= "" then
+			who = ae.PlayerComponent.Nickname
+		end
+		self:ShowRosterReadOnly(introText, bossKeys, bossDiffs, who)
+	end
+
+	@ExecSpace("ClientOnly")
+	method void ShowRosterReadOnly(string introText, table bossKeys, table bossDiffs, string who)
+		-- 관전 표시: 로스터 카드(이름/이미지/드랍)만 채우고 카드 버튼은 비활성(클릭 불가) + '고르는 중' 상태.
+		-- 상세/난이도 진입·선택 경로는 열지 않는다(_bossTile=nil로 RequestSelect 원천 차단).
+		self._bossTile = nil
+		local n = #bossKeys
+		if n > 4 then n = 4 end
+		self:HideOtherUIs()
+		if isvalid(self.BossGroup) then self.BossGroup.Enable = true end
+		if isvalid(self.SelectionPanel) then self.SelectionPanel.Enable = true end
+		if isvalid(self.DetailPanel) then self.DetailPanel.Enable = false end
+		if isvalid(self.SelectionText) and isvalid(self.SelectionText.TextComponent) then
+			self.SelectionText.TextComponent.Text = _EventTileUI:Colorize(introText) .. "\n(" .. who .. " 고르는 중...)"
+		end
+		local cards = { self.BossCard1, self.BossCard2, self.BossCard3, self.BossCard4 }
+		for i = 1, 4 do
+			if isvalid(cards[i]) then
+				cards[i].Enable = (i <= n)
+				if isvalid(cards[i].ButtonComponent) then cards[i].ButtonComponent.Enable = false end   -- 읽기전용(눌림/호버 차단)
+			end
+			if i <= n then
+				self:SetCardName(i, self:BossDisplayName(bossKeys[i]))
+				self:SetCardImage(i, bossKeys[i])
+				self:SetCardDrops(i, bossKeys[i], self:SplitDiffs(bossDiffs[i]))
+			end
+		end
+		log("[BossUI] 관전 보스 로스터 표시 보스수=" .. tostring(n) .. " actor=" .. who)
+	end
+
+	@ExecSpace("Client")
+	method void SpectatorHide(string actorUserId)
+		-- 관전자 보스 로스터 닫기(actor가 선택을 완료해 전투 연출로 넘어갈 때). actor 스킵.
+		local lp = _UserService.LocalPlayer
+		if isvalid(lp) and lp.PlayerComponent.UserId == actorUserId then return end
+		self:Hide()
 	end
 
 	@ExecSpace("ClientOnly")
