@@ -114,6 +114,7 @@ script PlayerMovement extends Component
 				            -- 선택지 도착 Region이 다르면 한글 마을 이름, 같으면 BranchText("N번 분기점") 라벨.
 				            local branchTexts = _TileManager:GetBranchLabels(self.Entity.CurrentMapName, nextList)
 				            self:ShowBranchUI(nextList, branchTexts, self.remainingSteps, self.Entity.PlayerComponent.UserId)   -- actor에게만 타깃(userId 없으면 전원 브로드캐스트 → 남의 턴 분기 이동 버그)
+		            _BranchSelectUI:SpectatorNotice(self.Entity.PlayerComponent.UserId)   -- 관전자에 '분기점 선택 중' 중앙 알림 방송(피드백 13)
 				            return   -- 선택이 올 때까지 멈춤 (OnBranchSelected에서 재개)
 				        end
 				

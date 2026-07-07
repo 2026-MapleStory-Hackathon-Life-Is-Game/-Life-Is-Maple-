@@ -147,6 +147,7 @@ script MultiTurnManager extends Logic
 		        if removedIdx == self._currentPlayerIndex then
 		            -- 퇴장한 actor가 인터랙티브 이벤트 중이었으면 관전 씬을 강제 정리(관전자 초상화/지역배경 마커 잔재 방지, 피드백 1).
 		    _EventTileUI:SpectatorSceneHide(leftUserId)
+		    _BranchSelectUI:CloseForAll()   -- 분기점/관전 알림 잔재도 정리(피드백 13)
 		    -- 퇴장한 플레이어가 현재 턴이면 즉시 다음 플레이어로 전환
 		            if self._currentState == "RESULT_DICE" then
 		                self:BroadcastClose()
