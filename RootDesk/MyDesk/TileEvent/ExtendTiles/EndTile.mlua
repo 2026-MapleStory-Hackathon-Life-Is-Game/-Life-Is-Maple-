@@ -44,13 +44,23 @@ script EndTile extends BaseTile
 			self._piece = piece
 			self._cubeRolling = false
 			local endOwnerId = self:OwnerUserId(piece)
-			if endOwnerId == "" then
-				-- 소유자 없는 말: 롤 없이 바로 완주 처리.
-				self:FinishEndTile(piece)
+			-- 큐브 롤 대상: 싱글은 굴리지 않음. 멀티는 '마지막 완주자(꼴찌)'만 제외하고 나머지 완주자가 굴린다.
+			-- 이 시점은 MarkPlayerFinished 전이라, 이미 완주한 인원수(_finishedCount)가 (총원-1)이면 이번 도착이 꼴찌다.
+			local doRoll = false
+			if endOwnerId ~= "" and _GameModeManager._activeMode == "MULTI"
+				and _MultiTurnManager ~= nil and _MultiTurnManager._isActive then
+				if _MultiTurnManager._finishedCount < (_MultiTurnManager._playerCount - 1) then
+					doRoll = true
+				end
+			end
+			if doRoll then
+				log("[EndTile] 종료 칸 도착 → 큐브 획득 주사위 tile=" .. self.Entity.Name)
+				self:StartCubeRoll(piece, endOwnerId)
 				return
 			end
-			log("[EndTile] 종료 칸 도착 → 큐브 획득 주사위 tile=" .. self.Entity.Name)
-			self:StartCubeRoll(piece, endOwnerId)
+			-- 롤 없이 바로 완주 처리(싱글 전체 / 멀티 꼴찌 / 소유자 없음).
+			log("[EndTile] 종료 칸 도착 → 큐브 롤 없이 완주 tile=" .. self.Entity.Name)
+			self:FinishEndTile(piece)
 			return
 		end
 
@@ -185,9 +195,44 @@ script EndTile extends BaseTile
 		self._piece = nil
 		self._step = 0
 		if ownerId ~= "" then self:ClientHide(ownerId) end
+		-- 검은 마법사 클리어 선착순 보상: 완주 순위별 주스탯/공격력 % 버프(FinishEndTile 전 = MarkPlayerFinished 전이라 rank=_finishedCount+1).
+		self:ApplyClearRankReward(piece)
 		-- 엔딩 요약을 결과창과 통합 → 별도 정리 표/'다음' 없이 바로 종료 흐름(FinishEndTile→통합 결과 카드/멀티 순위표)으로 진행.
 		self:FinishEndTile(piece)
 		log("[EndTile] 검은 마법사 결전 종료(won=" .. tostring(self._won) .. ") → 통합 결과 카드")
+	end
+
+	@ExecSpace("ServerOnly")
+	method void ApplyClearRankReward(Entity piece)
+		-- 검은 마법사(최종) 클리어 선착순 보상(더미데이터): 완주 순위별 주스탯/공격력 % 버프.
+		-- 1등 주30/공30, 2등 주20/공30, 3등 주10/공10, 그 외/꼴찌 주5/공5. (싱글은 1등 취급.)
+		-- 이 시점은 MarkPlayerFinished 전이므로 이번 완주로 매겨질 순위 = _finishedCount + 1.
+		if isvalid(piece) == false then return end
+		local rank = 1
+		local total = 1
+		if _GameModeManager._activeMode == "MULTI" and _MultiTurnManager ~= nil then
+			rank = _MultiTurnManager._finishedCount + 1
+			total = _MultiTurnManager._playerCount
+		end
+		local mainPct = 5
+		local attackPct = 5
+		if total >= 2 and rank >= total then
+			mainPct = 5
+			attackPct = 5   -- 꼴찌(마지막 완주자)
+		elseif rank == 1 then
+			mainPct = 30
+			attackPct = 30
+		elseif rank == 2 then
+			mainPct = 20
+			attackPct = 30
+		elseif rank == 3 then
+			mainPct = 10
+			attackPct = 10
+		end
+		self:AddMainStat(piece, "percent", mainPct)
+		self:AddMainAttack(piece, "percent", attackPct)
+		log("[EndTile] 검은마법사 클리어 순위보상 rank=" .. tostring(rank) .. "/" .. tostring(total)
+			.. " → 주스탯+" .. tostring(mainPct) .. "% 공격+" .. tostring(attackPct) .. "%")
 	end
 
 	method integer BlackMageRequiredPower()
