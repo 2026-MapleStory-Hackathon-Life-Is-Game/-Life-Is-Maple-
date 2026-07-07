@@ -9,6 +9,18 @@ script GameModeManager extends Logic
 
 	property integer _roomSeq = 0
 
+	property integer _multiExpected = 0
+
+	property any _multiArrived = nil
+
+	property integer _multiArrivedCount = 0
+
+	property boolean _multiGateOpen = false
+
+	property string _multiAwaitingMap = ""
+
+	property integer _multiGraceTimer = 0
+
 	method void OnBeginPlay()
 		        log("[GameModeManager] OnBeginPlay: 모드 선택 대기 중")
 		        -- 모드는 ModeSelectUI(클라)의 버튼에서 StartSinglePlayer / StartMultiPlayer 호출로 결정된다.
@@ -44,7 +56,7 @@ script GameModeManager extends Logic
 
 	@ExecSpace("Server")
 	method void BeginSingleRoomGame()
-		        -- [룸 분리] 플레이어가 자기 인스턴스 룸의 Map_01에 도착했을 때 클라(FirstMapManagement)가 호출한다.
+		        -- [룸 분리] 플레이어가 자기 인스턴스 룸의 Map_01에 도착했을 때 클라(Single_FirstMapManagement)가 호출한다.
 		        -- 이 룸의 GameModeManager는 이 플레이어 전용이므로 _isGameActive/턴 상태가 다른 플레이어와 섞이지 않는다.
 		        if _RoomService:IsInstanceRoom() == false then
 		            log_warning("[GameModeManager] BeginSingleRoomGame은 인스턴스 룸에서만 유효합니다.")
@@ -79,6 +91,101 @@ script GameModeManager extends Logic
 		        else
 		            _SingleTurnManager:Start()
 		        end
+	end
+
+	@ExecSpace("Server")
+	method void RegisterMultiArrival()
+		        -- 인스턴스 룸: 매칭 플레이어가 대기 맵에 도착했음을 등록. 전원 도착(또는 grace timeout)에 게이트 오픈.
+		        if _RoomService:IsInstanceRoom() == false then return end
+		        if self._multiGateOpen then return end
+		        if self._multiArrived == nil then
+		            self._multiArrived = {}
+		            self._multiArrivedCount = 0
+		            -- expected 결정: 첫 맵이면 공유메모리 count, 이후 맵이면 MoveMultiToNextMap이 미리 세팅.
+		            if self._multiExpected <= 0 then
+		                local rc, mem = _RoomService:GetSharedMemory(_RoomService.RoomKey)
+		                local n = 0
+		                if mem ~= nil then
+		                    local v = mem:GetVariableAndWait("count")
+		                    if v ~= nil and v.Info ~= nil and v.Info.Value ~= nil then n = tonumber(v.Info.Value) or 0 end
+		                end
+		                self._multiExpected = n
+		            end
+		            self._multiGraceTimer = _TimerService:SetTimerOnce(function() self:OpenMultiGate() end, 15)
+		        end
+		        if self._multiArrived[senderUserId] == nil then
+		            self._multiArrived[senderUserId] = true
+		            self._multiArrivedCount += 1
+		            log("[GameModeManager] 멀티 도착 등록: " .. senderUserId .. " (" .. tostring(self._multiArrivedCount) .. "/" .. tostring(self._multiExpected) .. ")")
+		        end
+		        if self._multiExpected > 0 and self._multiArrivedCount >= self._multiExpected then
+		            self:OpenMultiGate()
+		        end
+	end
+
+	@ExecSpace("ServerOnly")
+	method void OpenMultiGate()
+		        -- 배리어 오픈: 첫 맵이면 게임 시작(StartMultiPlayer), 이후 맵이면 턴 재개(ResumeOnMap). 1회만.
+		        if self._multiGateOpen then return end
+		        self._multiGateOpen = true
+		        if self._multiGraceTimer ~= 0 then _TimerService:ClearTimer(self._multiGraceTimer) self._multiGraceTimer = 0 end
+		        local ids = {}
+		        if self._multiArrived ~= nil then
+		            for uid, _ in pairs(self._multiArrived) do table.insert(ids, uid) end
+		        end
+		        local awaiting = self._multiAwaitingMap
+		        log("[GameModeManager] 멀티 게이트 오픈: " .. tostring(#ids) .. "명, awaiting=" .. awaiting)
+		        -- 배리어 리셋(다음 맵 대비). expected는 MoveMultiToNextMap이 다음 맵에서 다시 세팅.
+		        self._multiArrived = nil
+		        self._multiArrivedCount = 0
+		        if awaiting == "" or awaiting == "Map_01" then
+		            self:StartMultiPlayer(ids)
+		        else
+		            _MultiTurnManager:ResumeOnMap(awaiting)
+		        end
+	end
+
+	@ExecSpace("Server")
+	method void MoveMultiToNextMap(table userIds, string nextMapName)
+		        -- 전원을 같은 인스턴스 룸의 다음 맵으로 텔레포트. 턴은 재시작하지 않고 도착 배리어를 다음 맵 대기로 세팅.
+		        log("[GameModeManager] 멀티 다음 맵 이동: " .. nextMapName .. " (" .. tostring(#userIds) .. "명)")
+		        self._multiGateOpen = false
+		        self._multiArrived = nil
+		        self._multiArrivedCount = 0
+		        self._multiAwaitingMap = nextMapName
+		        self._multiExpected = #userIds
+		        if self._multiGraceTimer ~= 0 then _TimerService:ClearTimer(self._multiGraceTimer) self._multiGraceTimer = 0 end
+		        local destPos = self:GetMultiSpawnPosition(nextMapName)
+		        local nextMapEntity = _EntityService:GetEntityByPath("/maps/" .. nextMapName)
+		        for _, uid in ipairs(userIds) do
+		            local ue = _UserService:GetUserEntityByUserId(uid)
+		            if isvalid(ue) then
+		                if ue.PlayerComponent ~= nil then _LoadingManager:ShowLoadingAndPreload(ue.PlayerComponent.UserId) end
+		                if isvalid(nextMapEntity) then
+		                    _TeleportService:TeleportToMapPosition(ue, destPos, nextMapEntity.Name)
+		                end
+		                local pm = ue:GetComponent("script.PlayerMovement")
+		                if isvalid(pm) then
+		                    pm.currentTile = "Tile_1"
+		                    pm.remainingSteps = 0
+		                    pm:ChangePlayerState("IDLE")
+		                end
+		                _TileManager:ApplyStartTileLevel(ue, nextMapName)
+		                log("[GameModeManager] 멀티 맵 전환: " .. uid .. " → " .. nextMapName)
+		            else
+		                log_warning("[GameModeManager] 멀티 이동 대상 무효: " .. tostring(uid))
+		            end
+		        end
+	end
+
+	method Vector3 GetMultiSpawnPosition(string mapName)
+		        -- 해당 맵의 시작 타일(Tile_1) 월드좌표. 미발견 시 (0,0,0) 폴백.
+		        local startTile = _TileManager:GetTileEntity(mapName, "Tile_1")
+		        if isvalid(startTile) then
+		            return startTile.TransformComponent.WorldPosition
+		        end
+		        log_warning("[GameModeManager] 멀티 시작 타일 미발견 → (0,0,0) 폴백: " .. mapName)
+		        return Vector3(0, 0, 0)
 	end
 
 	@ExecSpace("Server")
@@ -317,39 +424,8 @@ script GameModeManager extends Logic
 	@ExecSpace("Server")
 	method void FinishMulti(table userIds)
 		        if not self._isGameActive then return end
-		
-		        -- 순위표는 (1) MultiTurnManager:Stop()이 완주 순위를 비우기 전, (2) ResetPlayerStats가
-		        -- 전투력을 초기화하기 전에 만들어야 한다. 따라서 Stop보다 먼저 빌드한다.
-		        local ranking = self:BuildRankingText(userIds)
-		        log("[GameModeManager] 멀티 클리어 — 최종 순위\n" .. ranking)
-		
-		        _MultiTurnManager:Stop()
-		        -- 활성 플래그를 먼저 내린다(아래 랭킹/텔레포트/초기화 예외로 게임이 고착되지 않도록).
-		        self._activeMode = "NONE"
-		        self._isGameActive = false
-		        self:ShowResult(ranking)
-		
-		        -- 랭킹 기록 제출(각 플레이어, 전투력 초기화 전).
-		        for _, uid in ipairs(userIds) do
-		            local ue = _UserService:GetUserEntityByUserId(uid)
-		            if isvalid(ue) then
-		                local rp = 0
-		                local rcp = ue:GetComponent("script.CombatPowerManager")
-		                if isvalid(rcp) then rp = rcp.CombatPower end
-		                _RankingManager:SubmitRecord(uid, self:GetPlayerName(ue), self:GetPlayerJob(ue), self:GetPlayerCamp(ue), math.floor(rp))
-		            end
-		        end
-		        _MatchManager:TeleportPlayersToLobby(userIds)
-		        for _, uid in ipairs(userIds) do
-		            local ue = _UserService:GetUserEntityByUserId(uid)
-		            if isvalid(ue) then self:ResetPlayerStats(ue) end
-		        end
-		        -- (게임 활성 플래그는 위 Stop 직후 이미 내렸다.)
-	end
 
-	@ExecSpace("ServerOnly")
-	method string BuildRankingText(table userIds)
-		        -- 랭킹 행 수집: {name, power, job, camp}. 기준은 전투력, 나머지는 부가 정보. finishRank는 동점 타이브레이크용.
+		        -- 순위 데이터는 리셋(전투력 0)·룸이동 전에 캡처해야 한다.
 		        local rows = {}
 		        for _, uid in ipairs(userIds) do
 		            local ue = _UserService:GetUserEntityByUserId(uid)
@@ -358,31 +434,50 @@ script GameModeManager extends Logic
 		                local cp = ue:GetComponent("script.CombatPowerManager")
 		                if isvalid(cp) then power = cp.CombatPower end
 		                table.insert(rows, {
+		                    userId = uid,
 		                    name = self:GetPlayerName(ue),
 		                    power = power,
 		                    job = self:GetPlayerJob(ue),
 		                    camp = self:GetPlayerCamp(ue),
-		                    finishRank = _MultiTurnManager:GetFinishRank(uid),  -- 1=가장 먼저 완주, 미완주=거대값
+		                    avatar = _RankingManager:CaptureCostume(uid),
+		                    finishRank = _MultiTurnManager:GetFinishRank(uid),
 		                })
 		            end
 		        end
-		
-		        -- 정렬 기준 = 전투력 내림차순. 동점이면 먼저 완주한 순 → 그래도 같으면 이름.
 		        table.sort(rows, function(a, b)
 		            if a.power ~= b.power then return a.power > b.power end
 		            if a.finishRank ~= b.finishRank then return a.finishRank < b.finishRank end
 		            return a.name < b.name
 		        end)
-		
-		        -- 헤더 + 행 조립. 열 순서: 순위 - 이름 - 전투력 - 직업 - 진영 (1위에는 우승 표시).
-		        local lines = {}
-		        table.insert(lines, "순위   이름   전투력   직업   진영")
-		        for i, r in ipairs(rows) do
-		            local line = tostring(i) .. "위   " .. r.name .. "   전투력 " .. self:FormatPower(r.power) .. "   " .. r.job .. "   " .. r.camp
-		            if i == 1 then line = line .. "   우승!" end
-		            table.insert(lines, line)
+
+		        -- 랭킹 레코드 제출(리셋 전).
+		        for _, r in ipairs(rows) do
+		            _RankingManager:SubmitRecord(r.userId, r.name, r.job, r.camp, math.floor(r.power))
 		        end
-		        return table.concat(lines, "\n")
+
+		        -- 병렬 배열로 평탄화 후 전원 방송(중첩 테이블 RPC 회피).
+		        local names = {}
+		        local powers = {}
+		        local jobs = {}
+		        local camps = {}
+		        local avatars = {}
+		        local uids = {}
+		        for i, r in ipairs(rows) do
+		            names[i] = r.name
+		            powers[i] = math.floor(r.power)
+		            jobs[i] = r.job
+		            camps[i] = r.camp
+		            avatars[i] = r.avatar
+		            uids[i] = r.userId
+		        end
+		        _ResultUI:ShowMulti(names, powers, jobs, camps, avatars, uids, 1)
+
+		        _MultiTurnManager:Stop()
+		        self._activeMode = "NONE"
+		        self._isGameActive = false
+		        -- 로비 복귀·스탯 초기화는 각 플레이어가 결과 카드를 '닫을 때'로 미룬다
+		        -- (ResultUI.HideMulti → ReturnToLobbyAfterResult, senderUserId per-user). 여기선 즉시 이동/리셋하지 않는다.
+		        log("[GameModeManager] 멀티 클리어 — 리치 순위표 표시(" .. tostring(#rows) .. "명)")
 	end
 
 	method string FormatPower(number value)
@@ -453,11 +548,6 @@ script GameModeManager extends Logic
 		        return "?"
 	end
 
-	@ExecSpace("Client")
-	method void ShowResult(string message)
-		        _ResultUI:Show(message)
-	end
-
 	@ExecSpace("Server")
 	method void MoveToNextMap(Entity piece, string nextMapName)
 		if not isvalid(piece) then return end
@@ -514,13 +604,20 @@ script GameModeManager extends Logic
 				if ownerUid ~= "" then
 					_LevelUpCelebration:Gate(piece, lvPeek.up, lvPeek.level, function()
 						self:ShowMapSelectionFor(nextMapName, ownerUid)
+						-- 레벨업 배너가 닫힌 뒤에 턴을 시작한다(배너가 열려 있는 동안 주사위 단계가 시작되는 레이스 방지).
+						-- 타일 수집 여유를 위해 소폭 지연(기존 타이머 목적 유지).
+						_TimerService:SetTimerOnce(function()
+							_SingleTurnManager:Start()
+						end, 1.0)
 					end)
+				else
+					-- 소유자 없는 예외(게이트를 못 탐): 기존처럼 지연 후 시작.
+					_TimerService:SetTimerOnce(function()
+						_SingleTurnManager:Start()
+					end, 1.0)
 				end
 		
-				-- 만약 바로 시작하면 TileManager의 타일 수집이 덜 끝날 수 있으므로 타이머 사용 권장
-				    _TimerService:SetTimerOnce(function()
-				        _SingleTurnManager:Start() -- 여기서 Start()가 호출되면 다시 TURN_START 단계부터 시작함
-				    end, 1.0)
+				-- (턴 시작은 위 레벨업 게이트 콜백/소유자없음 분기에서 처리 — 여기서 중복 시작하지 않는다.)
 	end
 
 	@ExecSpace("Client")

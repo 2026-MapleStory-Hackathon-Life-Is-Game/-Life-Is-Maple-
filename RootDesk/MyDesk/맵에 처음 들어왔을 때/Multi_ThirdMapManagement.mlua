@@ -1,0 +1,40 @@
+@Component
+script Multi_ThirdMapManagement extends Component
+
+	property boolean _arrivalTriggered = false
+
+	property integer _checkTimer = 0
+
+	@ExecSpace("ClientOnly")
+	method void OnMapEnter(Entity enteredMap)
+		-- 텔레포트로 Map_03 진입 → 도착 등록 폴링 시작.
+		if self._arrivalTriggered then return end
+		if self._checkTimer ~= 0 then _TimerService:ClearTimer(self._checkTimer) end
+		self._checkTimer = _TimerService:SetTimerRepeat(function() self:PollArrival() end, 0.1)
+	end
+
+	@ExecSpace("ClientOnly")
+	method void OnEndPlay()
+		-- 도착 폴링 타이머 정리.
+		if self._checkTimer ~= 0 then _TimerService:ClearTimer(self._checkTimer) self._checkTimer = 0 end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void PollArrival()
+		-- 멀티 룸("Multi_")의 Map_03에 로컬 플레이어가 로드된 순간 1회만 도착 등록.
+		if self._arrivalTriggered then
+			if self._checkTimer ~= 0 then _TimerService:ClearTimer(self._checkTimer) self._checkTimer = 0 end
+			return
+		end
+		if _RoomService == nil or _RoomService:IsInstanceRoom() == false then return end
+		local rk = _RoomService.RoomKey
+		if rk == nil or string.sub(rk, 1, 6) ~= "Multi_" then return end
+		local lp = _UserService.LocalPlayer
+		if isvalid(lp) == false or lp.CurrentMapName ~= "Map_03" then return end
+		self._arrivalTriggered = true
+		if self._checkTimer ~= 0 then _TimerService:ClearTimer(self._checkTimer) self._checkTimer = 0 end
+		_GameModeManager:RegisterMultiArrival()
+		log("[Multi_ThirdMapManagement] 멀티 Map_03 도착 등록")
+	end
+
+end

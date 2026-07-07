@@ -15,6 +15,8 @@ script MatchManager extends Logic
 
 	property integer MAX_PLAYERS = 4
 
+	property integer _roomSeq = 0
+
 	property integer MIN_PLAYERS = 2
 
 	property number MATCH_TIMEOUT = 30
@@ -57,6 +59,10 @@ script MatchManager extends Logic
 
 	@ExecSpace("Server")
 	method void JoinMatch()
+		        if _RoomService:IsInstanceRoom() then
+		            log_warning("[MatchManager] JoinMatch는 로비(스태틱 룸)에서만 유효")
+		            return
+		        end
 		        if _GameModeManager._isGameActive then
 		            log("[MatchManager] 이미 게임이 진행 중입니다. 매칭 무시")
 		            return
@@ -143,57 +149,22 @@ script MatchManager extends Logic
 		            self._userLeaveHandler = nil
 		        end
 		
-		        log("[MatchManager] 매칭 성립: " .. tostring(#userIds) .. "명 → 게임 시작")
+		        log("[MatchManager] 매칭 성립: " .. tostring(#userIds) .. "명 → 공유 인스턴스 룸 생성")
 		
-		        -- 3) 게임 맵 전환 + 로비 UI 닫기 + 멀티 시작
-		        self:TeleportPlayersToGame(userIds)
+		        -- 3) 공유 인스턴스 룸 생성 + 인원수 공유메모리 전달 + 전원 이동 + 매칭 UI 닫기
+		        self._roomSeq = self._roomSeq + 1
+		        local roomKey = "Multi_" .. tostring(self._roomSeq)
+		        local room = _RoomService:CreateInstanceRoom(roomKey, { "Map_01", "Map_02", "Map_03" })
+		        if room == nil then
+		            log_error("[MatchManager] 멀티 인스턴스 룸 생성 실패: " .. roomKey)
+		            return
+		        end
+		        local rc, mem = _RoomService:GetSharedMemory(roomKey)
+		        if mem ~= nil then mem:SetVariableAndWait("count", tostring(#userIds)) end
+		        _RoomService:MoveUsersToInstanceRoom(roomKey, userIds, "Map_01")
 		        for _, uid in ipairs(userIds) do
 		            self:NotifyMatchStart(uid)
 		        end
-		        _GameModeManager:StartMultiPlayer(userIds)
-	end
-
-	@ExecSpace("ServerOnly")
-	method void TeleportPlayersToGame(table userIds)
-		        local destPos = self:GetGameSpawnPosition()
-		        for _, uid in ipairs(userIds) do
-		            local userEntity = _UserService:GetUserEntityByUserId(uid)
-		            if isvalid(userEntity) then
-		                -- 게임 진입 직전, 해당 클라에 로딩 오버레이 + 무거운 RUID 프리로드를 지시(맵/선택창 pop-in 방지).
-		                _LoadingManager:ShowLoadingAndPreload(uid)
-		                _TeleportService:TeleportToMapPosition(userEntity, destPos, "Map_01")
-		                -- 보드 시작 칸으로 상태 리셋
-		                if userEntity.PlayerMovement ~= nil then
-		                    userEntity.PlayerMovement.currentTile = "Tile_1"
-		                end
-		                -- 맵 시작 시 서 있는 시작 타일의 레벨을 즉시 적용(이동 전에도 레벨이 반영되도록).
-		                _TileManager:ApplyStartTileLevel(userEntity, "Map_01")
-		                log("[MatchManager] 게임 맵 전환: " .. uid)
-		            else
-		                log_warning("[MatchManager] 텔레포트 대상 무효: " .. tostring(uid))
-		            end
-		        end
-	end
-
-	@ExecSpace("ServerOnly")
-	method void TeleportPlayersToLobby(table userIds)
-		        for _, uid in ipairs(userIds) do
-		            local userEntity = _UserService:GetUserEntityByUserId(uid)
-		            if isvalid(userEntity) then
-		                _TeleportService:TeleportToMapPosition(userEntity, self.lobbySpawnPos, "Lobby")
-		                log("[MatchManager] 로비 복귀: " .. uid)
-		            end
-		        end
-	end
-
-	method Vector3 GetGameSpawnPosition()
-		local startTile = _TileManager:GetTileEntity("Map_01", "Tile_1")
-		        
-		        if isvalid(startTile) then
-		            return startTile.TransformComponent.WorldPosition
-		        end
-		        log_warning("[MatchManager] 시작 타일(Tile_1) 미발견 → 폴백 좌표 사용")
-		        return Vector3(0, 0, 0)
 	end
 
 	method void BroadcastMatchUI()

@@ -82,17 +82,18 @@ script ModeSelectUI extends Logic
 		self:SetPanelEnable(self.modeSelectPanel, false)
 		self:SetPanelEnable(self.matchingPanel, false)
 		-- [룸 분리] 로비(스태틱 룸)에서는 '내 전용 인스턴스 룸 생성 + 이동'만 요청한다.
-		-- 오프닝 인트로/억제 플래그/실제 게임 시작은 인스턴스 룸의 Map_01 도착 시점(FirstMapManagement.OnMapEnter)에서 처리된다.
+		-- 오프닝 인트로/억제 플래그/실제 게임 시작은 인스턴스 룸의 Map_01 도착 시점(Single_FirstMapManagement.PollRoomStart)에서 처리된다.
 		-- (로비의 클라 상태는 룸 이동으로 끊기므로 여기서 인트로를 띄우면 안 된다.)
 		_GameModeManager:StartSinglePlayer()
 	end
 
 	@ExecSpace("ClientOnly")
 	method void OnClickMulti()
-		-- [룸 분리 작업 중] 멀티는 임시 비활성화. 게임 맵(Map_01/02/03)이 인스턴스 맵으로 전환되어
-		-- 기존 멀티 흐름(스태틱 룸 텔레포트)이 동작하지 않는다. 멀티도 인스턴스 룸으로 옮긴 뒤 재활성화 예정.
+		-- 멀티 매칭 풀 입장. 매칭 패널은 서버의 NotifyMatchUI(count,max)가 도착하면 ShowMatching으로 표시된다.
 		_SFXManager:PlayClick()
-		log("[ModeSelectUI] 멀티플레이는 현재 준비 중입니다(비활성화).")
+		self:SetPanelEnable(self.modeSelectPanel, false)
+		_MatchManager:JoinMatch()
+		log("[ModeSelectUI] 멀티 매칭 입장 요청")
 	end
 
 	@ExecSpace("ClientOnly")
