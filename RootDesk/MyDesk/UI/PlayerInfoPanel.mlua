@@ -61,6 +61,7 @@ script PlayerInfoPanel extends Component
 			if isvalid(self.UserName) and target.PlayerComponent ~= nil then
 				self.UserName.Text = target.PlayerComponent.Nickname
 			end
+			self:ApplyPortraitIdentity(target, tuid)   -- 상단 초상화도 현재 턴 플레이어 외형으로 전환(피드백 3)
 		end
 		if isvalid(self.combatComp) == false then return end
 		
@@ -112,6 +113,28 @@ script PlayerInfoPanel extends Component
 			end
 		end
 		return _UserService.LocalPlayer
+	end
+
+	method void ApplyPortraitIdentity(any target, string userId)
+		-- 상단 초상화(PlayerPortrait)를 표시 대상(현재 턴 플레이어)의 외형으로 맞춘다(피드백 3).
+		-- 계정 아바타(DefaultEquipUserId) 위에 런타임 코디(직업 무기·진영 코스튬)를 슬롯별로 덮어써 실제 외형으로 보이게 한다.
+		-- 슬롯 정의는 EventTileUI의 초상화 규칙을 그대로 재사용한다(중복 방지).
+		if userId == nil or userId == "" then return end
+		local portrait = _EntityService:GetEntityByPath("/ui/InGameUIGroup/PlayerInfo_Panel/UISprite/PlayerPortrait")
+		if isvalid(portrait) == false then return end
+		local cm = portrait.CostumeManagerComponent
+		if isvalid(cm) == false then return end
+		cm.UseCustomEquipOnly = false
+		cm.DefaultEquipUserId = userId
+		if isvalid(target) then
+			local pcm = target.CostumeManagerComponent
+			if isvalid(pcm) then
+				for _, d in ipairs(_EventTileUI:PortraitSlotDefs()) do
+					local v = pcm[d.p]
+					if v ~= nil and v ~= "" then cm:SetEquip(d.c, v) end
+				end
+			end
+		end
 	end
 
 	method string LocalCampKey()

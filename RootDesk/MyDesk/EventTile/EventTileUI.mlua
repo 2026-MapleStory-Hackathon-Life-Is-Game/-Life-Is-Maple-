@@ -472,11 +472,39 @@ script EventTileUI extends Logic
 		_ResourceService:PreloadAsync(list, function(_results) end)
 	end
 
+	method void NormalizeActorMarker()
+		-- 내가 현재 턴 actor(또는 싱글/멀티 비활성)면 관전 마커(_specActorUserId)를 비운다.
+		-- 관전 마커는 '남을 관전 중'일 때만 유효해야 한다. 이전 관전이 SpectatorSceneHide 없이 끝나(예: actor 퇴장)
+		-- 마커가 남으면, 내 턴 이벤트가 남의 초상화/지역배경으로 렌더된다(피드백 1·4). 여기서 방어적으로 정규화.
+		if _MultiTurnManager == nil or _MultiTurnManager._isActive == false then
+			self._specActorUserId = ""
+			return
+		end
+		local lp = _UserService.LocalPlayer
+		if isvalid(lp) and lp.PlayerComponent ~= nil and lp.PlayerComponent.UserId == _MultiTurnManager._currentPlayerUserId then
+			self._specActorUserId = ""
+		end
+	end
+
+	method void ParkPortraitLocal()
+		-- 초상화 아바타를 로컬 플레이어 계정 아바타로 되돌린다(이벤트 사이 남의 아바타 잔상 방지, 피드백 4).
+		-- 무거운 코디 슬롯 복사는 생략 — 다음 이벤트에서 EnsurePortraitIdentity가 전체 정체성을 재고정한다.
+		local lp = _UserService.LocalPlayer
+		if isvalid(lp) == false or lp.PlayerComponent == nil then return end
+		local portrait = _EntityService:GetEntityByPath(self.PortraitPath)
+		if isvalid(portrait) == false then return end
+		local cm = portrait.CostumeManagerComponent
+		if isvalid(cm) == false then return end
+		cm.UseCustomEquipOnly = false
+		cm.DefaultEquipUserId = tostring(lp.PlayerComponent.UserId)
+	end
+
 	@ExecSpace("ClientOnly")
 	method void ApplyRegionBackground()
 		-- 정체성 주체의 현재 타일 지역으로 BackgroundMap 스프라이트를 교체한다.
 		-- 마커(_specActorUserId)가 있으면 관전 모드 → actor의 지역, 없으면 LocalPlayer(=이벤트 도착 본인).
 		-- 지역 배경이 미등록(예: 사자왕성)이거나 주체 미발견이면 기존 배경을 그대로 둔다.
+		self:NormalizeActorMarker()   -- 내가 actor면 이전 관전 잔재 마커를 비운다(피드백 1)
 		local me = _UserService.LocalPlayer
 		if self._specActorUserId ~= "" then me = _UserService:GetUserEntityByUserId(self._specActorUserId) end
 		if isvalid(me) == false then return end
@@ -876,6 +904,7 @@ script EventTileUI extends Logic
 		-- 초상화 아바타를 '정체성 주체'와 동일 외형으로 맞춘다.
 		-- 마커(_specActorUserId)가 있으면 관전 모드 → actor 정체성, 없으면 LocalPlayer(=이벤트 도착 본인).
 		-- 빈 DefaultEquipUserId면 계정 아바타 로드 전 순간에 MSW 기본 아바타(토벤머리)로 폴백 → 이벤트마다 정체성을 다시 고정한다.
+		self:NormalizeActorMarker()   -- 내가 actor면 이전 관전 잔재 마커를 비워 내 정체성으로 렌더(피드백 1·4)
 		local portrait = _EntityService:GetEntityByPath(self.PortraitPath)
 		if isvalid(portrait) == false then return end
 		local cm = portrait.CostumeManagerComponent
@@ -1199,6 +1228,9 @@ script EventTileUI extends Logic
 		--   그룹을 끄기 '전에'(아바타가 아직 켜져 있는 동안) 보내야 포즈 이벤트가 확실히 전달된다.
 		self:PortraitResetPose()
 		self:ClearPortrait()
+		-- 이벤트 종료 후 초상화 정체성을 로컬 플레이어로 park한다(다음 열림 시 이전 actor 아바타 1프레임 잔상 방지, 피드백 4).
+		self._specActorUserId = ""
+		self:ParkPortraitLocal()
 		self:HideLevelUpFx()          -- 레벨업 이펙트 정리
 		self:ClearEventImages()       -- ★ 공유 NPC/몬스터 이미지의 RUID를 완전히 비워 다음 이벤트의 '뒤늦게 교체'(잔상) 방지
 		if self._luHidHud then        -- 레벨업 배너가 숨긴 HUD만 복원(다른 이벤트 Hide는 HUD를 건드리지 않음)
