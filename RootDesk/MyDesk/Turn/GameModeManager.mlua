@@ -138,6 +138,13 @@ script GameModeManager extends Logic
 		        -- 배리어 리셋(다음 맵 대비). expected는 MoveMultiToNextMap이 다음 맵에서 다시 세팅.
 		        self._multiArrived = nil
 		        self._multiArrivedCount = 0
+		        -- [멀티 선택창] 도착 맵에 맞는 선택창(진영/직업/인생분기)을 각 플레이어에게 타깃 표시(싱글과 동일).
+		        -- 이게 없으면 아무도 직업을 못 골라 전원 Cudgel(Class=Common) 고정 → 직업별(weapon:) 보상이 무지급된다.
+		        local selMap = awaiting
+		        if selMap == "" then selMap = "Map_01" end
+		        for _, uid in ipairs(ids) do
+		            self:ShowMapSelectionFor(selMap, uid)
+		        end
 		        if awaiting == "" or awaiting == "Map_01" then
 		            self:StartMultiPlayer(ids)
 		        else
