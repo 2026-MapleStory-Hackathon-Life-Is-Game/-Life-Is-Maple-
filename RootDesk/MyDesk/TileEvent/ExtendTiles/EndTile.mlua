@@ -48,8 +48,7 @@ script EndTile extends BaseTile
 		local ownerId = self:OwnerUserId(piece)
 		if ownerId == "" then
 			-- 소유자 없는 말이면 결전 없이 즉시 종료.
-			_GameModeManager:OnPlayerReachedEnd(piece)
-			_SingleTurnManager:Stop()
+			self:FinishEndTile(piece)
 			return
 		end
 		self._step = 0
@@ -94,6 +93,19 @@ script EndTile extends BaseTile
 	end
 
 	@ExecSpace("ServerOnly")
+	method void FinishEndTile(Entity piece)
+		-- 종료칸 완주 처리: 완주 기록(OnPlayerReachedEnd) 후 모드별로 턴을 진행/정지시킨다.
+		-- 싱글=턴 루프 정지(게임 종료→결과 카드). 멀티=완료 신호로 턴 진행(다른 플레이어 계속, 전원 완주 시 FinishMulti).
+		-- ⚠ 멀티에서 _SingleTurnManager:Stop()만 부르면(과거 버그) MultiTurnManager가 완료 신호를 못 받아 TILE 상태에 영구 정지한다.
+		if isvalid(piece) then _GameModeManager:OnPlayerReachedEnd(piece) end
+		if _GameModeManager._activeMode == "MULTI" then
+			_GameModeManager:NotifyTileEventDone()
+		else
+			_SingleTurnManager:Stop()
+		end
+	end
+
+	@ExecSpace("ServerOnly")
 	method void EndBattle()
 		-- 결전 종료: 승/패 무관 게임 종료(기존 종료 경로 재사용). UI 닫고 상태 정리.
 		local piece = self._piece
@@ -102,9 +114,8 @@ script EndTile extends BaseTile
 		self._piece = nil
 		self._step = 0
 		if ownerId ~= "" then self:ClientHide(ownerId) end
-		-- 엔딩 요약을 결과창과 통합 → 별도 정리 표/'다음' 없이 바로 종료 흐름(OnPlayerReachedEnd→통합 결과 카드)으로 진행.
-		if isvalid(piece) then _GameModeManager:OnPlayerReachedEnd(piece) end
-		_SingleTurnManager:Stop()
+		-- 엔딩 요약을 결과창과 통합 → 별도 정리 표/'다음' 없이 바로 종료 흐름(FinishEndTile→통합 결과 카드/멀티 순위표)으로 진행.
+		self:FinishEndTile(piece)
 		log("[EndTile] 검은 마법사 결전 종료(won=" .. tostring(self._won) .. ") → 통합 결과 카드")
 	end
 

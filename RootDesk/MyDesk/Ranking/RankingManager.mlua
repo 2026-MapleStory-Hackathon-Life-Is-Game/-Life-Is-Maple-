@@ -17,6 +17,10 @@ script RankingManager extends Logic
 
 	property integer MaxEntries = 10
 
+	-- 랭킹 초기화(전역 파괴 RPC) 허용 개발자 userId 목록(';' 구분). 비어있으면(기본) 아무도 초기화할 수 없다.
+	-- 초기화 버튼을 쓰려면 거부 로그에 찍힌 요청자 userId를 이 문자열에 등록한다(예: "user_123;user_456").
+	property string _adminUserIds = ""
+
 	property integer _hoverRow = 0
 
 	property boolean _lastMouse1 = false
@@ -223,8 +227,24 @@ script RankingManager extends Logic
 	method void RequestResetRanking()
 		-- 클라 '랭킹 초기화' 버튼 → 서버에서 전역 랭킹(점수+메타) 전부 삭제.
 		-- ⚠️ 전역 공유 데이터라 모든 유저의 랭킹이 초기화된다(되돌릴 수 없음).
+		-- 보안: 클라가 호출 가능한 RPC이므로 반드시 허용목록(_adminUserIds)으로 게이트한다.
+		-- 목록이 비면 전부 거부(기본) → 악의적/실수 클라가 전역 랭킹을 파괴하지 못한다.
+		if self:IsAdminUser(senderUserId) == false then
+			log_warning("[RankingManager] 랭킹 초기화 거부 — 권한 없음(요청자=" .. tostring(senderUserId) .. "). 이 userId를 _adminUserIds에 등록해야 초기화 가능.")
+			return
+		end
 		log("[RankingManager] 랭킹 초기화 요청 수신 (요청자=" .. tostring(senderUserId) .. ")")
 		self:ResetRanking()
+	end
+
+	method boolean IsAdminUser(string userId)
+		-- userId가 _adminUserIds(';' 구분 허용목록)에 포함되면 true. 목록이 비면 항상 false(전역 파괴 RPC 방어).
+		if userId == nil or userId == "" then return false end
+		if self._adminUserIds == nil or self._adminUserIds == "" then return false end
+		for token in string.gmatch(self._adminUserIds, "[^;]+") do
+			if token == userId then return true end
+		end
+		return false
 	end
 
 	@ExecSpace("ServerOnly")

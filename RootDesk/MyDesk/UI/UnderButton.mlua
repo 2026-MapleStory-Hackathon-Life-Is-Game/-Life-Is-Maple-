@@ -281,7 +281,9 @@ script UnderButton extends Component
 					if _MultiTurnManager._isRolling then
 						return false
 					end
-					local myUserId = _UserService.LocalPlayer.PlayerComponent.UserId
+					local lp = _UserService.LocalPlayer
+					if isvalid(lp) == false then return false end
+					local myUserId = lp.PlayerComponent.UserId
 					return myUserId == _MultiTurnManager._currentPlayerUserId
 				end
 		

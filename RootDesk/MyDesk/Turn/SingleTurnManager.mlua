@@ -132,10 +132,7 @@ script SingleTurnManager extends Logic
 		        self:PlayDiceAnimation(_DiceManager._dice1, _DiceManager._dice2, total)
 		        -- ※ 여기서 AdvanceState 안 함! 연출 끝난 뒤 OnDiceAnimationEnd에서 진행
 				
-				-- 주사위 던진 결과를 출력함
-						_TimerService:SetTimerOnce(function()
-						    self:PlayTotalDiceSFX(total)
-						end, 2.0)
+		-- (합계 SFX는 DiceManager:Roll이 이미 2초 후 전원 방송하므로 여기서 중복 예약하지 않는다.)
 	end
 
 	@ExecSpace("Client")

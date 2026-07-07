@@ -207,9 +207,14 @@ script BranchSelectUI extends Logic
 		log("분기 선택: " .. tileName)
 		
 		-- 로컬 플레이어의 PlayerMovement 컴포넌트를 찾아 서버로 전달
-		local player = _UserService.LocalPlayer   -- 접근자 이름은 프로젝트 기준 확인
-		player.PlayerMovement:OnBranchSelected(tileName)
-		
+		local player = _UserService.LocalPlayer
+		if isvalid(player) and player.PlayerMovement ~= nil then
+			player.PlayerMovement:OnBranchSelected(tileName)
+		else
+			-- 맵/룸 전환 순간 등 LocalPlayer·PlayerMovement가 잠깐 무효일 때 크래시 방지(다른 호출부와 동일 가드).
+			log_warning("[BranchSelectUI] 분기 선택 무시 — LocalPlayer/PlayerMovement 없음")
+		end
+
 		self:Hide()   -- 선택했으니 UI 닫기
 	end
 
