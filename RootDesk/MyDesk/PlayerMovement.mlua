@@ -113,7 +113,7 @@ script PlayerMovement extends Component
 				        if #nextList >= 2 then
 				            -- 선택지 도착 Region이 다르면 한글 마을 이름, 같으면 BranchText("N번 분기점") 라벨.
 				            local branchTexts = _TileManager:GetBranchLabels(self.Entity.CurrentMapName, nextList)
-				            self:ShowBranchUI(nextList, branchTexts, self.remainingSteps)
+				            self:ShowBranchUI(nextList, branchTexts, self.remainingSteps, self.Entity.PlayerComponent.UserId)   -- actor에게만 타깃(userId 없으면 전원 브로드캐스트 → 남의 턴 분기 이동 버그)
 				            return   -- 선택이 올 때까지 멈춤 (OnBranchSelected에서 재개)
 				        end
 				
@@ -143,6 +143,16 @@ script PlayerMovement extends Component
 	@ExecSpace("Server")
 	method void OnBranchSelected(string tileName)
 		-- 분기 선택. 도착 칸의 마을(Region)이 현재 칸과 다르면 점프(착지 IDLE)로, 같으면 일반 걷기로 이동.
+		-- 서버 방어: 요청자가 이 말(piece)의 소유자여야 하고, 멀티면 현재 턴 플레이어여야 한다.
+		-- (분기창을 actor에게만 띄우지만, 서버에서도 남의 턴 이동을 이중으로 막는다.)
+		if self.Entity.PlayerComponent == nil or senderUserId ~= self.Entity.PlayerComponent.UserId then
+			log_warning("[PlayerMovement] 분기 선택 거부 — 요청자가 말 소유자가 아님: " .. tostring(senderUserId))
+			return
+		end
+		if _MultiTurnManager ~= nil and _MultiTurnManager._isActive and _MultiTurnManager._currentPlayerUserId ~= senderUserId then
+			log_warning("[PlayerMovement] 분기 선택 거부 — 현재 턴 플레이어가 아님: " .. tostring(senderUserId))
+			return
+		end
 		local mapName = self.Entity.CurrentMapName
 		local prevRegion = _TileManager:GetTileRegion(mapName, self.currentTile)
 		local nextRegion = _TileManager:GetTileRegion(mapName, tileName)

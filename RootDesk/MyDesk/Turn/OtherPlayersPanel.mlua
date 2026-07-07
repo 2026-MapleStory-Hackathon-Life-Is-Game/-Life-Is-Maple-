@@ -1,0 +1,83 @@
+@Logic
+script OtherPlayersPanel extends Logic
+
+	property string PanelPath = "/ui/InGameUIGroup/OtherPlayers_Panel"
+
+	property number _pollInterval = 0.3
+
+	property number _acc = 0
+
+	@ExecSpace("ClientOnly")
+	method void OnUpdate(number delta)
+		-- 좌측 패널 아래 '다른 참가자' 소형 패널을 주기적으로 갱신한다(멀티에서만 표시).
+		self._acc = self._acc + delta
+		if self._acc < self._pollInterval then return end
+		self._acc = 0
+		self:Refresh()
+	end
+
+	@ExecSpace("ClientOnly")
+	method void Refresh()
+		-- 패널 표시/숨김 + 참가자 순위(전투력 내림차순) 채우기.
+		local panel = _EntityService:GetEntityByPath(self.PanelPath)
+		if isvalid(panel) == false then return end
+
+		-- 멀티 진행 중 + 맵뷰가 닫혀 있을 때만 표시(맵뷰 중엔 HUD를 숨기는 흐름과 정렬).
+		local show = (_MultiTurnManager ~= nil and _MultiTurnManager._isActive)
+		if _MapViewManager ~= nil and _MapViewManager._isOpen then show = false end
+		panel.Enable = show
+		if show == false then return end
+
+		-- 참가자 수집: 이름 / 전투력 / 완주순위(@Sync 미러).
+		local rows = {}
+		for _, ue in ipairs(_UserService.UserEntities.Values) do
+			if isvalid(ue) and ue.PlayerComponent ~= nil then
+				local power = 0
+				local cp = ue:GetComponent("script.CombatPowerManager")
+				if isvalid(cp) then power = cp.CombatPower end
+				local uid = ue.PlayerComponent.UserId
+				local fin = 0
+				if _MultiTurnManager._finishSync[uid] ~= nil then fin = _MultiTurnManager._finishSync[uid] end
+				table.insert(rows, { name = ue.PlayerComponent.Nickname, power = power, uid = uid, fin = fin })
+			end
+		end
+		table.sort(rows, function(a, b) return a.power > b.power end)
+
+		local myUid = ""
+		local me = _UserService.LocalPlayer
+		if isvalid(me) and me.PlayerComponent ~= nil then myUid = me.PlayerComponent.UserId end
+
+		-- 최대 4행. 없는 순번은 숨긴다.
+		for i = 1, 4 do
+			local rowE = _EntityService:GetEntityByPath(self.PanelPath .. "/Row" .. tostring(i))
+			if isvalid(rowE) then
+				local r = rows[i]
+				if r == nil then
+					rowE.Enable = false
+				else
+					rowE.Enable = true
+					if isvalid(rowE.TextComponent) then
+						local nm = r.name
+						if nm == nil or nm == "" then nm = "?" end
+						if r.uid == myUid then nm = nm .. " (나)" end
+						local line = tostring(i) .. ". " .. nm .. "   " .. self:FmtPower(r.power)
+						if r.fin > 0 then line = line .. "   [완주]" end
+						rowE.TextComponent.Text = line
+					end
+				end
+			end
+		end
+	end
+
+	method string FmtPower(number value)
+		-- 전투력 메이플식 "○만 ○○○○" 표기(1만 미만은 그대로).
+		local n = math.floor(value)
+		if n >= 10000 then
+			local man = math.floor(n / 10000)
+			local rest = n % 10000
+			return tostring(man) .. "만 " .. string.format("%04d", rest)
+		end
+		return tostring(n)
+	end
+
+end

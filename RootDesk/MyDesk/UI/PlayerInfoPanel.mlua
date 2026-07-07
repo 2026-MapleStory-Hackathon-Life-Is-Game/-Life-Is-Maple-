@@ -21,13 +21,16 @@ script PlayerInfoPanel extends Component
 
 	property string lastShownCampJob = ""
 
+	property string _lastTargetUid = ""
+
 	method void OnBeginPlay()
 		if self:IsClient() then
 		
 			-- 플레이어 정보 창의 Text값을 플레이어의 닉네임으로 설정합니다.
 			local player = _UserService.LocalPlayer
-		
-			self.UserName.Text = player.PlayerComponent.Nickname
+			if isvalid(player) and isvalid(self.UserName) then
+				self.UserName.Text = player.PlayerComponent.Nickname
+			end
 		
 			self.combatComp = nil
 			self.lastShownPower = -1
@@ -42,14 +45,24 @@ script PlayerInfoPanel extends Component
 		-- 로컬 플레이어의 전투력(@Sync)을 폴링해 값이 바뀌면 패널 텍스트를 갱신한다.
 		if self:IsClient() == false then return end
 		
-		-- CombatPowerManager는 입장 시 런타임 부착되므로 지연 캐시한다.
-		if isvalid(self.combatComp) == false then
-			local player = _UserService.LocalPlayer
-			if isvalid(player) then
-				self.combatComp = player:GetComponent("script.CombatPowerManager")
+		-- 표시 대상: 멀티 진행 중이면 현재 턴 플레이어(A), 아니면 로컬 플레이어(싱글/로비).
+		local target = self:TargetPlayerEntity()
+		if isvalid(target) == false then return end
+		local tuid = ""
+		if target.PlayerComponent ~= nil then tuid = target.PlayerComponent.UserId end
+		if tuid ~= self._lastTargetUid then
+			-- 대상 변경(멀티 턴 전환): 캐시/표시 초기화 후 새 대상으로 재바인딩 + 닉네임 갱신.
+			self._lastTargetUid = tuid
+			self.combatComp = target:GetComponent("script.CombatPowerManager")
+			self.buffComp = target:GetComponent("script.BuffManager")
+			self.lastShownPower = -1
+			self.lastShownLevel = -1
+			self.lastShownCampJob = ""
+			if isvalid(self.UserName) and target.PlayerComponent ~= nil then
+				self.UserName.Text = target.PlayerComponent.Nickname
 			end
-			if isvalid(self.combatComp) == false then return end
 		end
+		if isvalid(self.combatComp) == false then return end
 		
 		---@type CombatPowerManager
 		local cp = self.combatComp
@@ -88,12 +101,21 @@ script PlayerInfoPanel extends Component
 		if tc ~= nil then tc.Text = s end
 	end
 
-	method string LocalCampKey()
-		-- 로컬 플레이어의 진영 키(BuffManager.CampName, @TargetUserSync). 미선택/미부착 시 "".
-		if isvalid(self.buffComp) == false then
-			local player = _UserService.LocalPlayer
-			if isvalid(player) then self.buffComp = player:GetComponent("script.BuffManager") end
+	method any TargetPlayerEntity()
+		-- 멀티 진행 중이면 현재 턴 플레이어(A), 아니면 로컬 플레이어(싱글/로비).
+		-- (관전자 화면에서도 상단 패널이 '지금 행동 중인 플레이어' 정보를 보여주도록 대상 스위칭.)
+		if _MultiTurnManager ~= nil and _MultiTurnManager._isActive then
+			local uid = _MultiTurnManager._currentPlayerUserId
+			if uid ~= nil and uid ~= "" then
+				local ue = _UserService:GetUserEntityByUserId(uid)
+				if isvalid(ue) then return ue end
+			end
 		end
+		return _UserService.LocalPlayer
+	end
+
+	method string LocalCampKey()
+		-- 표시 대상(TargetPlayerEntity)의 진영 키. buffComp는 OnUpdate가 대상 변경 시 재바인딩한다.
 		if isvalid(self.buffComp) and self.buffComp.CampName ~= nil then return self.buffComp.CampName end
 		return ""
 	end

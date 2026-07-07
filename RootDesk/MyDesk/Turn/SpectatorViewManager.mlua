@@ -1,0 +1,67 @@
+@Logic
+script SpectatorViewManager extends Logic
+
+	property number FollowLerp = 8.0
+
+	@ExecSpace("ClientOnly")
+	method void OnUpdate(number delta)
+		-- 멀티에서 '현재 턴 플레이어(A)'를 관전자 카메라가 따라가게 한다.
+		-- 엔진 카메라는 LocalPlayer를 앵커로 따라가므로, 화면 중심 = 내pos + CameraOffset 이다.
+		-- 따라서 CameraOffset = A.pos - 내pos 로 두면 화면 중심이 A가 되어 관전자가 A를 본다(A가 움직이면 매 프레임 추종).
+		-- 내 턴 / 싱글 / 맵뷰 열림 / 대상 무효면 오프셋 0(내 캐릭터 중심)으로 부드럽게 복귀한다.
+		if _MultiTurnManager == nil or _MultiTurnManager._isActive == false then
+			self:EaseOffsetToZero(delta)
+			return
+		end
+		-- 맵뷰가 열려 있으면 카메라 제어권은 MapViewManager에 있으므로 관전 추종을 멈춘다(이중 제어 방지).
+		if _MapViewManager ~= nil and _MapViewManager._isOpen then return end
+
+		local me = _UserService.LocalPlayer
+		if isvalid(me) == false then return end
+		local myUid = ""
+		if me.PlayerComponent ~= nil then myUid = me.PlayerComponent.UserId end
+		local actorUid = _MultiTurnManager._currentPlayerUserId
+
+		if actorUid == nil or actorUid == "" or actorUid == myUid then
+			-- 내 턴(또는 대상 없음): 내 캐릭터 중심으로 복귀한다.
+			self:EaseOffsetToZero(delta)
+			return
+		end
+
+		local actor = _UserService:GetUserEntityByUserId(actorUid)
+		if isvalid(actor) == false then
+			self:EaseOffsetToZero(delta)
+			return
+		end
+
+		local cam = _CameraService:GetCurrentCameraComponent()
+		if isvalid(cam) == false then return end
+		local ap = actor.TransformComponent.WorldPosition
+		local mp = me.TransformComponent.WorldPosition
+		self:LerpOffset(cam, Vector2(ap.x - mp.x, ap.y - mp.y), delta)
+	end
+
+	@ExecSpace("ClientOnly")
+	method void EaseOffsetToZero(number delta)
+		-- 카메라 오프셋을 0(내 캐릭터 중심)으로 되돌린다. 맵뷰가 카메라를 쓰는 중이면 건드리지 않는다.
+		if _MapViewManager ~= nil and _MapViewManager._isOpen then return end
+		local cam = _CameraService:GetCurrentCameraComponent()
+		if isvalid(cam) == false then return end
+		local cur = cam.CameraOffset
+		if math.abs(cur.x) < 0.01 and math.abs(cur.y) < 0.01 then
+			if cur.x ~= 0 or cur.y ~= 0 then cam.CameraOffset = Vector2(0, 0) end
+			return
+		end
+		self:LerpOffset(cam, Vector2(0, 0), delta)
+	end
+
+	method void LerpOffset(any cam, Vector2 target, number delta)
+		-- 현재 오프셋 → 목표 오프셋으로 프레임 보간(부드러운 추종/전환 연출).
+		if isvalid(cam) == false then return end
+		local cur = cam.CameraOffset
+		local t = self.FollowLerp * delta
+		if t > 1 then t = 1 end
+		cam.CameraOffset = Vector2(cur.x + (target.x - cur.x) * t, cur.y + (target.y - cur.y) * t)
+	end
+
+end
