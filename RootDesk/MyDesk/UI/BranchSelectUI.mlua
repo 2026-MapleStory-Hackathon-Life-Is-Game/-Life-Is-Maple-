@@ -201,6 +201,13 @@ script BranchSelectUI extends Logic
 		if isvalid(self.dimBack) then self.dimBack.Enable = false end
 	end
 
+	@ExecSpace("Client")
+	method void CloseForAll()
+		-- 서버가 분기 확정 시 targetUserId 없이 호출 → 전 클라의 분기창을 강제로 닫는다.
+		-- 분기창은 actor에게만 띄우지만, 혹시 다른 클라에 잔재가 남아도 여기서 확실히 닫아 '못 닫는' 상황을 방지.
+		self:Hide()
+	end
+
 	@ExecSpace("ClientOnly")
 	method void SelectBranch(string tileName)
 		_SFXManager:PlayClick()

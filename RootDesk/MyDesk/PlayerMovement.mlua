@@ -153,6 +153,7 @@ script PlayerMovement extends Component
 			log_warning("[PlayerMovement] 분기 선택 거부 — 현재 턴 플레이어가 아님: " .. tostring(senderUserId))
 			return
 		end
+		_BranchSelectUI:CloseForAll()   -- 분기 확정 → 전 클라 분기창 강제 닫기(actor 외 잔재 방어)
 		local mapName = self.Entity.CurrentMapName
 		local prevRegion = _TileManager:GetTileRegion(mapName, self.currentTile)
 		local nextRegion = _TileManager:GetTileRegion(mapName, tileName)
