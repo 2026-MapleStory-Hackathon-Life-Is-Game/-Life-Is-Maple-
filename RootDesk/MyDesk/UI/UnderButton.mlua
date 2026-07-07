@@ -122,6 +122,8 @@ script UnderButton extends Component
 				end
 	end
 
+	property boolean _lastMyDiceTurn = false
+
 	method void OnUpdate(number delta)
 		-- 패널이 자체 닫기 버튼/ESC 등 UnderButton을 거치지 않고 닫혔을 때,
 		-- openExclusive가 "BAG"/"CHAR"로 남아 주사위 차단·토글 오작동을 일으킨다.
@@ -155,6 +157,14 @@ script UnderButton extends Component
 			self:ApplyHudContext(ctx)
 		end
 		
+		-- 내 주사위 차례가 '막 시작'했는데 배낭/캐릭터정보가 열려 있으면 자동으로 닫는다.
+		-- (HUD가 인벤 위에 그려져 주사위 버튼이 인벤 닫기(빨간)버튼을 덮어 '못 닫는' 문제를 근본 차단.)
+		local myDice = self:IsMyDiceTurn()
+		if myDice and self._lastMyDiceTurn == false and self:IsExclusiveOpen() then
+			self:CloseExclusive()
+		end
+		self._lastMyDiceTurn = myDice
+
 		-- 주사위(열기) 버튼 활성/비활성: 굴릴 수 있는 상태(내 DICE 차례 · 굴리는 중 아님 · 맵/캐릭터뷰 아님)에서만 활성.
 		-- 주사위를 굴리면 DICE 단계를 벗어나 자동으로 비활성 → 다음 DICE 차례에 다시 활성된다.
 		local wantDice = (ctx == "none") and self:CanOpenDicePanel()
@@ -261,6 +271,21 @@ script UnderButton extends Component
 	method boolean IsExclusiveOpen()
 		-- 캐릭터정보/배낭 중 하나라도 열려 있으면 true.
 		return self.openExclusive ~= ""
+	end
+
+	method boolean IsMyDiceTurn()
+		-- 내 DICE 차례(굴리는 중 아님)인지. CanOpenDicePanel에서 '배타패널 열림' 가드만 뺀 버전.
+		local mode = _GameModeManager._activeMode
+		if mode == "SINGLE" then
+			return _SingleTurnManager._currentState == "DICE" and _SingleTurnManager._isRolling == false
+		elseif mode == "MULTI" then
+			if _MultiTurnManager._currentState ~= "DICE" then return false end
+			if _MultiTurnManager._isRolling then return false end
+			local lp = _UserService.LocalPlayer
+			if isvalid(lp) == false then return false end
+			return lp.PlayerComponent.UserId == _MultiTurnManager._currentPlayerUserId
+		end
+		return false
 	end
 
 	method boolean CanOpenDicePanel()
