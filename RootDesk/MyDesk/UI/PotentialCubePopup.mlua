@@ -39,6 +39,8 @@ script PotentialCubePopup extends Logic
 
 	property boolean _autoMode = false
 
+	property boolean _spectateMode = false
+
 	property any _beforeH = nil
 
 	property any _afterH = nil
@@ -146,7 +148,10 @@ script PotentialCubePopup extends Logic
 		self._instanceId = instanceId
 		self._equipName = equipName
 		self._autoMode = autoConfirmed
-		
+		-- 이전에 이 클라가 관전 모드로 버튼을 껐을 수 있으니, 내 팝업은 상호작용 버튼을 복구한다.
+		self._spectateMode = false
+		self:SetSpectateButtonsEnabled(true)
+
 		-- 전투력 증가량 기준(없음 전투력). 자동확정은 이미 after가 적용된 상태이므로 applied=after,
 		-- 선택모드는 현재 적용 잠재(applied) 기준.
 		local applied = ""
@@ -246,23 +251,26 @@ script PotentialCubePopup extends Logic
 
 	method void OnChooseAfter()
 		-- AFTER 카드 클릭 = 새 잠재 적용. (자동확정 모드면 이미 적용됨 → 닫기만)
+		if self._spectateMode then return end   -- 관전자는 선택 불가(방어)
 		_SFXManager:PlayClick()
-		if self._autoMode then self:Close() return end
-		_PotentialManager:ChooseCube(self._instanceId, true)
+		if self._autoMode == false then _PotentialManager:ChooseCube(self._instanceId, true) end
+		_PotentialManager:CloseCubeSpectate()   -- 관전자 팝업도 닫도록 서버에 알림(피드백 10)
 		self:Close()
 	end
 
 	method void OnChooseBefore()
 		-- BEFORE 카드 클릭 = 현재 잠재 유지(후보 폐기). (자동확정 모드면 닫기만)
+		if self._spectateMode then return end   -- 관전자는 선택 불가(방어)
 		_SFXManager:PlayClick()
-		if self._autoMode then self:Close() return end
-		_PotentialManager:ChooseCube(self._instanceId, false)
+		if self._autoMode == false then _PotentialManager:ChooseCube(self._instanceId, false) end
+		_PotentialManager:CloseCubeSpectate()   -- 관전자 팝업도 닫도록 서버에 알림(피드백 10)
 		self:Close()
 	end
 
 	method void OnReroll()
 		-- 재설정: 큐브를 한 번 더 소모해 다시 굴린다. 서버가 새 후보로 팝업을 다시 열어주므로 닫지 않는다.
 		-- 큐브가 없으면 버튼을 비활성 연출로 막아두지만, 방어적으로 한 번 더 가드한다.
+		if self._spectateMode then return end   -- 관전자는 재설정 불가(방어)
 		if self:LocalCubeCount() <= 0 then return end
 		-- 재설정도 큐브 1개를 소모하므로 큐브 사용 효과음을 재생한다.
 		_SFXManager:PlayCube()
@@ -272,6 +280,59 @@ script PotentialCubePopup extends Logic
 	method void Close()
 		-- 팝업 닫기.
 		if isvalid(self.groupRoot) then self.groupRoot.Enable = false end
+	end
+
+	method void SetSpectateButtonsEnabled(boolean v)
+		-- 상호작용 버튼(Before/After 카드·재설정) 컴포넌트를 일괄 토글. 관전 모드=false로 클릭·호버를 모두 차단.
+		if isvalid(self.afterBtn) then self.afterBtn.Enable = v end
+		if isvalid(self.beforeBtn) then self.beforeBtn.Enable = v end
+		if isvalid(self.btnReroll) then self.btnReroll.Enable = v end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void OpenSpectator(string instanceId, string equipName, string before, string after, boolean autoConfirmed, string actorUserId)
+		-- 관전 표시: actor의 큐브 결과를 읽기전용으로 연다. 버튼 전부 비활성 + 전투력 증가량은 생략(actor 기준이라 관전 CP로는 무의미).
+		if self:IsClient() == false then return end
+		self._spectateMode = true
+		self._instanceId = instanceId
+		self._equipName = equipName
+		self._autoMode = autoConfirmed
+		local who = "다른 유저"
+		local ae = _UserService:GetUserEntityByUserId(actorUserId)
+		if isvalid(ae) and ae.PlayerComponent ~= nil and ae.PlayerComponent.Nickname ~= nil and ae.PlayerComponent.Nickname ~= "" then
+			who = ae.PlayerComponent.Nickname
+		end
+		if autoConfirmed then
+			self:SetText(self.titleText, who .. " 님이 잠재능력을 부여하는 중...")
+			if isvalid(self.beforeCard) then self.beforeCard.Enable = false end
+			self:ShowButton(self.btnReroll, false)
+			self:SetText(self.afterHeader, "부여된 잠재")
+			self:FillCard(self.afterGradeBar, self.afterGradeText, self.afterOptions, self.afterPower, after, 0)
+			self:SetText(self.afterPower, "")
+		else
+			self:FillCard(self.afterGradeBar, self.afterGradeText, self.afterOptions, self.afterPower, after, 0)
+			self:FillCard(self.beforeGradeBar, self.beforeGradeText, self.beforeOptions, self.beforePower, before, 0)
+			self:SetText(self.afterPower, "")
+			self:SetText(self.beforePower, "")
+			self:SetText(self.titleText, who .. " 님이 잠재능력을 재설정하는 중...")
+			self:SetText(self.beforeHeader, "현재")
+			self:SetText(self.afterHeader, "변경 후")
+			if isvalid(self.beforeCard) then self.beforeCard.Enable = true end
+			self:ShowButton(self.btnReroll, true)
+		end
+		-- 관전자는 선택 불가: 모든 버튼 비활성.
+		self:SetSpectateButtonsEnabled(false)
+		if isvalid(self.groupRoot) then self.groupRoot.Enable = true end
+		self:BringToFront()
+		log("[PotentialCubePopup] 관전 표시 " .. equipName .. " actor=" .. who)
+	end
+
+	@ExecSpace("ClientOnly")
+	method void CloseSpectator()
+		-- 관전 팝업 닫기 + 버튼 재활성(다음에 이 클라가 actor가 될 때를 대비).
+		self._spectateMode = false
+		self:SetSpectateButtonsEnabled(true)
+		self:Close()
 	end
 
 	method void OnEndPlay()

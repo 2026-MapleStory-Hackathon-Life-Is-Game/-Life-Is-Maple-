@@ -197,6 +197,7 @@ script PotentialManager extends Logic
 		if self._pending[key] ~= nil then
 			log_warning("[PotentialManager] 선택 대기 중 재요청 거부: " .. key)
 			self:NotifyCubeResult(instanceId, name, comp:GetInstancePotential(instanceId), self._pending[key], false, senderUserId)
+			self:SpectatorCubeResult(instanceId, name, comp:GetInstancePotential(instanceId), self._pending[key], false, senderUserId)
 			return
 		end
 		
@@ -214,13 +215,15 @@ script PotentialManager extends Logic
 			comp:SetInstancePotential(instanceId, cand)
 			comp:Recalc()
 			self:NotifyCubeResult(instanceId, name, "", cand, true, senderUserId)
+			self:SpectatorCubeResult(instanceId, name, "", cand, true, senderUserId)
 			return
 		end
-		
+
 		-- 잠재가 이미 있는 장비: 후보를 대기열에 넣고 Before/After 카드 선택으로 확정.
 		local cand = self:RollPotential(self:GradeOf(cur))
 		self._pending[key] = cand
 		self:NotifyCubeResult(instanceId, name, cur, cand, false, senderUserId)
+		self:SpectatorCubeResult(instanceId, name, cur, cand, false, senderUserId)
 	end
 
 	@ExecSpace("Server")
@@ -266,6 +269,7 @@ script PotentialManager extends Logic
 			-- 큐브 부족: 기존 후보를 유지한 채 팝업만 다시 띄운다(상태 손실 방지).
 			log_warning("[PotentialManager] 재설정: 미라클 큐브 부족 " .. tostring(senderUserId))
 			self:NotifyCubeResult(instanceId, name, comp:GetInstancePotential(instanceId), self._pending[key], false, senderUserId)
+			self:SpectatorCubeResult(instanceId, name, comp:GetInstancePotential(instanceId), self._pending[key], false, senderUserId)
 			return
 		end
 		bag.MiracleCubeCount = bag.MiracleCubeCount - 1
@@ -274,6 +278,7 @@ script PotentialManager extends Logic
 		local cand = self:RollPotential(self:GradeOf(cur))
 		self._pending[key] = cand
 		self:NotifyCubeResult(instanceId, name, cur, cand, false, senderUserId)
+		self:SpectatorCubeResult(instanceId, name, cur, cand, false, senderUserId)
 	end
 
 	@ExecSpace("Client")
@@ -285,6 +290,28 @@ script PotentialManager extends Logic
 			log("[PotentialManager] 큐브 결과(선택) " .. equipName .. "(" .. instanceId .. ") | Before=" .. before .. " | After=" .. after)
 		end
 		_PotentialCubePopup:Open(instanceId, equipName, before, after, autoConfirmed)
+	end
+
+	@ExecSpace("Client")
+	method void SpectatorCubeResult(string instanceId, string equipName, string before, string after, boolean autoConfirmed, string actorUserId)
+		-- 관전자: actor의 큐브 결과 팝업을 읽기전용으로 방송(자기 턴 잠재 재설정이 보이게, 피드백 10). actor 스킵.
+		local lp = _UserService.LocalPlayer
+		if isvalid(lp) and lp.PlayerComponent ~= nil and lp.PlayerComponent.UserId == actorUserId then return end
+		_PotentialCubePopup:OpenSpectator(instanceId, equipName, before, after, autoConfirmed, actorUserId)
+	end
+
+	@ExecSpace("Client")
+	method void SpectatorCubeClose(string actorUserId)
+		-- 관전자 큐브 팝업 닫기(actor가 선택을 확정해 팝업을 닫을 때). actor 스킵.
+		local lp = _UserService.LocalPlayer
+		if isvalid(lp) and lp.PlayerComponent ~= nil and lp.PlayerComponent.UserId == actorUserId then return end
+		_PotentialCubePopup:CloseSpectator()
+	end
+
+	@ExecSpace("Server")
+	method void CloseCubeSpectate()
+		-- actor 클라가 큐브 팝업을 닫았음을 서버에 알림 → 관전자 팝업도 닫도록 방송.
+		self:SpectatorCubeClose(senderUserId)
 	end
 
 end
