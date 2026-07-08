@@ -373,6 +373,16 @@ script GameModeManager extends Logic
 		        log("[GameModeManager] 결과 확인 후 로비 복귀(룸): " .. tostring(uid))
 	end
 
+	@ExecSpace("ServerOnly")
+	method void KickUserToLobby(string userId)
+		        -- 강제 퇴장(AFK 3회) / 인원 부족 게임 종료로 인해 한 플레이어를 즉시 로비로 되돌린다.
+		        -- 스탯 초기화를 룸 이동 '전에' 수행(이동 후엔 이 인스턴스 룸/컴포넌트가 파기될 수 있음).
+		        local ue = _UserService:GetUserEntityByUserId(userId)
+		        if isvalid(ue) then self:ResetPlayerStats(ue) end
+		        _RoomService:MoveUsersToStaticRoom({ userId }, "Lobby")
+		        log("[GameModeManager] 강제/종료 로비 복귀(룸): " .. tostring(userId))
+	end
+
 	@ExecSpace("Server")
 	method void DebugFinishGame()
 		        -- [임시/디버그] 요청 클라이언트 기준으로 싱글 게임 종료 흐름(결과 패널)을 강제 실행한다.
