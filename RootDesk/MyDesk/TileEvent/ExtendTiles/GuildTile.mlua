@@ -251,7 +251,8 @@ script GuildTile extends EventTileBase
 		self._viceRuids = {}
 		local ds = _DataService:GetTable("ViceMaster")
 		if isvalid(ds) == false then return end
-		local groups = { "전사", "마법사", "궁수", "도적", "해적" }
+		-- 카드 표시 순서(피드백 7): 히어로(전사) → 보우마스터(궁수) → 썬콜(마법사) → 나이트로드(도적) → 캡틴(해적).
+		local groups = { "전사", "궁수", "마법사", "도적", "해적" }
 		for gi = 1, #groups do
 			local pool = {}
 			for i = 1, ds:GetRowCount() do
