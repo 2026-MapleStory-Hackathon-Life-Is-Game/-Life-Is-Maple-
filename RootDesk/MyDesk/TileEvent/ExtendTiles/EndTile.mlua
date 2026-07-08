@@ -9,6 +9,8 @@ script EndTile extends BaseTile
 
 	property boolean _cubeRolling = false
 
+	property boolean _waitingRoll = false   -- 완주 후 대기 중 반복 큐브 롤인지(도착 롤과 구분, 피드백 5)
+
 	method boolean IsFinalBattle()
 		-- 이 종료칸이 스테이지3(마지막) End 인지 → 검은 마법사 최종 결전. (Stage 1·2 End은 false)
 		if isvalid(self.Entity) == false then return false end
@@ -96,13 +98,20 @@ script EndTile extends BaseTile
 		local ownerId = self:OwnerUserId(piece)
 
 		if self._cubeRolling then
-			-- 큐브 롤 결과 '다음' → 연출 닫고 완주 처리(보상은 StartCubeRoll에서 이미 지급됨).
+			-- 큐브 롤 결과 '다음' → 연출 닫기(보상은 StartCubeRoll에서 이미 지급됨).
 			self._cubeRolling = false
 			if ownerId ~= "" then
 				self:ClientHide(ownerId)
 				_EventTileUI:SpectatorSceneHide(ownerId)
 			end
-			self:FinishEndTile(piece)
+			if self._waitingRoll then
+				-- 완주 후 대기 반복 롤(피드백 5): 완주 처리 없이 턴만 진행한다(이미 완주 상태).
+				self._waitingRoll = false
+				_MultiTurnManager:OnWaitingCubeRollDone()
+			else
+				-- 도착 보너스 롤: 완주 처리로 진행.
+				self:FinishEndTile(piece)
+			end
 			return
 		end
 
@@ -165,6 +174,40 @@ script EndTile extends BaseTile
 		self:ClientShowCubeRoll(leadText, resultText, d1, d2, sum, greatPct, successPct, failPct, outcomeLabel, ownerId)
 		_RollResultDiceAnimationUI:SpectatorDiceBroadcast(d1, d2, sum, board, outcomeLabel, ownerId)
 		_EventTileUI:SpectatorSceneRoll(leadText, resultText, "idle", "", ownerId)
+	end
+
+	@ExecSpace("ServerOnly")
+	method void StartWaitingCubeRoll(Entity piece)
+		-- 완주 후 대기 중인 플레이어의 반복 큐브 롤(피드백 5). 굴림/보상/연출은 도착 롤과 동일(StartCubeRoll 재사용)하되,
+		-- '다음' 시 완주 처리 대신 턴만 진행(RequestAdvance의 _waitingRoll 분기). MultiTurnManager가 완주자 턴에 호출한다.
+		self._piece = piece
+		self._waitingRoll = true
+		self._cubeRolling = false
+		local ownerId = self:OwnerUserId(piece)
+		if ownerId == "" then
+			self._waitingRoll = false
+			_MultiTurnManager:OnWaitingCubeRollDone()
+			return
+		end
+		log("[EndTile] 완주자 대기 큐브 롤 owner=" .. ownerId)
+		self:StartCubeRoll(piece, ownerId)
+	end
+
+	@ExecSpace("ServerOnly")
+	method void ForceFinishWaitingRoll()
+		-- AFK 자동 마무리: 대기 큐브 롤 연출을 닫고 턴을 진행한다(보상은 StartCubeRoll에서 이미 지급됨).
+		if self._waitingRoll == false then return end
+		self._waitingRoll = false
+		self._cubeRolling = false
+		local piece = self._piece
+		if isvalid(piece) then
+			local ownerId = self:OwnerUserId(piece)
+			if ownerId ~= "" then
+				self:ClientHide(ownerId)
+				_EventTileUI:SpectatorSceneHide(ownerId)
+			end
+		end
+		_MultiTurnManager:OnWaitingCubeRollDone()
 	end
 
 	@ExecSpace("Client")
