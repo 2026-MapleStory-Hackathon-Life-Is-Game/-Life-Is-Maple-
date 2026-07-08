@@ -27,6 +27,13 @@ script ModeSelectUI extends Logic
 
 	property any hClose = nil
 
+	-- 매칭 텍스트 구성용 캐시(인원/정원/시작까지 남은 초). count·sec가 각각 다른 RPC로 와도 한 줄로 합쳐 표시.
+	property integer _lastCount = 0
+
+	property integer _lastMax = 4
+
+	property integer _lastSec = 0
+
 	@ExecSpace("ClientOnly")
 	method void OnBeginPlay()
 		-- 로비 진입: 두 패널 모두 닫고 버튼 이벤트를 연결한다.
@@ -92,6 +99,7 @@ script ModeSelectUI extends Logic
 		-- 멀티 매칭 풀 입장. 매칭 패널은 서버의 NotifyMatchUI(count,max)가 도착하면 ShowMatching으로 표시된다.
 		_SFXManager:PlayClick()
 		self:SetPanelEnable(self.modeSelectPanel, false)
+		self._lastSec = 0   -- 새 매칭 진입 → 이전 매칭의 남은 초 캐시 잔재 제거(서버 첫 방송 전 오표시 방지)
 		_MatchManager:JoinMatch()
 		log("[ModeSelectUI] 멀티 매칭 입장 요청")
 	end
@@ -121,10 +129,28 @@ script ModeSelectUI extends Logic
 
 	@ExecSpace("ClientOnly")
 	method void UpdateMatchingText(integer count, integer maxCount)
-		-- 매칭 인원 텍스트 갱신.
-		if isvalid(self.matchingText) then
-			self.matchingText.TextComponent.Text = "매칭 중...  " .. tostring(count) .. "/" .. tostring(maxCount)
+		-- 매칭 인원 갱신(캐시 후 합쳐서 렌더).
+		self._lastCount = count
+		self._lastMax = maxCount
+		self:RenderMatchingText()
+	end
+
+	@ExecSpace("ClientOnly")
+	method void UpdateCountdown(integer sec)
+		-- 서버가 방송한 '시작까지 남은 초' 갱신(피드백 1). sec<=0이면 초 표기 없이 인원만 보인다.
+		self._lastSec = sec
+		self:RenderMatchingText()
+	end
+
+	@ExecSpace("ClientOnly")
+	method void RenderMatchingText()
+		-- 인원 + (있으면) 남은 초를 한 줄로 합쳐 표시.
+		if isvalid(self.matchingText) == false then return end
+		local base = "매칭 중...  " .. tostring(self._lastCount) .. "/" .. tostring(self._lastMax)
+		if self._lastSec > 0 then
+			base = base .. "  (" .. tostring(self._lastSec) .. "초 후 시작)"
 		end
+		self.matchingText.TextComponent.Text = base
 	end
 
 	@ExecSpace("ClientOnly")

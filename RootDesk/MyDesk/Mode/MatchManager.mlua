@@ -11,6 +11,8 @@ script MatchManager extends Logic
 
 	property number _countdown = 0
 
+	property integer _lastSentSec = -1   -- 마지막으로 방송한 카운트다운 정수 초(중복 방송 방지, 피드백 1)
+
 	property any _userLeaveHandler = nil
 
 	property integer MAX_PLAYERS = 4
@@ -28,6 +30,7 @@ script MatchManager extends Logic
 		        if self:IsServer() then
 		            self._matchPool = {}
 		            self._countdown = 0
+		            self._lastSentSec = -1
 		        end
 	end
 
@@ -46,6 +49,17 @@ script MatchManager extends Logic
 		        if #self._matchPool == 0 then return end
 		
 		        self._countdown -= delta
+		        -- 카운트다운(피드백 1): 최소 인원(2명) 이상일 때만 '시작까지 남은 초'를 정수 초가 바뀔 때 풀 전원에 방송.
+		        -- 1명뿐이면 시작 타이머가 계속 리셋되므로 초 표기를 숨긴다(sec=0).
+		        local sec = 0
+		        if #self._matchPool >= self.MIN_PLAYERS then
+		            sec = math.ceil(self._countdown)
+		            if sec < 0 then sec = 0 end
+		        end
+		        if sec ~= self._lastSentSec then
+		            self._lastSentSec = sec
+		            self:BroadcastCountdown(sec)
+		        end
 		        if self._countdown <= 0 then
 		            if #self._matchPool >= self.MIN_PLAYERS then
 		                self:StartMatch()
@@ -78,6 +92,7 @@ script MatchManager extends Logic
 		        if #self._matchPool == 0 then
 		            -- 첫 입장자 → 카운트다운 시작 + 퇴장 감지 구독
 		            self._countdown = self.MATCH_TIMEOUT
+		            self._lastSentSec = -1   -- 새 매칭 시작 → 다음 틱에 카운트다운 초를 반드시 재방송(피드백 1)
 		            self._isMatching = true
 		            self._userLeaveHandler = self:ConnectEvent(UserLeaveEvent, self.OnUserLeave)
 		            log("[MatchManager] 매칭 시작 (30초 카운트다운)")
@@ -173,9 +188,21 @@ script MatchManager extends Logic
 		        end
 	end
 
+	method void BroadcastCountdown(integer sec)
+		        -- 시작까지 남은 초를 풀 전원 클라에 개별 전달(피드백 1).
+		        for _, uid in ipairs(self._matchPool) do
+		            self:NotifyCountdown(sec, uid)
+		        end
+	end
+
 	@ExecSpace("Client")
 	method void NotifyMatchUI(integer count, integer maxCount)
 		        _ModeSelectUI:ShowMatching(count, maxCount)
+	end
+
+	@ExecSpace("Client")
+	method void NotifyCountdown(integer sec)
+		        _ModeSelectUI:UpdateCountdown(sec)
 	end
 
 	@ExecSpace("Client")
