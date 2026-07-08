@@ -88,6 +88,7 @@ script BranchSelectUI extends Logic
 			if i <= count then
 				log("버튼 " .. i .. " 활성화 시도")
 				btn.Entity.Enable = true
+				if isvalid(btn.ButtonComponent) then btn.ButtonComponent.Enable = true end   -- 이전 관전(읽기전용) 비활성 잔재 복구
 				btn.Entity.TextComponent.Text = branchTexts[i]
 				-- 기능 9: 이 분기를 골랐을 때 도착하는 타일의 '종류'를 아이콘+한글명으로 표시.
 				self:ShowBranchResult(btn, map, tileNames[i], remaining)
@@ -227,16 +228,47 @@ script BranchSelectUI extends Logic
 	end
 
 	@ExecSpace("Client")
-	method void SpectatorNotice(string actorUserId)
-		-- 관전자: actor가 분기점을 선택 중임을 중앙 알림으로 표시(피드백 13). actor는 자기 선택창을 쓰므로 스킵.
+	method void SpectatorNotice(table tileNames, table branchTexts, integer remaining, string actorUserId)
+		-- 관전자: actor의 분기 선택지를 읽기전용으로 그대로 보여준다(피드백 3). actor는 자기 인터랙티브 선택창을 쓰므로 스킵.
 		local lp = _UserService.LocalPlayer
 		if isvalid(lp) and lp.PlayerComponent ~= nil and lp.PlayerComponent.UserId == actorUserId then return end
-		local who = "다른 유저"
-		local ae = _UserService:GetUserEntityByUserId(actorUserId)
-		if isvalid(ae) and ae.PlayerComponent ~= nil and ae.PlayerComponent.Nickname ~= nil and ae.PlayerComponent.Nickname ~= "" then
-			who = ae.PlayerComponent.Nickname
+		self:ShowReadOnlyBranch(tileNames, branchTexts, remaining)
+	end
+
+	@ExecSpace("ClientOnly")
+	method void ShowReadOnlyBranch(table tileNames, table branchTexts, integer remaining)
+		-- 관전자용 읽기전용 분기창: actor의 선택지(도착 타일 아이콘+한글명)를 동일하게 채우되
+		-- 클릭 핸들러를 걸지 않고 각 버튼 컴포넌트를 비활성화해 누름/호버가 안 되게 한다. 제목은 "어느 쪽으로 갈까?".
+		self:DisconnectAll()   -- 이전 구독 잔재 제거(읽기전용이므로 새로 걸지 않음)
+		if isvalid(self.panel) == false then return end
+		self:SetPreviewMode(false)   -- 미리보기 잔재 정리(버튼/맵/도움말 표시 상태로 리셋)
+		if isvalid(self.dimBack) then self.dimBack.Enable = true end
+		self.panel.Enable = true
+		self:SetTitleText("어느 쪽으로 갈까?")
+		-- 선택지 컨테이너는 보이게 유지하되, 관전자는 맵 미리보기/도움말을 못 쓰게 숨긴다.
+		if isvalid(self.btnContainer) then self.btnContainer.Enable = true end
+		if isvalid(self.mapViewBtn) and isvalid(self.mapViewBtn.Entity) then self.mapViewBtn.Entity.Enable = false end
+		if isvalid(self.helpButton) then self.helpButton.Enable = false end
+
+		-- 도착 예측을 위해 클라 타일 그래프 확보(actor Show와 동일). 멀티는 전원 같은 맵이라 관전자 맵=actor 맵.
+		if next(_TileManager.tileGraph) == nil then _TileManager:BuildTileGraph() end
+		local map = ""
+		local me = _UserService.LocalPlayer
+		if isvalid(me) then map = me.CurrentMapName end
+
+		local buttons = {self.Btn_1, self.Btn_2, self.Btn_3, self.Btn_4, self.Btn_5}
+		local count = #tileNames
+		for i = 1, 5 do
+			local btn = buttons[i]
+			if i <= count then
+				btn.Entity.Enable = true
+				btn.Entity.TextComponent.Text = branchTexts[i]
+				self:ShowBranchResult(btn, map, tileNames[i], remaining)
+				if isvalid(btn.ButtonComponent) then btn.ButtonComponent.Enable = false end   -- 읽기전용: 클릭/호버 차단
+			else
+				btn.Entity.Enable = false
+			end
 		end
-		self:ShowNotice("현재 " .. who .. " 님이\n분기점 선택 이벤트 진행 중입니다...")
 	end
 
 	@ExecSpace("ClientOnly")
