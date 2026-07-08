@@ -77,10 +77,23 @@ script CubeTargetSelect extends Logic
 		return bag.MiracleCubeCount
 	end
 
+	method boolean IsMyTurn()
+		-- 멀티 진행 중이면 현재 턴 유저만 인터랙티브 잠재(큐브) 사용 가능. 싱글/비활성은 항상 내 턴 취급.
+		if _MultiTurnManager == nil or _MultiTurnManager._isActive == false then return true end
+		local p = _UserService.LocalPlayer
+		if isvalid(p) == false or p.PlayerComponent == nil then return false end
+		return p.PlayerComponent.UserId == _MultiTurnManager._currentPlayerUserId
+	end
+
 	@ExecSpace("ClientOnly")
 	method void Open()
 		-- 선택 패널 열기(큐브 보유 시). 기본 탭 = 무기.
 		if self:IsClient() == false then return end
+		-- 잠재 패널은 '자기 턴'에만 인터랙티브로 연다(피드백 11). 다른 유저 턴엔 결과 팝업 관전 미러(피드백 10)만 보인다.
+		if self:IsMyTurn() == false then
+			log("[CubeTargetSelect] 내 턴이 아님 — 인터랙티브 잠재 패널 열지 않음")
+			return
+		end
 		if self:CubeCount() <= 0 then
 			log("[CubeTargetSelect] 큐브 보유 0 — 열지 않음")
 			return
