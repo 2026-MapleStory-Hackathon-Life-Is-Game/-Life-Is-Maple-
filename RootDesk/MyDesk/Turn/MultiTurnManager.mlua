@@ -133,13 +133,16 @@ script MultiTurnManager extends Logic
 	@ExecSpace("Server")
 	method void OnUserLeave(UserLeaveEvent event)
 		        -- 유저 이탈 = 인원 변동 → 순서를 처음부터 리셋한다(피드백 6). 실제 처리는 RemovePlayer로 일원화.
+		        -- 자연 이탈(월드에서 나감)은 이미 사라진 유저라 로비 복귀가 필요 없다 → kicked=false.
 		        if not self._isActive then return end
-		        self:RemovePlayer(event.UserId)
+		        self:RemovePlayer(event.UserId, false)
 	end
 
 	@ExecSpace("Server")
-	method void RemovePlayer(string userId)
-		        -- 플레이어를 순서표에서 제거하고, 인원 변동 시 턴 순서를 처음부터 리셋한다(이탈/강퇴 공통 경로, 피드백 6).
+	method void RemovePlayer(string userId, boolean kicked)
+		        -- 플레이어를 순서표에서 제거한다(이탈/강퇴 공통 경로, 피드백 6).
+		        -- kicked=true(AFK 3회 강제 퇴장)면 해당 플레이어를 로비로 되돌린다.
+		        -- 제거 후 남은 인원이 1명 이하면 곧바로 게임 종료(남은 1명도 로비 복귀), 2명 이상이면 순서를 처음부터 리셋한다.
 		        local removedIdx = -1
 		        for i = 0, self._playerCount - 1 do
 		            if self._playerUserIds[i] == userId then removedIdx = i break end
@@ -152,6 +155,9 @@ script MultiTurnManager extends Logic
 		        _BranchSelectUI:CloseForAll()                    -- 분기점/관전 알림 잔재 정리(피드백 13)
 		        if self._currentState == "RESULT_DICE" then self:BroadcastClose() end
 
+		        -- 강제 퇴장(AFK 3회)인 경우: 제거 대상 플레이어를 즉시 로비(스태틱 룸)로 되돌린다.
+		        if kicked then _GameModeManager:KickUserToLobby(userId) end
+
 		        -- 빈 슬롯을 앞으로 당겨 제거.
 		        for i = removedIdx, self._playerCount - 2 do
 		            self._playerUserIds[i] = self._playerUserIds[i + 1]
@@ -161,12 +167,21 @@ script MultiTurnManager extends Logic
 		        if self._afkStrikes ~= nil then self._afkStrikes[userId] = nil end
 		        log("[MultiTurnManager] 플레이어 제거: userId=" .. userId .. " (남은 인원: " .. tostring(self._playerCount) .. "명)")
 
-		        if self._playerCount == 0 then
+		        -- 남은 인원 1명 이하 → 곧바로 게임 종료. 남은 1명에겐 즉시 로비 텔레포트 대신 '게임 오버' 패널을 띄운다(피드백 14).
+		        -- (확인을 누르면 그때 로비로 복귀 — ResultUI.HidePanelToLobby → ReturnToLobbyAfterResult.)
+		        if self._playerCount <= 1 then
+		            if self._playerCount == 1 then
+		                local lastUserId = self._playerUserIds[0]
+		                log("[MultiTurnManager] 1명만 남음 → 게임 종료, 남은 플레이어에게 게임 오버 패널: " .. tostring(lastUserId))
+		                _ResultUI:ShowGameOver("상대방이 게임에서 나가\n게임이 종료되었습니다.", lastUserId)
+		            else
+		                log("[MultiTurnManager] 남은 플레이어 없음 → 게임 종료")
+		            end
 		            _GameModeManager:EndGame()
 		            return
 		        end
 
-		        -- 굴림/결과 잠금 해제 후 순서 처음부터 리셋(1명만 남아도 그 1명부터 새 턴 시작).
+		        -- 2명 이상 남음: 굴림/결과 잠금 해제 후 순서를 처음부터 리셋(강퇴된 actor를 제외한 나머지로 재정리).
 		        self._isRolling = false
 		        self._isResultRolling = false
 		        self:ResetTurnOrderFromStart()
@@ -619,7 +634,7 @@ script MultiTurnManager extends Logic
 		        log("[MultiTurnManager] AFK 자동이동 누적: " .. userId .. " = " .. tostring(c) .. "/" .. tostring(self.MaxAfkStrikes))
 		        if c >= self.MaxAfkStrikes then
 		            log("[MultiTurnManager] AFK " .. tostring(self.MaxAfkStrikes) .. "회 누적 → 강제 퇴장: " .. userId)
-		            self:RemovePlayer(userId)   -- 순서표에서 제거 + 순서 처음부터 리셋
+		            self:RemovePlayer(userId, true)   -- 강퇴: 순서표 제거 + 로비 복귀 + (남은 인원에 따라) 종료/순서 리셋
 		        end
 	end
 

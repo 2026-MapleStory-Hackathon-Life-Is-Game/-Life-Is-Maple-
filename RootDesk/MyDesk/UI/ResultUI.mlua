@@ -25,12 +25,14 @@ script ResultUI extends Logic
 
 	property any hMultiConfirm = nil
 
+	property boolean _gameOverMode = false   -- Panel을 '게임 오버'로 띄운 상태인지(확인 시 로비 복귀 분기, 피드백 14)
+
 	@ExecSpace("ClientOnly")
 	method void OnBeginPlay()
 		-- 시작 시 결과 패널은 숨김. 확인 버튼 연결.
 		if isvalid(self.panel) then self.panel.Enable = false end
 		if isvalid(self.confirmButton) then
-			self.hConfirm = self.confirmButton.Entity:ConnectEvent(ButtonClickEvent, function() self:Hide() end)
+			self.hConfirm = self.confirmButton.Entity:ConnectEvent(ButtonClickEvent, function() self:OnConfirmPanel() end)
 		end
 		-- 싱글 리치 카드: 기본 숨김 + 확인/랭킹보기 버튼 배선.
 		local card = _EntityService:GetEntityByPath(self.cardPath)
@@ -198,6 +200,45 @@ script ResultUI extends Logic
 		local grp = isvalid(self.panel) and self.panel.Parent or nil
 		if isvalid(grp) then grp.Enable = false end
 		log("[ResultUI] 결과 닫힘")
+	end
+
+	@ExecSpace("Client")
+	method void ShowGameOver(string message)
+		-- 멀티에서 상대가 이탈/강퇴돼 인원이 1명 이하가 됐을 때, 남은 플레이어에게 뜨는 '게임 오버' 패널(피드백 14).
+		-- 즉시 로비 텔레포트 대신 패널을 띄우고, 확인을 누르면 로비로 복귀한다(레거시 Panel 뷰 재사용).
+		self._gameOverMode = true
+		_SFXManager:PlayWin()   -- Say_GameOver 사운드(게임 종료 알림)
+		local grp = isvalid(self.panel) and self.panel.Parent or nil
+		if isvalid(grp) then grp.Enable = true end
+		if isvalid(self.dimBack) then self.dimBack.Enable = true end
+		if isvalid(self.panel) then self.panel.Enable = true end
+		if isvalid(self.resultText) and isvalid(self.resultText.TextComponent) then
+			self.resultText.TextComponent.Text = message
+		end
+		log("[ResultUI] 게임 오버 패널: " .. message)
+	end
+
+	@ExecSpace("ClientOnly")
+	method void OnConfirmPanel()
+		-- 레거시 Panel 확인 버튼. 게임 오버 모드면 로비 복귀, 아니면 단순 닫기(기존 동작 유지).
+		if self._gameOverMode then
+			self:HidePanelToLobby()
+		else
+			self:Hide()
+		end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void HidePanelToLobby()
+		-- 게임 오버 패널 확인 → 로딩 오버레이로 룸 전환을 가린 뒤 로비 복귀(HideCard/HideMulti와 동일 경로).
+		_SFXManager:PlayClick()
+		self._gameOverMode = false
+		_LoadingManager:ShowLoadingAndPreload()
+		if isvalid(self.panel) then self.panel.Enable = false end
+		if isvalid(self.dimBack) then self.dimBack.Enable = false end
+		local grp = isvalid(self.panel) and self.panel.Parent or nil
+		if isvalid(grp) then grp.Enable = false end
+		_GameModeManager:ReturnToLobbyAfterResult()
 	end
 
 	@ExecSpace("ClientOnly")
