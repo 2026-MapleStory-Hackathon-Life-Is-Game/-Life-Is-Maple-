@@ -131,14 +131,14 @@ script PotentialCubePopup extends Logic
 		return table.concat(out, "\n")
 	end
 
-	method number GainOf(string appliedPot, string targetPot, number cpNone)
-		-- 잠재 targetPot 적용 시 전투력 - 잠재 없을 때 전투력(cpNone).
-		if targetPot == "" then return 0 end
+	method number GainOf(string appliedPot, string targetPot, number cpBase)
+		-- targetPot 적용 시 전투력 - 기준 전투력(cpBase). 기준은 호출부가 결정한다(부여=잠재없음 / 재설정=Before 잠재).
+		-- targetPot이 ""(잠재 없음)이어도 PreviewPowerWithPotentialSwap이 CP(없음)을 주므로 일반식이 그대로 처리한다.
 		local p = _UserService.LocalPlayer
 		if isvalid(p) == false then return 0 end
 		local cp = p:GetComponent("script.CombatPowerManager")
 		if isvalid(cp) == false then return 0 end
-		return cp:PreviewPowerWithPotentialSwap(appliedPot, targetPot) - cpNone
+		return cp:PreviewPowerWithPotentialSwap(appliedPot, targetPot) - cpBase
 	end
 
 	@ExecSpace("ClientOnly")
@@ -152,11 +152,13 @@ script PotentialCubePopup extends Logic
 		self._spectateMode = false
 		self:SetSpectateButtonsEnabled(true)
 
-		-- 전투력 증가량 기준(없음 전투력). 자동확정은 이미 after가 적용된 상태이므로 applied=after,
-		-- 선택모드는 현재 적용 잠재(applied) 기준.
+		-- 전투력 증가량 기준(cpBase):
+		--   · 재설정(선택) 모드 = 'Before(현재) 잠재'를 기준으로 삼는다 → Before 카드 = +0, After 카드 = (After−Before) 상대 증가량.
+		--   · 부여(자동확정) 모드 = 원래 잠재가 없던 장비이므로 '잠재 없음'을 기준으로 부여된 잠재의 전량을 표시한다.
+		-- 자동확정은 이미 after가 적용된 상태이므로 applied=after, 선택모드는 현재 적용 잠재(applied) 기준.
 		local applied = ""
 		local p = _UserService.LocalPlayer
-		local cpNone = 0
+		local cpBase = 0
 		if autoConfirmed then
 			applied = after
 		elseif isvalid(p) then
@@ -166,23 +168,30 @@ script PotentialCubePopup extends Logic
 		end
 		if isvalid(p) then
 			local cp = p:GetComponent("script.CombatPowerManager")
-			if isvalid(cp) then cpNone = cp:PreviewPowerWithPotentialSwap(applied, "") end
+			if isvalid(cp) then
+				if autoConfirmed then
+					cpBase = cp:PreviewPowerWithPotentialSwap(applied, "")       -- 부여 모드: 잠재 없음 기준
+				else
+					cpBase = cp:PreviewPowerWithPotentialSwap(applied, before)   -- 재설정 모드: Before 잠재 기준(=+0)
+				end
+			end
 		end
-		
+
 		if autoConfirmed then
 			-- 잠재가 없던 장비: Before/After 선택 없이 '부여된 잠재' 결과만 표시(이미 강제 확정됨).
 			self:SetText(self.titleText, "잠재능력이 부여되었습니다  (카드를 눌러 닫기)")
 			if isvalid(self.beforeCard) then self.beforeCard.Enable = false end
 			self:ShowButton(self.btnReroll, false)
 			self:SetText(self.afterHeader, "부여된 잠재")
-			local afterGain = self:GainOf(applied, after, cpNone)
+			local afterGain = self:GainOf(applied, after, cpBase)
 			self:FillCard(self.afterGradeBar, self.afterGradeText, self.afterOptions, self.afterPower, after, afterGain)
 		else
 			-- 잠재가 있던 장비: 두 카드 선택 + 재설정.
 			--   AFTER 카드 클릭 = 새 잠재 적용 / BEFORE 카드 클릭 = 현재 잠재 유지(취소).
-			local afterGain = self:GainOf(applied, after, cpNone)
+			--   Before를 기준(+0)으로, After는 그에 대한 상대 전투력 증가량(음수면 하락)으로 표시한다.
+			local afterGain = self:GainOf(applied, after, cpBase)
 			self:FillCard(self.afterGradeBar, self.afterGradeText, self.afterOptions, self.afterPower, after, afterGain)
-			local beforeGain = self:GainOf(applied, before, cpNone)
+			local beforeGain = self:GainOf(applied, before, cpBase)
 			self:FillCard(self.beforeGradeBar, self.beforeGradeText, self.beforeOptions, self.beforePower, before, beforeGain)
 		
 			self:SetText(self.titleText, "적용할 잠재 카드를 선택하세요  (재설정: 다시 굴리기)")
