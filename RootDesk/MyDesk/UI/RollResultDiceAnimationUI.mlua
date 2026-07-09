@@ -61,6 +61,8 @@ script RollResultDiceAnimationUI extends Logic
 
 	property Entity NextButton = "3de88156-4c22-4ee0-93f3-0258ac4f81b9"
 
+	property Entity SkipButton = "18c0fa93-a724-4ae3-a5d0-59b235e679c4"
+
 	property Entity ResultTextPanel = "9ba7d4bd-f38a-4fd4-ac7c-679c2afba32b"
 
 	property integer _pendD1 = 0
@@ -76,6 +78,8 @@ script RollResultDiceAnimationUI extends Logic
 	property string _pendActorUserId = ""
 
 	property boolean _pendAllowNext = false
+
+	property boolean _allowSkip = false   -- 완주자 대기 큐브 롤에서만 '넘기기' 버튼 노출(피드백: 30초 동안 배낭 열 시간 확보)
 
 	property number SpectatorBoardHold = 1.0
 
@@ -107,7 +111,12 @@ script RollResultDiceAnimationUI extends Logic
 		            self.NextButton:ConnectEvent(ButtonClickEvent, self.OnNextClicked)
 		            self.NextButton.Enable = false
 		        end
-		
+		        -- '넘기기' 버튼 클릭 → 완주자 대기 큐브 롤 즉시 종료(OnSkipClicked). 평소엔 숨김(_allowSkip일 때만 노출).
+		        if isvalid(self.SkipButton) then
+		            self.SkipButton:ConnectEvent(ButtonClickEvent, self.OnSkipClicked)
+		            self.SkipButton.Enable = false
+		        end
+
 				-- 결과 알려주는 패널 비활성화
 				if isvalid(self.ResultTextPanel) then
 					self.ResultTextPanel.Enable = false
@@ -164,8 +173,10 @@ script RollResultDiceAnimationUI extends Logic
 				if isvalid(self.diceParticle) then self.diceParticle.Enable = false end
 				if isvalid(self.RollButton) then self.RollButton.Enable = true end
 				if isvalid(self.NextButton) then self.NextButton.Enable = false end
+				-- '넘기기'는 완주자 대기 큐브 롤(_allowSkip)에서만 노출. 그 외 롤에선 숨김.
+				if isvalid(self.SkipButton) then self.SkipButton.Enable = self._allowSkip end
 				if isvalid(self.ResultTextPanel) then self.ResultTextPanel.Enable = false end
-				log("[RollResultDiceUI] Show → 패널 표시, 굴리기 버튼 대기(수동). RollBtn=" .. tostring(isvalid(self.RollButton)))
+				log("[RollResultDiceUI] Show → 패널 표시, 굴리기 버튼 대기(수동). RollBtn=" .. tostring(isvalid(self.RollButton)) .. " allowSkip=" .. tostring(self._allowSkip))
 	end
 
 	@ExecSpace("ClientOnly")
@@ -177,17 +188,24 @@ script RollResultDiceAnimationUI extends Logic
 				return
 			end
 			if isvalid(self.RollButton) then self.RollButton.Enable = false end
+			if isvalid(self.SkipButton) then self.SkipButton.Enable = false end
 			self:PlayRevealAnimation()
 			self._pendAllowNext = true   -- '다음'은 공개 연출(2초) 종료 후에만 노출(결과 확정 전 조기 진행/공개 방지)
-			log("[RollResultDiceUI] 굴리기 클릭 → 주사위 연출(끝난 뒤 '다음' 노출)")
+			-- 관전자에게도 이 순간(actor가 실제 굴린 시점)에만 공개를 방송한다(서버 경유). actor 본인은 위에서 로컬 연출 재생.
+			local myId = ""
+			local lp = _UserService.LocalPlayer
+			if isvalid(lp) then myId = lp.PlayerComponent.UserId end
+			self:RequestSpectatorRoll(self._pendD1, self._pendD2, self._pendTotal, self._pendOutcome, myId)
+			log("[RollResultDiceUI] 굴리기 클릭 → 주사위 연출(끝난 뒤 '다음' 노출) + 관전자 공개 방송")
 	end
 
 	@ExecSpace("ClientOnly")
 	method void PlayRevealAnimation()
 			-- 공유: 주사위 눈/반짝임 표시 + 2초 후 합계/결과 텍스트. 싱글·멀티 공용(_pend* 값 사용).
 			-- 진입 시 '다음' 노출 플래그를 내린다. 호출자(OnRollClicked/RevealMulti)가 호출 직후 다시 켠다.
-			-- 관전자 자동 경로(ShowSpectatorAuto)는 켜지 않으므로 false 유지 → 관전자에겐 '다음' 버튼이 안 뜬다.
+			-- 관전자 공개 경로(SpectatorRevealDice)는 켜지 않으므로 false 유지 → 관전자에겐 '다음' 버튼이 안 뜬다.
 			self._pendAllowNext = false
+			if isvalid(self.SkipButton) then self.SkipButton.Enable = false end   -- 굴림이 시작되면 '넘기기' 숨김
 			if self._revealTextTimer ~= 0 then _TimerService:ClearTimer(self._revealTextTimer) self._revealTextTimer = 0 end
 			_SFXManager:PlayDice()
 			if isvalid(self.dicePanel) then self.dicePanel.Enable = true end
@@ -210,6 +228,8 @@ script RollResultDiceAnimationUI extends Logic
 			-- 공유: 결과 패널 닫기 + 반짝임 종료 + 주사위면 초기화. 싱글·멀티 공용(onComplete/상태진행은 호출자 담당).
 			if self._revealTextTimer ~= 0 then _TimerService:ClearTimer(self._revealTextTimer) self._revealTextTimer = 0 end
 			if isvalid(self.NextButton) then self.NextButton.Enable = false end
+			if isvalid(self.SkipButton) then self.SkipButton.Enable = false end
+			self._allowSkip = false   -- 롤 종료 시 스킵 허용 해제(다음 롤로 누수 방지)
 			if isvalid(self.panel) then self.panel.Enable = false end
 			if isvalid(self.diceParticle) then self.diceParticle.Enable = false end
 			self:ResetDiceFaces()
@@ -252,6 +272,7 @@ script RollResultDiceAnimationUI extends Logic
 			if isvalid(self.diceParticle) then self.diceParticle.Enable = false end
 			if isvalid(self.ResultTextPanel) then self.ResultTextPanel.Enable = false end
 			if isvalid(self.NextButton) then self.NextButton.Enable = false end
+			if isvalid(self.SkipButton) then self.SkipButton.Enable = false end   -- 턴 결과 주사위엔 '넘기기' 없음
 
 			local isActor = false
 			local lp = _UserService.LocalPlayer
@@ -280,45 +301,100 @@ script RollResultDiceAnimationUI extends Logic
 
 	@ExecSpace("Client")
 	method void SpectatorDiceBroadcast(integer d1, integer d2, integer total, table resultTable, string gameOutcome, string actorUserId)
-			-- 이벤트/보스 결과 주사위를 관전자(비-actor)에게 자동 재생으로 방송한다. actor는 자기 인터랙티브 경로를 쓰므로 스킵.
-			local lp = _UserService.LocalPlayer
-			if isvalid(lp) and lp.PlayerComponent.UserId == actorUserId then
-				log("[RollResultDiceUI] SpectatorDice 스킵(actor=" .. actorUserId .. ")")
-				return
-			end
-			log("[RollResultDiceUI] SpectatorDice 재생(actor=" .. actorUserId .. ")")
-			self:ShowSpectatorAuto(d1, d2, total, resultTable, gameOutcome)
+		-- 관전자(비-actor)에게 결과 주사위 '보드'만 먼저 표시하고, actor가 실제로 굴린 순간(SpectatorRevealDice)에만 공개한다.
+		-- (변경 전엔 롤 시작 시 타이머로 자동 공개 → actor가 굴리기 전에 결과가 노출되던 문제 수정.) actor는 자기 인터랙티브 경로를 쓰므로 스킵.
+		local lp = _UserService.LocalPlayer
+		if isvalid(lp) and lp.PlayerComponent.UserId == actorUserId then
+			log("[RollResultDiceUI] SpectatorDice 보드 스킵(actor=" .. actorUserId .. ")")
+			return
+		end
+		log("[RollResultDiceUI] SpectatorDice 보드 표시 후 대기(actor=" .. actorUserId .. ")")
+		self:ShowSpectatorBoard(d1, d2, total, resultTable, gameOutcome)
 	end
 
 	@ExecSpace("ClientOnly")
-	method void ShowSpectatorAuto(integer d1, integer d2, integer total, table resultTable, string gameOutcome)
-			-- 관전자 전용 자동 시퀀스: 보드 → (BoardHold) 공개 → (ResultHold) 자동 닫힘. 버튼/서버콜백 없음.
-			if self._spectatorTimer1 ~= 0 then _TimerService:ClearTimer(self._spectatorTimer1) self._spectatorTimer1 = 0 end
-			if self._spectatorTimer2 ~= 0 then _TimerService:ClearTimer(self._spectatorTimer2) self._spectatorTimer2 = 0 end
-			if self._revealTextTimer ~= 0 then _TimerService:ClearTimer(self._revealTextTimer) self._revealTextTimer = 0 end
-			self._pendD1 = d1
-			self._pendD2 = d2
-			self._pendTotal = total
-			self._pendOutcome = gameOutcome
-			self._pendOnComplete = nil
-			self._pendActorUserId = ""
-			self:UpdateBoardUI(resultTable)
-			self.panel.Enable = true
-			self:BringToFront()
-			if isvalid(self.dicePanel) then self.dicePanel.Enable = false end
-			if isvalid(self.diceParticle) then self.diceParticle.Enable = false end
-			if isvalid(self.ResultTextPanel) then self.ResultTextPanel.Enable = false end
-			if isvalid(self.RollButton) then self.RollButton.Enable = false end
-			if isvalid(self.NextButton) then self.NextButton.Enable = false end
-			self._spectatorTimer1 = _TimerService:SetTimerOnce(function()
-				self._spectatorTimer1 = 0
-				self:PlayRevealAnimation()
-				self._spectatorTimer2 = _TimerService:SetTimerOnce(function()
-					self._spectatorTimer2 = 0
-					self:ClosePanel()
-					log("[RollResultDiceUI] SpectatorDice 자동 닫힘")
-				end, self.SpectatorResultHold)
-			end, self.SpectatorBoardHold)
+	method void ShowSpectatorBoard(integer d1, integer d2, integer total, table resultTable, string gameOutcome)
+		-- 관전자: 결과판(보드)만 표시하고 actor의 실제 굴림 전까지 대기(주사위/결과 미공개). 공개 타이머 없음.
+		if self._spectatorTimer1 ~= 0 then _TimerService:ClearTimer(self._spectatorTimer1) self._spectatorTimer1 = 0 end
+		if self._spectatorTimer2 ~= 0 then _TimerService:ClearTimer(self._spectatorTimer2) self._spectatorTimer2 = 0 end
+		if self._revealTextTimer ~= 0 then _TimerService:ClearTimer(self._revealTextTimer) self._revealTextTimer = 0 end
+		self._pendD1 = d1
+		self._pendD2 = d2
+		self._pendTotal = total
+		self._pendOutcome = gameOutcome
+		self._pendOnComplete = nil
+		self._pendActorUserId = ""
+		self:UpdateBoardUI(resultTable)
+		self.panel.Enable = true
+		self:BringToFront()
+		if isvalid(self.dicePanel) then self.dicePanel.Enable = false end
+		if isvalid(self.diceParticle) then self.diceParticle.Enable = false end
+		if isvalid(self.ResultTextPanel) then self.ResultTextPanel.Enable = false end
+		if isvalid(self.RollButton) then self.RollButton.Enable = false end
+		if isvalid(self.NextButton) then self.NextButton.Enable = false end
+		if isvalid(self.SkipButton) then self.SkipButton.Enable = false end
+	end
+
+	@ExecSpace("Server")
+	method void RequestSpectatorBoard(integer d1, integer d2, integer total, table resultTable, string outcome, string actorUserId)
+		-- actor의 주사위 보드가 뜬 순간(리드 종료 후), 서버 경유로 관전자에게 결과 '보드'를 방송한다.
+		-- (도착 즉시 방송을 대체 → 관전자도 actor처럼 '리드(소개) → 보드' 순서를 그대로 본다.)
+		self:SpectatorDiceBroadcast(d1, d2, total, resultTable, outcome, actorUserId)
+	end
+
+	@ExecSpace("Server")
+	method void RequestSpectatorRoll(integer d1, integer d2, integer total, string outcome, string actorUserId)
+		-- actor가 이벤트/큐브 주사위 '굴리기'를 실제로 누른 순간, 서버 경유로 관전자에게 공개를 방송한다.
+		self:SpectatorRevealDice(d1, d2, total, outcome, actorUserId)
+	end
+
+	@ExecSpace("Client")
+	method void SpectatorRevealDice(integer d1, integer d2, integer total, string outcome, string actorUserId)
+		-- 관전자: 대기 중이던 보드에서 실제 주사위 공개 연출 재생 + 씬 결과문구 진행 후 자동 닫힘. actor 본인은 로컬 연출을 쓰므로 스킵.
+		local lp = _UserService.LocalPlayer
+		if isvalid(lp) and lp.PlayerComponent.UserId == actorUserId then return end
+		if self._spectatorTimer1 ~= 0 then _TimerService:ClearTimer(self._spectatorTimer1) self._spectatorTimer1 = 0 end
+		if self._spectatorTimer2 ~= 0 then _TimerService:ClearTimer(self._spectatorTimer2) self._spectatorTimer2 = 0 end
+		self._pendD1 = d1
+		self._pendD2 = d2
+		self._pendTotal = total
+		self._pendOutcome = outcome
+		self._pendActorUserId = ""
+		if isvalid(self.panel) then self.panel.Enable = true end
+		self:BringToFront()
+		self:PlayRevealAnimation()
+		_EventTileUI:SpectatorRevealRollText()     -- 씬 텍스트(결과 문구)도 이 순간에 진행(마을/길드/연애/End)
+		_EventTileUI:SpectatorRevealBossFollow()   -- 보스 결과 후속(승패 문구+die)도 이 순간에 공개
+		self._spectatorTimer2 = _TimerService:SetTimerOnce(function()
+			self._spectatorTimer2 = 0
+			self:ClosePanel()
+			log("[RollResultDiceUI] SpectatorDice 공개 후 자동 닫힘")
+		end, self.SpectatorResultHold)
+	end
+
+	@ExecSpace("ClientOnly")
+	method void SpectatorForceClose()
+		-- 관전 씬이 닫힐 때(스킵/AFK/정상 종료) 대기·공개 중이던 관전용 주사위 보드도 함께 닫는다.
+		if self._spectatorTimer1 ~= 0 then _TimerService:ClearTimer(self._spectatorTimer1) self._spectatorTimer1 = 0 end
+		if self._spectatorTimer2 ~= 0 then _TimerService:ClearTimer(self._spectatorTimer2) self._spectatorTimer2 = 0 end
+		self:ClosePanel()
+	end
+
+	@ExecSpace("ClientOnly")
+	method void SetAllowSkip(boolean allow)
+		-- 다음 큐브 롤에서 '넘기기' 노출 여부 설정(완주자 대기 큐브 롤 전용). Show가 이 값을 읽어 SkipButton을 켠다.
+		self._allowSkip = allow
+	end
+
+	@ExecSpace("ClientOnly")
+	method void OnSkipClicked()
+		-- 완주자 대기 큐브 롤 '넘기기'(가안): 주사위 연출을 건너뛰고 즉시 턴 종료(다음 플레이어). 큐브 보상은 롤 시작 시 서버에서 이미 지급됨.
+		if self._allowSkip == false then return end   -- 안전장치: 스킵 허용 롤에서만
+		if isvalid(self.RollButton) then self.RollButton.Enable = false end
+		if isvalid(self.SkipButton) then self.SkipButton.Enable = false end
+		self:ClosePanel()
+		_EventTileUI:AdvanceActiveTile()   -- 활성 타일(EndTile)에 진행 요청 → RequestAdvance(_waitingRoll) → OnWaitingCubeRollDone
+		log("[RollResultDiceUI] 넘기기 클릭 → 대기 큐브 롤 건너뛰고 턴 종료")
 	end
 
 	@ExecSpace("ClientOnly")

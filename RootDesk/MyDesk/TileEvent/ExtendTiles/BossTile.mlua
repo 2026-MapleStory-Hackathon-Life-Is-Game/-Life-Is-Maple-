@@ -135,8 +135,8 @@ script BossTile extends EventTileBase
 		
 		local ownerId = self:OwnerUserId(piece)
 		self:ShowChallengeDice(d1, d2, total, resultTable, outcome, outcomeText, self._selectedBossKey, ownerId)
-		_RollResultDiceAnimationUI:SpectatorDiceBroadcast(d1, d2, total, resultTable, outcome, ownerId)
-		_EventTileUI:SpectatorBossFollow((outcome == "성공" or outcome == "대성공"), outcome, outcomeText, self:BossDieRUID(self._selectedBossKey), ownerId)
+		-- 주사위 보드는 actor의 보드가 뜨는 순간(BossFightDice)에 방송된다. 결과 후속(승패 문구)은 보관 후 actor가 굴린 순간에 공개(조기 스포일 방지).
+		_EventTileUI:SpectatorBossFollowDeferred((outcome == "성공" or outcome == "대성공"), outcome, outcomeText, self:BossDieRUID(self._selectedBossKey), ownerId)
 	end
 
 	@ExecSpace("Client")

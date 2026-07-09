@@ -319,7 +319,7 @@ script RomanceTile extends BaseTile
 			.. " 확률(대/성/실)=" .. tostring(greatPct) .. "/" .. tostring(successPct) .. "/" .. tostring(failPct)
 			.. " 주사위=" .. tostring(d1) .. "+" .. tostring(d2) .. "=" .. tostring(sum) .. " → " .. outcomeLabel)
 		self:ClientShowRoll(leadText, "idle", resultText, d1, d2, sum, greatPct, successPct, failPct, outcomeLabel, npcKey, ownerId)
-		_RollResultDiceAnimationUI:SpectatorDiceBroadcast(d1, d2, sum, board, outcomeLabel, ownerId)
+			-- 주사위 보드는 actor가 리드를 넘겨 보드가 뜨는 순간(OnRollLeadDone)에 방송된다. 여기선 씬 리드 미러만.
 		_EventTileUI:SpectatorSceneRoll(leadText, resultText, "idle", npcKey, ownerId)
 	end
 

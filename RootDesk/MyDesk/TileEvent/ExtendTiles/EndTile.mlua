@@ -57,7 +57,7 @@ script EndTile extends BaseTile
 			end
 			if doRoll then
 				log("[EndTile] 종료 칸 도착 → 큐브 획득 주사위 tile=" .. self.Entity.Name)
-				self:StartCubeRoll(piece, endOwnerId)
+				self:StartCubeRoll(piece, endOwnerId, false)   -- 도착 보너스 롤: 넘기기 없음
 				return
 			end
 			-- 롤 없이 바로 완주 처리(싱글 전체 / 멀티 꼴찌 / 소유자 없음).
@@ -76,6 +76,8 @@ script EndTile extends BaseTile
 		self._step = 0
 		log("[EndTile] 검은 마법사 결전 — 보스 선택 표시 tile=" .. self.Entity.Name)
 		self:ClientShowBossSelect(self:Dlg("intro"), ownerId)
+		-- 관전자: 검은 마법사 선택 화면을 읽기전용 로스터(단일 보스)로 방송(피드백 12).
+		_BossUI:SpectatorShowRoster(self:Dlg("intro"), { "Black_Mage" }, { "Hard" }, ownerId)
 	end
 
 	@ExecSpace("Server")
@@ -86,7 +88,11 @@ script EndTile extends BaseTile
 		if senderUserId ~= self:OwnerUserId(piece) then return end
 		self._step = 2
 		log("[EndTile] 검은 마법사 선택 (" .. tostring(bossKey) .. "/" .. tostring(diffKey) .. ") → 도전")
-		self:ClientStartChallenge(self:Dlg("challenge"), self:OwnerUserId(piece))
+		local ownerId = self:OwnerUserId(piece)
+		self:ClientStartChallenge(self:Dlg("challenge"), ownerId)
+		-- 관전자: 로스터 닫고 도전 문구 + 검은 마법사 이미지 미러(피드백 12).
+		_BossUI:SpectatorHide(ownerId)
+		_EventTileUI:SpectatorBossFightText(self:Dlg("challenge"), self:BlackMageStandRUID(), ownerId)
 	end
 
 	@ExecSpace("Server")
@@ -127,14 +133,16 @@ script EndTile extends BaseTile
 			if self._won then key = "win" end
 			log("[EndTile] 검은 마법사 판정 CP=" .. tostring(cp) .. " / 적정=" .. tostring(req) .. " → " .. key)
 			self:ClientShowText(self:Dlg(key), "BlackMage", self._won, ownerId)
+			-- 관전자: 승/패 결과 문구 미러(승리=환호/패배=울음). PortraitEmote는 win/lose를 모르므로 대성공/실패로 매핑, die 이미지 없음("").
+			_EventTileUI:SpectatorBossFollow(self._won, (self._won and "대성공" or "실패"), self:Dlg(key), "", ownerId)
 		else
 			self:EndBattle()
 		end
 	end
 
 	@ExecSpace("ServerOnly")
-	method void StartCubeRoll(Entity piece, string ownerId)
-		-- 종료칸 도착 보너스: 주사위를 굴려 미라클 큐브를 획득한다.
+	method void StartCubeRoll(Entity piece, string ownerId, boolean allowSkip)
+		-- 종료칸 도착 보너스: 주사위를 굴려 미라클 큐브를 획득한다. allowSkip=완주자 대기 롤이면 '넘기기' 노출.
 		-- 실패=0개 / 성공=1개 / 대성공=3개, 확률 20/50/30. (마을 확률게임과 동일 롤 머신 재사용.)
 		-- 보상은 여기서 서버에 즉시 지급하고(연출 중 이탈해도 보장), 결과는 롤 UI로 연출한다.
 		self._cubeRolling = true
@@ -170,9 +178,8 @@ script EndTile extends BaseTile
 		if cubes > 0 then
 			resultText = "미라클 큐브 " .. tostring(cubes) .. "개를 획득했다!"
 		end
-		-- actor: 굴림 연출. 멀티 관전자: 주사위 방송 + 씬 미러(마을 확률게임과 동일).
-		self:ClientShowCubeRoll(leadText, resultText, d1, d2, sum, greatPct, successPct, failPct, outcomeLabel, ownerId)
-		_RollResultDiceAnimationUI:SpectatorDiceBroadcast(d1, d2, sum, board, outcomeLabel, ownerId)
+		-- actor: 굴림 연출. 멀티 관전자: 씬 미러(리드)만 지금 방송하고, 주사위 보드는 actor가 리드를 넘겨 보드가 뜨는 순간(OnRollLeadDone)에 방송된다.
+		self:ClientShowCubeRoll(leadText, resultText, d1, d2, sum, greatPct, successPct, failPct, outcomeLabel, allowSkip, ownerId)
 		_EventTileUI:SpectatorSceneRoll(leadText, resultText, "idle", "", ownerId)
 	end
 
@@ -190,7 +197,7 @@ script EndTile extends BaseTile
 			return
 		end
 		log("[EndTile] 완주자 대기 큐브 롤 owner=" .. ownerId)
-		self:StartCubeRoll(piece, ownerId)
+		self:StartCubeRoll(piece, ownerId, true)   -- 완주자 대기 롤: '넘기기' 노출(30초 동안 배낭 열 시간 확보)
 	end
 
 	@ExecSpace("ServerOnly")
@@ -211,8 +218,10 @@ script EndTile extends BaseTile
 	end
 
 	@ExecSpace("Client")
-	method void ClientShowCubeRoll(string leadText, string resultText, integer d1, integer d2, integer total, number greatPct, number successPct, number failPct, string outcomeLabel)
+	method void ClientShowCubeRoll(string leadText, string resultText, integer d1, integer d2, integer total, number greatPct, number successPct, number failPct, string outcomeLabel, boolean allowSkip)
 		-- 도착 플레이어 클라: 큐브 롤 연출(리드텍스트 → 주사위 → 결과문구 → '다음' → RequestAdvance).
+		-- allowSkip=완주자 대기 롤이면 '넘기기' 노출(주사위 UI가 SetAllowSkip 값을 읽어 Show 시 버튼을 켠다).
+		_RollResultDiceAnimationUI:SetAllowSkip(allowSkip)
 		_EventTileUI:SceneRoll(leadText, "idle", resultText, d1, d2, total, greatPct, successPct, failPct, outcomeLabel, "", self)
 	end
 
@@ -237,7 +246,10 @@ script EndTile extends BaseTile
 		if isvalid(piece) then ownerId = self:OwnerUserId(piece) end
 		self._piece = nil
 		self._step = 0
-		if ownerId ~= "" then self:ClientHide(ownerId) end
+		if ownerId ~= "" then
+			self:ClientHide(ownerId)
+			_EventTileUI:SpectatorSceneHide(ownerId)   -- 관전자 결전 UI도 닫기(피드백 12).
+		end
 		-- 검은 마법사 클리어 선착순 보상: 완주 순위별 주스탯/공격력 % 버프(FinishEndTile 전 = MarkPlayerFinished 전이라 rank=_finishedCount+1).
 		self:ApplyClearRankReward(piece)
 		-- 엔딩 요약을 결과창과 통합 → 별도 정리 표/'다음' 없이 바로 종료 흐름(FinishEndTile→통합 결과 카드/멀티 순위표)으로 진행.

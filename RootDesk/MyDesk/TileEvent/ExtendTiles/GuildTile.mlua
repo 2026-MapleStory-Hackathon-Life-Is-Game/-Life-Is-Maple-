@@ -232,7 +232,7 @@ script GuildTile extends EventTileBase
 				.. " 주사위=" .. tostring(d1) .. "+" .. tostring(d2) .. "=" .. tostring(sum) .. " → " .. outcomeLabel)
 			-- 길드 롤(창설/신규 길드원 가입)은 outcome 기반: 성공/대성공=웃음, 실패=울음.
 			self:ClientShowRoll(node.text, "idle", resultText, d1, d2, sum, greatPct, successPct, failPct, outcomeLabel, npcKey, ownerId)
-			_RollResultDiceAnimationUI:SpectatorDiceBroadcast(d1, d2, sum, board, outcomeLabel, ownerId)
+			-- 주사위 보드는 actor가 리드를 넘겨 보드가 뜨는 순간(OnRollLeadDone)에 방송된다. 여기선 씬 리드 미러만.
 			_EventTileUI:SpectatorSceneRoll(node.text, resultText, "idle", npcKey, ownerId)
 
 		else
