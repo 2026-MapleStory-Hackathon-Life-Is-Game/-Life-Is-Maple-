@@ -89,6 +89,7 @@ script BranchSelectUI extends Logic
 				log("버튼 " .. i .. " 활성화 시도")
 				btn.Entity.Enable = true
 				if isvalid(btn.ButtonComponent) then btn.ButtonComponent.Enable = true end   -- 이전 관전(읽기전용) 비활성 잔재 복구
+				self:SetButtonDisabledVisual(btn, false)   -- 흐림 처리 원복(이전 턴 관전 잔재 복구)
 				btn.Entity.TextComponent.Text = branchTexts[i]
 				-- 기능 9: 이 분기를 골랐을 때 도착하는 타일의 '종류'를 아이콘+한글명으로 표시.
 				self:ShowBranchResult(btn, map, tileNames[i], remaining)
@@ -265,6 +266,7 @@ script BranchSelectUI extends Logic
 				btn.Entity.TextComponent.Text = branchTexts[i]
 				self:ShowBranchResult(btn, map, tileNames[i], remaining)
 				if isvalid(btn.ButtonComponent) then btn.ButtonComponent.Enable = false end   -- 읽기전용: 클릭/호버 차단
+				self:SetButtonDisabledVisual(btn, true)   -- 시각적으로도 비활성(흐리게). 엔티티는 켜둔 채 유지.
 			else
 				btn.Entity.Enable = false
 			end
@@ -310,6 +312,26 @@ script BranchSelectUI extends Logic
 		if self.mapBtnHandler ~= nil and isvalid(self.mapViewBtn) then
 			self.mapViewBtn.Entity:DisconnectEvent(ButtonClickEvent, self.mapBtnHandler)
 			self.mapBtnHandler = nil
+		end
+	end
+
+	method void SetButtonDisabledVisual(ButtonComponent btn, boolean disabled)
+		-- 버튼을 '비활성'으로 보이게 배경/라벨을 흐리게 처리한다(엔티티는 끄지 않음 → 여전히 표시됨).
+		-- ButtonComponent.Enable=false는 클릭/호버만 막고 겉모습은 그대로라, 관전자가 "눌러도 되는 버튼"처럼 느낀다.
+		-- disabled=true면 알파를 낮춰 흐리게, false면 1.0으로 복원. RGB는 보존해 원복이 정확하다.
+		if isvalid(btn) == false or isvalid(btn.Entity) == false then return end
+		local bgA = 1.0
+		local txtA = 1.0
+		if disabled then bgA = 0.4 txtA = 0.5 end
+		local sr = btn.Entity.SpriteGUIRendererComponent
+		if isvalid(sr) then
+			local c = sr.Color
+			sr.Color = Color(c.r, c.g, c.b, bgA)
+		end
+		local tc = btn.Entity.TextComponent
+		if isvalid(tc) then
+			local fc = tc.FontColor
+			tc.FontColor = Color(fc.r, fc.g, fc.b, txtA)
 		end
 	end
 
