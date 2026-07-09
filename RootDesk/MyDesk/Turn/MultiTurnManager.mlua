@@ -40,6 +40,11 @@ script MultiTurnManager extends Logic
 	@Sync
 	property SyncTable<string, integer> _finishSync
 
+	-- 턴 순서표(_playerUserIds)의 클라이언트 읽기용 @Sync 미러(좌측 '다른 참가자' 패널을 턴 순서로 정렬하려면 필요).
+	-- 키=0-based 순번, 값=userId. _playerUserIds가 바뀔 때마다 SyncTurnOrder로 재구성한다.
+	@Sync
+	property SyncTable<integer, string> _orderSync
+
 	-- 턴 입력 대기 감시(피드백 6): actor가 30초 안에 행동(주사위/타일/결과주사위)하지 않으면 자동 진행.
 	property integer _turnTimerId = 0
 
@@ -93,6 +98,7 @@ script MultiTurnManager extends Logic
 		        self._userLeaveHandler = self:ConnectEvent(UserLeaveEvent, self.OnUserLeave)
 		
 		        self:ClearFinishSync()
+		self:SyncTurnOrder()   -- 턴 순서표를 클라이언트에 노출(다른 참가자 패널 정렬용)
 	        log("[MultiTurnManager] " .. tostring(self._playerCount) .. "명으로 멀티플레이 시작")
 		        self:SetCurrentPlayer(0)
 		        self:AdvanceToState("TURN_START")
@@ -118,6 +124,7 @@ script MultiTurnManager extends Logic
 		            self._userLeaveHandler = nil
 		        end
 		        self:ClearFinishSync()
+		self:ClearOrderSync()   -- 턴 순서 미러도 비운다
 	        log("[MultiTurnManager] 게임 종료")
 	end
 
@@ -168,6 +175,7 @@ script MultiTurnManager extends Logic
 		        self._playerCount -= 1
 		        if self._afkStrikes ~= nil then self._afkStrikes[userId] = nil end
 		        log("[MultiTurnManager] 플레이어 제거: userId=" .. userId .. " (남은 인원: " .. tostring(self._playerCount) .. "명)")
+		self:SyncTurnOrder()   -- 순서표 변경 → 클라이언트 미러 갱신(다른 참가자 패널 정렬)
 
 		        -- 남은 인원 1명 이하 → 곧바로 게임 종료. 남은 1명에겐 즉시 로비 텔레포트 대신 '게임 오버' 패널을 띄운다(피드백 14).
 		        -- (확인을 누르면 그때 로비로 복귀 — ResultUI.HidePanelToLobby → ReturnToLobbyAfterResult.)
@@ -522,6 +530,25 @@ script MultiTurnManager extends Logic
 		-- @Sync SyncTable엔 :Clear()가 없으므로 pairs+nil로 비운다(신규 판/맵 재개 시 이전 완주 뱃지 잔재 제거).
 		for k, _ in pairs(self._finishSync) do
 			self._finishSync[k] = nil
+		end
+	end
+
+	method void SyncTurnOrder()
+		-- 서버의 턴 순서표(_playerUserIds, 0-based)를 클라이언트가 읽는 @Sync 미러(_orderSync)로 복사한다.
+		-- '다른 참가자' 패널이 현재 턴 플레이어 다음부터 턴 순서대로 나열할 때 사용한다.
+		self:ClearOrderSync()
+		if self._playerUserIds == nil then return end
+		for i = 0, self._playerCount - 1 do
+			if self._playerUserIds[i] ~= nil then
+				self._orderSync[i] = self._playerUserIds[i]
+			end
+		end
+	end
+
+	method void ClearOrderSync()
+		-- @Sync SyncTable엔 :Clear()가 없으므로 pairs+nil로 비운다.
+		for k, _ in pairs(self._orderSync) do
+			self._orderSync[k] = nil
 		end
 	end
 

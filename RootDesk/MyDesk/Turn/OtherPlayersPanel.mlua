@@ -7,9 +7,11 @@ script OtherPlayersPanel extends Logic
 
 	property number _acc = 0
 
+	property any _rowUid = nil   -- 행별 마지막 적용 초상화 userId(폴링마다 SetEquip 재적용 방지)
+
 	@ExecSpace("ClientOnly")
 	method void OnUpdate(number delta)
-		-- 좌측 패널 아래 '다른 참가자' 소형 패널을 주기적으로 갱신한다(멀티에서만 표시).
+		-- 좌측 '다른 참가자' 순위 패널을 주기적으로 갱신한다(멀티에서만 표시).
 		self._acc = self._acc + delta
 		if self._acc < self._pollInterval then return end
 		self._acc = 0
@@ -18,52 +20,128 @@ script OtherPlayersPanel extends Logic
 
 	@ExecSpace("ClientOnly")
 	method void Refresh()
-		-- 패널 표시/숨김 + 참가자 순위(전투력 내림차순) 채우기.
+		-- 패널 표시/숨김 + '나를 제외한 다른 유저' 순위(전투력 내림차순)로 각 행의 서브노드(이름/전투력/레벨/초상화)를 채운다.
 		local panel = _EntityService:GetEntityByPath(self.PanelPath)
 		if isvalid(panel) == false then return end
 
-		-- 멀티 진행 중 + 맵뷰가 닫혀 있을 때만 표시(맵뷰 중엔 HUD를 숨기는 흐름과 정렬).
+		-- 멀티 진행 중 + 맵뷰가 닫혀 있을 때만 표시.
 		local show = (_MultiTurnManager ~= nil and _MultiTurnManager._isActive)
 		if _MapViewManager ~= nil and _MapViewManager._isOpen then show = false end
 		panel.Enable = show
 		if show == false then return end
+		if self._rowUid == nil then self._rowUid = {} end
 
-		-- 참가자 수집: 이름 / 전투력 / 완주순위(@Sync 미러).
+		local mgr = _MultiTurnManager
+
+		-- 턴 순서표(@Sync 미러 _orderSync)를 0-based로 읽어온다(서버 _playerUserIds의 클라 미러).
+		local order = {}
+		local oi = 0
+		while mgr._orderSync[oi] ~= nil do
+			table.insert(order, mgr._orderSync[oi])
+			oi = oi + 1
+		end
+		local count = #order
+
+		-- 현재 턴 플레이어(A)는 위쪽 큰 패널(PlayerInfo_Panel)이 담당하므로 이 패널에선 제외한다.
+		-- 나머지를 '현재 턴 다음부터' 턴 순서대로(원형) 위→아래 나열한다: A턴이면 B→C→D.
+		-- (전투력순이 아니라 턴 사이클 순서. 뷰어 본인도 actor가 아니면 이 목록에 포함된다.)
 		local rows = {}
-		for _, ue in ipairs(_UserService.UserEntities.Values) do
-			if isvalid(ue) and ue.PlayerComponent ~= nil then
+		if count > 0 then
+			-- 현재 턴 플레이어의 순번(userId 우선, 없으면 인덱스 폴백).
+			local actorUid = mgr._currentPlayerUserId
+			local actorPos = 0   -- 1-based
+			for k = 1, count do
+				if order[k] == actorUid then actorPos = k break end
+			end
+			if actorPos == 0 then
+				actorPos = mgr._currentPlayerIndex + 1
+				if actorPos < 1 or actorPos > count then actorPos = 1 end
+			end
+
+			-- userId → UserEntity 조회 맵.
+			local uid2ent = {}
+			for uid, ue in pairs(_UserService.UserEntities) do uid2ent[uid] = ue end
+
+			-- actor 다음부터 원형으로 count-1명(actor 제외).
+			for offset = 1, count - 1 do
+				local pos = ((actorPos - 1 + offset) % count) + 1
+				local uid = order[pos]
+				local ue = uid2ent[uid]
+				local name = "?"
 				local power = 0
-				local cp = ue:GetComponent("script.CombatPowerManager")
-				if isvalid(cp) then power = cp.CombatPower end
-				local uid = ue.PlayerComponent.UserId
+				local level = 1
+				if isvalid(ue) and ue.PlayerComponent ~= nil then
+					name = ue.PlayerComponent.Nickname
+					local cp = ue:GetComponent("script.CombatPowerManager")
+					if isvalid(cp) then
+						power = cp.CombatPower
+						level = cp.Level
+					end
+				end
 				local fin = 0
-				if _MultiTurnManager._finishSync[uid] ~= nil then fin = _MultiTurnManager._finishSync[uid] end
-				table.insert(rows, { name = ue.PlayerComponent.Nickname, power = power, uid = uid, fin = fin })
+				if mgr._finishSync[uid] ~= nil then fin = mgr._finishSync[uid] end
+				table.insert(rows, { ent = ue, name = name, power = power, level = level, uid = uid, fin = fin })
 			end
 		end
-		table.sort(rows, function(a, b) return a.power > b.power end)
 
-		local myUid = ""
-		local me = _UserService.LocalPlayer
-		if isvalid(me) and me.PlayerComponent ~= nil then myUid = me.PlayerComponent.UserId end
-
-		-- 최대 4행. 없는 순번은 숨긴다.
-		for i = 1, 4 do
+		-- 최대 3행(현재 턴 플레이어 제외 = 최대 3명). 없는 순번은 숨긴다.
+		for i = 1, 3 do
 			local rowE = _EntityService:GetEntityByPath(self.PanelPath .. "/Row" .. tostring(i))
 			if isvalid(rowE) then
 				local r = rows[i]
 				if r == nil then
 					rowE.Enable = false
+					self._rowUid[i] = nil
 				else
 					rowE.Enable = true
-					if isvalid(rowE.TextComponent) then
-						local nm = r.name
-						if nm == nil or nm == "" then nm = "?" end
-						if r.uid == myUid then nm = nm .. " (나)" end
-						local line = tostring(i) .. ". " .. nm .. "   " .. self:FmtPower(r.power)
-						if r.fin > 0 then line = line .. "   [완주]" end
-						rowE.TextComponent.Text = line
+					local nm = r.name
+					if nm == nil or nm == "" then nm = "?" end
+					self:SetNodeText(rowE, "UIText_2", nm)                              -- 이름
+					local pw = self:FmtPower(r.power)
+					if r.fin > 0 then pw = pw .. "  [완주]" end
+					self:SetNodeText(rowE, "UIText_1", pw)                              -- 전투력
+					self:SetNodeText(rowE, "UIText_Level", "Lv." .. tostring(r.level))  -- 레벨
+					-- 초상화: 담당 유저가 바뀔 때만 재적용(폴링마다 SetEquip 방지 → 깜빡임/부하 방지).
+					if self._rowUid[i] ~= r.uid then
+						self:ApplyRowPortrait(rowE, r.ent, r.uid)
+						self._rowUid[i] = r.uid
 					end
+				end
+			end
+		end
+	end
+
+	method void SetNodeText(any rowE, string childName, string text)
+		-- 행 하위 텍스트 노드(재귀 탐색)에 값 설정. TextGUIRenderer 우선, 없으면 TextComponent.
+		if isvalid(rowE) == false then return end
+		local e = rowE:GetChildByName(childName, true)
+		if isvalid(e) == false then return end
+		local tg = e:GetComponent("MOD.Core.TextGUIRendererComponent")
+		if tg ~= nil then
+			tg.Text = text
+			return
+		end
+		local tc = e:GetComponent("MOD.Core.TextComponent")
+		if tc ~= nil then tc.Text = text end
+	end
+
+	method void ApplyRowPortrait(any rowE, any target, string userId)
+		-- 행 초상화(PlayerPortrait)를 해당 유저 외형으로 맞춘다. 계정 아바타(DefaultEquipUserId) 위에
+		-- 런타임 코디(직업 무기/진영 코스튬)를 슬롯별로 덮어써 실제 외형으로 보이게 한다(EventTileUI 초상화 규칙 재사용).
+		if userId == nil or userId == "" then return end
+		if isvalid(rowE) == false then return end
+		local portrait = rowE:GetChildByName("PlayerPortrait", true)
+		if isvalid(portrait) == false then return end
+		local cm = portrait.CostumeManagerComponent
+		if isvalid(cm) == false then return end
+		cm.UseCustomEquipOnly = false
+		cm.DefaultEquipUserId = userId
+		if isvalid(target) then
+			local pcm = target.CostumeManagerComponent
+			if isvalid(pcm) then
+				for _, d in ipairs(_EventTileUI:PortraitSlotDefs()) do
+					local v = pcm[d.p]
+					if v ~= nil and v ~= "" then cm:SetEquip(d.c, v) end
 				end
 			end
 		end
