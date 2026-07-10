@@ -133,10 +133,23 @@ script MultiTurnManager extends Logic
 		        self._currentPlayerIndex = idx
 		        if self._playerUserIds ~= nil and self._playerUserIds[idx] ~= nil then
 		            self._currentPlayerUserId = self._playerUserIds[idx]
-		            log("[MultiTurnManager] 현재 플레이어: 인덱스=" .. tostring(idx) .. " userId=" .. self._currentPlayerUserId)
+-- 		            log("[MultiTurnManager] 현재 플레이어: 인덱스=" .. tostring(idx) .. " userId=" .. self._currentPlayerUserId)
+		            self:RefreshActorBuffBar()   -- 턴 전환 → 새 actor의 버프바를 전원(관전자 포함)에 방송(관전 버프 따라가기)
 		        else
-		            log_warning("[MultiTurnManager] 인덱스 " .. tostring(idx) .. "에 해당하는 플레이어 없음")
+-- 		            log_warning("[MultiTurnManager] 인덱스 " .. tostring(idx) .. "에 해당하는 플레이어 없음")
 		        end
+	end
+
+	@ExecSpace("ServerOnly")
+	method void RefreshActorBuffBar()
+		        -- 현재 턴 actor의 버프바를 전원 클라이언트(관전자 포함)에 방송한다.
+		        -- actor의 BuffManager.PushBuffUI가 멀티 활성 시 SetActorBuffs로 전원 방송하도록 되어 있어,
+		        -- 여기서 한 번 호출해 주면 턴 시작 시점에 이미 걸려 있던 버프까지 관전자 화면에 즉시 반영된다.
+		        if not self._isActive then return end
+		        local actor = _UserService:GetUserEntityByUserId(self._currentPlayerUserId)
+		        if isvalid(actor) == false then return end
+		        local bm = actor:GetComponent("script.BuffManager")
+		        if isvalid(bm) then bm:PushBuffUI() end
 	end
 
 	@ExecSpace("Server")

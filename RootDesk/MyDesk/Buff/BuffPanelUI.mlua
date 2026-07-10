@@ -45,24 +45,39 @@ script BuffPanelUI extends Logic
 	end
 
 	@ExecSpace("Client")
-	method void SetBuffs(table buffNames, integer guildMemberCount, integer familyCount)
-		-- 서버가 보낸 활성 버프 이름 목록으로 카드 한 줄을 다시 만든다. guildMemberCount/familyCount는 각각 길드/결혼 버프 툴팁용.
+	method void SetBuffs(table buffNames, integer guildMemberCount, integer familyCount, integer afkCount)
+		-- 싱글(또는 본인 타겟) 버프바 갱신: 소유 플레이어 본인 클라이언트에만 전송된다.
+		self:RenderBuffs(buffNames, guildMemberCount, familyCount, afkCount)
+	end
+
+	@ExecSpace("Client")
+	method void SetActorBuffs(table buffNames, integer guildMemberCount, integer familyCount, integer afkCount, string actorUserId)
+		-- 멀티 전용: 현재 턴 actor의 버프바를 전원(관전자 포함) 클라이언트에 방송한다.
+		-- (타겟 인자 없이 호출 → 전원 브로드캐스트. actorUserId는 데이터 파라미터로, 후속 확장/로깅용.)
+		-- 관전 중인 플레이어도 자기 것 대신 현재 actor의 버프를 그대로 보게 된다("actor 버프 따라가기").
+		self:RenderBuffs(buffNames, guildMemberCount, familyCount, afkCount)
+	end
+
+	method void RenderBuffs(table buffNames, integer guildMemberCount, integer familyCount, integer afkCount)
+		-- 활성 버프 이름 목록으로 카드 한 줄을 다시 만든다. guildMemberCount/familyCount는 각각 길드/결혼 버프 툴팁용.
+		-- afkCount는 AFK 경고 버프 툴팁의 '현재 N스택' 표시용(피드백 6).
 		self._guildMemberCount = guildMemberCount
 		self._familyMemberCount = familyCount
+		self._afkWarnCount = afkCount
 		self:ClearCards()
 		if isvalid(self.cardTemplate) == false then
-			log_error("[BuffPanelUI] cardTemplate 없음")
+-- 			log_error("[BuffPanelUI] cardTemplate 없음")
 			return
 		end
 		local ds = _DataService:GetTable("BuffData")
 		if isvalid(ds) == false then
-			log_error("[BuffPanelUI] dataset 'BuffData' 없음")
+-- 			log_error("[BuffPanelUI] dataset 'BuffData' 없음")
 			return
 		end
 		for i = 1, #buffNames do
 			self:MakeCard(ds, buffNames[i], i)
 		end
-		log("[BuffPanelUI] 버프 카드 " .. tostring(#buffNames) .. "개 표시")
+-- 		log("[BuffPanelUI] 버프 카드 " .. tostring(#buffNames) .. "개 표시")
 	end
 
 	method integer FindRow(any ds, string buffName)

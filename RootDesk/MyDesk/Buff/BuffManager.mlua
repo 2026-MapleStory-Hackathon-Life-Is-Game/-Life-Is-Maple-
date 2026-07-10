@@ -308,7 +308,19 @@ script BuffManager extends Component
 		local familyCount = 0
 		local romance = self.Entity:GetComponent("script.RomanceManager")
 		if isvalid(romance) then familyCount = romance.FamilyMembers end
-		_BuffPanelUI:SetBuffs(self:GetActiveBuffNames(), memberCount, familyCount, userId)
+		local names = self:GetActiveBuffNames()
+
+		-- 멀티(_MultiTurnManager 활성)에서는 버프바가 '현재 턴 actor'를 따라간다(관전 중엔 actor 버프 표시).
+		--   본인이 현재 actor면 전원(관전자 포함)에 방송(SetActorBuffs), actor가 아니면 지금 바를 건드리지 않는다
+		--   (관전자 화면엔 actor 버프가 떠 있어야 하고, 본인이 actor가 되는 순간 SetCurrentPlayer→RefreshActorBuffBar로 방송된다).
+		-- 싱글에서는 기존대로 소유 플레이어 본인 클라이언트에만 타겟 전송한다.
+		if _MultiTurnManager ~= nil and _MultiTurnManager._isActive then
+			if _MultiTurnManager._currentPlayerUserId == userId then
+				_BuffPanelUI:SetActorBuffs(names, memberCount, familyCount, self.AfkWarnCount, userId)
+			end
+		else
+			_BuffPanelUI:SetBuffs(names, memberCount, familyCount, self.AfkWarnCount, userId)
+		end
 	end
 
 end
