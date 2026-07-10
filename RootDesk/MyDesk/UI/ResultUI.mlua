@@ -17,9 +17,7 @@ script ResultUI extends Logic
 
 	property string dimPath = "/ui/ResultGroup/DimBack"
 
-	property any hCardConfirm = nil
-
-	property any hCardRanking = nil
+	property any hCardReturn = nil
 
 	property string multiCardPath = "/ui/ResultGroup/MultiResultCard"
 
@@ -34,16 +32,12 @@ script ResultUI extends Logic
 		if isvalid(self.confirmButton) then
 			self.hConfirm = self.confirmButton.Entity:ConnectEvent(ButtonClickEvent, function() self:OnConfirmPanel() end)
 		end
-		-- 싱글 리치 카드: 기본 숨김 + 확인/랭킹보기 버튼 배선.
+		-- 싱글 리치 카드: 기본 숨김 + 로비 복귀 버튼 배선.
 		local card = _EntityService:GetEntityByPath(self.cardPath)
 		if isvalid(card) then card.Enable = false end
-		local btnC = _EntityService:GetEntityByPath(self.cardPath .. "/BtnArea/BtnConfirm")
-		if isvalid(btnC) then
-			self.hCardConfirm = btnC:ConnectEvent(ButtonClickEvent, function() self:HideCard() end)
-		end
-		local btnR = _EntityService:GetEntityByPath(self.cardPath .. "/BtnArea/BtnRanking")
+		local btnR = _EntityService:GetEntityByPath(self.cardPath .. "/BtnArea/BtnReturn")
 		if isvalid(btnR) then
-			self.hCardRanking = btnR:ConnectEvent(ButtonClickEvent, function() self:HideCard() end)
+			self.hCardReturn = btnR:ConnectEvent(ButtonClickEvent, function() self:HideCard() end)
 		end
 		-- 멀티 결과 카드: 기본 숨김 + 확인 버튼 배선.
 		local mcard = _EntityService:GetEntityByPath(self.multiCardPath)
@@ -60,15 +54,10 @@ script ResultUI extends Logic
 			self.confirmButton.Entity:DisconnectEvent(ButtonClickEvent, self.hConfirm)
 			self.hConfirm = nil
 		end
-		local btnC = _EntityService:GetEntityByPath(self.cardPath .. "/BtnArea/BtnConfirm")
-		if self.hCardConfirm ~= nil and isvalid(btnC) then
-			btnC:DisconnectEvent(ButtonClickEvent, self.hCardConfirm)
-			self.hCardConfirm = nil
-		end
-		local btnR = _EntityService:GetEntityByPath(self.cardPath .. "/BtnArea/BtnRanking")
-		if self.hCardRanking ~= nil and isvalid(btnR) then
-			btnR:DisconnectEvent(ButtonClickEvent, self.hCardRanking)
-			self.hCardRanking = nil
+		local btnR = _EntityService:GetEntityByPath(self.cardPath .. "/BtnArea/BtnReturn")
+		if self.hCardReturn ~= nil and isvalid(btnR) then
+			btnR:DisconnectEvent(ButtonClickEvent, self.hCardReturn)
+			self.hCardReturn = nil
 		end
 		local mBtn = _EntityService:GetEntityByPath(self.multiCardPath .. "/BtnConfirm")
 		if self.hMultiConfirm ~= nil and isvalid(mBtn) then
@@ -149,9 +138,9 @@ script ResultUI extends Logic
 		end
 		
 		card.Enable = true
-		log("[ResultUI] ShowSingle(통합) name=" .. tostring(name) .. " power=" .. tostring(power)
-			.. " rank=" .. tostring(rank) .. " min=" .. tostring(minutes) .. " turns=" .. tostring(turns)
-			.. " visits=" .. tostring(visits) .. " title=" .. tostring(titleType) .. " life=" .. tostring(lifeInfo))
+-- 		log("[ResultUI] ShowSingle(통합) name=" .. tostring(name) .. " power=" .. tostring(power)
+-- 			.. " rank=" .. tostring(rank) .. " min=" .. tostring(minutes) .. " turns=" .. tostring(turns)
+-- 			.. " visits=" .. tostring(visits) .. " title=" .. tostring(titleType) .. " life=" .. tostring(lifeInfo))
 	end
 
 	@ExecSpace("ClientOnly")
@@ -188,7 +177,7 @@ script ResultUI extends Logic
 		if isvalid(self.resultText) then
 			self.resultText.TextComponent.Text = message
 		end
-		log("[ResultUI] 결과 표시: " .. message)
+-- 		log("[ResultUI] 결과 표시: " .. message)
 	end
 
 	@ExecSpace("ClientOnly")
@@ -199,7 +188,7 @@ script ResultUI extends Logic
 		if isvalid(self.dimBack) then self.dimBack.Enable = false end
 		local grp = isvalid(self.panel) and self.panel.Parent or nil
 		if isvalid(grp) then grp.Enable = false end
-		log("[ResultUI] 결과 닫힘")
+-- 		log("[ResultUI] 결과 닫힘")
 	end
 
 	@ExecSpace("Client")
@@ -215,7 +204,7 @@ script ResultUI extends Logic
 		if isvalid(self.resultText) and isvalid(self.resultText.TextComponent) then
 			self.resultText.TextComponent.Text = message
 		end
-		log("[ResultUI] 게임 오버 패널: " .. message)
+-- 		log("[ResultUI] 게임 오버 패널: " .. message)
 	end
 
 	@ExecSpace("ClientOnly")
@@ -281,7 +270,7 @@ script ResultUI extends Logic
 			end
 		end
 		card.Enable = true
-		log("[ResultUI] ShowMulti rows=" .. tostring(n) .. " winner=" .. tostring(winnerIndex))
+-- 		log("[ResultUI] ShowMulti rows=" .. tostring(n) .. " winner=" .. tostring(winnerIndex))
 	end
 
 	@ExecSpace("ClientOnly")

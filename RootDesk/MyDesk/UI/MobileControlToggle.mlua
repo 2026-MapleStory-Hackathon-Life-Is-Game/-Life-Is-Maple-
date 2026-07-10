@@ -1,0 +1,65 @@
+@Logic
+script MobileControlToggle extends Logic
+
+	-- 모바일 조작 UI(가상 조이스틱/점프/공격 버튼)를 로비에서만 표시하고 인게임(보드)에서는 숨긴다.
+	-- 보드게임 인게임에선 주사위로만 이동하므로 이동/점프/공격 조작이 필요 없다(피드백 3).
+	-- PC는 키보드를 쓰고 이 UI를 쓰지 않으므로 관여하지 않는다(모바일 플랫폼에서만 토글).
+
+	property string JoystickPath = "/ui/DefaultGroup/UIJoystick"
+
+	property string JumpPath = "/ui/DefaultGroup/Button_Jump"
+
+	property string AttackPath = "/ui/DefaultGroup/Button_Attack"
+
+	property boolean _isMobile = false
+
+	property number _acc = 0
+
+	property boolean _lastLobby = true   -- 마지막으로 적용한 상태(중복 토글 방지). 초기값과 다른 첫 프레임에 강제 적용되게.
+
+	property boolean _applied = false
+
+	@ExecSpace("ClientOnly")
+	method void OnBeginPlay()
+		-- 모바일 여부를 1회 판별(bare Environment, 밑줄 없음 · nil 가드).
+		if self:IsClient() == false then return end
+		if Environment ~= nil then self._isMobile = Environment:IsMobilePlatform() end
+-- 		log("[MobileControlToggle] isMobile=" .. tostring(self._isMobile))
+	end
+
+	@ExecSpace("ClientOnly")
+	method void OnUpdate(number delta)
+		-- 모바일에서만 관여. 로비=조작 UI 활성, 인게임=비활성. 상태 변화 시에만 적용.
+		if self._isMobile == false then return end
+		self._acc = self._acc + delta
+		if self._acc < 0.3 then return end
+		self._acc = 0
+
+		local inLobby = true
+		local me = _UserService.LocalPlayer
+		if isvalid(me) then
+			local m = me.CurrentMapName
+			if m ~= nil and m ~= "" and m ~= "Lobby" then inLobby = false end
+		end
+
+		if self._applied and self._lastLobby == inLobby then return end   -- 변화 없으면 skip
+		self._lastLobby = inLobby
+		self._applied = true
+		self:SetControlsEnabled(inLobby)
+	end
+
+	method void SetControlsEnabled(boolean on)
+		-- 세 조작 엔티티(엔티티 자체 Enable 토글 → 화면에서 사라짐/나타남).
+		self:ToggleEntity(self.JoystickPath, on)
+		self:ToggleEntity(self.JumpPath, on)
+		self:ToggleEntity(self.AttackPath, on)
+-- 		log("[MobileControlToggle] 조작 UI " .. (on and "활성(로비)" or "비활성(인게임)"))
+	end
+
+	method void ToggleEntity(string path, boolean on)
+		-- 경로로 엔티티를 찾아 Enable 토글(존재할 때만).
+		local e = _EntityService:GetEntityByPath(path)
+		if isvalid(e) and e.Enable ~= on then e.Enable = on end
+	end
+
+end

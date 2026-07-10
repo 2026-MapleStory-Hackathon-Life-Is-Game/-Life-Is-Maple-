@@ -22,12 +22,12 @@ script GameModeManager extends Logic
 	property integer _multiGraceTimer = 0
 
 	method void OnBeginPlay()
-		        log("[GameModeManager] OnBeginPlay: 모드 선택 대기 중")
+-- 		        log("[GameModeManager] OnBeginPlay: 모드 선택 대기 중")
 		        -- 모드는 ModeSelectUI(클라)의 버튼에서 StartSinglePlayer / StartMultiPlayer 호출로 결정된다.
 	end
 
 	method void OnEndPlay()
-		        log("[GameModeManager] OnEndPlay")
+-- 		        log("[GameModeManager] OnEndPlay")
 	end
 
 	@ExecSpace("Server")
@@ -38,7 +38,7 @@ script GameModeManager extends Logic
 		        -- 이렇게 해야 로비에 여러 명이 있어도 각자 독립된 룸/GameModeManager로 충돌 없이 플레이한다.
 		        -- ※ CreateInstanceRoom은 스태틱 룸에서만 동작한다(인스턴스 룸에선 nil 반환).
 		        if _RoomService:IsInstanceRoom() then
-		            log_warning("[GameModeManager] StartSinglePlayer는 스태틱 룸(로비)에서만 호출해야 합니다.")
+-- 		            log_warning("[GameModeManager] StartSinglePlayer는 스태틱 룸(로비)에서만 호출해야 합니다.")
 		            return
 		        end
 		        local uid = senderUserId
@@ -47,10 +47,10 @@ script GameModeManager extends Logic
 		        -- Map_01/02/03은 InstanceMap=true 이어야 한다(이 룸에 세 맵을 함께 싣는다).
 		        local room = _RoomService:CreateInstanceRoom(roomKey, { "Map_01", "Map_02", "Map_03" })
 		        if room == nil then
-		            log_error("[GameModeManager] 싱글 인스턴스 룸 생성 실패: " .. roomKey)
+-- 		            log_error("[GameModeManager] 싱글 인스턴스 룸 생성 실패: " .. roomKey)
 		            return
 		        end
-		        log("[GameModeManager] 싱글 인스턴스 룸 생성: " .. roomKey .. " → 이동 uid=" .. tostring(uid))
+-- 		        log("[GameModeManager] 싱글 인스턴스 룸 생성: " .. roomKey .. " → 이동 uid=" .. tostring(uid))
 		        _RoomService:MoveUserToInstanceRoom(roomKey, uid, "Map_01")
 	end
 
@@ -59,11 +59,11 @@ script GameModeManager extends Logic
 		        -- [룸 분리] 플레이어가 자기 인스턴스 룸의 Map_01에 도착했을 때 클라(Single_FirstMapManagement)가 호출한다.
 		        -- 이 룸의 GameModeManager는 이 플레이어 전용이므로 _isGameActive/턴 상태가 다른 플레이어와 섞이지 않는다.
 		        if _RoomService:IsInstanceRoom() == false then
-		            log_warning("[GameModeManager] BeginSingleRoomGame은 인스턴스 룸에서만 유효합니다.")
+-- 		            log_warning("[GameModeManager] BeginSingleRoomGame은 인스턴스 룸에서만 유효합니다.")
 		            return
 		        end
 		        if self._isGameActive then return end   -- 중복 진입(재-OnMapEnter) 방지
-		        log("[GameModeManager] 싱글플레이 게임 시작(인스턴스 룸)")
+-- 		        log("[GameModeManager] 싱글플레이 게임 시작(인스턴스 룸)")
 		        self._activeMode = "SINGLE"
 		        self._isGameActive = true
 		        -- 도착 플레이어(요청 클라). 인스턴스 룸엔 이 한 명뿐이다.
@@ -116,7 +116,7 @@ script GameModeManager extends Logic
 		        if self._multiArrived[senderUserId] == nil then
 		            self._multiArrived[senderUserId] = true
 		            self._multiArrivedCount += 1
-		            log("[GameModeManager] 멀티 도착 등록: " .. senderUserId .. " (" .. tostring(self._multiArrivedCount) .. "/" .. tostring(self._multiExpected) .. ")")
+-- 		            log("[GameModeManager] 멀티 도착 등록: " .. senderUserId .. " (" .. tostring(self._multiArrivedCount) .. "/" .. tostring(self._multiExpected) .. ")")
 		        end
 		        if self._multiExpected > 0 and self._multiArrivedCount >= self._multiExpected then
 		            self:OpenMultiGate()
@@ -134,7 +134,7 @@ script GameModeManager extends Logic
 		            for uid, _ in pairs(self._multiArrived) do table.insert(ids, uid) end
 		        end
 		        local awaiting = self._multiAwaitingMap
-		        log("[GameModeManager] 멀티 게이트 오픈: " .. tostring(#ids) .. "명, awaiting=" .. awaiting)
+-- 		        log("[GameModeManager] 멀티 게이트 오픈: " .. tostring(#ids) .. "명, awaiting=" .. awaiting)
 		        -- 배리어 리셋(다음 맵 대비). expected는 MoveMultiToNextMap이 다음 맵에서 다시 세팅.
 		        self._multiArrived = nil
 		        self._multiArrivedCount = 0
@@ -155,7 +155,7 @@ script GameModeManager extends Logic
 	@ExecSpace("Server")
 	method void MoveMultiToNextMap(table userIds, string nextMapName)
 		        -- 전원을 같은 인스턴스 룸의 다음 맵으로 텔레포트. 턴은 재시작하지 않고 도착 배리어를 다음 맵 대기로 세팅.
-		        log("[GameModeManager] 멀티 다음 맵 이동: " .. nextMapName .. " (" .. tostring(#userIds) .. "명)")
+-- 		        log("[GameModeManager] 멀티 다음 맵 이동: " .. nextMapName .. " (" .. tostring(#userIds) .. "명)")
 		        self._multiGateOpen = false
 		        self._multiArrived = nil
 		        self._multiArrivedCount = 0
@@ -178,9 +178,9 @@ script GameModeManager extends Logic
 		                    pm:ChangePlayerState("IDLE")
 		                end
 		                _TileManager:ApplyStartTileLevel(ue, nextMapName)
-		                log("[GameModeManager] 멀티 맵 전환: " .. uid .. " → " .. nextMapName)
+-- 		                log("[GameModeManager] 멀티 맵 전환: " .. uid .. " → " .. nextMapName)
 		            else
-		                log_warning("[GameModeManager] 멀티 이동 대상 무효: " .. tostring(uid))
+-- 		                log_warning("[GameModeManager] 멀티 이동 대상 무효: " .. tostring(uid))
 		            end
 		        end
 	end
@@ -191,21 +191,21 @@ script GameModeManager extends Logic
 		        if isvalid(startTile) then
 		            return startTile.TransformComponent.WorldPosition
 		        end
-		        log_warning("[GameModeManager] 멀티 시작 타일 미발견 → (0,0,0) 폴백: " .. mapName)
+-- 		        log_warning("[GameModeManager] 멀티 시작 타일 미발견 → (0,0,0) 폴백: " .. mapName)
 		        return Vector3(0, 0, 0)
 	end
 
 	@ExecSpace("Server")
 	method void StartMultiPlayer(table userIds)
 		        if self._isGameActive then
-		            log_warning("[GameModeManager] 이미 게임이 진행 중입니다.")
+-- 		            log_warning("[GameModeManager] 이미 게임이 진행 중입니다.")
 		            return
 		        end
 		        if #userIds < 2 then
-		            log_error("[GameModeManager] 멀티플레이 인원은 2명 이상이어야 합니다: " .. tostring(#userIds))
+-- 		            log_error("[GameModeManager] 멀티플레이 인원은 2명 이상이어야 합니다: " .. tostring(#userIds))
 		            return
 		        end
-		        log("[GameModeManager] 멀티플레이 모드 시작 (" .. tostring(#userIds) .. "명)")
+-- 		        log("[GameModeManager] 멀티플레이 모드 시작 (" .. tostring(#userIds) .. "명)")
 		        self._activeMode = "MULTI"
 		        self._isGameActive = true
 		        _VillageEventFlowManager:ResetStage1Lock()
@@ -230,7 +230,7 @@ script GameModeManager extends Logic
 	@ExecSpace("Server")
 	method void EndGame()
 		        if not self._isGameActive then return end
-		        log("[GameModeManager] 게임 종료 (모드: " .. self._activeMode .. ")")
+-- 		        log("[GameModeManager] 게임 종료 (모드: " .. self._activeMode .. ")")
 		        if self._activeMode == "SINGLE" then
 		            _SingleTurnManager:Stop()
 		        elseif self._activeMode == "MULTI" then
@@ -282,7 +282,7 @@ script GameModeManager extends Logic
 				local currentMap = piece.CurrentMapName
 		
 				if currentMap == "Map_01" then
-					log("[GameModeManager] Map_01 완주 -> Map_02 이동")
+-- 					log("[GameModeManager] Map_01 완주 -> Map_02 이동")
 			
 					if self._activeMode == "SINGLE" then
 						self:MoveToNextMap(piece, "Map_02")
@@ -294,7 +294,7 @@ script GameModeManager extends Logic
 					end
 			
 				elseif currentMap == "Map_02" then
-					log("[GameModeManager] Map_02 완주 -> Map_03 이동")
+-- 					log("[GameModeManager] Map_02 완주 -> Map_03 이동")
 					if self._activeMode == "SINGLE" then
 					self:MoveToNextMap(piece, "Map_03")
 					elseif self._activeMode == "MULTI" then
@@ -327,7 +327,7 @@ script GameModeManager extends Logic
 		            local cp = piece:GetComponent("script.CombatPowerManager")
 		            if isvalid(cp) then finalPower = cp.CombatPower end
 		        end
-		        log("[GameModeManager] 싱글 클리어 — 전투력=" .. tostring(finalPower))
+-- 		        log("[GameModeManager] 싱글 클리어 — 전투력=" .. tostring(finalPower))
 		
 		        _SingleTurnManager:Stop()
 		        -- 게임 활성 플래그는 여기서 먼저 내린다. 아래 랭킹/결과UI/스탯초기화 중 하나가 예외를 던져도
@@ -370,7 +370,7 @@ script GameModeManager extends Logic
 		        local ue = _UserService:GetUserEntityByUserId(uid)
 		        if isvalid(ue) then self:ResetPlayerStats(ue) end
 		        _RoomService:MoveUsersToStaticRoom({ uid }, "Lobby")
-		        log("[GameModeManager] 결과 확인 후 로비 복귀(룸): " .. tostring(uid))
+-- 		        log("[GameModeManager] 결과 확인 후 로비 복귀(룸): " .. tostring(uid))
 	end
 
 	@ExecSpace("ServerOnly")
@@ -380,7 +380,25 @@ script GameModeManager extends Logic
 		        local ue = _UserService:GetUserEntityByUserId(userId)
 		        if isvalid(ue) then self:ResetPlayerStats(ue) end
 		        _RoomService:MoveUsersToStaticRoom({ userId }, "Lobby")
-		        log("[GameModeManager] 강제/종료 로비 복귀(룸): " .. tostring(userId))
+-- 		        log("[GameModeManager] 강제/종료 로비 복귀(룸): " .. tostring(userId))
+	end
+
+	@ExecSpace("Server")
+	method void RequestLeaveToLobby()
+		        -- 게임 중 자발적 '로비로 돌아가기'(우상단 버튼 → 확인 팝업 → 이 RPC).
+		        -- 멀티: 이탈(RemovePlayer, kicked=true)로 처리 → 순서표 제거 + 본인 로비 복귀 + 남은 1명 게임오버까지 재사용.
+		        -- 싱글: 내 전용 인스턴스 룸이므로 게임 종료 후 로비 복귀.
+		        local uid = senderUserId
+		        if self._isGameActive and self._activeMode == "MULTI" then
+		            if _MultiTurnManager ~= nil and _MultiTurnManager._isActive then
+		                _MultiTurnManager:RemovePlayer(uid, true)   -- 내부에서 KickUserToLobby(uid)까지 수행
+		                return
+		            end
+		        end
+		        if self._isGameActive and self._activeMode == "SINGLE" then
+		            self:EndGame()
+		        end
+		        self:KickUserToLobby(uid)
 	end
 
 	@ExecSpace("Server")
@@ -390,10 +408,10 @@ script GameModeManager extends Logic
 		        local player = _UserService:GetUserEntityByUserId(senderUserId)
 		        if isvalid(player) == false then return end
 		        if self._activeMode ~= "SINGLE" then
-		            log_warning("[GameModeManager] DebugFinishGame 무시: 싱글 게임이 아님(mode=" .. tostring(self._activeMode) .. ")")
+-- 		            log_warning("[GameModeManager] DebugFinishGame 무시: 싱글 게임이 아님(mode=" .. tostring(self._activeMode) .. ")")
 		            return
 		        end
-		        log("[GameModeManager] (디버그) 강제 게임 종료 요청")
+-- 		        log("[GameModeManager] (디버그) 강제 게임 종료 요청")
 		        self:FinishGame(player)
 	end
 
@@ -404,10 +422,10 @@ script GameModeManager extends Logic
 		        local player = _UserService:GetUserEntityByUserId(senderUserId)
 		        if isvalid(player) == false then return end
 		        if self._activeMode ~= "SINGLE" then
-		            log_warning("[GameModeManager] DebugShowEndingSummary 무시: 싱글 게임이 아님(mode=" .. tostring(self._activeMode) .. ")")
+-- 		            log_warning("[GameModeManager] DebugShowEndingSummary 무시: 싱글 게임이 아님(mode=" .. tostring(self._activeMode) .. ")")
 		            return
 		        end
-		        log("[GameModeManager] (디버그) 통합 결과 카드 강제 표시")
+-- 		        log("[GameModeManager] (디버그) 통합 결과 카드 강제 표시")
 		        self:FinishGame(player)
 	end
 
@@ -418,22 +436,22 @@ script GameModeManager extends Logic
 		        local player = _UserService:GetUserEntityByUserId(senderUserId)
 		        if isvalid(player) == false then return end
 		        if self._activeMode ~= "SINGLE" then
-		            log_warning("[GameModeManager] DebugNextStage 무시: 싱글 게임이 아님(mode=" .. tostring(self._activeMode) .. ")")
+-- 		            log_warning("[GameModeManager] DebugNextStage 무시: 싱글 게임이 아님(mode=" .. tostring(self._activeMode) .. ")")
 		            return
 		        end
 		        if not self._isGameActive then
-		            log_warning("[GameModeManager] DebugNextStage 무시: 게임이 진행 중이 아님")
+-- 		            log_warning("[GameModeManager] DebugNextStage 무시: 게임이 진행 중이 아님")
 		            return
 		        end
 		        local currentMap = player.CurrentMapName
-		        log("[GameModeManager] (디버그) 다음 스테이지 이동 요청 (현재=" .. tostring(currentMap) .. ")")
+-- 		        log("[GameModeManager] (디버그) 다음 스테이지 이동 요청 (현재=" .. tostring(currentMap) .. ")")
 		        if currentMap == "Map_01" then
 		            self:MoveToNextMap(player, "Map_02")
 		        elseif currentMap == "Map_02" then
 		            self:MoveToNextMap(player, "Map_03")
 		        else
 		            -- 마지막 스테이지(Map_03) → 최종 완주 처리.
-		            log("[GameModeManager] (디버그) 마지막 스테이지 → 게임 종료 처리")
+-- 		            log("[GameModeManager] (디버그) 마지막 스테이지 → 게임 종료 처리")
 		            self:FinishGame(player)
 		        end
 	end
@@ -494,7 +512,7 @@ script GameModeManager extends Logic
 		        self._isGameActive = false
 		        -- 로비 복귀·스탯 초기화는 각 플레이어가 결과 카드를 '닫을 때'로 미룬다
 		        -- (ResultUI.HideMulti → ReturnToLobbyAfterResult, senderUserId per-user). 여기선 즉시 이동/리셋하지 않는다.
-		        log("[GameModeManager] 멀티 클리어 — 리치 순위표 표시(" .. tostring(#rows) .. "명)")
+-- 		        log("[GameModeManager] 멀티 클리어 — 리치 순위표 표시(" .. tostring(#rows) .. "명)")
 	end
 
 	method string FormatPower(number value)
@@ -539,10 +557,11 @@ script GameModeManager extends Logic
 	end
 
 	method string GetPlayerJob(Entity entity)
-		        -- 직업: JobWeaponManager(전역 Logic)의 currentJob. 현 설계상 직업은 플레이어별이 아닌 전역 단일값(싱글 기준 정확).
+		        -- 직업: 플레이어별 CombatPowerManager.CurrentJob(@Sync). 전역 currentJob은 마지막 선택자 값이라
+		        --   멀티 랭킹/결과카드가 전원 같은 직업으로 오표시됐다 → per-piece 값으로 교체.
 		        if isvalid(entity) then
-		            local job = _JobWeaponManager
-		            if isvalid(job) and job.currentJob ~= nil and job.currentJob ~= "" then return job.currentJob end
+		            local cp = entity:GetComponent("script.CombatPowerManager")
+		            if isvalid(cp) and cp.CurrentJob ~= nil and cp.CurrentJob ~= "" then return cp.CurrentJob end
 		        end
 		        return "--"
 	end
@@ -572,7 +591,7 @@ script GameModeManager extends Logic
 				-- 1. 다음 맵 엔티티 찾기
 				local nextMapEntity = _EntityService:GetEntityByPath("/maps/" .. nextMapName)
 				if not isvalid(nextMapEntity) then
-					log_error("[GameModeManager] 다음 맵을 찾을 수 없습니다: " .. nextMapName)
+-- 					log_error("[GameModeManager] 다음 맵을 찾을 수 없습니다: " .. nextMapName)
 					return
 				end
 		
@@ -587,7 +606,7 @@ script GameModeManager extends Logic
 				if isvalid(startTile) then
 					spawnPos = startTile.TransformComponent.WorldPosition
 				else
-					log_warning("[GameModeManager] 시작 타일 미발견 → (0,0,0) 폴백: " .. nextMapName .. "_Tile_1")
+-- 					log_warning("[GameModeManager] 시작 타일 미발견 → (0,0,0) 폴백: " .. nextMapName .. "_Tile_1")
 				end
 		
 				_TeleportService:TeleportToMapPosition(piece, spawnPos, nextMapEntity.Name)
@@ -678,7 +697,7 @@ script GameModeManager extends Logic
 				piece:SendEvent(land)
 			end)
 		end)
-		log("[GameModeManager] 맵 이동 점프 연출 재생")
+-- 		log("[GameModeManager] 맵 이동 점프 연출 재생")
 	end
 
 end

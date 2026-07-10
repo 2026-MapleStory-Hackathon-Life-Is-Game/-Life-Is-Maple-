@@ -1,0 +1,74 @@
+@Logic
+script LobbyConfirmPopup extends Logic
+
+	-- 게임 중 '로비로' 버튼 전용 확인 팝업. (CubeConfirmPopup 재사용을 끊고 독립 UI로 분리)
+	-- LobbyReturnButton 클릭 → Open() → '나가기' → GameModeManager.RequestLeaveToLobby.
+
+	property Entity groupRoot = "9863b586-9d0d-4350-8a00-67a35b456a2a"
+
+	property Entity msgText = "f39245fd-b0d3-4e70-90ca-b4b4d77077f2"
+
+	property ButtonComponent btnYes = "db4c6429-c632-4514-9077-1f88cd21c764"
+
+	property ButtonComponent btnNo = "47358579-bfb3-4a8a-ae3c-efe07f8c4ba4"
+
+	property any _yesH = nil
+
+	property any _noH = nil
+
+	@ExecSpace("ClientOnly")
+	method void OnBeginPlay()
+		-- 클라: 패널 숨김 + 나가기/취소 버튼 배선.
+		if self:IsClient() == false then return end
+		if isvalid(self.groupRoot) then self.groupRoot.Enable = false end
+		if isvalid(self.btnYes) then
+			self._yesH = self.btnYes.Entity:ConnectEvent(ButtonClickEvent, function() self:OnYes() end)
+		end
+		if isvalid(self.btnNo) then
+			self._noH = self.btnNo.Entity:ConnectEvent(ButtonClickEvent, function() self:OnNo() end)
+		end
+-- 		log("[LobbyConfirmPopup] OnBeginPlay OK")
+	end
+
+	method void SetText(Entity e, string s)
+		-- 텍스트 엔티티의 TextComponent.Text 설정.
+		if isvalid(e) == false then return end
+		local tc = e:GetComponent("MOD.Core.TextComponent")
+		if tc ~= nil then tc.Text = s end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void Open()
+		-- 로비 복귀 확인 팝업 열기. LobbyReturnButton 클릭에서 호출.
+		if self:IsClient() == false then return end
+		self:SetText(self.msgText, "로비로 돌아가시겠습니까?\n진행 상황은 저장되지 않습니다.")
+		if isvalid(self.groupRoot) then self.groupRoot.Enable = true end
+-- 		log("[LobbyConfirmPopup] Open")
+	end
+
+	method void Close()
+		-- 확인 팝업 닫기.
+		if isvalid(self.groupRoot) then self.groupRoot.Enable = false end
+	end
+
+	method void OnYes()
+		-- '나가기' 확정 → 서버에 로비 복귀 요청(멀티=이탈 처리, 싱글=종료 후 복귀).
+		_SFXManager:PlayClick()
+		self:Close()
+		_GameModeManager:RequestLeaveToLobby()
+	end
+
+	method void OnNo()
+		-- '취소': 닫기만.
+		_SFXManager:PlayClick()
+		self:Close()
+	end
+
+	@ExecSpace("ClientOnly")
+	method void OnEndPlay()
+		-- 버튼 핸들 해제.
+		if self._yesH ~= nil and isvalid(self.btnYes) then self.btnYes.Entity:DisconnectEvent(ButtonClickEvent, self._yesH) end
+		if self._noH ~= nil and isvalid(self.btnNo) then self.btnNo.Entity:DisconnectEvent(ButtonClickEvent, self._noH) end
+	end
+
+end

@@ -1,0 +1,55 @@
+@Logic
+script LobbyReturnButton extends Logic
+
+	-- 게임 중 우상단 '로비로' 버튼. 게임 맵(Map_xx)에 있을 때만 표시하고, 클릭 시 확인 팝업을 띄운다.
+	-- 확인(나가기) → LobbyConfirmPopup(전용 팝업) → GameModeManager.RequestLeaveToLobby.
+
+	property ButtonComponent btn = "18509bae-79af-45a7-a68e-1a321efe18e9"
+
+	property any _h = nil
+
+	property number _acc = 0
+
+	@ExecSpace("ClientOnly")
+	method void OnBeginPlay()
+		-- 클라: 버튼 배선 + 기본 숨김(게임 맵에서만 표시).
+		if self:IsClient() == false then return end
+		if isvalid(self.btn) then
+			self._h = self.btn.Entity:ConnectEvent(ButtonClickEvent, function() self:OnClick() end)
+			self.btn.Entity.Enable = false
+		end
+-- 		log("[LobbyReturnButton] OnBeginPlay OK")
+	end
+
+	@ExecSpace("ClientOnly")
+	method void OnUpdate(number delta)
+		-- 게임 맵(로비가 아닌 Map_xx)에 있을 때만 '로비로' 버튼을 노출한다.
+		self._acc = self._acc + delta
+		if self._acc < 0.3 then return end
+		self._acc = 0
+		if isvalid(self.btn) == false then return end
+		local inGame = false
+		local me = _UserService.LocalPlayer
+		if isvalid(me) then
+			local m = me.CurrentMapName
+			if m ~= nil and m ~= "" and m ~= "Lobby" then inGame = true end
+		end
+		if self.btn.Entity.Enable ~= inGame then self.btn.Entity.Enable = inGame end
+	end
+
+	method void OnClick()
+		-- 로비 복귀 전용 확인 팝업 오픈.
+		_SFXManager:PlayClick()
+		_LobbyConfirmPopup:Open()
+	end
+
+	@ExecSpace("ClientOnly")
+	method void OnEndPlay()
+		-- 버튼 핸들 해제.
+		if self._h ~= nil and isvalid(self.btn) then
+			self.btn.Entity:DisconnectEvent(ButtonClickEvent, self._h)
+			self._h = nil
+		end
+	end
+
+end
