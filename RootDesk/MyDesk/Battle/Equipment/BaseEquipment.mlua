@@ -19,6 +19,8 @@ script BaseEquipment extends Component
 	@Sync
 	property integer InstanceSeq = 0
 
+	property integer MaxStar = 15   -- 스타포스 상한(핫패널 별 슬롯 수와 일치)
+
 	method string EquipCategory()
 		-- 서브클래스가 override("Weapon"/"Armor"/"Accessory"). base는 미지정.
 		return ""
@@ -138,20 +140,14 @@ script BaseEquipment extends Component
 
 	method string Acquire(string equipName)
 		-- 보유함에 새 인스턴스로 추가(미장착). 타입 불일치면 무시하고 "" 반환. 반환값=발급된 인스턴스 ID.
-		-- 중복 보유(같은 EquipName)면 새 인스턴스 대신 기존 인스턴스를 스타포스 강화한다(손해 방지).
+		-- 동일 EquipName이라도 항상 별개 인스턴스로 보유한다(중복=별개 엔티티). 스타포스는 '합성'으로만 오른다.
 		if self:Accepts(equipName) == false then
-			log_warning("BaseEquipment.Acquire: " .. equipName .. " not " .. self:EquipCategory())
+-- 			log_warning("BaseEquipment.Acquire: " .. equipName .. " not " .. self:EquipCategory())
 			return ""
-		end
-		local dupId = self:FindInstanceByName(equipName)
-		if dupId ~= "" then
-			self:AddStar(dupId, 1)
-			log(self:EquipCategory() .. "Eq: [중복→★강화] " .. equipName .. " (" .. dupId .. ") star=" .. tostring(self:GetStar(dupId)))
-			return dupId
 		end
 		local id = self:NewInstanceId()
 		self.Owned[id] = equipName
-		log(self:EquipCategory() .. "Eq: [보유+] " .. equipName .. " (" .. id .. ")")
+-- 		log(self:EquipCategory() .. "Eq: [보유+] " .. equipName .. " (" .. id .. ")")
 		return id
 	end
 
@@ -167,11 +163,30 @@ script BaseEquipment extends Component
 
 	@ExecSpace("ServerOnly")
 	method void AddStar(string instanceId, integer n)
-		-- 인스턴스 스타포스 강화(중복 장비 흡수). 강화 후 전투력 재계산.
+		-- 인스턴스 스타포스 강화(합성 성공). 강화 후 전투력 재계산. 상한 MaxStar(15).
 		if instanceId == "" or n == nil or n <= 0 then return end
 		local cur = self.StarById[instanceId]
 		if cur == nil then cur = 0 end
-		self.StarById[instanceId] = cur + n
+		local nv = cur + n
+		if nv > self.MaxStar then nv = self.MaxStar end
+		self.StarById[instanceId] = nv
+		self:Recalc()
+	end
+
+	@ExecSpace("ServerOnly")
+	method void DestroyInstance(string instanceId)
+		-- 인스턴스 완전 소멸(합성 실패=재료 소멸 / 파괴=메인+재료 소멸). 보유/장착/잠재/스타포스를 모두 정리.
+		if instanceId == "" then return end
+		if instanceId == self.EquippedId then
+			-- 장착 중인 인스턴스를 소멸 → 슬롯 비우고 아바타 비주얼 갱신.
+			self.Equipped = ""
+			self.EquippedId = ""
+			self:ApplyEquipVisual()
+		else
+			self.Owned[instanceId] = nil
+		end
+		self.PotentialById[instanceId] = nil
+		self.StarById[instanceId] = nil
 		self:Recalc()
 	end
 
@@ -206,7 +221,7 @@ script BaseEquipment extends Component
 		self.Equipped = name
 		self.EquippedId = instanceId
 		self.Owned[instanceId] = nil   -- 장착 인스턴스는 보유함에서 제거(잠재는 PotentialById에 유지)
-		log(self:EquipCategory() .. "Eq: 장착 " .. name .. " (" .. instanceId .. ")")
+-- 		log(self:EquipCategory() .. "Eq: 장착 " .. name .. " (" .. instanceId .. ")")
 		self:Recalc()
 		self:ApplyEquipVisual()
 	end
@@ -216,7 +231,7 @@ script BaseEquipment extends Component
 		-- 슬롯→보유, 슬롯 비움.
 		if self.EquippedId == "" then return end
 		self.Owned[self.EquippedId] = self.Equipped
-		log(self:EquipCategory() .. "Eq: 해제 " .. self.Equipped .. " (" .. self.EquippedId .. ")")
+-- 		log(self:EquipCategory() .. "Eq: 해제 " .. self.Equipped .. " (" .. self.EquippedId .. ")")
 		self.Equipped = ""
 		self.EquippedId = ""
 		self:Recalc()
@@ -236,6 +251,22 @@ script BaseEquipment extends Component
 		end
 		table.sort(arr, function(a, b) return powerOf(a) > powerOf(b) end)
 		return arr
+	end
+
+	method table ForgeMaterialsFor(string mainId, string equipName)
+		-- 합성 재료 후보: equipName과 같은 '다른' 인스턴스 목록(장착품 포함, 메인 자신 제외).
+		-- 장착 인스턴스는 Owned가 아니라 EquippedId/Equipped에 별도 보관되므로 OwnedInstancesSorted엔 안 잡힌다.
+		-- (버그: 동일아이템 2개 중 1개 장착 시 나머지로 합성 불가 → 장착품을 후보에 합쳐 해결. 소모 시 DestroyInstance가 슬롯 정리.)
+		local out = {}
+		for _, rec in ipairs(self:OwnedInstancesSorted()) do
+			if rec.id ~= mainId and rec.name == equipName then
+				table.insert(out, { id = rec.id, name = rec.name, equipped = false })
+			end
+		end
+		if self.EquippedId ~= "" and self.EquippedId ~= mainId and self.Equipped == equipName then
+			table.insert(out, { id = self.EquippedId, name = self.Equipped, equipped = true })
+		end
+		return out
 	end
 
 	method void Recalc()

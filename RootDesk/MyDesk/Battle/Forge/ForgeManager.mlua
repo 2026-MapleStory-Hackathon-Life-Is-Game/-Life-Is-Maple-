@@ -1,0 +1,69 @@
+@Logic
+script ForgeManager extends Logic
+
+	-- 장비 합성(스타포스). 메인 장비에 '같은 아이템' 재료를 소모해 강화한다.
+	--   파괴 5% : 메인 + 재료 모두 소멸
+	--   실패 25%: 재료만 소멸
+	--   성공 70%: 메인 스타포스 +1, 재료 소멸
+	-- 스타포스 효과(별당 주스탯+5%/공마+5%)와 상한(15)은 BaseEquipment가 담당(StarModifiers/AddStar/MaxStar).
+
+	property number DestroyPct = 5
+
+	property number FailPct = 25
+
+	@ExecSpace("Server")
+	method void RequestForge(string mainId, string materialId)
+		-- 합성 실행(요청자 소유 검증 + 같은 EquipName + 서로 다른 인스턴스 + 상한 가드). 재료는 어떤 결과든 소멸.
+		local player = _UserService:GetUserEntityByUserId(senderUserId)
+		if isvalid(player) == false then return end
+		---@type BaseEquipment
+		local mgr = _EquipmentRouter:ManagerForInstance(player, mainId)
+		if isvalid(mgr) == false then return end
+		-- 같은 아이템만 재료 가능 → 재료도 같은 카테고리(같은 컴포넌트)에 있어야 한다.
+		if mgr:OwnsInstance(materialId) == false then return end
+		if mainId == materialId then return end
+		local mainName = mgr:NameOfInstance(mainId)
+		local matName = mgr:NameOfInstance(materialId)
+		if mainName == "" or mainName ~= matName then
+-- 			log_warning("[ForgeManager] 합성 거부 — 재료가 같은 아이템이 아님: " .. tostring(mainName) .. " vs " .. tostring(matName))
+			return
+		end
+		if mgr:GetStar(mainId) >= mgr.MaxStar then
+			-- 이미 최대 스타포스 → 재료 소모 없이 안내만.
+			self:NotifyForgeResult(mainName, "max", mgr:GetStar(mainId), senderUserId)
+			return
+		end
+
+		local roll = _UtilLogic:RandomIntegerRange(1, 100)
+		local outcome = "success"
+		if roll <= self.DestroyPct then
+			outcome = "destroy"
+		elseif roll <= self.DestroyPct + self.FailPct then
+			outcome = "fail"
+		end
+
+		-- 재료는 결과와 무관하게 소멸.
+		mgr:DestroyInstance(materialId)
+
+		local newStar = mgr:GetStar(mainId)
+		if outcome == "destroy" then
+			mgr:DestroyInstance(mainId)   -- 메인도 소멸
+			newStar = 0
+		elseif outcome == "success" then
+			mgr:AddStar(mainId, 1)
+			newStar = mgr:GetStar(mainId)
+		end
+		-- fail: 메인 그대로(재료만 소멸).
+
+-- 		log("[ForgeManager] 합성 " .. mainName .. " main=" .. mainId .. " mat=" .. materialId
+-- 			.. " roll=" .. tostring(roll) .. " → " .. outcome .. " star=" .. tostring(newStar))
+		self:NotifyForgeResult(mainName, outcome, newStar, senderUserId)
+	end
+
+	@ExecSpace("Client")
+	method void NotifyForgeResult(string equipName, string outcome, integer newStar)
+		-- 합성 결과를 요청자 클라에 표시(success/fail/destroy/max). 대상은 호출부 마지막 인자(senderUserId)로 타깃팅.
+		_CubeConfirmPopup:ShowForgeResult(equipName, outcome, newStar)
+	end
+
+end

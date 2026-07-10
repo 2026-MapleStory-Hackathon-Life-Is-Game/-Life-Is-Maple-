@@ -23,6 +23,12 @@ script CubeTargetSelect extends Logic
 
 	property any _tabH = nil
 
+	property boolean _forgeMode = false   -- 합성 재료 선택 모드(큐브 대상 선택과 공용 패널)
+
+	property string _forgeMainId = ""     -- 합성 메인(강화 대상) 인스턴스
+
+	property string _forgeMainName = ""   -- 합성 메인 EquipName(같은 아이템만 재료)
+
 	method void OnBeginPlay()
 		-- 클라: 패널 숨김 + GridView 셀 프리팹 주입 + 탭/닫기 버튼 배선.
 		if self:IsClient() == false then return end
@@ -54,7 +60,7 @@ script CubeTargetSelect extends Logic
 			table.insert(self._tabH, { entity = self.btnClose, evtH = hx })
 		end
 		
-		log("[CubeTargetSelect] OnBeginPlay OK")
+-- 		log("[CubeTargetSelect] OnBeginPlay OK")
 	end
 
 	method void WireTab(Entity e, string cat)
@@ -89,27 +95,76 @@ script CubeTargetSelect extends Logic
 	method void Open()
 		-- 선택 패널 열기(큐브 보유 시). 기본 탭 = 무기.
 		if self:IsClient() == false then return end
-		-- 잠재 패널은 '자기 턴'에만 인터랙티브로 연다(피드백 11). 다른 유저 턴엔 결과 팝업 관전 미러(피드백 10)만 보인다.
-		if self:IsMyTurn() == false then
-			log("[CubeTargetSelect] 내 턴이 아님 — 인터랙티브 잠재 패널 열지 않음")
-			return
-		end
+		-- (턴 게이트 제거) 큐브 사용은 이제 '배낭 자체를 내 턴에만 열 수 있게' 막는 것으로 일원화한다(UnderButton.OnClickBag).
+		-- 배낭이 유일한 진입로라 여기서 별도 턴 체크는 불필요 — 다른 유저 턴엔 애초에 배낭이 열리지 않는다.
 		if self:CubeCount() <= 0 then
-			log("[CubeTargetSelect] 큐브 보유 0 — 열지 않음")
+-- 			log("[CubeTargetSelect] 큐브 보유 0 — 열지 않음")
 			return
 		end
+		self._forgeMode = false             -- 큐브 모드: 합성 모드 잔재 해제
+		self:SetTabsVisible(true)
+		self:SetTitle("미라클 큐브 사용 대상 선택")
 		self.isOpen = true
 		self.activeCat = "Weapon"
 		if isvalid(self.selectRoot) then self.selectRoot.Enable = true end
 		self:BringToFront()
 		self:UpdateTabVisual()
 		self:Rebuild()
-		log("[CubeTargetSelect] Open")
+-- 		log("[CubeTargetSelect] Open")
+	end
+
+	@ExecSpace("ClientOnly")
+	method void OpenForge(string mainId, string mainName)
+		-- 합성 재료 선택: 메인(mainId)과 '같은 EquipName'의 다른 보유 인스턴스만 나열한다(외곽선 포함).
+		-- 셀 선택 → CubeConfirmPopup.OpenForge(메인, 재료) → ForgeManager.RequestForge.
+		if self:IsClient() == false then return end
+		self._forgeMode = true
+		self._forgeMainId = mainId
+		self._forgeMainName = mainName
+		self:SetTabsVisible(false)          -- 재료는 항상 같은 아이템(같은 분류) → 탭 불필요
+		self:SetTitle("합성 재료 선택 (같은 아이템)")
+		self.isOpen = true
+		if isvalid(self.selectRoot) then self.selectRoot.Enable = true end
+		self:BringToFront()
+		self:Rebuild()
+-- 		log("[CubeTargetSelect] OpenForge main=" .. mainId .. " (" .. mainName .. ")")
+	end
+
+	method void SetTabsVisible(boolean v)
+		-- 탭(무기/방어구/장신구) 표시 토글. 합성 모드에선 숨긴다.
+		if isvalid(self.tabWeapon) then self.tabWeapon.Enable = v end
+		if isvalid(self.tabArmor) then self.tabArmor.Enable = v end
+		if isvalid(self.tabAccessory) then self.tabAccessory.Enable = v end
+	end
+
+	method void SetTitle(string s)
+		-- 패널 제목 텍스트(존재하면). 구조 불명 대비 best-effort(못 찾으면 no-op).
+		if isvalid(self.selectRoot) == false then return end
+		local t = self.selectRoot:GetChildByName("Title", true)
+		if isvalid(t) then
+			local tc = t:GetComponent("MOD.Core.TextComponent")
+			if tc ~= nil then tc.Text = s end
+		end
+	end
+
+	method table ForgeMaterialList()
+		-- 합성 재료 후보: 메인과 같은 EquipName의 '다른 인스턴스'(장착품 포함, 메인 자신 제외).
+		local out = {}
+		local p = _UserService.LocalPlayer
+		if isvalid(p) == false then return out end
+		---@type BaseEquipment
+		local m = _EquipmentRouter:ManagerForInstance(p, self._forgeMainId)
+		if isvalid(m) == false then return out end
+		for _, rec in ipairs(m:ForgeMaterialsFor(self._forgeMainId, self._forgeMainName)) do
+			table.insert(out, { id = rec.id, name = rec.name, equipped = rec.equipped })
+		end
+		return out
 	end
 
 	method void Close()
 		-- 선택 패널 닫기.
 		self.isOpen = false
+		self._forgeMode = false             -- 합성 모드 잔재 해제(다음 큐브 열기에 누수 방지)
 		if isvalid(self.selectRoot) then self.selectRoot.Enable = false end
 	end
 
@@ -146,6 +201,7 @@ script CubeTargetSelect extends Logic
 	method table CurrentList()
 		-- 현재 탭(카테고리) 장비 목록(인스턴스 레코드): 장착품(있으면 맨 앞) + 보유목록.
 		--   각 원소 = { id=인스턴스ID, name=equipName }.
+		if self._forgeMode then return self:ForgeMaterialList() end
 		local p = _UserService.LocalPlayer
 		if isvalid(p) == false then return {} end
 		---@type BaseEquipment
@@ -166,7 +222,7 @@ script CubeTargetSelect extends Logic
 		if self:IsClient() == false or self.isOpen == false then return end
 		local items = self:CurrentList()
 		self._T.items = items
-		log("[CubeTargetSelect] Rebuild cat=" .. self.activeCat .. " count=" .. tostring(#items))
+-- 		log("[CubeTargetSelect] Rebuild cat=" .. self.activeCat .. " count=" .. tostring(#items))
 		if isvalid(self.gridEntity) then
 			local gvc = self.gridEntity.GridViewComponent
 			if gvc ~= nil then
@@ -245,12 +301,37 @@ script CubeTargetSelect extends Logic
 		end
 	end
 
+	method boolean MaterialIsEnhanced(string instanceId)
+		-- 재료 인스턴스가 스타포스(>0) 또는 잠재능력을 가진 '강화된' 장비인지(실수 소모 방지 경고 대상).
+		-- 스타포스(StarById)/잠재(PotentialById) 모두 @Sync라 클라에서 조회 가능.
+		if instanceId == "" then return false end
+		local p = _UserService.LocalPlayer
+		if isvalid(p) == false then return false end
+		---@type BaseEquipment
+		local mgr = _EquipmentRouter:ManagerForInstance(p, instanceId)
+		if isvalid(mgr) == false then return false end
+		if mgr:GetStar(instanceId) > 0 then return true end
+		if mgr:GetInstancePotential(instanceId) ~= "" then return true end
+		return false
+	end
+
 	method void OnCellState(string instanceId, string equipName, ButtonStateChangeEvent ev)
 		-- 셀 Pressed(=클릭) → 확인 팝업. (GridView 스크롤이 ButtonClickEvent를 먹으므로 Pressed 사용.)
 		if ev.state == ButtonState.Pressed then
 			_SFXManager:PlayClick()
-			_CubeConfirmPopup:Open(instanceId, equipName)
-			log("[CubeTargetSelect] 대상 선택 → 확인: " .. equipName .. "(" .. instanceId .. ")")
+			if self._forgeMode then
+				-- 선택 셀 = 합성 재료. 메인은 _forgeMainId(우클릭한 아이템).
+				-- 재료가 스타포스/잠재를 가진 '강화된' 장비면 실수 소모 방지 경고를 먼저 띄운다(예 → 정상 합성확인).
+				if self:MaterialIsEnhanced(instanceId) then
+					_CubeConfirmPopup:OpenForgeWarn(self._forgeMainId, instanceId, self._forgeMainName)
+				else
+					_CubeConfirmPopup:OpenForge(self._forgeMainId, instanceId, self._forgeMainName)
+				end
+-- 				log("[CubeTargetSelect] 재료 선택 → 합성확인: " .. equipName .. "(" .. instanceId .. ")")
+			else
+				_CubeConfirmPopup:Open(instanceId, equipName)
+-- 				log("[CubeTargetSelect] 대상 선택 → 확인: " .. equipName .. "(" .. instanceId .. ")")
+			end
 		end
 	end
 

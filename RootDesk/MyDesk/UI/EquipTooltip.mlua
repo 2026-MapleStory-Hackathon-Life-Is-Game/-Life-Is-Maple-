@@ -158,6 +158,36 @@ script EquipTooltip extends Logic
 		-- z-order(형제 인덱스) 강제 로직 제거됨.
 	end
 
+	method integer StarOf(string instanceId)
+		-- 인스턴스의 스타포스 수치(로컬 플레이어 기준). 없으면 0.
+		if instanceId == "" then return 0 end
+		local p = _UserService.LocalPlayer
+		if isvalid(p) == false then return 0 end
+		---@type BaseEquipment
+		local comp = _EquipmentRouter:ManagerForInstance(p, instanceId)
+		if isvalid(comp) == false then return 0 end
+		return comp:GetStar(instanceId)
+	end
+
+	method void ApplyStars(string containerPath, integer starCount)
+		-- 스타포스 15칸 표시. 슬롯 i(1~15)가 starCount 이하면 Activated_Star, 아니면 Deactivated_Star를 켠다.
+		-- 슬롯 이름: Star, Star_1 … Star_14 (컨테이너 직계 자식). 각 슬롯 자식: Activated_Star / Deactivated_Star.
+		local container = _EntityService:GetEntityByPath(containerPath)
+		if isvalid(container) == false then return end
+		for i = 1, 15 do
+			local slotName = "Star"
+			if i > 1 then slotName = "Star_" .. tostring(i - 1) end
+			local slot = container:GetChildByName(slotName)
+			if isvalid(slot) then
+				local on = i <= starCount
+				local act = slot:GetChildByName("Activated_Star")
+				local deact = slot:GetChildByName("Deactivated_Star")
+				if isvalid(act) then act.Enable = on end
+				if isvalid(deact) then deact.Enable = (on == false) end
+			end
+		end
+	end
+
 	method string NameOf(string instanceId)
 		-- 인스턴스 ID → equipName(로컬 플레이어 기준). 없으면 "".
 		if instanceId == "" then return "" end
@@ -189,11 +219,12 @@ script EquipTooltip extends Logic
 		self:ApplyStatLabel(self.leftStatLabel)
 		self:FillColumn(self.leftName, self.leftIcon, self.leftPower, self.leftStats, self.leftPotential,
 			name, self:PotOf(instanceId))
+		self:ApplyStars("/ui/InGameUIGroup/EquipTooltip/Tip/Left/StarForce_1", self:StarOf(instanceId))
 		if isvalid(self.rightPanel) then self.rightPanel.Enable = false end
 		if isvalid(self.tipRoot) then self.tipRoot.Enable = true end
 		self:BringToFront()
 		self:PlacePanel()
-		log("[EquipTooltip] ShowItem: " .. name .. "(" .. instanceId .. ")")
+-- 		log("[EquipTooltip] ShowItem: " .. name .. "(" .. instanceId .. ")")
 	end
 
 	method void ShowCompare(string newId, string currentId)
@@ -206,6 +237,7 @@ script EquipTooltip extends Logic
 		self:ApplyStatLabel(self.rightStatLabel)
 		self:FillColumn(self.leftName, self.leftIcon, self.leftPower, self.leftStats, self.leftPotential,
 			newName, self:PotOf(newId))
+		self:ApplyStars("/ui/InGameUIGroup/EquipTooltip/Tip/Left/StarForce_1", self:StarOf(newId))
 		if isvalid(self.rightPanel) then self.rightPanel.Enable = true end
 		local currentName = self:NameOf(currentId)
 		if currentName == "" then
@@ -214,14 +246,16 @@ script EquipTooltip extends Logic
 			self:SetText(self.rightPower, "")
 			self:SetText(self.rightStats, "")
 			self:SetText(self.rightPotential, "")
+			self:ApplyStars("/ui/InGameUIGroup/EquipTooltip/Tip/Right/StarForce", 0)
 		else
 			self:FillColumn(self.rightName, self.rightIcon, self.rightPower, self.rightStats, self.rightPotential,
 				currentName, self:PotOf(currentId))
+			self:ApplyStars("/ui/InGameUIGroup/EquipTooltip/Tip/Right/StarForce", self:StarOf(currentId))
 		end
 		if isvalid(self.tipRoot) then self.tipRoot.Enable = true end
 		self:BringToFront()
 		self:PlacePanel()
-		log("[EquipTooltip] ShowCompare: " .. newName .. " vs " .. currentName)
+-- 		log("[EquipTooltip] ShowCompare: " .. newName .. " vs " .. currentName)
 	end
 
 	method void Hide()

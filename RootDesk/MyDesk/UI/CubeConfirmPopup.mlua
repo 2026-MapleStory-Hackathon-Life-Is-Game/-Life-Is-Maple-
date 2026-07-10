@@ -13,6 +13,12 @@ script CubeConfirmPopup extends Logic
 
 	property string _instanceId = ""
 
+	property string _mode = "cube"      -- "cube"(큐브 사용 확인) | "forge"(합성 확인) | "result"(합성 결과)
+
+	property string _mainId = ""        -- 합성 메인(강화 대상) 인스턴스
+
+	property string _materialId = ""    -- 합성 재료(소모) 인스턴스
+
 	property any _yesH = nil
 
 	property any _noH = nil
@@ -27,7 +33,7 @@ script CubeConfirmPopup extends Logic
 		if isvalid(self.btnNo) then
 			self._noH = self.btnNo.Entity:ConnectEvent(ButtonClickEvent, function() self:OnNo() end)
 		end
-		log("[CubeConfirmPopup] OnBeginPlay OK")
+-- 		log("[CubeConfirmPopup] OnBeginPlay OK")
 	end
 
 	method void SetText(Entity e, string s)
@@ -53,12 +59,91 @@ script CubeConfirmPopup extends Logic
 	method void Open(string instanceId, string equipName)
 		-- 확인 패널 열기(대상=장비 인스턴스). 인벤 OnCellClicked(큐브모드)/캐릭터패널 우클릭에서 호출.
 		if self:IsClient() == false then return end
+		self._mode = "cube"
 		self._instanceId = instanceId
 		self._equipName = equipName
 		self:SetText(self.msgText, "'" .. self:DisplayName(equipName) .. "'에\n미라클 큐브를 사용하시겠습니까?")
+		self:SetButtonLabel(self.btnYes, "예")
+		self:SetButtonLabel(self.btnNo, "아니오")
+		if isvalid(self.btnNo) and isvalid(self.btnNo.Entity) then self.btnNo.Entity.Enable = true end
 		if isvalid(self.groupRoot) then self.groupRoot.Enable = true end
 		self:BringToFront()
-		log("[CubeConfirmPopup] Open " .. equipName .. "(" .. instanceId .. ")")
+-- 		log("[CubeConfirmPopup] Open " .. equipName .. "(" .. instanceId .. ")")
+	end
+
+	@ExecSpace("ClientOnly")
+	method void OpenForgeWarn(string mainId, string materialId, string equipName)
+		-- 합성 경고 패널: 재료로 선택한 장비가 스타포스/잠재를 가진 '강화된' 장비일 때 실수 소모 방지용 사전 확인.
+		--   '예' → 정상 합성 확인(OpenForge)으로 진행, '취소' → 재료 선택 유지(닫기만).
+		if self:IsClient() == false then return end
+		self._mode = "forgewarn"
+		self._mainId = mainId
+		self._materialId = materialId
+		self._equipName = equipName
+		self:SetText(self.msgText, "현재 재료로 선택한 장비는 스타포스 혹은 잠재능력이 있는 장비입니다.\n정말 재료로 선택하시겠습니까?")
+		self:SetButtonLabel(self.btnYes, "예")
+		self:SetButtonLabel(self.btnNo, "취소")
+		if isvalid(self.btnNo) and isvalid(self.btnNo.Entity) then self.btnNo.Entity.Enable = true end
+		if isvalid(self.groupRoot) then self.groupRoot.Enable = true end
+		self:BringToFront()
+-- 		log("[CubeConfirmPopup] OpenForgeWarn " .. equipName .. " main=" .. mainId .. " mat=" .. materialId)
+	end
+
+	@ExecSpace("ClientOnly")
+	method void OpenForge(string mainId, string materialId, string equipName)
+		-- 합성 확인 패널: 메인(mainId)에 재료(materialId, 같은 아이템)를 소모해 스타포스 강화 시도.
+		if self:IsClient() == false then return end
+		self._mode = "forge"
+		self._mainId = mainId
+		self._materialId = materialId
+		self._equipName = equipName
+		self:SetText(self.msgText, "'" .. self:DisplayName(equipName) .. "'을(를) 합성하시겠습니까?\n성공 70%   ·   실패 25%   ·   파괴 5%\n(실패=재료 소멸 / 파괴=메인+재료 소멸)")
+		self:SetButtonLabel(self.btnYes, "합성")
+		self:SetButtonLabel(self.btnNo, "취소")
+		if isvalid(self.btnNo) and isvalid(self.btnNo.Entity) then self.btnNo.Entity.Enable = true end
+		if isvalid(self.groupRoot) then self.groupRoot.Enable = true end
+		self:BringToFront()
+-- 		log("[CubeConfirmPopup] OpenForge " .. equipName .. " main=" .. mainId .. " mat=" .. materialId)
+	end
+
+	@ExecSpace("ClientOnly")
+	method void ShowForgeResult(string equipName, string outcome, integer newStar)
+		-- 합성 결과 표시(서버 ForgeManager.NotifyForgeResult에서 호출). '확인' 버튼 하나만.
+		if self:IsClient() == false then return end
+		self._mode = "result"
+		local nm = self:DisplayName(equipName)
+		local msg = "합성 결과: " .. tostring(outcome)
+		if outcome == "success" then
+			_SFXManager:PlayLevelUp()
+			msg = "합성 성공!\n'" .. nm .. "' 스타포스 " .. tostring(newStar) .. "성 달성!"
+		elseif outcome == "fail" then
+			_SFXManager:PlayClick()
+			msg = "합성 실패...\n재료가 사라졌습니다. ('" .. nm .. "'은(는) 그대로)"
+		elseif outcome == "destroy" then
+			_SFXManager:PlayClick()
+			msg = "합성 실패 — 장비 파괴!\n'" .. nm .. "'과(와) 재료가 모두 사라졌습니다."
+		elseif outcome == "max" then
+			msg = "'" .. nm .. "'은(는) 이미 최대 스타포스(" .. tostring(newStar) .. "성)입니다."
+		elseif outcome == "nomat" then
+			msg = "합성할 재료가 없습니다.\n같은 장비('" .. nm .. "')가 2개 이상 있어야 합니다."
+		end
+		self:SetText(self.msgText, msg)
+		self:SetButtonLabel(self.btnYes, "확인")
+		if isvalid(self.btnNo) and isvalid(self.btnNo.Entity) then self.btnNo.Entity.Enable = false end
+		if isvalid(self.groupRoot) then self.groupRoot.Enable = true end
+		self:BringToFront()
+-- 		log("[CubeConfirmPopup] ShowForgeResult " .. equipName .. " " .. outcome .. " star=" .. tostring(newStar))
+	end
+
+	method void SetButtonLabel(ButtonComponent btn, string text)
+		-- 버튼 라벨 설정(버튼 엔티티 또는 첫 자식 TextComponent 둘 다 시도 — 구조 불명 대비).
+		if isvalid(btn) == false or isvalid(btn.Entity) == false then return end
+		local tc = btn.Entity:GetComponent("MOD.Core.TextComponent")
+		if tc ~= nil then tc.Text = text return end
+		for _, c in ipairs(btn.Entity.Children:ToTable()) do
+			local ctc = c:GetComponent("MOD.Core.TextComponent")
+			if ctc ~= nil then ctc.Text = text return end
+		end
 	end
 
 	method void BringToFront()
@@ -71,7 +156,30 @@ script CubeConfirmPopup extends Logic
 	end
 
 	method void OnYes()
-		-- 예: 인벤 큐브 사용 모드 종료 후 실제 큐브 사용 요청.
+		-- 모드별 확정 처리.
+		if self._mode == "forgewarn" then
+			-- 경고 확인 → 정상 합성 확인(확률) 패널로 진행. 같은 팝업에 forge 모드로 내용만 교체된다.
+			_SFXManager:PlayClick()
+			self:OpenForge(self._mainId, self._materialId, self._equipName)
+			return
+		end
+		if self._mode == "forge" then
+			-- 합성 실행 요청. 결과는 서버 NotifyForgeResult가 result 모드로 다시 띄운다.
+			_SFXManager:PlayCube()
+			local mainId = self._mainId
+			local materialId = self._materialId
+			self:Close()
+			if _CubeTargetSelect ~= nil then _CubeTargetSelect:Close() end
+			_ForgeManager:RequestForge(mainId, materialId)
+			return
+		end
+		if self._mode == "result" then
+			-- 합성 결과 확인 → 닫기만.
+			_SFXManager:PlayClick()
+			self:Close()
+			return
+		end
+		-- cube 모드(기존): 인벤 큐브 사용 모드 종료 후 실제 큐브 사용 요청.
 		_SFXManager:PlayCube()
 		local id = self._instanceId
 		self:Close()
@@ -89,7 +197,7 @@ script CubeConfirmPopup extends Logic
 	end
 
 	method void OnNo()
-		-- 아니오: 닫기만. 큐브 사용 모드는 유지(다른 장비 재선택 가능).
+		-- 아니오/취소: 닫기만. (큐브 모드는 사용 모드 유지, 합성 모드는 재료 선택 패널 유지)
 		_SFXManager:PlayClick()
 		self:Close()
 	end

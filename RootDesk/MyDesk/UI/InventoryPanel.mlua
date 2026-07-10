@@ -33,6 +33,8 @@ script InventoryPanel extends Component
 
 	property ButtonComponent ctxBtnCube = "ff23db32-c729-487d-bf5e-a806008f0ade"
 
+	property ButtonComponent ctxBtnForge = "e9df9917-200d-4ffd-803a-25f50091a387"
+
 	property ButtonComponent ctxBtnClose = "160a192d-b859-4ac9-9fa3-9ae0bd99a0d8"
 
 	property string _hoverId = ""
@@ -160,6 +162,10 @@ script InventoryPanel extends Component
 			local hc = self.ctxBtnCube.Entity:ConnectEvent(ButtonClickEvent, function() self:OnCtxCube() end)
 			table.insert(self._ctxHandlers, { entity = self.ctxBtnCube.Entity, evtH = hc })
 		end
+		if isvalid(self.ctxBtnForge) then
+			local hf = self.ctxBtnForge.Entity:ConnectEvent(ButtonClickEvent, function() self:OnCtxForge() end)
+			table.insert(self._ctxHandlers, { entity = self.ctxBtnForge.Entity, evtH = hf })
+		end
 		if isvalid(self.ctxBtnClose) then
 			local hx = self.ctxBtnClose.Entity:ConnectEvent(ButtonClickEvent, function() self:OnCtxClose() end)
 			table.insert(self._ctxHandlers, { entity = self.ctxBtnClose.Entity, evtH = hx })
@@ -193,7 +199,7 @@ script InventoryPanel extends Component
 		self.touchDownHandler = _InputService:ConnectEvent(ScreenTouchEvent, self.OnScreenTouchDown)
 		self.touchUpHandler = _InputService:ConnectEvent(ScreenTouchReleaseEvent, self.OnScreenTouchUp)
 		
-		log("[InventoryPanel] OnBeginPlay OK mobile=" .. tostring(self._isMobile))
+-- 		log("[InventoryPanel] OnBeginPlay OK mobile=" .. tostring(self._isMobile))
 	end
 
 	@ExecSpace("ClientOnly")
@@ -201,7 +207,7 @@ script InventoryPanel extends Component
 		-- ESC: 인벤토리가 열려 있으면 닫는다(Close가 컨텍스트 메뉴/툴팁도 함께 정리).
 		if event.key == KeyboardKey.Escape and self.isOpen then
 			self:Close()
-			log("[InventoryPanel] ESC → 인벤 닫기")
+-- 			log("[InventoryPanel] ESC → 인벤 닫기")
 		end
 	end
 
@@ -242,14 +248,14 @@ script InventoryPanel extends Component
 	method void EnterCubeUseMode()
 		-- 미라클 큐브 사용: 그리드를 '재설정 대상 장비(전체 장비)'로 전환.
 		if self:CubeCount() <= 0 then
-			log("[InventoryPanel] 큐브 사용: 보유 0")
+-- 			log("[InventoryPanel] 큐브 사용: 보유 0")
 			return
 		end
 		self:CloseContextMenu()
 		self._cubeUseMode = true
 		self:UpdateBanner()
 		self:Rebuild()
-		log("[InventoryPanel] 큐브 사용 모드 진입")
+-- 		log("[InventoryPanel] 큐브 사용 모드 진입")
 	end
 
 	method void ExitCubeUseMode()
@@ -408,7 +414,7 @@ script InventoryPanel extends Component
 		self._T.items = items
 		-- 깜빡임 방지: 시그니처를 여기서 동기화해 OnUpdate 폴러가 중복 Rebuild를 또 트리거하지 않게 한다.
 		self._lastListSig = self:ListSig(items)
-		log("[InventoryPanel] Rebuild tab=" .. self.activeTab .. " count=" .. tostring(#items))
+-- 		log("[InventoryPanel] Rebuild tab=" .. self.activeTab .. " count=" .. tostring(#items))
 		
 		if isvalid(self.gridEntity) then
 			local gvc = self.gridEntity.GridViewComponent
@@ -617,7 +623,7 @@ script InventoryPanel extends Component
 		if sig ~= self._lastListSig then
 			self._lastListSig = sig
 			self:Rebuild()
-			log("[InventoryPanel] 목록 변경 감지 → Rebuild count=" .. tostring(#items))
+-- 			log("[InventoryPanel] 목록 변경 감지 → Rebuild count=" .. tostring(#items))
 		end
 	end
 
@@ -630,7 +636,7 @@ script InventoryPanel extends Component
 		if self._cubeUseMode then
 			-- 바로 사용하지 않고 확인 패널을 먼저 띄운다(예→실제 사용 / 아니오→취소).
 			-- 모드 종료/RequestCube는 CubeConfirmPopup:OnYes에서 처리.
-			log("[InventoryPanel] 큐브 대상 선택(확인 대기): " .. equipName .. "(" .. instanceId .. ")")
+-- 			log("[InventoryPanel] 큐브 대상 선택(확인 대기): " .. equipName .. "(" .. instanceId .. ")")
 			_EquipTooltip:Hide()
 			_CubeConfirmPopup:Open(instanceId, equipName)
 			return
@@ -640,11 +646,11 @@ script InventoryPanel extends Component
 			self._lastClickName = ""
 			-- 미라클 큐브 셀: 더블클릭 시 장비 선택 패널 열기.
 			if instanceId == "__MIRACLE_CUBE__" then
-				log("[InventoryPanel] 큐브 더블클릭 → 선택 패널")
+-- 				log("[InventoryPanel] 큐브 더블클릭 → 선택 패널")
 				_CubeTargetSelect:Open()
 				return
 			end
-			log("[InventoryPanel] 더블클릭 장착: " .. equipName .. "(" .. instanceId .. ")")
+-- 			log("[InventoryPanel] 더블클릭 장착: " .. equipName .. "(" .. instanceId .. ")")
 			local p = _UserService.LocalPlayer
 			if isvalid(p) then
 				---@type BaseEquipment
@@ -660,7 +666,7 @@ script InventoryPanel extends Component
 		else
 			self._lastClickName = instanceId
 			self._lastClickTime = now
-			log("[InventoryPanel] 첫 클릭: " .. equipName .. "(" .. instanceId .. ")")
+-- 			log("[InventoryPanel] 첫 클릭: " .. equipName .. "(" .. instanceId .. ")")
 		end
 	end
 
@@ -734,7 +740,7 @@ script InventoryPanel extends Component
 			self._lastClickName = ""
 			if self._pressId ~= "" and self._cubeUseMode == false then
 				self:OpenContextMenu(self._pressId, self._pressName)
-				log("[InventoryPanel] 롱프레스 → 컨텍스트 메뉴: " .. self._pressName .. "(" .. self._pressId .. ")")
+-- 				log("[InventoryPanel] 롱프레스 → 컨텍스트 메뉴: " .. self._pressName .. "(" .. self._pressId .. ")")
 			end
 		end
 	end
@@ -768,7 +774,7 @@ script InventoryPanel extends Component
 		self._ctxOpenTime = _UtilLogic.ElapsedSeconds
 		-- PC: 우클릭 메뉴를 열면 호버 툴팁을 숨긴다. 모바일: 오른쪽 정보 패널을 함께 띄우므로 숨기지 않는다.
 		if self._isMobile == false then _EquipTooltip:Hide() end
-		log("[InventoryPanel] 컨텍스트 메뉴 열기: " .. equipName)
+-- 		log("[InventoryPanel] 컨텍스트 메뉴 열기: " .. equipName)
 	end
 
 	method void CloseContextMenu()
@@ -825,17 +831,24 @@ script InventoryPanel extends Component
 			self:SetBtnLabel(self.ctxBtnEquip, "사용한다")
 			self:SetBtnPos(self.ctxBtnEquip, 27)
 			if isvalid(self.ctxBtnCube) then self.ctxBtnCube.Entity.Enable = false end
+			if isvalid(self.ctxBtnForge) then self.ctxBtnForge.Entity.Enable = false end
 			self:SetBtnPos(self.ctxBtnClose, -27)
 			if isvalid(menuUt) then menuUt.RectSize = Vector2(188, 130) end
 		else
+			-- 장비: 4행('장착/교체' / '잠재능력 재설정' / '합성' / '닫기'). 행 간격 54.
 			self:SetBtnLabel(self.ctxBtnEquip, self._ctxEquipLabel)
-			self:SetBtnPos(self.ctxBtnEquip, 54)
+			self:SetBtnPos(self.ctxBtnEquip, 81)
 			if isvalid(self.ctxBtnCube) then
 				self.ctxBtnCube.Entity.Enable = true
-				self:SetBtnPos(self.ctxBtnCube, 0)
+				self:SetBtnPos(self.ctxBtnCube, 27)
 			end
-			self:SetBtnPos(self.ctxBtnClose, -54)
-			if isvalid(menuUt) then menuUt.RectSize = Vector2(188, 184) end
+			if isvalid(self.ctxBtnForge) then
+				self.ctxBtnForge.Entity.Enable = true
+				self:SetBtnLabel(self.ctxBtnForge, "합성")
+				self:SetBtnPos(self.ctxBtnForge, -27)
+			end
+			self:SetBtnPos(self.ctxBtnClose, -81)
+			if isvalid(menuUt) then menuUt.RectSize = Vector2(188, 238) end
 			-- 장비 메뉴는 큐브 보유 여부로 '재설정' 버튼 활성/반투명 갱신.
 			self:UpdateCtxCubeButton()
 		end
@@ -861,13 +874,13 @@ script InventoryPanel extends Component
 		end
 		_EquipTooltip:Hide()
 		self:Rebuild()
-		log("[InventoryPanel] 컨텍스트: 장착/교체 " .. name .. "(" .. id .. ")")
+-- 		log("[InventoryPanel] 컨텍스트: 장착/교체 " .. name .. "(" .. id .. ")")
 	end
 
 	method void OnCtxCube()
 		-- '잠재능력 재설정': 미라클 큐브가 있을 때만 확인 팝업을 띄운다(없으면 무시 — 버튼 반투명).
 		if self:CubeCount() <= 0 then
-			log("[InventoryPanel] 컨텍스트: 큐브 없음(비활성 클릭 무시)")
+-- 			log("[InventoryPanel] 컨텍스트: 큐브 없음(비활성 클릭 무시)")
 			return
 		end
 		_SFXManager:PlayClick()
@@ -877,7 +890,35 @@ script InventoryPanel extends Component
 		if id == "" or id == "__MIRACLE_CUBE__" then return end
 		_EquipTooltip:Hide()
 		_CubeConfirmPopup:Open(id, name)
-		log("[InventoryPanel] 컨텍스트: 잠재능력 재설정 " .. name .. "(" .. id .. ")")
+-- 		log("[InventoryPanel] 컨텍스트: 잠재능력 재설정 " .. name .. "(" .. id .. ")")
+	end
+
+	method void OnCtxForge()
+		-- '합성': 같은 아이템을 재료로 스타포스 강화. 재료 선택 패널을 연다.
+		_SFXManager:PlayClick()
+		local id = self._ctxTargetId
+		local name = self._ctxTargetName
+		self:CloseContextMenu()
+		if id == "" or id == "__MIRACLE_CUBE__" then return end
+		local p = _UserService.LocalPlayer
+		if isvalid(p) == false then return end
+		---@type BaseEquipment
+		local m = _EquipmentRouter:ManagerForInstance(p, id)
+		if isvalid(m) == false then return end
+		-- 이미 최대 스타포스면 재료 소모 없이 안내만.
+		if m:GetStar(id) >= m.MaxStar then
+			_CubeConfirmPopup:ShowForgeResult(name, "max", m:GetStar(id))
+			return
+		end
+		-- 같은 EquipName의 다른 인스턴스(재료 후보, 장착품 포함) 개수 확인.
+		local matCount = #(m:ForgeMaterialsFor(id, name))
+		if matCount <= 0 then
+			_CubeConfirmPopup:ShowForgeResult(name, "nomat", 0)
+			return
+		end
+		_EquipTooltip:Hide()
+		_CubeTargetSelect:OpenForge(id, name)
+-- 		log("[InventoryPanel] 컨텍스트: 합성 " .. name .. "(" .. id .. ") 재료후보=" .. tostring(matCount))
 	end
 
 	method void OnCtxClose()
@@ -904,7 +945,7 @@ script InventoryPanel extends Component
 			return
 		end
 		self:CloseContextMenu()
-		log("[InventoryPanel] 바깥 클릭 → 컨텍스트 메뉴 닫기")
+-- 		log("[InventoryPanel] 바깥 클릭 → 컨텍스트 메뉴 닫기")
 	end
 
 	@ExecSpace("ClientOnly")
