@@ -24,7 +24,7 @@
           "enable": true,
           "visible": true,
           "localize": true,
-          "displayOrder": 3,
+          "displayOrder": 4,
           "pathConstraints": "//",
           "revision": 7,
           "origin": {
@@ -14315,6 +14315,9 @@
             },
             {
               "@type": "MOD.Core.SpriteGUIRendererComponent",
+              "ImageRUID": {
+                "DataId": "397b38bb31a440219f971cea13e128f4"
+              },
               "OverrideSorting": false,
               "Color": {
                 "r": 0.101960786,
@@ -14486,7 +14489,7 @@
                 "a": 0.72
               },
               "DropShadowDistance": 3.0,
-              "Font": 0,
+              "Font": 1,
               "FontColor": {
                 "r": 1.0,
                 "g": 1.0,
@@ -14566,20 +14569,20 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 240.0,
-                "y": 40.0
+                "x": 232.5,
+                "y": 32.5
               },
               "OffsetMin": {
-                "x": 165.0,
-                "y": -35.0
+                "x": 172.5,
+                "y": -27.5
               },
               "Pivot": {
                 "x": 0.5,
                 "y": 0.5
               },
               "RectSize": {
-                "x": 75.0,
-                "y": 75.0
+                "x": 60.0,
+                "y": 60.0
               },
               "UIMode": 1,
               "UIVersion": 2,
@@ -15723,7 +15726,7 @@
               "EndFrameIndex": 2147483647,
               "IgnoreMapLayerCheck": false,
               "ImageRUID": {
-                "DataId": "f5713ca26337427f9f6d0f085f53d847"
+                "DataId": "d7487011ad874e5a9992d05e0540de58"
               },
               "LocalPosition": {
                 "x": 0.0,
@@ -15847,9 +15850,9 @@
               "DropShadowDistance": 3.0,
               "Font": 1,
               "FontColor": {
-                "r": 0.3019608,
-                "g": 0.3019608,
-                "b": 0.3019608,
+                "r": 1.0,
+                "g": 1.0,
+                "b": 1.0,
                 "a": 1.0
               },
               "FontSize": 36,
@@ -15859,9 +15862,9 @@
               "MinSize": 10,
               "OrderInLayer": 0,
               "OutlineColor": {
-                "r": 0.164705887,
-                "g": 0.168627456,
-                "b": 0.1764706,
+                "r": 0.168627456,
+                "g": 0.254901975,
+                "b": 0.784313738,
                 "a": 1.0
               },
               "OutlineDistance": {
@@ -22237,7 +22240,7 @@
               },
               "SizeFit": false,
               "SortingLayer": "UI",
-              "Text": "월드코인 결제 · 현재 전부 무료(0)",
+              "Text": "펫은 플레이어의 뒤를 따라다닙니다.",
               "UseConstraintX": false,
               "UseConstraintY": false,
               "UseOutLine": false,

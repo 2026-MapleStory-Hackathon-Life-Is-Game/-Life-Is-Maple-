@@ -27,7 +27,6 @@ script ModeSelectUI extends Logic
 
 	property any hClose = nil
 
-	-- 매칭 텍스트 구성용 캐시(인원/정원/시작까지 남은 초). count·sec가 각각 다른 RPC로 와도 한 줄로 합쳐 표시.
 	property integer _lastCount = 0
 
 	property integer _lastMax = 4
@@ -55,7 +54,7 @@ script ModeSelectUI extends Logic
 		if isvalid(self.closeButton) then
 			self.hClose = self.closeButton.Entity:ConnectEvent(ButtonClickEvent, function() self:OnClickClose() end)
 		end
-		log("[ModeSelectUI] 로비 버튼 연결 완료")
+		-- 		log("[ModeSelectUI] 로비 버튼 연결 완료")
 	end
 
 	@ExecSpace("ClientOnly")
@@ -73,14 +72,14 @@ script ModeSelectUI extends Logic
 		_SFXManager:PlayClick()
 		self:SetPanelEnable(self.matchingPanel, false)
 		self:SetPanelEnable(self.modeSelectPanel, true)
-		log("[ModeSelectUI] 모드 선택 패널 열림")
+		-- 		log("[ModeSelectUI] 모드 선택 패널 열림")
 	end
 
 	@ExecSpace("ClientOnly")
 	method void OnClickClose()
 		_SFXManager:PlayClick()
 		self:SetPanelEnable(self.modeSelectPanel, false)
-		log("[ModeSelectUI] 모드 선택 패널 닫힘")
+		-- 		log("[ModeSelectUI] 모드 선택 패널 닫힘")
 	end
 
 	@ExecSpace("ClientOnly")
@@ -101,7 +100,7 @@ script ModeSelectUI extends Logic
 		self:SetPanelEnable(self.modeSelectPanel, false)
 		self._lastSec = 0   -- 새 매칭 진입 → 이전 매칭의 남은 초 캐시 잔재 제거(서버 첫 방송 전 오표시 방지)
 		_MatchManager:JoinMatch()
-		log("[ModeSelectUI] 멀티 매칭 입장 요청")
+		-- 		log("[ModeSelectUI] 멀티 매칭 입장 요청")
 	end
 
 	@ExecSpace("ClientOnly")
@@ -110,7 +109,7 @@ script ModeSelectUI extends Logic
 		_MatchManager:CancelMatch()
 		self:SetPanelEnable(self.matchingPanel, false)
 		self:SetPanelEnable(self.modeSelectPanel, true)
-		log("[ModeSelectUI] 매칭 취소 → 모드 선택")
+		-- 		log("[ModeSelectUI] 매칭 취소 → 모드 선택")
 	end
 
 	@ExecSpace("ClientOnly")
@@ -124,7 +123,7 @@ script ModeSelectUI extends Logic
 	method void HidePanel()
 		self:SetPanelEnable(self.modeSelectPanel, false)
 		self:SetPanelEnable(self.matchingPanel, false)
-		log("[ModeSelectUI] 패널 모두 닫힘")
+		-- 		log("[ModeSelectUI] 패널 모두 닫힘")
 	end
 
 	@ExecSpace("ClientOnly")
@@ -149,6 +148,12 @@ script ModeSelectUI extends Logic
 		local base = "매칭 중...  " .. tostring(self._lastCount) .. "/" .. tostring(self._lastMax)
 		if self._lastSec > 0 then
 			base = base .. "  (" .. tostring(self._lastSec) .. "초 후 시작)"
+			
+			-- 매칭 패널의 사이즈 동적 변환
+			self:ResizeMatchingPanel(true)
+		else
+			-- 매칭 패널의 사이즈 동적 변환
+			self:ResizeMatchingPanel(false)
 		end
 		self.matchingText.TextComponent.Text = base
 	end
@@ -165,6 +170,24 @@ script ModeSelectUI extends Logic
 		-- 버튼 이벤트 핸들러 해제 (nil 안전).
 		if eventHandler ~= nil and isvalid(btn) then
 			btn.Entity:DisconnectEvent(ButtonClickEvent, eventHandler)
+		end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void ResizeMatchingPanel(boolean isMulti)
+		-- 이미 보유 중인 matchingPanel 프로퍼티 재사용(경로 재조회 불필요).
+		if isvalid(self.matchingPanel) == false then return end
+		local uit = self.matchingPanel.UITransformComponent
+		if isvalid(uit) == false then return end
+
+		local newX = 480
+		if isMulti then newX = 680 end
+
+		-- RectSize는 Vector2 값 타입(복사본 반환)이라 .x만 대입하면 반영되지 않는다.
+		-- 현재 폭과 다를 때만 y는 유지하고 Vector2 통째로 재대입한다(불필요한 재대입 방지).
+		local cur = uit.RectSize
+		if cur.x ~= newX then
+			uit.RectSize = Vector2(newX, cur.y)
 		end
 	end
 

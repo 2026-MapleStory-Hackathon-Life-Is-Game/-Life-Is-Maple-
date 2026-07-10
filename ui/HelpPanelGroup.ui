@@ -24,7 +24,7 @@
           "enable": true,
           "visible": true,
           "localize": true,
-          "displayOrder": 5,
+          "displayOrder": 18,
           "pathConstraints": "//",
           "revision": 9,
           "origin": {
@@ -308,11 +308,11 @@
               },
               "MobileOnly": false,
               "OffsetMax": {
-                "x": 200.0001,
+                "x": 199.999985,
                 "y": 200.0
               },
               "OffsetMin": {
-                "x": -199.9999,
+                "x": -199.999771,
                 "y": -200.0
               },
               "Pivot": {
@@ -320,7 +320,7 @@
                 "y": 0.5
               },
               "RectSize": {
-                "x": 2313.00684,
+                "x": 2313.00659,
                 "y": 1450.0
               },
               "UIMode": 1,
@@ -6764,6 +6764,97 @@
         }
       },
       {
+        "id": "44273071-3eff-42d9-bf4d-b8b9a5ca7c3e",
+        "path": "/ui/HelpPanelGroup/HelpPanel/WholePanel/타일의 종류/Panels_1/1/UISprite_2",
+        "componentNames": "MOD.Core.UITransformComponent,MOD.Core.SpriteGUIRendererComponent",
+        "jsonString": {
+          "name": "UISprite_2",
+          "path": "/ui/HelpPanelGroup/HelpPanel/WholePanel/타일의 종류/Panels_1/1/UISprite_2",
+          "nameEditable": true,
+          "enable": true,
+          "visible": true,
+          "localize": true,
+          "displayOrder": 7,
+          "pathConstraints": "////////",
+          "revision": 2,
+          "origin": {
+            "type": "Model",
+            "entry_id": "uisprite",
+            "sub_entity_id": null,
+            "root_entity_id": "f7ffccc3-bafe-4b16-9169-2e4a65798706",
+            "replaced_model_id": null
+          },
+          "modelId": "uisprite",
+          "@components": [
+            {
+              "@type": "MOD.Core.UITransformComponent",
+              "AlignmentOption": 0,
+              "AnchorsMax": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "AnchorsMin": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "MobileOnly": false,
+              "OffsetMax": {
+                "x": -261.765564,
+                "y": -33.65634
+              },
+              "OffsetMin": {
+                "x": -430.106262,
+                "y": -205.902252
+              },
+              "Pivot": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "RectSize": {
+                "x": 168.340729,
+                "y": 172.245911
+              },
+              "UIMode": 1,
+              "UIVersion": 2,
+              "anchoredPosition": {
+                "x": -345.9359,
+                "y": -119.7793
+              },
+              "Position": {
+                "x": -345.9359,
+                "y": -119.7793,
+                "z": 0.0
+              },
+              "QuaternionRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 1.0
+              },
+              "Enable": true
+            },
+            {
+              "@type": "MOD.Core.SpriteGUIRendererComponent",
+              "ImageRUID": {
+                "DataId": "69ce17be38ae48d1a334adb64eb8c5ae"
+              },
+              "OverrideSorting": false,
+              "PreserveSprite": 1,
+              "SortingLayer": "MapLayer0",
+              "Outline": true,
+              "OutlineColor": {
+                "r": 0.3965968,
+                "g": 0.0485992432,
+                "b": 0.5078125,
+                "a": 1.0
+              },
+              "Enable": true
+            }
+          ],
+          "@version": 1
+        }
+      },
+      {
         "id": "4aa89098-c83a-4985-b42d-3d1cdec0991b",
         "path": "/ui/HelpPanelGroup/HelpPanel/WholePanel/타일의 종류/Panels_1/1/UISprite_3",
         "componentNames": "MOD.Core.UITransformComponent,MOD.Core.SpriteGUIRendererComponent",
@@ -6774,7 +6865,7 @@
           "enable": true,
           "visible": true,
           "localize": true,
-          "displayOrder": 7,
+          "displayOrder": 8,
           "pathConstraints": "////////",
           "revision": 3,
           "origin": {
@@ -9770,7 +9861,7 @@
           "name": "장비 장착강화",
           "path": "/ui/HelpPanelGroup/HelpPanel/WholePanel/장비 장착강화",
           "nameEditable": true,
-          "enable": false,
+          "enable": true,
           "visible": true,
           "localize": true,
           "displayOrder": 2,
