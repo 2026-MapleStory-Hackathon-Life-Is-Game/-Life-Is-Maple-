@@ -114,7 +114,7 @@ script CharacterInfoPanel extends Component
 		if event.key == KeyboardKey.Escape and self.isOpen then
 			self:CloseContextMenu()
 			self:Close()
-			log("[CharacterInfoPanel] ESC → 패널 닫기")
+-- 			log("[CharacterInfoPanel] ESC → 패널 닫기")
 		end
 	end
 
@@ -170,10 +170,12 @@ script CharacterInfoPanel extends Component
 		
 		self:SetText(self.nameText, p.PlayerComponent.Nickname)
 		local buff = p:GetComponent("script.BuffManager")
-		local job  = p:GetComponent("script.JobWeaponManager")
 		local mv   = p:GetComponent("script.PlayerMovement")
+		-- 직업은 per-piece CombatPowerManager.CurrentJob에서 읽는다(JobWeaponManager는 @Logic이라 GetComponent가 nil이었음).
+		local jobName = ""
+		if isvalid(self.cpComp) and self.cpComp.CurrentJob ~= nil then jobName = self.cpComp.CurrentJob end
 		self:SetText(self.campText,   self:OrDash(isvalid(buff) and buff.CampName or ""))
-		self:SetText(self.jobText,    self:OrDash(isvalid(job) and job.currentJob or ""))
+		self:SetText(self.jobText,    self:OrDash(jobName))
 		self:SetText(self.branchText, self:OrDash(isvalid(mv) and mv.currentTile or ""))
 		
 		---@type CombatPowerManager
@@ -329,7 +331,7 @@ script CharacterInfoPanel extends Component
 		if sig ~= self._lastSlotSig then
 			self._lastSlotSig = sig
 			self:Refresh()
-			log("[CharacterInfoPanel] 스탯/장착 변경 감지 → Refresh")
+-- 			log("[CharacterInfoPanel] 스탯/장착 변경 감지 → Refresh")
 		end
 	end
 
@@ -391,7 +393,7 @@ script CharacterInfoPanel extends Component
 		self:UpdateCtxCubeButton()
 		self.ctxMenu.Enable = true
 		_EquipTooltip:Hide()
-		log("[CharacterInfoPanel] 컨텍스트 메뉴 열기: " .. category)
+-- 		log("[CharacterInfoPanel] 컨텍스트 메뉴 열기: " .. category)
 	end
 
 	method void CloseContextMenu()
@@ -433,13 +435,13 @@ script CharacterInfoPanel extends Component
 			if isvalid(ie) then self.invPanel = ie:GetComponent("script.InventoryPanel") end
 		end
 		if isvalid(self.invPanel) and self.invPanel.isOpen then self.invPanel:SelectTab(cat) end
-		log("[CharacterInfoPanel] 컨텍스트: 장착해제 " .. cat)
+-- 		log("[CharacterInfoPanel] 컨텍스트: 장착해제 " .. cat)
 	end
 
 	method void OnCtxCube()
 		-- '잠재능력 재설정': 미라클 큐브 보유 시 확인 팝업(없으면 무시 — 버튼 반투명).
 		if self:CubeCount() <= 0 then
-			log("[CharacterInfoPanel] 컨텍스트: 큐브 없음(무시)")
+-- 			log("[CharacterInfoPanel] 컨텍스트: 큐브 없음(무시)")
 			return
 		end
 		_SFXManager:PlayClick()
@@ -451,7 +453,7 @@ script CharacterInfoPanel extends Component
 		if eq == "" or eqId == "" then return end
 		_EquipTooltip:Hide()
 		_CubeConfirmPopup:Open(eqId, eq)
-		log("[CharacterInfoPanel] 컨텍스트: 잠재 재설정 " .. eq .. "(" .. eqId .. ")")
+-- 		log("[CharacterInfoPanel] 컨텍스트: 잠재 재설정 " .. eq .. "(" .. eqId .. ")")
 	end
 
 	method void OnCtxClose()
@@ -481,7 +483,7 @@ script CharacterInfoPanel extends Component
 			if isvalid(self.invPanel) and self.invPanel.isOpen then
 				self.invPanel:SelectTab(category)
 			end
-			log("[CharacterInfoPanel] 더블클릭 해제: " .. category)
+-- 			log("[CharacterInfoPanel] 더블클릭 해제: " .. category)
 		else
 			self._lastSlotCat = category
 			self._lastSlotTime = now

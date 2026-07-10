@@ -54,9 +54,18 @@ script MultiTurnManager extends Logic
 
 	property any _afkStrikes = nil              -- userId → 자동이동 누적 횟수
 
-	property integer MaxAfkStrikes = 3          -- 자동이동 3회 누적 시 강제 퇴장
+	property integer MaxAfkStrikes = 3          -- 자동이동 '3연속' 누적 시 강제 퇴장(정상 플레이 턴엔 리셋)
 
 	property any _finisherTile = nil            -- 현재 완주자 대기 큐브 롤을 진행 중인 End 타일(AFK 자동 마무리용, 피드백 5)
+
+	-- 현재 턴 actor의 남은 시간(HUD 중앙 상단 표시용). 대기 감시(StartTurnWatch)가 도는 동안만 유효.
+	@Sync
+	property integer _turnSecondsLeft = 0
+
+	@Sync
+	property boolean _turnTimerActive = false
+
+	property integer _turnCountdownId = 0       -- 남은 시간 1초 감소 반복 타이머
 
 	method void OnEndPlay()
 		        -- 클라이언트: 턴 버튼 핸들러 해제 / 서버: 퇴장 이벤트 핸들러 해제
@@ -68,7 +77,7 @@ script MultiTurnManager extends Logic
 		            end
 		        else
 		            if self._userLeaveHandler ~= nil then
-		                self:DisconnectEvent(UserLeaveEvent, self._userLeaveHandler)
+		                _UserService:DisconnectEvent(UserLeaveEvent, self._userLeaveHandler)
 		                self._userLeaveHandler = nil
 		            end
 		        end
@@ -85,7 +94,7 @@ script MultiTurnManager extends Logic
 		        end
 		
 		        if count == 0 then
-		            log_error("[MultiTurnManager] 등록된 플레이어가 없습니다.")
+-- 		            log_error("[MultiTurnManager] 등록된 플레이어가 없습니다.")
 		            return
 		        end
 		
@@ -95,11 +104,11 @@ script MultiTurnManager extends Logic
 		        self._finishedUserIds = {}
 		        self._finishedCount = 0
 		        self._currentMapName = "Map_01"
-		        self._userLeaveHandler = self:ConnectEvent(UserLeaveEvent, self.OnUserLeave)
+		        self._userLeaveHandler = _UserService:ConnectEvent(UserLeaveEvent, self.OnUserLeave)
 		
 		        self:ClearFinishSync()
 		self:SyncTurnOrder()   -- 턴 순서표를 클라이언트에 노출(다른 참가자 패널 정렬용)
-	        log("[MultiTurnManager] " .. tostring(self._playerCount) .. "명으로 멀티플레이 시작")
+-- 	        log("[MultiTurnManager] " .. tostring(self._playerCount) .. "명으로 멀티플레이 시작")
 		        self:SetCurrentPlayer(0)
 		        self:AdvanceToState("TURN_START")
 	end
@@ -120,12 +129,12 @@ script MultiTurnManager extends Logic
 		        self._afkStrikes = {}
 		        self._turnAutoFlagged = false
 		        if self._userLeaveHandler ~= nil then
-		            self:DisconnectEvent(UserLeaveEvent, self._userLeaveHandler)
+		            _UserService:DisconnectEvent(UserLeaveEvent, self._userLeaveHandler)
 		            self._userLeaveHandler = nil
 		        end
 		        self:ClearFinishSync()
 		self:ClearOrderSync()   -- 턴 순서 미러도 비운다
-	        log("[MultiTurnManager] 게임 종료")
+-- 	        log("[MultiTurnManager] 게임 종료")
 	end
 
 	@ExecSpace("Server")
@@ -187,7 +196,7 @@ script MultiTurnManager extends Logic
 		        self._playerUserIds[self._playerCount - 1] = nil
 		        self._playerCount -= 1
 		        if self._afkStrikes ~= nil then self._afkStrikes[userId] = nil end
-		        log("[MultiTurnManager] 플레이어 제거: userId=" .. userId .. " (남은 인원: " .. tostring(self._playerCount) .. "명)")
+-- 		        log("[MultiTurnManager] 플레이어 제거: userId=" .. userId .. " (남은 인원: " .. tostring(self._playerCount) .. "명)")
 		self:SyncTurnOrder()   -- 순서표 변경 → 클라이언트 미러 갱신(다른 참가자 패널 정렬)
 
 		        -- 남은 인원 1명 이하 → 곧바로 게임 종료. 남은 1명에겐 즉시 로비 텔레포트 대신 '게임 오버' 패널을 띄운다(피드백 14).
@@ -195,10 +204,10 @@ script MultiTurnManager extends Logic
 		        if self._playerCount <= 1 then
 		            if self._playerCount == 1 then
 		                local lastUserId = self._playerUserIds[0]
-		                log("[MultiTurnManager] 1명만 남음 → 게임 종료, 남은 플레이어에게 게임 오버 패널: " .. tostring(lastUserId))
+-- 		                log("[MultiTurnManager] 1명만 남음 → 게임 종료, 남은 플레이어에게 게임 오버 패널: " .. tostring(lastUserId))
 		                _ResultUI:ShowGameOver("상대방이 게임에서 나가\n게임이 종료되었습니다.", lastUserId)
 		            else
-		                log("[MultiTurnManager] 남은 플레이어 없음 → 게임 종료")
+-- 		                log("[MultiTurnManager] 남은 플레이어 없음 → 게임 종료")
 		            end
 		            _GameModeManager:EndGame()
 		            return
@@ -216,7 +225,7 @@ script MultiTurnManager extends Logic
 		        if not self._isActive then return end
 		        for i = 0, self._playerCount - 1 do
 		            if not self:IsFinished(self._playerUserIds[i]) then
-		                log("[MultiTurnManager] 인원 변동 → 순서 리셋: 인덱스 " .. tostring(i) .. "부터 재시작")
+-- 		                log("[MultiTurnManager] 인원 변동 → 순서 리셋: 인덱스 " .. tostring(i) .. "부터 재시작")
 		                self:SetCurrentPlayer(i)
 		                self:AdvanceToState("TURN_START")
 		                return
@@ -251,7 +260,7 @@ script MultiTurnManager extends Logic
 	@ExecSpace("Server")
 	method void AdvanceToState(string nextState)
 		        self._currentState = nextState
-		        log("[MultiTurnManager] 상태 전환 → " .. nextState)
+-- 		        log("[MultiTurnManager] 상태 전환 → " .. nextState)
 		        self:ExecuteCurrentState()
 	end
 
@@ -269,7 +278,7 @@ script MultiTurnManager extends Logic
 
 	@ExecSpace("Server")
 	method void OnTurnStart()
-		        log("[MultiTurnManager] 턴 시작 (플레이어 " .. tostring(self._currentPlayerIndex) .. ")")
+-- 		        log("[MultiTurnManager] 턴 시작 (플레이어 " .. tostring(self._currentPlayerIndex) .. ")")
 		        self._turnAutoFlagged = false   -- 새 턴 시작 → AFK 스트라이크 부여 플래그 리셋(피드백 6)
 		        self:ClearTurnWatch()
 		        -- 턴 시작 시 현재 턴 플레이어의 데이트 버프 잔여 턴을 1 줄인다(3턴 후 소멸).
@@ -313,7 +322,7 @@ script MultiTurnManager extends Logic
 		        end
 		        self._finisherTile = endTile
 		        self._currentState = "FINISHER_CUBE"
-		        log("[MultiTurnManager] 완주자 대기 큐브 롤 시작 user=" .. self._currentPlayerUserId)
+-- 		        log("[MultiTurnManager] 완주자 대기 큐브 롤 시작 user=" .. self._currentPlayerUserId)
 		        endTile:StartWaitingCubeRoll(piece)
 		        self:StartTurnWatch()   -- 30초 내 '다음' 미입력 시 자동 마무리(피드백 6, 완주자는 스트라이크 제외)
 	end
@@ -330,13 +339,13 @@ script MultiTurnManager extends Logic
 
 	@ExecSpace("Server")
 	method void OnDice()
-		        log("[MultiTurnManager] 주사위 단계 - 플레이어 " .. tostring(self._currentPlayerIndex) .. " 입력 대기")
+-- 		        log("[MultiTurnManager] 주사위 단계 - 플레이어 " .. tostring(self._currentPlayerIndex) .. " 입력 대기")
 		        self:StartTurnWatch()   -- 주사위 입력 30초 대기 감시(초과 시 자동 굴림, 피드백 6)
 	end
 
 	@ExecSpace("Server")
 	method void OnMove()
-		        log("[MultiTurnManager] 이동 단계 (플레이어 " .. tostring(self._currentPlayerIndex) .. "), 주사위=" .. tostring(self.remainDiceTotal))
+-- 		        log("[MultiTurnManager] 이동 단계 (플레이어 " .. tostring(self._currentPlayerIndex) .. "), 주사위=" .. tostring(self.remainDiceTotal))
 		        for userId, userEntity in pairs(_UserService.UserEntities) do
 		            if userId == self._currentPlayerUserId then
 		                if userEntity.PlayerMovement ~= nil then
@@ -357,24 +366,33 @@ script MultiTurnManager extends Logic
 		                if userEntity.PlayerMovement ~= nil then
 		                    local mapName = userEntity.CurrentMapName
 		                    local tileName = userEntity.PlayerMovement.currentTile
-		                    startedEvent = _TileManager:TriggerArrive(mapName, tileName, userEntity)
+		                    -- ⚠ 분류(interactive/skipResultDice)는 TriggerArrive '전에' 확정한다.
+		                    --   TriggerArrive가 타일에 따라 이벤트를 '동기적으로 완료'할 수 있기 때문(예: 마지막 완주자 End 타일 →
+		                    --   OnArrive→FinishEndTile→NotifyTileEventDone→OnTileEventComplete가 이 안에서 곧바로 실행).
+		                    --   과거엔 _skipResultDice를 TriggerArrive 뒤에 세팅해, 그 동기 완료 시점에 아직 false여서
+		                    --   꼴찌 완주자가 결과 주사위를 굴려버렸다. (부수효과 없는 판정이라 먼저 계산해도 안전.)
 		                    interactive = _TileManager:IsInteractiveArrive(mapName, tileName, userEntity)
 		                    self._skipResultDice = _TileManager:IsEventArrive(mapName, tileName, userEntity)
+		                    startedEvent = _TileManager:TriggerArrive(mapName, tileName, userEntity)
 		                end
 		                break
 		            end
 		        end
-		
+
+		        -- TriggerArrive가 이벤트를 동기적으로 완료했다면 이미 OnTileEventComplete가 상태를 TILE에서 넘겼다.
+		        -- 그 경우 아래 대기/전이 로직을 다시 타면 이중 전이가 되므로 여기서 중단한다.
+		        if self._currentState ~= "TILE" then return end
+
 		        if startedEvent and interactive then
 		            -- 인터랙티브 타일(예: 마을): 타일이 _GameModeManager:NotifyTileEventDone()으로
 		            -- OnTileEventComplete를 호출할 때까지 대기(고정 타이머 없음).
-		            log("[MultiTurnManager] 인터랙티브 타일 도착 — 완료 신호 대기")
+-- 		            log("[MultiTurnManager] 인터랙티브 타일 도착 — 완료 신호 대기")
 		            self:StartTurnWatch()   -- 타일 상호작용 30초 대기 감시(초과 시 강제 완료로 턴 진행, 피드백 6)
 		        elseif startedEvent then
 		            -- 이벤트 타일: TileEventUI 표시 시간만큼 기다린 뒤 TURN_END로 진행.
 		            local waitSec = _EventTileUI.AutoHideSeconds
 		            if waitSec == nil or waitSec <= 0 then waitSec = 5.0 end
-		            log("[MultiTurnManager] 이벤트 타일 도착 — " .. tostring(waitSec) .. "초 후 턴 종료로 진행")
+-- 		            log("[MultiTurnManager] 이벤트 타일 도착 — " .. tostring(waitSec) .. "초 후 턴 종료로 진행")
 		            _TimerService:SetTimerOnce(function()
 		                self:OnTileEventComplete()
 		            end, waitSec)
@@ -389,10 +407,10 @@ script MultiTurnManager extends Logic
 		        if self._currentState ~= "TILE" then return end
 		        self:ClearTurnWatch()   -- 타일 이벤트 완료 → 대기 감시 해제(피드백 6)
 		        if self._skipResultDice then
-		            log("[MultiTurnManager] 이벤트 타일 — 결과 주사위 생략 → 턴 종료")
+-- 		            log("[MultiTurnManager] 이벤트 타일 — 결과 주사위 생략 → 턴 종료")
 		            self:AdvanceToState("TURN_END")
 		        else
-		            log("[MultiTurnManager] 타일 이벤트 종료 → 결과 주사위 진행")
+-- 		            log("[MultiTurnManager] 타일 이벤트 종료 → 결과 주사위 진행")
 		            self:AdvanceToState("RESULT_DICE")
 		        end
 	end
@@ -400,7 +418,7 @@ script MultiTurnManager extends Logic
 	@ExecSpace("Server")
 	method void OnResultDice()
 		        -- 결과 주사위 단계 진입. 서버가 즉시 굴림을 요청한다.
-		        log("[MultiTurnManager] 결과 주사위 단계 진입 → 굴림 요청")
+-- 		        log("[MultiTurnManager] 결과 주사위 단계 진입 → 굴림 요청")
 		        self:RequestRollResultDice()
 	end
 
@@ -416,7 +434,7 @@ script MultiTurnManager extends Logic
 		        local gameOutcome = _ResultDiceManager.GameOutcome
 		        local resultTable = _ResultDiceManager:GetResultTable()
 		        self._isResultRolling = false
-		        log("[MultiTurnManager] 결과주사위 계산: " .. tostring(d1) .. "+" .. tostring(d2) .. "=" .. tostring(total) .. " (" .. gameOutcome .. ")")
+-- 		        log("[MultiTurnManager] 결과주사위 계산: " .. tostring(d1) .. "+" .. tostring(d2) .. "=" .. tostring(total) .. " (" .. gameOutcome .. ")")
 		        self:PlayResultDiceBoard(d1, d2, total, resultTable, gameOutcome, self._currentPlayerUserId)
 		        self:StartTurnWatch()   -- 결과주사위 공개/다음 입력 30초 대기 감시(초과 시 자동 마무리, 피드백 6)
 	end
@@ -433,12 +451,12 @@ script MultiTurnManager extends Logic
 		        if not self._isActive then return end
 		        if self._currentState ~= "RESULT_DICE" then return end
 		        if senderUserId ~= self._currentPlayerUserId then
-		            log_warning("[MultiTurnManager] 잘못된 결과주사위 공개 요청 발신자: " .. senderUserId)
+-- 		            log_warning("[MultiTurnManager] 잘못된 결과주사위 공개 요청 발신자: " .. senderUserId)
 		            return
 		        end
 		        if self._isResultRolling then return end
 		        self._isResultRolling = true
-		        log("[MultiTurnManager] 결과주사위 공개 방송")
+-- 		        log("[MultiTurnManager] 결과주사위 공개 방송")
 		        self:BroadcastReveal()
 	end
 
@@ -454,7 +472,7 @@ script MultiTurnManager extends Logic
 		        if not self._isActive then return end
 		        if self._currentState ~= "RESULT_DICE" then return end
 		        if senderUserId ~= self._currentPlayerUserId then
-		            log_warning("[MultiTurnManager] 잘못된 결과주사위 종료 요청 발신자: " .. senderUserId)
+-- 		            log_warning("[MultiTurnManager] 잘못된 결과주사위 종료 요청 발신자: " .. senderUserId)
 		            return
 		        end
 		        self:ClearTurnWatch()   -- actor가 직접 마무리 → 대기 감시 해제(피드백 6)
@@ -480,6 +498,11 @@ script MultiTurnManager extends Logic
 	@ExecSpace("Server")
 	method void OnTurnEnd()
 		        if not self._isActive then return end
+		        -- '3연속' 판정: 방금 턴을 마친 actor가 이번 턴에 AFK 자동진행을 겪지 않았다면(정상 플레이) 누적 스트라이크를 리셋한다.
+		        -- (여기서 _currentPlayerUserId는 아직 '방금 끝낸 actor' — 다음 플레이어 지정은 아래에서 이뤄진다.)
+		        if self._turnAutoFlagged == false then
+		            self:ResetAfkStrike(self._currentPlayerUserId)
+		        end
 		        -- 전원 완주(현재 맵 결승 도착) 판정 우선.
 		        local anyUnfinished = false
 		        for i = 0, self._playerCount - 1 do
@@ -490,7 +513,7 @@ script MultiTurnManager extends Logic
 		            -- 완주자도 스킵하지 않고 턴을 받되, OnTurnStart에서 이동 대신 미라클 큐브 롤을 반복한다(피드백 5).
 		            -- (마지막 완주자는 완주하는 순간 전원 완주가 되어 여기서 바로 맵 이동 → 대기 롤을 받지 않음 = 피드백 6과 정합.)
 		            local idx = (self._currentPlayerIndex + 1) % self._playerCount
-		            log("[MultiTurnManager] 턴 종료 → 다음 플레이어 인덱스=" .. tostring(idx))
+-- 		            log("[MultiTurnManager] 턴 종료 → 다음 플레이어 인덱스=" .. tostring(idx))
 		            self:SetCurrentPlayer(idx)
 		            self:AdvanceToState("TURN_START")
 		            return
@@ -502,11 +525,11 @@ script MultiTurnManager extends Logic
 		        end
 		        local nextMap = self:GetNextMapName(self._currentMapName)
 		        if nextMap ~= "" then
-		            log("[MultiTurnManager] 전원 " .. self._currentMapName .. " 완주 → " .. nextMap .. " 이동")
+-- 		            log("[MultiTurnManager] 전원 " .. self._currentMapName .. " 완주 → " .. nextMap .. " 이동")
 		            self._currentState = "IDLE"
 		            _GameModeManager:MoveMultiToNextMap(ids, nextMap)
 		        else
-		            log("[MultiTurnManager] 전원 최종 완주 → 게임 종료")
+-- 		            log("[MultiTurnManager] 전원 최종 완주 → 게임 종료")
 		            _GameModeManager:FinishMulti(ids)
 		        end
 	end
@@ -521,7 +544,7 @@ script MultiTurnManager extends Logic
 		        self._skipResultDice = false
 		        self._isResultRolling = false
 		        self:ClearFinishSync()
-	        log("[MultiTurnManager] " .. mapName .. " 전원 도착 → 턴 재개")
+-- 	        log("[MultiTurnManager] " .. mapName .. " 전원 도착 → 턴 재개")
 		        self:SetCurrentPlayer(0)
 		        self:AdvanceToState("TURN_START")
 	end
@@ -535,7 +558,7 @@ script MultiTurnManager extends Logic
 		            self._finishedCount += 1
 		            self._finishedUserIds[userId] = self._finishedCount
 			self._finishSync[userId] = self._finishedCount   -- 클라(다른 유저 패널 완주 뱃지)에서 읽도록 미러
-		            log("[MultiTurnManager] 완주: " .. userId .. " (" .. tostring(self._finishedCount) .. "위)")
+-- 		            log("[MultiTurnManager] 완주: " .. userId .. " (" .. tostring(self._finishedCount) .. "위)")
 		        end
 	end
 
@@ -581,16 +604,16 @@ script MultiTurnManager extends Logic
 	method void RequestRollDice()
 		        if not self._isActive then return end
 		        if self._currentState ~= "DICE" then
-		            log("[MultiTurnManager] 지금은 주사위 단계가 아님: " .. self._currentState)
+-- 		            log("[MultiTurnManager] 지금은 주사위 단계가 아님: " .. self._currentState)
 		            return
 		        end
 		        if senderUserId ~= self._currentPlayerUserId then
-		            log_warning("[MultiTurnManager] 잘못된 주사위 요청 발신자: " .. senderUserId)
+-- 		            log_warning("[MultiTurnManager] 잘못된 주사위 요청 발신자: " .. senderUserId)
 		            return
 		        end
 		        -- 이미 굴리는 중이면(연출 재생 중) 무시 — 연출 중 재굴림 방지
 		        if self._isRolling then
-		            log("[MultiTurnManager] 이미 주사위를 굴리는 중입니다. 요청 무시")
+-- 		            log("[MultiTurnManager] 이미 주사위를 굴리는 중입니다. 요청 무시")
 		            return
 		        end
 		        self:ClearTurnWatch()   -- actor가 직접 굴림 → 대기 감시 해제(피드백 6)
@@ -598,7 +621,7 @@ script MultiTurnManager extends Logic
 		
 		        local total = _DiceManager:Roll()
 		        self.remainDiceTotal = total
-		        log("[MultiTurnManager] 주사위 결과: " .. tostring(total))
+-- 		        log("[MultiTurnManager] 주사위 결과: " .. tostring(total))
 		
 		        self:PlayDiceAnimation(_DiceManager._dice1, _DiceManager._dice2, total)
 		        -- ※ 여기서 MOVE로 넘기지 않음. 연출이 끝난 뒤 OnDiceAnimationEnd에서 진행.
@@ -623,7 +646,7 @@ script MultiTurnManager extends Logic
 	method void OnMoveComplete()
 		        if not self._isActive then return end
 		        if self._currentState ~= "MOVE" then return end
-		        log("[MultiTurnManager] 이동 완료 수신 → TILE 진행")
+-- 		        log("[MultiTurnManager] 이동 완료 수신 → TILE 진행")
 		        self:AdvanceToState("TILE")
 	end
 
@@ -632,7 +655,7 @@ script MultiTurnManager extends Logic
 		        if not self._isActive then return end
 		        local myUserId = _UserService.LocalPlayer.PlayerComponent.UserId
 		        if myUserId ~= self._currentPlayerUserId then
-		            log("[MultiTurnManager] 내 턴이 아닙니다. (현재: " .. self._currentPlayerUserId .. ")")
+-- 		            log("[MultiTurnManager] 내 턴이 아닙니다. (현재: " .. self._currentPlayerUserId .. ")")
 		            return
 		        end
 		        self:RequestAdvanceTurn()
@@ -642,15 +665,15 @@ script MultiTurnManager extends Logic
 	method void RequestAdvanceTurn()
 		        if not self._isActive then return end
 		        if senderUserId ~= self._currentPlayerUserId then
-		            log_warning("[MultiTurnManager] 잘못된 턴 진행 요청 발신자: " .. senderUserId)
+-- 		            log_warning("[MultiTurnManager] 잘못된 턴 진행 요청 발신자: " .. senderUserId)
 		            return
 		        end
 		        -- 완주자 큐브 롤(FINISHER_CUBE)은 상태머신 밖 흐름 → HUD 턴 버튼으로 진행시키지 않는다(큐브 롤 '다음'이 담당).
 		        if self._currentState == "FINISHER_CUBE" then
-		            log("[MultiTurnManager] 완주자 큐브 롤 중 — 턴 진행 버튼 무시")
+-- 		            log("[MultiTurnManager] 완주자 큐브 롤 중 — 턴 진행 버튼 무시")
 		            return
 		        end
-		        log("[MultiTurnManager] 턴 진행 (플레이어 " .. tostring(self._currentPlayerIndex) .. ")")
+-- 		        log("[MultiTurnManager] 턴 진행 (플레이어 " .. tostring(self._currentPlayerIndex) .. ")")
 		        self:AdvanceToState(self:GetNextState())
 	end
 
@@ -663,6 +686,23 @@ script MultiTurnManager extends Logic
 		        self._turnTimerId = _TimerService:SetTimerOnce(function()
 		            self:OnTurnTimeout(watchedUser, watchedState)
 		        end, self.TurnTimeoutSeconds)
+		        -- HUD 남은 시간 카운트다운(@Sync): 1초마다 감소. actor 클라만 UnderButton에서 표시한다.
+		        self._turnSecondsLeft = math.floor(self.TurnTimeoutSeconds + 0.5)
+		        self._turnTimerActive = true
+		        self._turnCountdownId = _TimerService:SetTimerRepeat(function()
+		            self:TickTurnCountdown()
+		        end, 1.0)
+	end
+
+	method void TickTurnCountdown()
+		        -- 남은 시간 1초 감소(표시 전용). 실제 타임아웃 처리는 _turnTimerId(SetTimerOnce)가 담당한다.
+		        if self._turnSecondsLeft > 0 then
+		            self._turnSecondsLeft -= 1
+		        end
+		        if self._turnSecondsLeft <= 0 and self._turnCountdownId ~= 0 then
+		            _TimerService:ClearTimer(self._turnCountdownId)
+		            self._turnCountdownId = 0
+		        end
 	end
 
 	method void ClearTurnWatch()
@@ -671,6 +711,29 @@ script MultiTurnManager extends Logic
 		            _TimerService:ClearTimer(self._turnTimerId)
 		            self._turnTimerId = 0
 		        end
+		        if self._turnCountdownId ~= 0 then
+		            _TimerService:ClearTimer(self._turnCountdownId)
+		            self._turnCountdownId = 0
+		        end
+		        self._turnTimerActive = false
+		        self._turnSecondsLeft = 0
+	end
+
+	@ExecSpace("ServerOnly")
+	method void NotifyTileInteraction()
+		        -- 인터랙티브 타일에서 actor가 진행 입력(페이지 넘김/다음/선택)을 할 때마다 호출 → 30초 입력대기 감시를 재무장.
+		        -- (정상 플레이 중인 actor가 여러 페이지를 천천히 읽어도 자동진행/AFK로 잘리지 않게. 트롤 방지 30초는 유지.)
+		        if not self._isActive then return end
+		        if self._currentState ~= "TILE" then return end
+		        self:StartTurnWatch()
+	end
+
+	@ExecSpace("Multicast")
+	method void ForceCloseTileUI()
+		        -- AFK로 인터랙티브 타일이 강제 완료될 때, 열려 있던 이벤트/선택 UI를 전 클라(actor+관전자)에서 닫는다.
+		        -- (기존엔 타일 finisher를 건너뛰어 UI가 잔류하고 actor의 늦은 클릭이 다음 턴에 씬을 주입할 수 있었다.)
+		        _EventTileUI:ForceHideAllEventUI()
+		        _RomanceGuildSelectUI:Hide()   -- actor/관전자가 같은 Group을 공유 → Hide 하나로 양쪽 닫힘.
 	end
 
 	@ExecSpace("Server")
@@ -680,7 +743,7 @@ script MultiTurnManager extends Logic
 		        self._turnTimerId = 0
 		        if self._currentPlayerUserId ~= watchedUser then return end
 		        if self._currentState ~= watchedState then return end
-		        log("[MultiTurnManager] 턴 시간 초과(" .. tostring(self.TurnTimeoutSeconds) .. "초) 자동 진행 user=" .. watchedUser .. " state=" .. watchedState)
+-- 		        log("[MultiTurnManager] 턴 시간 초과(" .. tostring(self.TurnTimeoutSeconds) .. "초) 자동 진행 user=" .. watchedUser .. " state=" .. watchedState)
 		        -- 이번 턴에 대해 스트라이크는 1회만 부여(같은 턴에 여러 대기 지점이 초과돼도 중복 금지).
 		        -- 단, 완주자 대기 큐브 롤(FINISHER_CUBE)은 이미 완주한 플레이어의 보너스라 AFK 스트라이크를 부여하지 않는다(피드백 5).
 		        if watchedState ~= "FINISHER_CUBE" and self._turnAutoFlagged == false then
@@ -692,6 +755,7 @@ script MultiTurnManager extends Logic
 		        if watchedState == "DICE" then
 		            self:AutoRollDice()
 		        elseif watchedState == "TILE" then
+		            self:ForceCloseTileUI()      -- 열려 있던 이벤트/선택 UI를 전원(actor+관전자) 닫는다(스테일 UI/늦은 클릭 방지).
 		            self:OnTileEventComplete()   -- 인터랙티브 타일 대기 → 강제 완료로 턴 진행(선택은 생략)
 		        elseif watchedState == "RESULT_DICE" then
 		            self:AutoFinishResultDice()
@@ -714,19 +778,25 @@ script MultiTurnManager extends Logic
 		        self._isRolling = true
 		        local total = _DiceManager:Roll()
 		        self.remainDiceTotal = total
-		        log("[MultiTurnManager] 자동 주사위 결과: " .. tostring(total))
+-- 		        log("[MultiTurnManager] 자동 주사위 결과: " .. tostring(total))
 		        self:PlayDiceAnimation(_DiceManager._dice1, _DiceManager._dice2, total)
 	end
 
 	@ExecSpace("Server")
 	method void AutoFinishResultDice()
-		        -- 자동 결과주사위 마무리(공개→닫기→턴 종료). RESULT_DICE 단계에서만.
+		        -- 자동 결과주사위 마무리(공개→잠깐 표시→닫기→턴 종료). RESULT_DICE 단계에서만.
+		        -- AFK 자동 마무리여도 결과 주사위를 잠깐(2초) 보여준 뒤 닫는다(기존엔 공개 즉시 닫혀 아무도 못 읽었다).
 		        if not self._isActive then return end
 		        if self._currentState ~= "RESULT_DICE" then return end
 		        self:BroadcastReveal()
-		        self:BroadcastClose()
-		        self._isResultRolling = false
-		        self:OnResultDiceAnimationEnd()
+		        _TimerService:SetTimerOnce(function()
+		            -- 2초 사이 상태가 바뀌었으면(예: 강퇴/재개) 무시.
+		            if not self._isActive then return end
+		            if self._currentState ~= "RESULT_DICE" then return end
+		            self:BroadcastClose()
+		            self._isResultRolling = false
+		            self:OnResultDiceAnimationEnd()
+		        end, 2.0)
 	end
 
 	@ExecSpace("Server")
@@ -737,11 +807,33 @@ script MultiTurnManager extends Logic
 		        if c == nil then c = 0 end
 		        c += 1
 		        self._afkStrikes[userId] = c
-		        log("[MultiTurnManager] AFK 자동이동 누적: " .. userId .. " = " .. tostring(c) .. "/" .. tostring(self.MaxAfkStrikes))
+-- 		        log("[MultiTurnManager] AFK 자동이동 누적: " .. userId .. " = " .. tostring(c) .. "/" .. tostring(self.MaxAfkStrikes))
 		        if c >= self.MaxAfkStrikes then
-		            log("[MultiTurnManager] AFK " .. tostring(self.MaxAfkStrikes) .. "회 누적 → 강제 퇴장: " .. userId)
+-- 		            log("[MultiTurnManager] AFK " .. tostring(self.MaxAfkStrikes) .. "회 누적 → 강제 퇴장: " .. userId)
 		            self:RemovePlayer(userId, true)   -- 강퇴: 순서표 제거 + 로비 복귀 + (남은 인원에 따라) 종료/순서 리셋
+		        else
+		            self:PushAfkWarnUI(userId, c)   -- 왼쪽 버프칸에 경고 스택 표시(피드백 6)
 		        end
+	end
+
+	@ExecSpace("Server")
+	method void ResetAfkStrike(string userId)
+		        -- 정상 플레이(턴 내 자동진행 없음) → 해당 유저의 AFK 누적을 0으로. '3연속'만 강퇴로 이어지게 한다.
+		        if self._afkStrikes == nil then return end
+		        if self._afkStrikes[userId] ~= nil then
+		            self._afkStrikes[userId] = nil
+-- 		            log("[MultiTurnManager] 정상 플레이 → AFK 누적 리셋: " .. userId)
+		            self:PushAfkWarnUI(userId, 0)   -- 경고 버프 제거(피드백 6)
+		        end
+	end
+
+	@ExecSpace("ServerOnly")
+	method void PushAfkWarnUI(string userId, integer count)
+		-- 해당 유저 플레이어 엔티티의 BuffManager에 AFK 경고 스택을 반영한다(버프칸 표시/제거).
+		local pe = _UserService:GetUserEntityByUserId(userId)
+		if isvalid(pe) == false then return end
+		local bm = pe:GetComponent("script.BuffManager")
+		if isvalid(bm) then bm:SetAfkWarning(count) end
 	end
 
 	@ExecSpace("Server")

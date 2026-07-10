@@ -47,6 +47,11 @@ script UnderButton extends Component
 
 	property any _lastDiceEnable = nil
 
+	-- 중앙 상단 턴 안내 텍스트(내 턴 남은시간 / 배낭 차단 안내 겸용).
+	property Entity turnTimerText = "fc311d4b-86d1-4956-8cd4-b801295aaf64"   -- /ui/RemainTimeTextGroup/RemainTimeText (기존 InGameUIGroup/TurnTimer에서 이동)
+
+	property number _blockMsgLeft = 0           -- '내 턴이 아님' 안내 표시 잔여 시간(초)
+
 	method void OnBeginPlay()
 		if self:IsServer() then
 		
@@ -89,8 +94,46 @@ script UnderButton extends Component
 			end
 		
 			self.DicePanel.Visible = false
+			if isvalid(self.turnTimerText) then self.turnTimerText.Enable = false end
 		end
-		
+
+	end
+
+	method boolean IsMyTurnNow()
+		-- 지금이 로컬 플레이어의 턴인지. 싱글/비활성은 항상 내 턴 취급, 멀티 진행 중이면 현재 턴 유저만 true.
+		local mode = _GameModeManager._activeMode
+		if mode == "MULTI" then
+			if _MultiTurnManager._isActive == false then return true end
+			local lp = _UserService.LocalPlayer
+			if isvalid(lp) == false or lp.PlayerComponent == nil then return false end
+			return lp.PlayerComponent.UserId == _MultiTurnManager._currentPlayerUserId
+		end
+		return true
+	end
+
+	method void UpdateTurnTimerText(number delta)
+		-- 중앙 상단 텍스트: (1) 배낭 차단 안내가 남아있으면 우선 표시, (2) 아니면 내 턴 남은시간(멀티) 표시, (3) 그 외 숨김.
+		if isvalid(self.turnTimerText) == false then return end
+		local tc = self.turnTimerText:GetComponent("MOD.Core.TextComponent")
+		local show = false
+		local msg = ""
+		if self._blockMsgLeft > 0 then
+			self._blockMsgLeft -= delta
+			show = true
+			msg = "내 턴에만 배낭을 열 수 있어요"
+		elseif _GameModeManager._activeMode == "MULTI"
+			and _MultiTurnManager._isActive and _MultiTurnManager._turnTimerActive
+			and _MultiTurnManager._turnSecondsLeft > 0 then
+			-- 남은 시간은 모든 유저에게 표시(actor뿐 아니라 관전자도). 내 턴이면 "남은 시간", 남의 턴이면 상대 턴 남은 시간임을 구분.
+			show = true
+			if self:IsMyTurnNow() then
+				msg = "남은 시간 " .. tostring(_MultiTurnManager._turnSecondsLeft) .. "초"
+			else
+				msg = "상대 턴 " .. tostring(_MultiTurnManager._turnSecondsLeft) .. "초"
+			end
+		end
+		if show and tc ~= nil then tc.Text = msg end
+		if self.turnTimerText.Enable ~= show then self.turnTimerText.Enable = show end
 	end
 
 	method void OnEndPlay()
@@ -129,7 +172,10 @@ script UnderButton extends Component
 		-- openExclusive가 "BAG"/"CHAR"로 남아 주사위 차단·토글 오작동을 일으킨다.
 		-- 매 프레임 실제 패널 isOpen과 동기화해 desync를 제거한다.
 		if self:IsClient() == false then return end
-		
+
+		-- 중앙 상단 턴 안내(남은시간 / 배낭 차단 안내) 갱신.
+		self:UpdateTurnTimerText(delta)
+
 		-- 캐릭터 정보 패널(Ctrl)은 숨겨진 UIGroup 내부라 자체 OnUpdate가 tick되지 않는다.
 		-- 항상 tick하는 이 HUD가 열린 동안의 라이브 갱신(스탯/장비 변경 폴링, 우클릭 메뉴 엣지)을 대신 구동한다.
 		-- → 올스탯 +10 같은 이벤트가 패널이 열린 채로 발생해도 즉시 반영된다.
@@ -251,6 +297,13 @@ script UnderButton extends Component
 		-- 배낭 토글(캐릭터 정보와 상호배타).
 		-- 주사위 결과 연출 중엔 새로 열지 않는다(주사위 그룹이 위에 떠 닫기 버튼을 가림).
 		if self.openExclusive ~= "BAG" and self:IsDiceResultShowing() then return end
+		-- 자기 턴이 아니면 배낭을 아예 열 수 없다(이미 열려 있으면 닫기는 허용). 남은 큐브/장비 조작은 내 턴에만.
+		if self.openExclusive ~= "BAG" and self:IsMyTurnNow() == false then
+			_SFXManager:PlayClick()
+			self._blockMsgLeft = 1.5
+-- 			log("[UnderButton] 내 턴이 아니라 배낭 열기 차단")
+			return
+		end
 		_SFXManager:PlayClick()
 		if self.openExclusive == "BAG" then
 			self:CloseExclusive()

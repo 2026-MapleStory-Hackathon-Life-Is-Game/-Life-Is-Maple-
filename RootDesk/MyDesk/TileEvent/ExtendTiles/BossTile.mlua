@@ -33,7 +33,7 @@ script BossTile extends EventTileBase
 		local roster = self:BuildBossRoster(stage, region)
 		if #roster.keys == 0 then
 			-- 이 지역엔 등장 보스가 없다(BossSpawn 미등록). 이벤트 없이 턴만 진행.
-			log_warning("[BossTile] 등장 보스 없음 stage=" .. tostring(stage) .. " region=" .. tostring(region) .. " — 이벤트 스킵")
+-- 			log_warning("[BossTile] 등장 보스 없음 stage=" .. tostring(stage) .. " region=" .. tostring(region) .. " — 이벤트 스킵")
 			self._currentPiece = nil
 			_GameModeManager:NotifyTileEventDone()
 			return
@@ -43,8 +43,8 @@ script BossTile extends EventTileBase
 		self:OpenBossSelection(intro, roster.keys, roster.diffs, ownerId)
 		-- 관전자에게도 로스터를 읽기전용으로 방송 → 어떤 보스를 고르는지 보이게 한다(피드백 11).
 		_BossUI:SpectatorShowRoster(intro, roster.keys, roster.diffs, ownerId)
-		log("[BossTile] 보스 선택 표시 tile=" .. self.Entity.Name
-			.. " region=" .. tostring(region) .. " 보스수=" .. tostring(#roster.keys))
+-- 		log("[BossTile] 보스 선택 표시 tile=" .. self.Entity.Name
+-- 			.. " region=" .. tostring(region) .. " 보스수=" .. tostring(#roster.keys))
 	end
 
 	method table BuildBossRoster(integer stage, string region)
@@ -86,7 +86,7 @@ script BossTile extends EventTileBase
 		self:StartChallenge(challengeText, bossKey, ownerId)
 		_BossUI:SpectatorHide(ownerId)   -- 관전자 로스터 닫고 전투 연출로 전환(피드백 11)
 		_EventTileUI:SpectatorBossFightText(challengeText, self:BossStandRUID(bossKey), ownerId)
-		log("[BossTile] 선택: " .. self._selectedBossName)
+-- 		log("[BossTile] 선택: " .. self._selectedBossName)
 	end
 
 	@ExecSpace("Client")
@@ -131,7 +131,7 @@ script BossTile extends EventTileBase
 			end
 		end
 		local outcomeText = self:BossText("all", key, self._selectedBossName, drop)
-		log("[BossTile] 도전 " .. outcome .. " → " .. key)
+-- 		log("[BossTile] 도전 " .. outcome .. " → " .. key)
 		
 		local ownerId = self:OwnerUserId(piece)
 		self:ShowChallengeDice(d1, d2, total, resultTable, outcome, outcomeText, self._selectedBossKey, ownerId)
@@ -148,7 +148,7 @@ script BossTile extends EventTileBase
 	@ExecSpace("Server")
 	method void RequestFinish()
 		-- 클라가 도전 연출(결과 문구 표시까지)을 끝냈음을 알림 → 턴 진행 신호.
-		log("[BossTile] 도전 연출 종료 — 이벤트 종료")
+-- 		log("[BossTile] 도전 연출 종료 — 이벤트 종료")
 		local ownerId = ""
 		if isvalid(self._currentPiece) then ownerId = self:OwnerUserId(self._currentPiece) end
 		if ownerId ~= "" then _EventTileUI:SpectatorSceneHide(ownerId) end
@@ -233,7 +233,10 @@ script BossTile extends EventTileBase
 		local equipName = string.sub(token, colon + 1)
 		if kind == "weapon" then
 			local cls = self:ClassOfPiece(piece)
-			if cls == "" or cls == "Common" then cls = _JobWeaponManager.currentJob end
+			if cls == "" or cls == "Common" then
+				local cp = piece:GetComponent("script.CombatPowerManager")
+				if isvalid(cp) and cp.CurrentJob ~= nil then cls = cp.CurrentJob end
+			end
 			local w = self:ClassWeaponFor(equipName, cls)
 			if w ~= "" then equipName = w end
 		end

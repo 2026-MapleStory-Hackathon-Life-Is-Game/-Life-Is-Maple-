@@ -14,7 +14,7 @@ script BaseTile extends Component
 	@ExecSpace("ServerOnly")
 	method void OnArrive(Entity piece)
 		-- 기본 동작 없음 (서브클래스에서 구현). override 안 됐을 때만 찍힘.
-		log("[BaseTile] OnArrive (미구현 base) tile=" .. self.Entity.Name)
+-- 		log("[BaseTile] OnArrive (미구현 base) tile=" .. self.Entity.Name)
 	end
 
 	method boolean IsEventTile()
@@ -115,7 +115,7 @@ script BaseTile extends Component
 		-- Weight 합으로 1~합 정수를 굴려 누적 가중치 구간에 해당하는 Outcome을 반환한다.
 		local ds = _DataService:GetTable(tableName)
 		if isvalid(ds) == false then
-			log_error("[BaseTile] 확률 테이블 없음: " .. tableName)
+-- 			log_error("[BaseTile] 확률 테이블 없음: " .. tableName)
 			return ""
 		end
 		local rows = ds:GetRowCount()
@@ -124,7 +124,7 @@ script BaseTile extends Component
 			total += (tonumber(ds:GetCell(i, "Weight")) or 0)
 		end
 		if total <= 0 then
-			log_warning("[BaseTile] 확률 테이블 가중치 합 0: " .. tableName)
+-- 			log_warning("[BaseTile] 확률 테이블 가중치 합 0: " .. tableName)
 			return ""
 		end
 		local roll = _UtilLogic:RandomIntegerRange(1, total)
@@ -153,7 +153,7 @@ script BaseTile extends Component
 				_QuickEquipPopup:Show(id, piece.PlayerComponent.UserId)
 			end
 		end
-		log("[BaseTile] 아이템 지급 → " .. equipName)
+-- 		log("[BaseTile] 아이템 지급 → " .. equipName)
 	end
 
 	@ExecSpace("ServerOnly")
@@ -162,12 +162,13 @@ script BaseTile extends Component
 		-- 클래스는 현재 장착 무기(WeaponEquipment.Equipped)의 EquipmentData.Class로 판별한다(per-piece).
 		local cls = self:ClassOfPiece(piece)
 		if cls == "" or cls == "Common" then
-			-- 폴백: 무기 미착용/공용 무기 상태면 전역 현재 직업으로 보정.
-			cls = _JobWeaponManager.currentJob
+			-- 폴백: 무기 미착용/공용 무기 상태면 이 플레이어의 직업(per-piece)으로 보정.
+			local cp = piece:GetComponent("script.CombatPowerManager")
+			if isvalid(cp) and cp.CurrentJob ~= nil then cls = cp.CurrentJob end
 		end
 		local equipName = self:ClassWeaponFor(family, cls)
 		if equipName == "" then
-			log_warning("[BaseTile] 직업 무기 없음 family=" .. tostring(family) .. " class=" .. tostring(cls))
+-- 			log_warning("[BaseTile] 직업 무기 없음 family=" .. tostring(family) .. " class=" .. tostring(cls))
 			return
 		end
 		self:GrantItem(piece, equipName)
@@ -181,9 +182,9 @@ script BaseTile extends Component
 		local bag = piece:GetComponent("script.CubeInventory")
 		if isvalid(bag) then
 			bag:AddMiracleCube(count)
-			log("[BaseTile] 미라클 큐브 지급 → " .. tostring(count))
+-- 			log("[BaseTile] 미라클 큐브 지급 → " .. tostring(count))
 		else
-			log_warning("[BaseTile] CubeInventory 없음 → 큐브 지급 스킵")
+-- 			log_warning("[BaseTile] CubeInventory 없음 → 큐브 지급 스킵")
 		end
 	end
 

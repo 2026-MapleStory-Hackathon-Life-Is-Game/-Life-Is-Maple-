@@ -49,6 +49,11 @@ script CombatPowerManager extends Component
 	@Sync
 	property string MainAttackType = ""
 
+	-- 플레이어별 직업 이름(@Sync라 랭킹/HUD/관전 등 모든 클라가 '해당 플레이어의' 직업을 읽는다).
+	-- 전역 _JobWeaponManager.currentJob은 마지막 선택자 값이라 멀티에서 오표시 → 표시부는 이 필드를 쓴다.
+	@Sync
+	property string CurrentJob = "Beginner"
+
 	@Sync
 	property number HuntStatGain = 5
 
@@ -73,7 +78,7 @@ script CombatPowerManager extends Component
 		if self.LevelUpEffectRUID ~= "" then
 			_EffectService:PlayEffectAttached(self.LevelUpEffectRUID, self.Entity, self.LevelUpEffectOffset, 0, self.LevelUpEffectScale, false)
 		end
-		log("[CombatPowerManager] 레벨업 연출 재생 (client) entity=" .. tostring(self.Entity.Name))
+-- 		log("[CombatPowerManager] 레벨업 연출 재생 (client) entity=" .. tostring(self.Entity.Name))
 	end
 
 	@ExecSpace("ServerOnly")
@@ -81,9 +86,10 @@ script CombatPowerManager extends Component
 		-- 직업에 맞는 주스탯/공마 '타입'을 기록한다. (수치 값은 건드리지 않음)
 		self.MainStatType   = _JobDataSetManager:GetMainStatType(job)
 		self.MainAttackType = _JobDataSetManager:GetMainAttackType(job)
-		log("CombatPowerManager: 직업=" .. job
-			.. " 주스탯타입=" .. self.MainStatType
-			.. " 공마타입=" .. self.MainAttackType)
+		self.CurrentJob     = job   -- 플레이어별 직업 이름 저장(표시부가 이 값을 읽는다).
+-- 		log("CombatPowerManager: 직업=" .. job
+-- 			.. " 주스탯타입=" .. self.MainStatType
+-- 			.. " 공마타입=" .. self.MainAttackType)
 	end
 
 	method number LevelMainStat()
@@ -97,7 +103,7 @@ script CombatPowerManager extends Component
 		-- 레벨 설정 → 주스탯 base 환산 갱신 + 전투력 재계산. (역행 클램프 없음)
 		self.Level = level
 		self:CalculateCurrentCombatPower()
-		log("CombatPowerManager: 레벨=" .. tostring(level) .. " → 주스탯base=" .. tostring(self:LevelMainStat()))
+-- 		log("CombatPowerManager: 레벨=" .. tostring(level) .. " → 주스탯base=" .. tostring(self:LevelMainStat()))
 	end
 
 	method number DisplayStat(string name)
@@ -148,9 +154,10 @@ script CombatPowerManager extends Component
 		self.CriticalDamage = 1.35
 		self.MainStatType = ""
 		self.MainAttackType = ""
+		self.CurrentJob = "Beginner"
 		self.Level = 10
 		self:CalculateCurrentCombatPower()
-		log("CombatPowerManager: 전투력 base 초기화")
+-- 		log("CombatPowerManager: 전투력 base 초기화")
 	end
 
 	@ExecSpace("ServerOnly")
@@ -163,10 +170,10 @@ script CombatPowerManager extends Component
 			self:AddToStat(field, value)
 		end
 		self:CalculateCurrentCombatPower()
-		log("CombatPowerManager: 주스탯(" .. self:MainStatField() .. ") " .. kind .. " " .. tostring(value)
-			.. " → 값=" .. tostring(self:GetStat(self:MainStatField()))
-			.. " StatPct=" .. tostring(self.BaseStatPct)
-			.. " 전투력=" .. tostring(self.CombatPower))
+-- 		log("CombatPowerManager: 주스탯(" .. self:MainStatField() .. ") " .. kind .. " " .. tostring(value)
+-- 			.. " → 값=" .. tostring(self:GetStat(self:MainStatField()))
+-- 			.. " StatPct=" .. tostring(self.BaseStatPct)
+-- 			.. " 전투력=" .. tostring(self.CombatPower))
 	end
 
 	@ExecSpace("ServerOnly")
@@ -175,9 +182,9 @@ script CombatPowerManager extends Component
 		-- (마을 이벤트의 직업별 스탯 보상 등, 주스탯/올스탯이 아닌 '지정 스탯' 보상용)
 		self:AddToStat(statName, value)
 		self:CalculateCurrentCombatPower()
-		log("CombatPowerManager: 개별스탯 " .. statName .. " " .. tostring(value)
-			.. " → 값=" .. tostring(self:GetStat(statName))
-			.. " 전투력=" .. tostring(self.CombatPower))
+-- 		log("CombatPowerManager: 개별스탯 " .. statName .. " " .. tostring(value)
+-- 			.. " → 값=" .. tostring(self:GetStat(statName))
+-- 			.. " 전투력=" .. tostring(self.CombatPower))
 	end
 
 	@ExecSpace("ServerOnly")
@@ -192,10 +199,10 @@ script CombatPowerManager extends Component
 			end
 		end
 		self:CalculateCurrentCombatPower()
-		log("CombatPowerManager: 공마 " .. kind .. " " .. tostring(value)
-			.. " → MainAttack=" .. tostring(self.MainAttack)
-			.. " AttackPct=" .. tostring(self.BaseAttackPct)
-			.. " 전투력=" .. tostring(self.CombatPower))
+-- 		log("CombatPowerManager: 공마 " .. kind .. " " .. tostring(value)
+-- 			.. " → MainAttack=" .. tostring(self.MainAttack)
+-- 			.. " AttackPct=" .. tostring(self.BaseAttackPct)
+-- 			.. " 전투력=" .. tostring(self.CombatPower))
 	end
 
 	@ExecSpace("ServerOnly")
@@ -203,7 +210,7 @@ script CombatPowerManager extends Component
 		-- 대미지% 증감.
 		self.ExtraDamage = self.ExtraDamage + value
 		self:CalculateCurrentCombatPower()
-		log("CombatPowerManager: 대미지% " .. tostring(value) .. " → ExtraDamage=" .. tostring(self.ExtraDamage))
+-- 		log("CombatPowerManager: 대미지% " .. tostring(value) .. " → ExtraDamage=" .. tostring(self.ExtraDamage))
 	end
 
 	@ExecSpace("ServerOnly")
@@ -211,7 +218,7 @@ script CombatPowerManager extends Component
 		-- 보스 대미지%(전투력엔 합산, 표시는 분리).
 		self.ExtraBossDamage = self.ExtraBossDamage + value
 		self:CalculateCurrentCombatPower()
-		log("CombatPowerManager: 보스대미지% " .. tostring(value) .. " → " .. tostring(self.ExtraBossDamage))
+-- 		log("CombatPowerManager: 보스대미지% " .. tostring(value) .. " → " .. tostring(self.ExtraBossDamage))
 	end
 
 	@ExecSpace("ServerOnly")
@@ -219,7 +226,7 @@ script CombatPowerManager extends Component
 		-- 크리티컬 대미지 증감. value는 %포인트(예: 10 → 배율 +0.10).
 		self.CriticalDamage = self.CriticalDamage + value / 100
 		self:CalculateCurrentCombatPower()
-		log("CombatPowerManager: 크리% " .. tostring(value) .. " → CriticalDamage=" .. tostring(self.CriticalDamage))
+-- 		log("CombatPowerManager: 크리% " .. tostring(value) .. " → CriticalDamage=" .. tostring(self.CriticalDamage))
 	end
 
 	@ExecSpace("ServerOnly")

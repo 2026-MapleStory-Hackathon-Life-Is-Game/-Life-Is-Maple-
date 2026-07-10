@@ -58,7 +58,7 @@ script BranchSelectUI extends Logic
 	@ExecSpace("ClientOnly")
 	method void Show(table tileNames, table branchTexts, integer remaining)
 		-- 분기 선택창 표시. remaining = 분기 시점의 남은 주사위 수(각 분기 도착 칸 예측에 사용).
-		log("BranchUI Show 진입! panel valid=" .. tostring(isvalid(self.panel)))
+-- 		log("BranchUI Show 진입! panel valid=" .. tostring(isvalid(self.panel)))
 		self:DisconnectAll()   -- 재오픈 시 중복 구독 방지: 기존 핸들러를 먼저 끊는다.
 		if isvalid(self.panel) == false then return end
 		-- 이전 맵 미리보기 잔재가 있으면 콘텐츠를 정상 표시 상태로 복원한다.
@@ -68,7 +68,7 @@ script BranchSelectUI extends Logic
 		-- 이전에 이 클라가 관전 알림으로 제목을 바꿨을 수 있으니 기본 제목을 복원한다.
 		self:SetTitleText(self._defaultTitle)
 		-- 관전 알림이 숨겨둔 선택 버튼/맵/도움말은 SetPreviewMode(false)가 이미 복원함.
-		log("패널 켜짐, count=" .. #tileNames)
+-- 		log("패널 켜짐, count=" .. #tileNames)
 		
 		self.choiceTiles = tileNames
 		self._branchLabels = branchTexts
@@ -86,7 +86,7 @@ script BranchSelectUI extends Logic
 		for i = 1, 5 do
 			local btn = buttons[i]
 			if i <= count then
-				log("버튼 " .. i .. " 활성화 시도")
+-- 				log("버튼 " .. i .. " 활성화 시도")
 				btn.Entity.Enable = true
 				if isvalid(btn.ButtonComponent) then btn.ButtonComponent.Enable = true end   -- 이전 관전(읽기전용) 비활성 잔재 복구
 				self:SetButtonDisabledVisual(btn, false)   -- 흐림 처리 원복(이전 턴 관전 잔재 복구)
@@ -101,7 +101,7 @@ script BranchSelectUI extends Logic
 				btn.Entity.Enable = false
 			end
 		end
-		log("Show 완료")
+-- 		log("Show 완료")
 	end
 
 	method void ShowBranchResult(ButtonComponent btn, string mapName, string branchTile, integer remaining)
@@ -290,8 +290,19 @@ script BranchSelectUI extends Logic
 
 	@ExecSpace("ClientOnly")
 	method void SelectBranch(string tileName)
+		-- 멀티: 현재 턴 플레이어만 분기 선택 가능(관전자 클릭 최종 방어). _currentPlayerUserId는 @Sync라 클라에서 읽힌다.
+		-- 관전 읽기전용 버튼은 애초에 비활성이지만, 어떤 경로로든 클릭이 들어와도 내 턴이 아니면 무시한다.
+		if _MultiTurnManager ~= nil and _MultiTurnManager._isActive then
+			local me = _UserService.LocalPlayer
+			local myUid = ""
+			if isvalid(me) and me.PlayerComponent ~= nil then myUid = me.PlayerComponent.UserId end
+			if _MultiTurnManager._currentPlayerUserId ~= myUid then
+-- 				log("[BranchSelectUI] 내 턴이 아니라 분기 선택 무시")
+				return
+			end
+		end
 		_SFXManager:PlayClick()
-		log("분기 선택: " .. tileName)
+-- 		log("분기 선택: " .. tileName)
 		
 		-- 로컬 플레이어의 PlayerMovement 컴포넌트를 찾아 서버로 전달
 		local player = _UserService.LocalPlayer
@@ -299,7 +310,7 @@ script BranchSelectUI extends Logic
 			player.PlayerMovement:OnBranchSelected(tileName)
 		else
 			-- 맵/룸 전환 순간 등 LocalPlayer·PlayerMovement가 잠깐 무효일 때 크래시 방지(다른 호출부와 동일 가드).
-			log_warning("[BranchSelectUI] 분기 선택 무시 — LocalPlayer/PlayerMovement 없음")
+-- 			log_warning("[BranchSelectUI] 분기 선택 무시 — LocalPlayer/PlayerMovement 없음")
 		end
 
 		self:Hide()   -- 선택했으니 UI 닫기

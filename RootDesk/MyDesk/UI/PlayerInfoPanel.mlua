@@ -81,7 +81,7 @@ script PlayerInfoPanel extends Component
 		if level ~= self.lastShownLevel then
 			self.lastShownLevel = level
 			self:SetLevelText("Lv." .. tostring(level))
-			log("[PlayerInfoPanel] 레벨 라벨 = Lv." .. tostring(level))
+-- 			log("[PlayerInfoPanel] 레벨 라벨 = Lv." .. tostring(level))
 		end
 		
 		-- 진영/직업 라벨 갱신(진영=로컬 플레이어 BuffManager.CampName, 직업=전역 currentJob).
@@ -91,7 +91,7 @@ script PlayerInfoPanel extends Component
 			if isvalid(self.campJobText) then
 				self.campJobText.Text = campJob
 			end
-			log("[PlayerInfoPanel] 진영/직업 라벨 = " .. campJob)
+-- 			log("[PlayerInfoPanel] 진영/직업 라벨 = " .. campJob)
 		end
 	end
 
@@ -144,8 +144,11 @@ script PlayerInfoPanel extends Component
 	end
 
 	method string CurrentJobKey()
-		-- 전역 직업 키(_JobWeaponManager.currentJob, @Sync). 기본값은 "Beginner".
-		if _JobWeaponManager ~= nil and _JobWeaponManager.currentJob ~= nil then return _JobWeaponManager.currentJob end
+		-- 현재 표시 대상(멀티=현재 턴 플레이어)의 직업. per-piece CombatPowerManager.CurrentJob(@Sync)에서 읽는다.
+		-- (전역 currentJob은 마지막 선택자 값이라 상대 턴에 오표시됐다.)
+		if isvalid(self.combatComp) and self.combatComp.CurrentJob ~= nil and self.combatComp.CurrentJob ~= "" then
+			return self.combatComp.CurrentJob
+		end
 		return ""
 	end
 

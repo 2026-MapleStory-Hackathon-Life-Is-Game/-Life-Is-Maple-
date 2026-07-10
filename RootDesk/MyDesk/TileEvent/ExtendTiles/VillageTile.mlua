@@ -30,16 +30,16 @@ script VillageTile extends EventTileBase
 		local region = _TileManager:GetTileRegion(self.Entity.CurrentMapName, self.Entity.Name)
 		local stage = _TileManager:GetTileStage(self.Entity.CurrentMapName, self.Entity.Name)
 		local isLast = _TileManager:IsLastVillageTile(self.Entity.CurrentMapName, self.Entity.Name)
-		local eventId = _VillageEventFlowManager:RollEventForArrival(stage, region, isLast)
+		local eventId = _VillageEventFlowManager:RollEventForArrival(stage, region, isLast, ownerId)
 		if eventId == "" then
-			log_warning("[VillageTile] 해당 (Stage,Region) 마을 이벤트 없음 stage=" .. tostring(stage) .. " region=" .. tostring(region))
+-- 			log_warning("[VillageTile] 해당 (Stage,Region) 마을 이벤트 없음 stage=" .. tostring(stage) .. " region=" .. tostring(region))
 			self:FinishEvent()
 			return
 		end
 		
 		self._eventId = eventId
 		self._seq = _VillageEventFlowManager:FirstScene(eventId)
-		log("[VillageTile] 마을 이벤트 시작 event=" .. eventId .. " stage=" .. tostring(stage) .. " region=" .. tostring(region) .. " firstScene=" .. tostring(self._seq))
+-- 		log("[VillageTile] 마을 이벤트 시작 event=" .. eventId .. " stage=" .. tostring(stage) .. " region=" .. tostring(region) .. " firstScene=" .. tostring(self._seq))
 		self:PlayScene()
 	end
 
@@ -52,7 +52,7 @@ script VillageTile extends EventTileBase
 		
 		local scene = _VillageEventFlowManager:GetScene(self._eventId, self._seq)
 		if scene == nil then
-			log_warning("[VillageTile] 씬 없음 event=" .. self._eventId .. " seq=" .. tostring(self._seq))
+-- 			log_warning("[VillageTile] 씬 없음 event=" .. self._eventId .. " seq=" .. tostring(self._seq))
 			self:FinishEvent()
 			return
 		end
@@ -137,9 +137,9 @@ script VillageTile extends EventTileBase
 			else
 				self._pendingNext = 0
 			end
-			log("[VillageTile] 확률게임 group=" .. scene.branchGroup
-				.. " 확률(대/성/실)=" .. tostring(greatPct) .. "/" .. tostring(successPct) .. "/" .. tostring(failPct)
-				.. " 주사위=" .. tostring(d1) .. "+" .. tostring(d2) .. "=" .. tostring(sum) .. " → " .. outcomeLabel)
+-- 			log("[VillageTile] 확률게임 group=" .. scene.branchGroup
+-- 				.. " 확률(대/성/실)=" .. tostring(greatPct) .. "/" .. tostring(successPct) .. "/" .. tostring(failPct)
+-- 				.. " 주사위=" .. tostring(d1) .. "+" .. tostring(d2) .. "=" .. tostring(sum) .. " → " .. outcomeLabel)
 			-- 클라 표시는 확률을 넘겨 SetProbabilities로 결과판을 구성하게 한다.
 			self:ClientShowRoll(scene.text, scene.anim, resultText, d1, d2, sum, greatPct, successPct, failPct, outcomeLabel, npcKey, ownerId)
 			-- 주사위 보드는 actor가 리드를 넘겨 보드가 뜨는 순간(OnRollLeadDone)에 방송된다. 여기선 씬 리드 미러만.
@@ -199,7 +199,7 @@ script VillageTile extends EventTileBase
 			_EventTileUI:SpectatorSceneHide(ownerId)
 		end
 		_GameModeManager:NotifyTileEventDone()
-		log("[VillageTile] 마을 이벤트 종료")
+-- 		log("[VillageTile] 마을 이벤트 종료")
 	end
 
 	@ExecSpace("Client")

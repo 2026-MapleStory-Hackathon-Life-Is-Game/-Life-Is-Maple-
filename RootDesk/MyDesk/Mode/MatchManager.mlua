@@ -37,7 +37,7 @@ script MatchManager extends Logic
 	method void OnEndPlay()
 		        -- 서버: 퇴장 이벤트 핸들러 해제.
 		        if self._userLeaveHandler ~= nil then
-		            self:DisconnectEvent(UserLeaveEvent, self._userLeaveHandler)
+		            _UserService:DisconnectEvent(UserLeaveEvent, self._userLeaveHandler)
 		            self._userLeaveHandler = nil
 		        end
 	end
@@ -66,7 +66,7 @@ script MatchManager extends Logic
 		            else
 		                -- 1명뿐 → 시작하지 않고 타이머 리셋, 계속 대기
 		                self._countdown = self.MATCH_TIMEOUT
-		                log("[MatchManager] 30초 경과했지만 1명뿐 → 계속 대기")
+-- 		                log("[MatchManager] 30초 경과했지만 1명뿐 → 계속 대기")
 		            end
 		        end
 	end
@@ -74,17 +74,17 @@ script MatchManager extends Logic
 	@ExecSpace("Server")
 	method void JoinMatch()
 		        if _RoomService:IsInstanceRoom() then
-		            log_warning("[MatchManager] JoinMatch는 로비(스태틱 룸)에서만 유효")
+-- 		            log_warning("[MatchManager] JoinMatch는 로비(스태틱 룸)에서만 유효")
 		            return
 		        end
 		        if _GameModeManager._isGameActive then
-		            log("[MatchManager] 이미 게임이 진행 중입니다. 매칭 무시")
+-- 		            log("[MatchManager] 이미 게임이 진행 중입니다. 매칭 무시")
 		            return
 		        end
 		        -- 중복 입장 방지
 		        for _, uid in ipairs(self._matchPool) do
 		            if uid == senderUserId then
-		                log("[MatchManager] 이미 매칭 대기 중: " .. senderUserId)
+-- 		                log("[MatchManager] 이미 매칭 대기 중: " .. senderUserId)
 		                return
 		            end
 		        end
@@ -94,13 +94,13 @@ script MatchManager extends Logic
 		            self._countdown = self.MATCH_TIMEOUT
 		            self._lastSentSec = -1   -- 새 매칭 시작 → 다음 틱에 카운트다운 초를 반드시 재방송(피드백 1)
 		            self._isMatching = true
-		            self._userLeaveHandler = self:ConnectEvent(UserLeaveEvent, self.OnUserLeave)
-		            log("[MatchManager] 매칭 시작 (30초 카운트다운)")
+		            self._userLeaveHandler = _UserService:ConnectEvent(UserLeaveEvent, self.OnUserLeave)
+-- 		            log("[MatchManager] 매칭 시작 (30초 카운트다운)")
 		        end
 		
 		        table.insert(self._matchPool, senderUserId)
 		        self._matchedCount = #self._matchPool
-		        log("[MatchManager] 매칭 입장: " .. senderUserId .. " (" .. tostring(self._matchedCount) .. "/" .. tostring(self.MAX_PLAYERS) .. ")")
+-- 		        log("[MatchManager] 매칭 입장: " .. senderUserId .. " (" .. tostring(self._matchedCount) .. "/" .. tostring(self.MAX_PLAYERS) .. ")")
 		        self:BroadcastMatchUI()
 		
 		        if #self._matchPool >= self.MAX_PLAYERS then
@@ -131,10 +131,10 @@ script MatchManager extends Logic
 		            self._isMatching = false
 		            self._countdown = 0
 		            if self._userLeaveHandler ~= nil then
-		                self:DisconnectEvent(UserLeaveEvent, self._userLeaveHandler)
+		                _UserService:DisconnectEvent(UserLeaveEvent, self._userLeaveHandler)
 		                self._userLeaveHandler = nil
 		            end
-		            log("[MatchManager] 매칭 풀 비어 매칭 중단")
+-- 		            log("[MatchManager] 매칭 풀 비어 매칭 중단")
 		        else
 		            self:BroadcastMatchUI()
 		        end
@@ -160,18 +160,18 @@ script MatchManager extends Logic
 		        self._isMatching = false
 		        self._countdown = 0
 		        if self._userLeaveHandler ~= nil then
-		            self:DisconnectEvent(UserLeaveEvent, self._userLeaveHandler)
+		            _UserService:DisconnectEvent(UserLeaveEvent, self._userLeaveHandler)
 		            self._userLeaveHandler = nil
 		        end
 		
-		        log("[MatchManager] 매칭 성립: " .. tostring(#userIds) .. "명 → 공유 인스턴스 룸 생성")
+-- 		        log("[MatchManager] 매칭 성립: " .. tostring(#userIds) .. "명 → 공유 인스턴스 룸 생성")
 		
 		        -- 3) 공유 인스턴스 룸 생성 + 인원수 공유메모리 전달 + 전원 이동 + 매칭 UI 닫기
 		        self._roomSeq = self._roomSeq + 1
 		        local roomKey = "Multi_" .. tostring(self._roomSeq)
 		        local room = _RoomService:CreateInstanceRoom(roomKey, { "Map_01", "Map_02", "Map_03" })
 		        if room == nil then
-		            log_error("[MatchManager] 멀티 인스턴스 룸 생성 실패: " .. roomKey)
+-- 		            log_error("[MatchManager] 멀티 인스턴스 룸 생성 실패: " .. roomKey)
 		            return
 		        end
 		        local rc, mem = _RoomService:GetSharedMemory(roomKey)

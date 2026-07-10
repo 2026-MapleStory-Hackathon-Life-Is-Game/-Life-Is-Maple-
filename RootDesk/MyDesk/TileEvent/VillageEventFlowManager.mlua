@@ -1,7 +1,10 @@
 @Logic
 script VillageEventFlowManager extends Logic
 
-	property boolean _stage1FirstDone = false
+	-- 스테이지1 '첫 마을 이벤트(첫 인사)' 고정 소진 여부를 '플레이어별'로 추적한다(userId → true).
+	-- @Logic은 월드 전역 싱글턴이라, 예전처럼 단일 boolean이면 한 플레이어가 소진하면 나머지 전원이 잠겨
+	-- 다른 플레이어는 첫 인사가 건너뛰어졌다(멀티 버그). 서버 전용 판정이라 동기화 없는 일반 테이블로 둔다.
+	property any _stage1FirstDone = nil
 
 	method string DecodeText(string raw)
 		-- CSV에 '\n' 리터럴로 저장한 줄바꿈을 실제 개행으로 복원한다(셀을 한 물리 행으로 유지하기 위함).
@@ -48,8 +51,8 @@ script VillageEventFlowManager extends Logic
 
 	@ExecSpace("ServerOnly")
 	method void ResetStage1Lock()
-		-- 새 게임 시작 시 호출 → 스테이지1 첫 마을 이벤트 강제 잠금을 푼다.
-		self._stage1FirstDone = false
+		-- 새 게임 시작 시 호출 → 스테이지1 첫 마을 이벤트 강제 잠금을 전 플레이어에 대해 푼다.
+		self._stage1FirstDone = {}
 	end
 
 	method string FirstFlowEvent(integer stage, string region)
@@ -65,21 +68,23 @@ script VillageEventFlowManager extends Logic
 	end
 
 	@ExecSpace("ServerOnly")
-	method string RollEventForArrival(integer stage, string region, boolean isLastVillage)
+	method string RollEventForArrival(integer stage, string region, boolean isLastVillage, string userId)
 		-- 마을 타일 도착 시 호출. 스테이지1의 '첫' 마을 이벤트는 1번 플로우로 고정, 그 외엔 가중치 추첨.
 		-- isLastVillage: 이 타일이 해당 지역의 마지막 마을칸인지(리멘 최종칸 고정/제외 배치용).
-		if stage == 1 and self._stage1FirstDone == false then
+		-- userId: 도착 플레이어. 스테이지1 첫 인사 고정은 '플레이어별'로 1회만 적용한다(멀티에서 각자 첫 인사를 보게).
+		if self._stage1FirstDone == nil then self._stage1FirstDone = {} end
+		if stage == 1 and userId ~= "" and self._stage1FirstDone[userId] ~= true then
 			local forced = self:FirstFlowEvent(1, region)
 			if forced ~= "" then
-				self._stage1FirstDone = true
-				log("[VillageEventFlow] 스테이지1 첫 마을 이벤트 고정 → " .. forced)
+				self._stage1FirstDone[userId] = true
+-- 				log("[VillageEventFlow] 스테이지1 첫 마을 이벤트 고정 user=" .. userId .. " → " .. forced)
 				return forced
 			end
 		end
 		-- 골드리치 특별 이벤트: 스테이지2의 '모든 마을칸'에서 지역 무관 0.6% 확률로 등장(지역 추첨보다 우선).
 		--   ALL_GOLDRICH_01 은 Region="All"(실제 타일 지역과 겹치지 않음) + Weight=0 이라 일반 지역 추첨엔 절대 안 뽑힌다.
 		if stage == 2 and _UtilLogic:RandomDouble() < 0.006 then
-			log("[VillageEventFlow] 골드리치 특별 이벤트 발생(0.6%) region=" .. tostring(region))
+-- 			log("[VillageEventFlow] 골드리치 특별 이벤트 발생(0.6%) region=" .. tostring(region))
 			return "ALL_GOLDRICH_01"
 		end
 		return self:RollEvent(stage, region, isLastVillage)
