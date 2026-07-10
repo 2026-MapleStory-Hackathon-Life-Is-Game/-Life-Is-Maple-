@@ -36,7 +36,7 @@ script QuickEquipPopup extends Logic
 			self.closeHandler = self.closeButton.Entity:ConnectEvent(ButtonClickEvent, self.OnClickClose)
 		end
 		
-		log("[QuickEquip] OnBeginPlay OK")
+-- 		log("[QuickEquip] OnBeginPlay OK")
 	end
 
 	@ExecSpace("ClientOnly")
@@ -121,7 +121,7 @@ script QuickEquipPopup extends Logic
 			self.popupRoot.Enable = true
 		end
 		
-		log("[QuickEquip] show " .. name .. " delta=" .. tostring(math.floor(delta)))
+-- 		log("[QuickEquip] show " .. name .. " delta=" .. tostring(math.floor(delta)))
 	end
 
 	@ExecSpace("ClientOnly")
@@ -145,7 +145,7 @@ script QuickEquipPopup extends Logic
 		local m = _EquipmentRouter:ManagerForInstance(player, instanceId)
 		if isvalid(m) then
 			m:RequestEquip(instanceId)
-			log("[QuickEquip] Equip OK player=" .. tostring(senderUserId) .. " id=" .. instanceId)
+-- 			log("[QuickEquip] Equip OK player=" .. tostring(senderUserId) .. " id=" .. instanceId)
 		end
 	end
 

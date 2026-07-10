@@ -61,7 +61,7 @@ script MapViewManager extends Logic
 		-- ESC: 맵 뷰가 열려 있으면 닫는다(HUD 복원 + 카메라 원복은 CloseMapView가 처리).
 		if event.key == KeyboardKey.Escape and self._isOpen then
 			self:CloseMapView()
-			log("[MapViewManager] ESC → 맵 뷰 닫기")
+-- 			log("[MapViewManager] ESC → 맵 뷰 닫기")
 		end
 	end
 
@@ -193,7 +193,7 @@ script MapViewManager extends Logic
 		
 		local reachable = self:ComputeReachableTiles(mapName, currentTile)
 		if #reachable == 0 then
-			log("[MapViewManager] 도달 가능 타일 없음")
+-- 			log("[MapViewManager] 도달 가능 타일 없음")
 			return
 		end
 		
@@ -205,7 +205,7 @@ script MapViewManager extends Logic
 		-- 일반 맵 뷰(분기 미리보기 아님).
 		self._branchPreview = false
 		self:EnterCameraView()
-		log("[MapViewManager] 맵 뷰 열림: " .. tostring(#reachable) .. "개 타일 표시")
+-- 		log("[MapViewManager] 맵 뷰 열림: " .. tostring(#reachable) .. "개 타일 표시")
 	end
 
 	@ExecSpace("ClientOnly")
@@ -263,7 +263,7 @@ script MapViewManager extends Logic
 				c.x - self._anchorX + self._branchPreviewOffset.x,
 				c.y - self._anchorY + self._branchPreviewOffset.y))
 		end
-		log("[MapViewManager] 분기 미리보기: " .. tostring(#landings) .. "개 도착칸 표시")
+-- 		log("[MapViewManager] 분기 미리보기: " .. tostring(#landings) .. "개 도착칸 표시")
 	end
 
 	@ExecSpace("ClientOnly")
@@ -364,7 +364,7 @@ script MapViewManager extends Logic
 		-- 카메라 추적 스무딩(Damping) 원복.
 		cam.Damping = self._origDamping
 		
-		log("[MapViewManager] 맵 뷰 닫힘")
+-- 		log("[MapViewManager] 맵 뷰 닫힘")
 	end
 
 	@ExecSpace("ClientOnly")
@@ -478,8 +478,8 @@ script MapViewManager extends Logic
 		self._boundMinY = minY - pad
 		self._boundMaxY = maxY + pad
 		self._boundsReady = true
-		log("[MapViewManager] 카메라 범위 설정: x[" .. tostring(self._boundMinX) .. "~" .. tostring(self._boundMaxX)
-			.. "] y[" .. tostring(self._boundMinY) .. "~" .. tostring(self._boundMaxY) .. "] tiles=" .. tostring(count))
+-- 		log("[MapViewManager] 카메라 범위 설정: x[" .. tostring(self._boundMinX) .. "~" .. tostring(self._boundMaxX)
+-- 			.. "] y[" .. tostring(self._boundMinY) .. "~" .. tostring(self._boundMaxY) .. "] tiles=" .. tostring(count))
 	end
 
 	@ExecSpace("ClientOnly")

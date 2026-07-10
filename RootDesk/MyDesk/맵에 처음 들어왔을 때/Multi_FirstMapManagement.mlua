@@ -39,7 +39,7 @@ script Multi_FirstMapManagement extends Component
 		if self._checkTimer ~= 0 then _TimerService:ClearTimer(self._checkTimer) self._checkTimer = 0 end
 		self:ApplyUI()
 		_GameModeManager:RegisterMultiArrival()
-		log("[Multi_FirstMapManagement] 멀티 Map_01 도착 등록")
+-- 		log("[Multi_FirstMapManagement] 멀티 Map_01 도착 등록")
 	end
 
 	@ExecSpace("ClientOnly")

@@ -50,7 +50,7 @@ script Single_FirstMapManagement extends Component
 		_LevelUpCelebration:MarkOpeningCampPending()
 		if isvalid(_IntroCutscene) then _IntroCutscene:BeginOpening() end
 		_GameModeManager:BeginSingleRoomGame()
-		log("[Single_FirstMapManagement] 인스턴스 룸 싱글 게임 시작 트리거")
+-- 		log("[Single_FirstMapManagement] 인스턴스 룸 싱글 게임 시작 트리거")
 	end
 
 	@ExecSpace("ClientOnly")
@@ -58,7 +58,7 @@ script Single_FirstMapManagement extends Component
 		-- 인게임 UI 켜고 로비 UI 끈다.
 		if isvalid(self.inGameGroup) then self.inGameGroup.Enable = true end
 		if isvalid(self.lobbyGroup) then self.lobbyGroup.Enable = false end
-		log("[Single_FirstMapManagement] 인게임 UI 활성 / 로비 UI 비활성")
+-- 		log("[Single_FirstMapManagement] 인게임 UI 활성 / 로비 UI 비활성")
 	end
 
 end

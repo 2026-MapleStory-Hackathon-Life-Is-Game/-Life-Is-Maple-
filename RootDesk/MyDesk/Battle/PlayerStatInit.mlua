@@ -24,7 +24,7 @@ script PlayerStatInit extends Logic
 		-- 입장한 플레이어 엔티티에 전투 컴포넌트를 부착한다(중복 방지).
 		local p = _UserService:GetUserEntityByUserId(event.UserId)
 		if isvalid(p) == false then
-			log_error("[PlayerStatInit] 플레이어 엔티티 없음: " .. tostring(event.UserId))
+-- 			log_error("[PlayerStatInit] 플레이어 엔티티 없음: " .. tostring(event.UserId))
 			return
 		end
 		self:AddIfMissing(p, "script.BuffManager")
@@ -38,7 +38,7 @@ script PlayerStatInit extends Logic
 		self:AddIfMissing(p, "script.CombatPowerManager")
 		self:AddIfMissing(p, "script.CubeInventory")
 		self:AddIfMissing(p, "script.RunStatsManager")   -- 엔딩 정리용 런 기록(턴/시간/타일방문)
-		log("[PlayerStatInit] 전투 컴포넌트 부착 완료: " .. event.UserId)
+-- 		log("[PlayerStatInit] 전투 컴포넌트 부착 완료: " .. event.UserId)
 		
 		-- [임시/디버그] 입장 시 기본 지급(토글 기본 ON). 이후 인게임 DebugGrantItemsButton이 즉시 지급/회수한다.
 		if self.debugGrantTestItems then
@@ -55,7 +55,7 @@ script PlayerStatInit extends Logic
 		-- [디버그] 인게임 토글 버튼 콜백. 요청 플레이어에게 더미 아이템을 즉시 지급/회수한다.
 		local p = _UserService:GetUserEntityByUserId(senderUserId)
 		if isvalid(p) == false then
-			log_warning("[PlayerStatInit] SetTestItems: 플레이어 엔티티 없음: " .. tostring(senderUserId))
+-- 			log_warning("[PlayerStatInit] SetTestItems: 플레이어 엔티티 없음: " .. tostring(senderUserId))
 			return
 		end
 		if on then
@@ -79,7 +79,7 @@ script PlayerStatInit extends Logic
 				end
 			end
 		end
-		log("[PlayerStatInit] (디버그) 전체 장비 지급: " .. tostring(count) .. "개")
+-- 		log("[PlayerStatInit] (디버그) 전체 장비 지급: " .. tostring(count) .. "개")
 		
 		-- 잠재 재설정 테스트용 미라클 큐브: 중복 지급 방지로 0으로 되돌린 뒤 999개.
 		local bag = p:GetComponent("script.CubeInventory")
@@ -102,7 +102,7 @@ script PlayerStatInit extends Logic
 		end
 		local bag = p:GetComponent("script.CubeInventory")
 		if isvalid(bag) then bag:ResetAll() end
-		log("[PlayerStatInit] (디버그) 더미 아이템 회수 완료")
+-- 		log("[PlayerStatInit] (디버그) 더미 아이템 회수 완료")
 		
 		local cp = p:GetComponent("script.CombatPowerManager")
 		if isvalid(cp) then cp:CalculateCurrentCombatPower() end

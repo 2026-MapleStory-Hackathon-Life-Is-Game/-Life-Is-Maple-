@@ -195,7 +195,7 @@ script PotentialManager extends Logic
 		-- (선택을 건너뛴 채 재요청해서 큐브가 증발하고 이전 후보가 소실되는 버그 방지)
 		local key = senderUserId .. ":" .. instanceId
 		if self._pending[key] ~= nil then
-			log_warning("[PotentialManager] 선택 대기 중 재요청 거부: " .. key)
+-- 			log_warning("[PotentialManager] 선택 대기 중 재요청 거부: " .. key)
 			self:NotifyCubeResult(instanceId, name, comp:GetInstancePotential(instanceId), self._pending[key], false, senderUserId)
 			self:SpectatorCubeResult(instanceId, name, comp:GetInstancePotential(instanceId), self._pending[key], false, senderUserId)
 			return
@@ -203,7 +203,7 @@ script PotentialManager extends Logic
 		
 		local bag = self:BagOf(player)
 		if isvalid(bag) == false or bag.MiracleCubeCount <= 0 then
-			log_warning("[PotentialManager] 미라클 큐브 부족: " .. tostring(senderUserId))
+-- 			log_warning("[PotentialManager] 미라클 큐브 부족: " .. tostring(senderUserId))
 			return
 		end
 		bag.MiracleCubeCount = bag.MiracleCubeCount - 1
@@ -260,14 +260,14 @@ script PotentialManager extends Logic
 		local key = senderUserId .. ":" .. instanceId
 		-- 후보가 없으면(선택 모드가 아니면) 재설정 버튼이 노출될 일이 없지만, 방어적으로 무시.
 		if self._pending[key] == nil then
-			log_warning("[PotentialManager] 재설정 거부: 대기 후보 없음 " .. key)
+-- 			log_warning("[PotentialManager] 재설정 거부: 대기 후보 없음 " .. key)
 			return
 		end
 		
 		local bag = self:BagOf(player)
 		if isvalid(bag) == false or bag.MiracleCubeCount <= 0 then
 			-- 큐브 부족: 기존 후보를 유지한 채 팝업만 다시 띄운다(상태 손실 방지).
-			log_warning("[PotentialManager] 재설정: 미라클 큐브 부족 " .. tostring(senderUserId))
+-- 			log_warning("[PotentialManager] 재설정: 미라클 큐브 부족 " .. tostring(senderUserId))
 			self:NotifyCubeResult(instanceId, name, comp:GetInstancePotential(instanceId), self._pending[key], false, senderUserId)
 			self:SpectatorCubeResult(instanceId, name, comp:GetInstancePotential(instanceId), self._pending[key], false, senderUserId)
 			return
@@ -285,9 +285,9 @@ script PotentialManager extends Logic
 	method void NotifyCubeResult(string instanceId, string equipName, string before, string after, boolean autoConfirmed)
 		-- 큐브 결과를 클라 팝업으로 통지. autoConfirmed면 결과+확인, 아니면 Before/After 선택.
 		if autoConfirmed then
-			log("[PotentialManager] 큐브 결과(자동확정) " .. equipName .. "(" .. instanceId .. ") → " .. after)
+-- 			log("[PotentialManager] 큐브 결과(자동확정) " .. equipName .. "(" .. instanceId .. ") → " .. after)
 		else
-			log("[PotentialManager] 큐브 결과(선택) " .. equipName .. "(" .. instanceId .. ") | Before=" .. before .. " | After=" .. after)
+-- 			log("[PotentialManager] 큐브 결과(선택) " .. equipName .. "(" .. instanceId .. ") | Before=" .. before .. " | After=" .. after)
 		end
 		_PotentialCubePopup:Open(instanceId, equipName, before, after, autoConfirmed)
 	end

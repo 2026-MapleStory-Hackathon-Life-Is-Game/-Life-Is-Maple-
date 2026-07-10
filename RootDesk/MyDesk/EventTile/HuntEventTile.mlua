@@ -50,7 +50,7 @@ script HuntEventTile extends Component
 		
 		if self.portraitStarted == false then
 			self.portraitStarted = true
-			log("HuntEventTile: PlayerPortrait ATTACK 모션 적용 완료")
+-- 			log("HuntEventTile: PlayerPortrait ATTACK 모션 적용 완료")
 		end
 	end
 
@@ -66,7 +66,7 @@ script HuntEventTile extends Component
 		-- {사냥터}/{시간}/{주스탯}/{상승치} 를 랜덤 생성해 부착된 UIText 에 출력한다.
 		local textComp = self.Entity.TextComponent
 		if not isvalid(textComp) then
-			log_error("HuntEventTile: TextComponent 가 없습니다. UIText 엔티티에 부착하세요.")
+-- 			log_error("HuntEventTile: TextComponent 가 없습니다. UIText 엔티티에 부착하세요.")
 			return
 		end
 		
@@ -87,7 +87,7 @@ script HuntEventTile extends Component
 		local message = line1 .. "\n" .. line2
 		
 		textComp.Text = message
-		log("HuntEventTile 출력: " .. message)
+-- 		log("HuntEventTile 출력: " .. message)
 	end
 
 end

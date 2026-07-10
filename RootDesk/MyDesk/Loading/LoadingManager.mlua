@@ -43,20 +43,20 @@ script LoadingManager extends Logic
 	@ExecSpace("Client")
 	method void ShowLoadingAndPreload()
 		-- 게임 시작(로비→Map_01 텔레포트) 시 서버가 각 클라로 호출. 무거운 RUID를 미리 캐시한다.
-		log("[LoadingManager] ShowLoadingAndPreload 진입")
+-- 		log("[LoadingManager] ShowLoadingAndPreload 진입")
 		self:ShowOverlay()
 		self._shownAt = _UtilLogic.ElapsedSeconds
 		
 		local list = self:GatherPreloadRUIDs()
 		if #list == 0 then
-			log_warning("[LoadingManager] 프리로드 목록이 비어있음 → 오버레이 즉시 종료")
+-- 			log_warning("[LoadingManager] 프리로드 목록이 비어있음 → 오버레이 즉시 종료")
 			self:HideOverlay()
 			return
 		end
 		
-		log("[LoadingManager] 프리로드 시작: " .. tostring(#list) .. "개")
+-- 		log("[LoadingManager] 프리로드 시작: " .. tostring(#list) .. "개")
 		_ResourceService:PreloadAsync(list, function(_results)
-			log("[LoadingManager] 프리로드 완료")
+-- 			log("[LoadingManager] 프리로드 완료")
 			self:OnPreloadComplete()
 		end)
 	end
@@ -93,7 +93,7 @@ script LoadingManager extends Logic
 		self:StopDotAnim()
 		self:SetOverlayEnable(false)
 		self:ClearTutorialPage()
-		log("[LoadingManager] 오버레이 종료")
+-- 		log("[LoadingManager] 오버레이 종료")
 	end
 
 	method table TutorialPagePaths()
@@ -125,7 +125,7 @@ script LoadingManager extends Logic
 		local pick = paths[_UtilLogic:RandomIntegerRange(1, #paths)]
 		local page = _EntityService:GetEntityByPath(pick)
 		if isvalid(page) == false then
-			log_warning("[LoadingManager] 튜토리얼 페이지를 찾을 수 없음: " .. pick)
+-- 			log_warning("[LoadingManager] 튜토리얼 페이지를 찾을 수 없음: " .. pick)
 			return
 		end
 		local clone = _SpawnService:SpawnByEntity(page, "LoadingTutorialPage", Vector3(0, 0, 0), self.loadingGroup, true)
@@ -135,7 +135,7 @@ script LoadingManager extends Logic
 		if isvalid(clone.UITransformComponent) then
 			clone.UITransformComponent.anchoredPosition = Vector2(0, 40)   -- 화면 중앙(하단 'loading' 텍스트와 겹치지 않게 살짝 위로)
 		end
-		log("[LoadingManager] 로딩 튜토리얼 표시: " .. pick)
+-- 		log("[LoadingManager] 로딩 튜토리얼 표시: " .. pick)
 	end
 
 	@ExecSpace("ClientOnly")

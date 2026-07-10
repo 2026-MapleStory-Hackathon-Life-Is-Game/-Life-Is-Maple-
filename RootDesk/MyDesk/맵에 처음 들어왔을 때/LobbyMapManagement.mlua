@@ -16,7 +16,7 @@ script LobbyMapManagement extends Component
 	method void ApplyUI()
 		if isvalid(self.lobbyGroup) then self.lobbyGroup.Enable = true end
 		if isvalid(self.inGameGroup) then self.inGameGroup.Enable = false end
-		log("[LobbyMapManagement] 로비 UI 활성 / 인게임 UI 비활성")
+-- 		log("[LobbyMapManagement] 로비 UI 활성 / 인게임 UI 비활성")
 	end
 
 end

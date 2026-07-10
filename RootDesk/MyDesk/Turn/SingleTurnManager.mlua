@@ -32,7 +32,7 @@ script SingleTurnManager extends Logic
 	method void Start()
 		        self._isActive = true
 		        self._currentState = "IDLE"
-		        log("[SingleTurnManager] 게임 시작")
+-- 		        log("[SingleTurnManager] 게임 시작")
 		        self:AdvanceState()
 	end
 
@@ -41,7 +41,7 @@ script SingleTurnManager extends Logic
 		        self._isActive = false
 		        self._currentState = "IDLE"
 		        self._isRolling = false
-		        log("[SingleTurnManager] 턴 강제 종료")
+-- 		        log("[SingleTurnManager] 턴 강제 종료")
 	end
 
 	@ExecSpace("Server")
@@ -62,7 +62,7 @@ script SingleTurnManager extends Logic
 		        if not self._isActive then return end
 		        local nextState = self:GetNextState()
 		        self._currentState = nextState
-		        log("[SingleTurnManager] 상태 전환 → " .. nextState)
+-- 		        log("[SingleTurnManager] 상태 전환 → " .. nextState)
 		        self:ExecuteCurrentState()
 	end
 
@@ -80,7 +80,7 @@ script SingleTurnManager extends Logic
 
 	@ExecSpace("Server")
 	method void OnTurnStart()
-		        log("[SingleTurnManager] 턴 시작")
+-- 		        log("[SingleTurnManager] 턴 시작")
 		        -- 턴 시작 시 플레이어의 데이트 버프 잔여 턴을 1 줄인다(3턴 후 소멸).
 		        for _, userEntity in pairs(_UserService.UserEntities) do
 		            local rm = userEntity:GetComponent("script.RomanceManager")
@@ -94,12 +94,12 @@ script SingleTurnManager extends Logic
 
 	@ExecSpace("Server")
 	method void OnDice()
-		        log("[SingleTurnManager] 주사위 단계 - 입력 대기 중")
+-- 		        log("[SingleTurnManager] 주사위 단계 - 입력 대기 중")
 	end
 
 	@ExecSpace("Server")
 	method void OnMove()
-		        log("[SingleTurnManager] 이동 단계, 주사위=" .. tostring(self.remainDiceTotal))
+-- 		        log("[SingleTurnManager] 이동 단계, 주사위=" .. tostring(self.remainDiceTotal))
 		        self:CloseMapViewOnClient()
 		        for _, userEntity in pairs(_UserService.UserEntities) do
 		            if userEntity.PlayerMovement ~= nil then
@@ -120,7 +120,7 @@ script SingleTurnManager extends Logic
 		        if self._currentState ~= "DICE" then return end
 		        -- 이미 굴리는 중이면(연출 재생 중) 무시 — 연출 중 재굴림 방지
 		        if self._isRolling then
-		            log("[SingleTurnManager] 이미 주사위를 굴리는 중입니다. 요청 무시")
+-- 		            log("[SingleTurnManager] 이미 주사위를 굴리는 중입니다. 요청 무시")
 		            return
 		        end
 		        self._isRolling = true
@@ -159,7 +159,7 @@ script SingleTurnManager extends Logic
 	method void OnMoveComplete()
 		        if not self._isActive then return end
 		        if self._currentState ~= "MOVE" then return end
-		        log("[SingleTurnManager] 이동 완료 수신 → TILE 진행")
+-- 		        log("[SingleTurnManager] 이동 완료 수신 → TILE 진행")
 		        self:AdvanceState()
 	end
 
@@ -210,13 +210,13 @@ script SingleTurnManager extends Logic
 				if startedEvent and interactive then
 					-- 인터랙티브 타일(예: 마을): 타일이 _GameModeManager:NotifyTileEventDone()으로
 					-- OnTileEventComplete를 호출할 때까지 대기(고정 타이머 없음).
-					log("[SingleTurnManager] 인터랙티브 타일 도착 — 완료 신호 대기 (결과주사위 생략=" .. tostring(self._skipResultDice) .. ")")
+-- 					log("[SingleTurnManager] 인터랙티브 타일 도착 — 완료 신호 대기 (결과주사위 생략=" .. tostring(self._skipResultDice) .. ")")
 				elseif startedEvent then
 					-- 패널 표시 타일: TileEventUI를 표시 시간만큼 보여준 뒤 OnTileEventComplete에서 다음 단계로.
 					-- (보상 스탯은 OnArrive에서 이미 서버에 즉시 적용됨 — 여기서는 UI 표시 시간만 대기.)
 					local waitSec = _EventTileUI.AutoHideSeconds
 					if waitSec == nil or waitSec <= 0 then waitSec = 5.0 end
-					log("[SingleTurnManager] 타일 도착 — " .. tostring(waitSec) .. "초 대기 (결과주사위 생략=" .. tostring(self._skipResultDice) .. ")")
+-- 					log("[SingleTurnManager] 타일 도착 — " .. tostring(waitSec) .. "초 대기 (결과주사위 생략=" .. tostring(self._skipResultDice) .. ")")
 					_TimerService:SetTimerOnce(function()
 						self:OnTileEventComplete()
 					end, waitSec)
@@ -234,11 +234,11 @@ script SingleTurnManager extends Logic
 		        if not self._isActive then return end
 		        if self._currentState ~= "TILE" then return end
 		        if self._skipResultDice then
-		            log("[SingleTurnManager] 사냥(이벤트) 타일 — 결과 주사위 생략 → 턴 종료")
+-- 		            log("[SingleTurnManager] 사냥(이벤트) 타일 — 결과 주사위 생략 → 턴 종료")
 		            self._currentState = "TURN_END"
 		            self:ExecuteCurrentState()
 		        else
-		            log("[SingleTurnManager] 타일 이벤트 종료 → 결과 주사위 진행")
+-- 		            log("[SingleTurnManager] 타일 이벤트 종료 → 결과 주사위 진행")
 		            self:AdvanceState()
 		        end
 	end
@@ -265,7 +265,7 @@ script SingleTurnManager extends Logic
 
 	@ExecSpace("Server")
 	method void OnResultDice()
-				log("[SingleTurnManager] 결과 주사위 단계 진입 -> 굴림 요청")
+-- 				log("[SingleTurnManager] 결과 주사위 단계 진입 -> 굴림 요청")
 				self:RequestRollResultDice()
 	end
 
@@ -289,7 +289,7 @@ script SingleTurnManager extends Logic
 
 	@ExecSpace("Server")
 	method void OnTurnEnd()
-		        log("[SingleTurnManager] 턴 종료 → 다음 턴 시작")
+-- 		        log("[SingleTurnManager] 턴 종료 → 다음 턴 시작")
 		        self:AdvanceState()
 	end
 

@@ -152,14 +152,14 @@ script IntroCutscene extends Logic
 		self._pt = 0
 		if self._timer ~= 0 then _TimerService:ClearTimer(self._timer) end
 		self._timer = _TimerService:SetTimerRepeat(function() self:Step() end, 0.02)
-		log("[IntroCutscene] BeginOpening")
+-- 		log("[IntroCutscene] BeginOpening")
 	end
 
 	@ExecSpace("ClientOnly")
 	method void OnOpeningBannerReady()
 		-- EventTileUI가 오프닝 Lv.10 배너를 띄운 직후 통지. 잎 착지 게이트를 연다.
 		self._bannerReady = true
-		log("[IntroCutscene] 배너 준비 통지 수신")
+-- 		log("[IntroCutscene] 배너 준비 통지 수신")
 	end
 
 	@ExecSpace("ClientOnly")
@@ -206,7 +206,7 @@ script IntroCutscene extends Logic
 		self:SetPos(self.leaf, self.LeafStartX, self.LeafStartY)
 		self:SetScale(self.leaf, self.LeafStartScale)
 		self:Goto("title")
-		log("[IntroCutscene] 로딩 종료 → 타이틀/잎 표시")
+-- 		log("[IntroCutscene] 로딩 종료 → 타이틀/잎 표시")
 	end
 
 	@ExecSpace("ClientOnly")
@@ -280,7 +280,7 @@ script IntroCutscene extends Logic
 		-- 인트로 종료: 전체 숨김. 이후는 기존 Lv.10 배너 흐름(다음 → 진영 선택)이 그대로 이어진다.
 		self._opening = false
 		self:HideAll()
-		log("[IntroCutscene] Finish")
+-- 		log("[IntroCutscene] Finish")
 	end
 
 end

@@ -38,7 +38,7 @@ script JobWeaponManager extends Logic
 		-- 입장한 플레이어의 아바타에 Beginner 무기를 적용한다 (게임 시작 시 기본 무기).
 		local playerEntity = _UserService:GetUserEntityByUserId(event.UserId)
 		if isvalid(playerEntity) == false then
-			log_error("JobWeaponManager.OnUserEnter: player not found for " .. tostring(event.UserId))
+-- 			log_error("JobWeaponManager.OnUserEnter: player not found for " .. tostring(event.UserId))
 			return
 		end
 		self:ChangeWeaponByJob("Beginner", playerEntity)
@@ -68,7 +68,7 @@ script JobWeaponManager extends Logic
 	@ExecSpace("Client")
 	method void ShowJobSelect()
 		-- 직업 선택 UI를 연다.
-		log("직업 선택창을 엽니다.")
+-- 		log("직업 선택창을 엽니다.")
 		_JobSelectUI:Show()
 	end
 
@@ -83,7 +83,7 @@ script JobWeaponManager extends Logic
 		-- 직업 선택 UI(또는 디버그 키)에서 호출. 요청 클라이언트의 플레이어 아바타에 직업 무기를 적용한다.
 		local playerEntity = _UserService:GetUserEntityByUserId(senderUserId)
 		if isvalid(playerEntity) == false then
-			log_error("JobWeaponManager.OnJobSelected: player not found for " .. tostring(senderUserId))
+-- 			log_error("JobWeaponManager.OnJobSelected: player not found for " .. tostring(senderUserId))
 			return
 		end
 		self:ChangeWeaponByJob(jobName, playerEntity)
@@ -106,7 +106,7 @@ script JobWeaponManager extends Logic
 		-- 2) 보유→장착(전투력 재계산 포함).
 		local m = _EquipmentRouter:ManagerForItem(playerEntity, equipName)
 		if isvalid(m) and id ~= "" then m:RequestEquip(id) end
-		log("JobWeaponManager: 직업 기본무기 지급+장착 → " .. equipName)
+-- 		log("JobWeaponManager: 직업 기본무기 지급+장착 → " .. equipName)
 	end
 
 	@ExecSpace("ServerOnly")
@@ -120,7 +120,7 @@ script JobWeaponManager extends Logic
 		-- 2) 보유→장착(전투력 재계산 포함). Weapon 슬롯에 다른 무기가 있으면 보유로 되돌아간다.
 		local m = _EquipmentRouter:ManagerForItem(playerEntity, "Cudgel")
 		if isvalid(m) and id ~= "" then m:RequestEquip(id) end
-		log("JobWeaponManager: 게임 시작 기본무기(몽둥이) 지급+장착")
+-- 		log("JobWeaponManager: 게임 시작 기본무기(몽둥이) 지급+장착")
 	end
 
 	method string StarterWeaponFor(string jobName)
@@ -149,7 +149,7 @@ script JobWeaponManager extends Logic
 		-- Custom*Equip은 @Sync라 서버에서 실행해야 모든 클라에 전파된다.
 		local ds = _DataService:GetTable("JobWeapon")
 		if isvalid(ds) == false then
-			log_error("JobWeaponManager.ChangeWeaponByJob: dataset 'JobWeapon' not found")
+-- 			log_error("JobWeaponManager.ChangeWeaponByJob: dataset 'JobWeapon' not found")
 			return
 		end
 		
@@ -163,18 +163,18 @@ script JobWeaponManager extends Logic
 			end
 		end
 		if targetIdx == -1 then
-			log_warning("JobWeaponManager.ChangeWeaponByJob: no row for job=" .. jobName)
+-- 			log_warning("JobWeaponManager.ChangeWeaponByJob: no row for job=" .. jobName)
 			return
 		end
 		
 		if isvalid(playerEntity) == false then
-			log_error("JobWeaponManager.ChangeWeaponByJob: playerEntity is not valid")
+-- 			log_error("JobWeaponManager.ChangeWeaponByJob: playerEntity is not valid")
 			return
 		end
 		
 		local costume = playerEntity.CostumeManagerComponent
 		if isvalid(costume) == false then
-			log_error("JobWeaponManager.ChangeWeaponByJob: CostumeManagerComponent not found on playerEntity")
+-- 			log_error("JobWeaponManager.ChangeWeaponByJob: CostumeManagerComponent not found on playerEntity")
 			return
 		end
 		
@@ -191,7 +191,7 @@ script JobWeaponManager extends Logic
 		costume.CustomSubWeaponEquip       = ""
 		
 		self.currentJob = ds:GetCell(targetIdx, "Job")
-		log("JobWeaponManager: 무기 변경 완료 — job=" .. self.currentJob)
+-- 		log("JobWeaponManager: 무기 변경 완료 — job=" .. self.currentJob)
 	end
 
 end

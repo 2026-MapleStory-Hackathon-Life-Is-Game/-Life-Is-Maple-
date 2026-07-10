@@ -34,7 +34,7 @@ script Multi_ThirdMapManagement extends Component
 		self._arrivalTriggered = true
 		if self._checkTimer ~= 0 then _TimerService:ClearTimer(self._checkTimer) self._checkTimer = 0 end
 		_GameModeManager:RegisterMultiArrival()
-		log("[Multi_ThirdMapManagement] 멀티 Map_03 도착 등록")
+-- 		log("[Multi_ThirdMapManagement] 멀티 Map_03 도착 등록")
 	end
 
 end

@@ -3,7 +3,7 @@ script StartTile extends BaseTile
 
 	@ExecSpace("ServerOnly")
 	method void OnArrive(Entity piece)
-		log("[StartTile] 시작 칸 (효과 없음) tile=" .. self.Entity.Name)
+-- 		log("[StartTile] 시작 칸 (효과 없음) tile=" .. self.Entity.Name)
 	end
 
 end

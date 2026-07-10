@@ -224,7 +224,7 @@ script FriendManager extends Logic
 		self._scoreStore = _DataStorageService:GetSortableDataStorage("RankScore")
 		self._metaStore = _DataStorageService:GetGlobalDataStorage("RankMeta")
 		if isvalid(self._friendStore) == false then
-			log_warning("[FriendManager] 친구 저장소 획득 실패")
+-- 			log_warning("[FriendManager] 친구 저장소 획득 실패")
 		end
 	end
 
@@ -241,7 +241,7 @@ script FriendManager extends Logic
 					if id ~= nil and id ~= "" then table.insert(list, id) end
 				end
 			elseif ec ~= 0 and ec ~= 1000002 then
-				log_warning("[FriendManager] 친구 로드 오류코드=" .. tostring(ec))
+-- 				log_warning("[FriendManager] 친구 로드 오류코드=" .. tostring(ec))
 			end
 		end
 		self._cache[ownerUserId] = list
@@ -255,7 +255,7 @@ script FriendManager extends Logic
 		if isvalid(self._friendStore) == false then return end
 		local raw = table.concat(list, string.char(31))
 		local ec = self._friendStore:SetAndWait(ownerUserId, raw)
-		if ec ~= 0 then log_warning("[FriendManager] 친구 저장 오류코드=" .. tostring(ec)) end
+-- 		if ec ~= 0 then log_warning("[FriendManager] 친구 저장 오류코드=" .. tostring(ec)) end
 	end
 
 	method boolean ListContains(table list, string v)
@@ -285,7 +285,7 @@ script FriendManager extends Logic
 		local status = self:AddFriendInternal(senderUserId, friendUserId)
 		self:NotifyResult(status, targetName, senderUserId)
 		if status == "ok" then self:SendFriendRanking(senderUserId) end
-		log("[FriendManager] RequestAddFriend " .. tostring(senderUserId) .. "→" .. tostring(friendUserId) .. " : " .. status)
+-- 		log("[FriendManager] RequestAddFriend " .. tostring(senderUserId) .. "→" .. tostring(friendUserId) .. " : " .. status)
 	end
 
 	@ExecSpace("Server")
@@ -298,13 +298,13 @@ script FriendManager extends Logic
 		local user = _UserService:GetUserByProfileCode(code)
 		if user == nil or user.UserId == nil or user.UserId == "" then
 			self:NotifyResult("notfound", "", senderUserId)
-			log("[FriendManager] 코드 해석 실패: " .. tostring(code))
+-- 			log("[FriendManager] 코드 해석 실패: " .. tostring(code))
 			return
 		end
 		local status = self:AddFriendInternal(senderUserId, user.UserId)
 		self:NotifyResult(status, user.Nickname, senderUserId)
 		if status == "ok" then self:SendFriendRanking(senderUserId) end
-		log("[FriendManager] RequestAddFriendByCode " .. tostring(code) .. " : " .. status)
+-- 		log("[FriendManager] RequestAddFriendByCode " .. tostring(code) .. " : " .. status)
 	end
 
 	@ExecSpace("Server")
@@ -318,7 +318,7 @@ script FriendManager extends Logic
 		self:SaveFriends(senderUserId, out)
 		self:NotifyResult("removed", "", senderUserId)
 		self:SendFriendRanking(senderUserId)
-		log("[FriendManager] RequestRemoveFriend " .. tostring(senderUserId) .. "→" .. tostring(friendUserId))
+-- 		log("[FriendManager] RequestRemoveFriend " .. tostring(senderUserId) .. "→" .. tostring(friendUserId))
 	end
 
 	@ExecSpace("Server")
@@ -365,7 +365,7 @@ script FriendManager extends Logic
 					if pages.IsLastPage == true then done = true else pages:MoveToNextPageAndWait() end
 				end
 			elseif ec ~= 1000002 then
-				log_warning("[FriendManager] 점수 조회 오류코드=" .. tostring(ec))
+-- 				log_warning("[FriendManager] 점수 조회 오류코드=" .. tostring(ec))
 			end
 		end
 		
@@ -381,7 +381,7 @@ script FriendManager extends Logic
 					if mpages.IsLastPage == true then mdone = true else mpages:MoveToNextPageAndWait() end
 				end
 			elseif mec ~= 1000002 then
-				log_warning("[FriendManager] 메타 일괄조회 오류코드=" .. tostring(mec))
+-- 				log_warning("[FriendManager] 메타 일괄조회 오류코드=" .. tostring(mec))
 			end
 		end
 		
@@ -409,7 +409,7 @@ script FriendManager extends Logic
 	method void PushFriendData(string raw)
 		-- 서버 → 요청자 클라. 친구 랭킹 데이터 반영 후 렌더.
 		self._clientFriends = self:DeserializeFriends(raw)
-		log("[FriendManager] 친구 랭킹 수신: " .. tostring(#self._clientFriends) .. "명")
+-- 		log("[FriendManager] 친구 랭킹 수신: " .. tostring(#self._clientFriends) .. "명")
 		self:RenderFriends()
 	end
 
@@ -513,7 +513,7 @@ script FriendManager extends Logic
 		if _RankingManager ~= nil then
 			_RankingManager:ShowNotice(msg)
 		end
-		log("[FriendManager] 결과: " .. status .. " (" .. tostring(targetName) .. ")")
+-- 		log("[FriendManager] 결과: " .. status .. " (" .. tostring(targetName) .. ")")
 	end
 
 	method string ResultMessage(string status, string targetName)

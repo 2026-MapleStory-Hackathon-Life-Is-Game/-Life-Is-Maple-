@@ -72,7 +72,7 @@ script JobSelectUI extends Logic
 		self.handlerPirate = self.btnPirate.Entity:ConnectEvent(ButtonClickEvent, function()
 			self:SelectJob("pirate")
 		end)
-		log("JobSelectUI: shown")
+-- 		log("JobSelectUI: shown")
 		
 	end
 
@@ -84,7 +84,7 @@ script JobSelectUI extends Logic
 			self.panel.Enable = false
 		end
 		if isvalid(self.dimBack) then self.dimBack.Enable = false end
-		log("JobSelectUI: hidden")
+-- 		log("JobSelectUI: hidden")
 	end
 
 	@ExecSpace("ClientOnly")

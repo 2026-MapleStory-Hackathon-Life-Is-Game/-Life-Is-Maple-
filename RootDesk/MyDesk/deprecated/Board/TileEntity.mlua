@@ -7,11 +7,11 @@ script TileEntity extends Component
 	method void OnPieceEnter(Entity playerEntity)
 		-- Called by TurnManager when a player piece lands on this tile.
 		if isvalid(playerEntity) == false then
-			log_error("TileEntity.OnPieceEnter: invalid playerEntity")
+-- 			log_error("TileEntity.OnPieceEnter: invalid playerEntity")
 			return
 		end
 		
-		log("TileEntity: player landed on " .. self.tileType .. " tile")
+-- 		log("TileEntity: player landed on " .. self.tileType .. " tile")
 		
 		if self.tileType == "NORMAL" then
 			-- No effect; TurnManager advances phase automatically.
@@ -30,7 +30,7 @@ script TileEntity extends Component
 			-- Phase does NOT advance here; JobManager.OnJobSelected calls AdvancePhase.
 			local pc = playerEntity.PlayerComponent
 			if isvalid(pc) == false then
-				log_error("TileEntity.OnPieceEnter: PlayerComponent missing on playerEntity")
+-- 				log_error("TileEntity.OnPieceEnter: PlayerComponent missing on playerEntity")
 				return
 			end
 			local userId = pc.UserId
@@ -38,7 +38,7 @@ script TileEntity extends Component
 			return
 		
 		else
-			log_warning("TileEntity.OnPieceEnter: unknown tileType=" .. self.tileType)
+-- 			log_warning("TileEntity.OnPieceEnter: unknown tileType=" .. self.tileType)
 		end
 	end
 

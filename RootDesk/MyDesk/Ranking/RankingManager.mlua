@@ -54,7 +54,7 @@ script RankingManager extends Logic
 		self._scoreStore = _DataStorageService:GetSortableDataStorage("RankScore")
 		self._metaStore = _DataStorageService:GetGlobalDataStorage("RankMeta")
 		if isvalid(self._scoreStore) == false or isvalid(self._metaStore) == false then
-			log_warning("[RankingManager] 랭킹 저장소 획득 실패")
+-- 			log_warning("[RankingManager] 랭킹 저장소 획득 실패")
 		end
 	end
 
@@ -66,7 +66,7 @@ script RankingManager extends Logic
 		if isvalid(self._scoreStore) == false then self._records = recs return recs end
 		local ec, pages = self._scoreStore:GetSortedAndWait(SortDirection.Descending, 0, 2000000000)
 		if ec ~= 0 then
-			if ec ~= 1000002 then log_warning("[RankingManager] 정렬 조회 오류코드=" .. tostring(ec)) end
+-- 			if ec ~= 1000002 then log_warning("[RankingManager] 정렬 조회 오류코드=" .. tostring(ec)) end
 			self._records = recs
 			return recs
 		end
@@ -102,7 +102,7 @@ script RankingManager extends Logic
 					if mpages.IsLastPage == true then mdone = true else mpages:MoveToNextPageAndWait() end
 				end
 			elseif mec ~= 1000002 then
-				log_warning("[RankingManager] 메타 일괄조회 오류코드=" .. tostring(mec))
+-- 				log_warning("[RankingManager] 메타 일괄조회 오류코드=" .. tostring(mec))
 			end
 		end
 		-- 정렬 순서대로 레코드 병합(점수=Sortable 값, 이름/직업/진영/코디=meta).
@@ -114,7 +114,7 @@ script RankingManager extends Logic
 			})
 		end
 		self._records = recs
-		log("[RankingManager] 저장소 재구성: " .. tostring(#recs) .. "명")
+-- 		log("[RankingManager] 저장소 재구성: " .. tostring(#recs) .. "명")
 		return recs
 	end
 
@@ -149,22 +149,22 @@ script RankingManager extends Logic
 		-- 저장된 최고 점수와 비교(신기록일 때만 기록). 없는 키는 best=nil(또는 NotFound)이라 nil 가드 필수.
 		local gec, best = self._scoreStore:GetAndWait(userId)
 		if gec == 0 and best ~= nil and power <= best then
-			log("[RankingManager] 기록 갱신 없음(기존 최고 유지): " .. tostring(name))
+-- 			log("[RankingManager] 기록 갱신 없음(기존 최고 유지): " .. tostring(name))
 			return
 		end
 		
 		-- 점수(Sortable) + 메타(Global) 동기 저장 후 재조회해야 새 기록이 반영된다(SetAndWait로 커밋 보장).
 		local sec = self._scoreStore:SetAndWait(userId, power)
-		if sec ~= 0 then log_warning("[RankingManager] 점수 저장 오류코드=" .. tostring(sec)) end
+-- 		if sec ~= 0 then log_warning("[RankingManager] 점수 저장 오류코드=" .. tostring(sec)) end
 		if isvalid(self._metaStore) then
 			local mec = self._metaStore:SetAndWait(userId, self:SerializeMeta(name, job, camp, avatar))
-			if mec ~= 0 then log_warning("[RankingManager] 메타 저장 오류코드=" .. tostring(mec)) end
+-- 			if mec ~= 0 then log_warning("[RankingManager] 메타 저장 오류코드=" .. tostring(mec)) end
 		end
 		
 		-- 저장소 기준 top N 재구성 후 전체 클라 브로드캐스트(모든 유저 화면에 반영).
 		self:RebuildFromStorage()
 		self:BroadcastData(self:SerializeRecords())
-		log("[RankingManager] 기록 제출: " .. tostring(name) .. " 전투력=" .. tostring(power))
+-- 		log("[RankingManager] 기록 제출: " .. tostring(name) .. " 전투력=" .. tostring(power))
 	end
 
 	@ExecSpace("ServerOnly")
@@ -230,10 +230,10 @@ script RankingManager extends Logic
 		-- 보안: 클라가 호출 가능한 RPC이므로 반드시 허용목록(_adminUserIds)으로 게이트한다.
 		-- 목록이 비면 전부 거부(기본) → 악의적/실수 클라가 전역 랭킹을 파괴하지 못한다.
 		if self:IsAdminUser(senderUserId) == false then
-			log_warning("[RankingManager] 랭킹 초기화 거부 — 권한 없음(요청자=" .. tostring(senderUserId) .. "). 이 userId를 _adminUserIds에 등록해야 초기화 가능.")
+-- 			log_warning("[RankingManager] 랭킹 초기화 거부 — 권한 없음(요청자=" .. tostring(senderUserId) .. "). 이 userId를 _adminUserIds에 등록해야 초기화 가능.")
 			return
 		end
-		log("[RankingManager] 랭킹 초기화 요청 수신 (요청자=" .. tostring(senderUserId) .. ")")
+-- 		log("[RankingManager] 랭킹 초기화 요청 수신 (요청자=" .. tostring(senderUserId) .. ")")
 		self:ResetRanking()
 	end
 
@@ -262,7 +262,7 @@ script RankingManager extends Logic
 				if pages.IsLastPage == true then done = true else pages:MoveToNextPageAndWait() end
 			end
 		elseif ec ~= 1000002 then
-			log_warning("[RankingManager] 초기화 조회 오류코드=" .. tostring(ec))
+-- 			log_warning("[RankingManager] 초기화 조회 오류코드=" .. tostring(ec))
 		end
 		if #keys > 0 then
 			self._scoreStore:BatchDeleteAndWait(keys)
@@ -270,7 +270,7 @@ script RankingManager extends Logic
 		end
 		self._records = {}
 		self:BroadcastData(self:SerializeRecords())
-		log("[RankingManager] 랭킹 전체 초기화 완료: " .. tostring(#keys) .. "명 삭제")
+-- 		log("[RankingManager] 랭킹 전체 초기화 완료: " .. tostring(#keys) .. "명 삭제")
 	end
 
 	@ExecSpace("Multicast")
@@ -381,7 +381,7 @@ script RankingManager extends Logic
 	method void OnResetClick()
 		-- 랭킹 초기화 요청 → 서버 RPC. 전역 공유 랭킹이 모두 지워진다.
 		_SFXManager:PlayClick()
-		log("[RankingManager] 랭킹 초기화 버튼 클릭")
+-- 		log("[RankingManager] 랭킹 초기화 버튼 클릭")
 		self:RequestResetRanking()
 	end
 
@@ -433,7 +433,7 @@ script RankingManager extends Logic
 		if isvalid(info) then info.Enable = false end
 		ctx.Enable = true
 		_SFXManager:PlayClick()
-		log("[RankingManager] 컨텍스트 메뉴 열기: row=" .. tostring(row))
+-- 		log("[RankingManager] 컨텍스트 메뉴 열기: row=" .. tostring(row))
 	end
 
 	@ExecSpace("ClientOnly")
@@ -464,7 +464,7 @@ script RankingManager extends Logic
 		local rec = self._clientRecords[row]
 		if rec == nil then return end
 		_FriendManager:RequestAddFriend(tostring(rec.userId), tostring(rec.name))
-		log("[RankingManager] 친구추가 요청: " .. tostring(rec.name))
+-- 		log("[RankingManager] 친구추가 요청: " .. tostring(rec.name))
 	end
 
 	method void OnCtxClose()

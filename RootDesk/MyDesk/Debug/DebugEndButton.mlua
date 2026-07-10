@@ -24,7 +24,7 @@ script DebugEndButton extends Logic
 	@ExecSpace("ClientOnly")
 	method void OnClick(ButtonClickEvent event)
 		-- 게임 종료 이벤트(싱글) 강제 실행.
-		log("[DebugEndButton] 게임종료(TEST) 클릭 → DebugFinishGame")
+-- 		log("[DebugEndButton] 게임종료(TEST) 클릭 → DebugFinishGame")
 		_GameModeManager:DebugFinishGame()
 	end
 

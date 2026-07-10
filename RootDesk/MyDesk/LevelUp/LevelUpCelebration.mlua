@@ -42,7 +42,7 @@ script LevelUpCelebration extends Logic
 		self._cont = continuation
 		self._uid = uid
 		self:ShowCelebration(newLevel, uid)
-		log("[LevelUpCelebration] 레벨업 배너 게이트 시작 uid=" .. uid .. " Lv." .. tostring(newLevel))
+-- 		log("[LevelUpCelebration] 레벨업 배너 게이트 시작 uid=" .. uid .. " Lv." .. tostring(newLevel))
 	end
 
 	@ExecSpace("Client")
@@ -60,7 +60,7 @@ script LevelUpCelebration extends Logic
 		self._cont = nil
 		self._uid = ""
 		if cont ~= nil then cont() end
-		log("[LevelUpCelebration] 레벨업 배너 종료 → 다운스트림 진행")
+-- 		log("[LevelUpCelebration] 레벨업 배너 종료 → 다운스트림 진행")
 	end
 
 end

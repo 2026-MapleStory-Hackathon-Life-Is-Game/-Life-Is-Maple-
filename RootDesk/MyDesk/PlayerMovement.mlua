@@ -57,7 +57,7 @@ script PlayerMovement extends Component
 			                _TileManager:WarmupMapAssets(self.Entity.CurrentMapName)
 			            end
 		        end
-		        log("[PlayerMovement] 맵=" .. tostring(self.Entity.CurrentMapName) .. " 물리/입력 enable=" .. tostring(inGame == false))
+-- 		        log("[PlayerMovement] 맵=" .. tostring(self.Entity.CurrentMapName) .. " 물리/입력 enable=" .. tostring(inGame == false))
 	end
 
 	method void SetPhysicsEnabled(boolean on)
@@ -135,7 +135,7 @@ script PlayerMovement extends Component
 			local prevRegion = _TileManager:GetTileRegion(mapNameStraight, prevTileName)
 			local nextRegion = _TileManager:GetTileRegion(mapNameStraight, nextTileName)
 			if prevRegion ~= "" and nextRegion ~= "" and prevRegion ~= nextRegion then
-				log("[PlayerMovement] 직선 이동 마을 경계: " .. tostring(prevRegion) .. " -> " .. tostring(nextRegion) .. " (점프)")
+-- 				log("[PlayerMovement] 직선 이동 마을 경계: " .. tostring(prevRegion) .. " -> " .. tostring(nextRegion) .. " (점프)")
 				self:MoveToTileJump(nextTileName)   -- 마을 경계 → 점프
 			else
 				self:MoveToTile(nextTileName)       -- 같은 마을 → 걷기
@@ -148,11 +148,11 @@ script PlayerMovement extends Component
 		-- 서버 방어: 요청자가 이 말(piece)의 소유자여야 하고, 멀티면 현재 턴 플레이어여야 한다.
 		-- (분기창을 actor에게만 띄우지만, 서버에서도 남의 턴 이동을 이중으로 막는다.)
 		if self.Entity.PlayerComponent == nil or senderUserId ~= self.Entity.PlayerComponent.UserId then
-			log_warning("[PlayerMovement] 분기 선택 거부 — 요청자가 말 소유자가 아님: " .. tostring(senderUserId))
+-- 			log_warning("[PlayerMovement] 분기 선택 거부 — 요청자가 말 소유자가 아님: " .. tostring(senderUserId))
 			return
 		end
 		if _MultiTurnManager ~= nil and _MultiTurnManager._isActive and _MultiTurnManager._currentPlayerUserId ~= senderUserId then
-			log_warning("[PlayerMovement] 분기 선택 거부 — 현재 턴 플레이어가 아님: " .. tostring(senderUserId))
+-- 			log_warning("[PlayerMovement] 분기 선택 거부 — 현재 턴 플레이어가 아님: " .. tostring(senderUserId))
 			return
 		end
 		self:ClearBranchWatch()   -- actor가 직접 선택 → 자동선택 감시 해제(피드백 6)
@@ -207,7 +207,7 @@ script PlayerMovement extends Component
 			if _MultiTurnManager._currentPlayerUserId ~= uid then return end
 			if _MultiTurnManager._currentState ~= "MOVE" then return end
 		end
-		log("[PlayerMovement] 분기 시간 초과 — 자동 선택: " .. tostring(tileName))
+-- 		log("[PlayerMovement] 분기 시간 초과 — 자동 선택: " .. tostring(tileName))
 		if uid ~= "" and _MultiTurnManager ~= nil then _MultiTurnManager:NotifyAutoBranch(uid) end
 		self:ApplyBranch(tileName)
 	end
@@ -217,7 +217,7 @@ script PlayerMovement extends Component
 		local target = _TileManager:GetTileEntity(self.Entity.CurrentMapName, tileName)
 				
 				if target == nil then
-					log_warning("[PlayerMovement] 타일 엔티티 미발견(이동 중단): " .. tostring(tileName))
+-- 					log_warning("[PlayerMovement] 타일 엔티티 미발견(이동 중단): " .. tostring(tileName))
 					return
 				end
 		
@@ -246,7 +246,7 @@ script PlayerMovement extends Component
 		-- 다른 마을로 가는 분기 선택 시: 공중(낙하) 포즈로 포물선 점프 → 해당 칸 착지 시 IDLE → 이후 MoveNextStep은 다시 MOVE 걷기.
 		local target = _TileManager:GetTileEntity(self.Entity.CurrentMapName, tileName)
 		if target == nil then
-			log_warning("[PlayerMovement] 타일 엔티티 미발견(점프 이동 중단): " .. tostring(tileName))
+-- 			log_warning("[PlayerMovement] 타일 엔티티 미발견(점프 이동 중단): " .. tostring(tileName))
 			return
 		end
 		

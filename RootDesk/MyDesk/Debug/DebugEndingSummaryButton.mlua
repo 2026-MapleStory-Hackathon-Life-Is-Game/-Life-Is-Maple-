@@ -24,7 +24,7 @@ script DebugEndingSummaryButton extends Logic
 	@ExecSpace("ClientOnly")
 	method void OnClick(ButtonClickEvent event)
 		-- 엔딩 정리 표 강제 표시(디버그).
-		log("[DebugEndingSummaryButton] 엔딩표(TEST) 클릭 → DebugShowEndingSummary")
+-- 		log("[DebugEndingSummaryButton] 엔딩표(TEST) 클릭 → DebugShowEndingSummary")
 		if _SFXManager ~= nil then _SFXManager:PlayClick() end
 		_GameModeManager:DebugShowEndingSummary()
 	end

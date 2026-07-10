@@ -73,7 +73,7 @@ script PotentialCubePopup extends Logic
 		self._afterHoverH = self:WireHover(self.afterBtn, Color(1, 1, 1, 0), Color(1, 1, 1, 0.18))
 		self._beforeHoverH = self:WireHover(self.beforeBtn, Color(1, 1, 1, 0), Color(1, 1, 1, 0.18))
 		self._rerollHoverH = self:WireHover(self.btnReroll, Color(0.20, 0.45, 0.85, 1), Color(0.38, 0.62, 1.0, 1))
-		log("[PotentialCubePopup] OnBeginPlay OK")
+-- 		log("[PotentialCubePopup] OnBeginPlay OK")
 	end
 
 	method void SetText(Entity e, string s)
@@ -205,7 +205,7 @@ script PotentialCubePopup extends Logic
 		
 		if isvalid(self.groupRoot) then self.groupRoot.Enable = true end
 		self:BringToFront()
-		log("[PotentialCubePopup] Open " .. equipName .. " auto=" .. tostring(autoConfirmed))
+-- 		log("[PotentialCubePopup] Open " .. equipName .. " auto=" .. tostring(autoConfirmed))
 	end
 
 	method void ShowButton(ButtonComponent btn, boolean v)
@@ -333,7 +333,7 @@ script PotentialCubePopup extends Logic
 		self:SetSpectateButtonsEnabled(false)
 		if isvalid(self.groupRoot) then self.groupRoot.Enable = true end
 		self:BringToFront()
-		log("[PotentialCubePopup] 관전 표시 " .. equipName .. " actor=" .. who)
+-- 		log("[PotentialCubePopup] 관전 표시 " .. equipName .. " actor=" .. who)
 	end
 
 	@ExecSpace("ClientOnly")

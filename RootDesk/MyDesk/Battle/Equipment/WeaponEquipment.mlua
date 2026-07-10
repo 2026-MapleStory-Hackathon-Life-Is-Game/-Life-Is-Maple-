@@ -12,7 +12,7 @@ script WeaponEquipment extends BaseEquipment
 		-- 이 메서드 본문은 서버에서 실행된다. Custom*Equip은 @Sync라 서버 실행이어야 모든 클라에 전파된다.
 		local costume = self.Entity.CostumeManagerComponent
 		if isvalid(costume) == false then
-			log_error("WeaponEquipment.ApplyEquipVisual: CostumeManagerComponent가 없다")
+-- 			log_error("WeaponEquipment.ApplyEquipVisual: CostumeManagerComponent가 없다")
 			return
 		end
 		
@@ -22,20 +22,20 @@ script WeaponEquipment extends BaseEquipment
 			costume.CustomOneHandedWeaponEquip = ""
 			costume.CustomTwoHandedWeaponEquip = ""
 			costume.CustomSubWeaponEquip       = ""
-			log("WeaponEquipment: 무기 해제 → 아바타 무기 슬롯 비움")
+-- 			log("WeaponEquipment: 무기 해제 → 아바타 무기 슬롯 비움")
 			return
 		end
 		
 		local row = self:FindRow(equipName)
 		if row == -1 then
-			log_warning("WeaponEquipment.ApplyEquipVisual: EquipmentData에 " .. equipName .. " 행 없음")
+-- 			log_warning("WeaponEquipment.ApplyEquipVisual: EquipmentData에 " .. equipName .. " 행 없음")
 			return
 		end
 		local ds = _DataService:GetTable("EquipmentData")
 		local ruid = ds:GetCell(row, "Sprite RUID")
 		local preset = ds:GetCell(row, "Preset Name")
 		if ruid == "" then
-			log_warning("WeaponEquipment.ApplyEquipVisual: " .. equipName .. " 의 Sprite RUID가 비어있음")
+-- 			log_warning("WeaponEquipment.ApplyEquipVisual: " .. equipName .. " 의 Sprite RUID가 비어있음")
 			return
 		end
 		
@@ -44,12 +44,12 @@ script WeaponEquipment extends BaseEquipment
 			costume.CustomTwoHandedWeaponEquip = ruid
 			costume.CustomOneHandedWeaponEquip = ""
 			costume.CustomSubWeaponEquip       = ""
-			log("WeaponEquipment: 두손무기 아바타 적용 → " .. equipName)
+-- 			log("WeaponEquipment: 두손무기 아바타 적용 → " .. equipName)
 		else
 			costume.CustomOneHandedWeaponEquip = ruid
 			costume.CustomTwoHandedWeaponEquip = ""
 			costume.CustomSubWeaponEquip       = ""
-			log("WeaponEquipment: 한손무기 아바타 적용 → " .. equipName)
+-- 			log("WeaponEquipment: 한손무기 아바타 적용 → " .. equipName)
 		end
 	end
 

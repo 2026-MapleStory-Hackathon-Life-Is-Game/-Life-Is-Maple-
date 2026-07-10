@@ -8,7 +8,7 @@ script HuntPlusTile extends HuntTile
 		
 		-- 폴백: 사냥+ 데이터셋이 없으면 기본 사냥 결과만 표시(OnArrive가 사냥 보상 적용).
 		if plusEv == nil then
-			log_warning("[HuntPlusTile] 사냥+ 이벤트 nil — 기본 사냥만 표시")
+-- 			log_warning("[HuntPlusTile] 사냥+ 이벤트 nil — 기본 사냥만 표시")
 			return huntEv
 		end
 		-- (희박) 기본 사냥이 nil이면 사냥+ 이벤트만 표시.
@@ -51,7 +51,7 @@ script HuntPlusTile extends HuntTile
 		
 		local ds = _DataService:GetTable("HuntPlusEvent")
 		if isvalid(ds) == false then
-			log_warning("[HuntPlusTile] HuntPlusEvent 데이터셋 없음 → 폴백")
+-- 			log_warning("[HuntPlusTile] HuntPlusEvent 데이터셋 없음 → 폴백")
 			return self:FallbackPlusEvent(huntingGround)
 		end
 		local rows = ds:GetRowCount()

@@ -62,7 +62,7 @@ script BGMManager extends Logic
 		
 		self._curRuid = ruid
 		_SoundService:PlayBGM(ruid, self.volume)
-		log("[BGMManager] PlayBGM region=" .. region .. " ruid=" .. ruid)
+-- 		log("[BGMManager] PlayBGM region=" .. region .. " ruid=" .. ruid)
 	end
 
 	@ExecSpace("ClientOnly")
@@ -99,7 +99,7 @@ script BGMManager extends Logic
 		if ruid == self._curRuid then return end   -- 이미 같은 곡이면 재시작 안 함(끊김 방지).
 		self._curRuid = ruid
 		_SoundService:PlayBGM(ruid, self.volume)
-		log("[BGMManager] PlayCustomBGM ruid=" .. ruid)
+-- 		log("[BGMManager] PlayCustomBGM ruid=" .. ruid)
 	end
 
 	@ExecSpace("ClientOnly")
@@ -107,7 +107,7 @@ script BGMManager extends Logic
 		-- 수동 오버라이드 해제 → 다음 틱에 현재 지역의 BGM으로 자동 복귀한다.
 		self._manual = false
 		self._curRegion = ""   -- 강제 재평가 유도(지역이 그대로여도 다시 곡을 적용).
-		log("[BGMManager] ResumeRegionBGM")
+-- 		log("[BGMManager] ResumeRegionBGM")
 	end
 
 end

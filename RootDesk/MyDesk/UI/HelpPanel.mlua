@@ -62,7 +62,7 @@ script HelpPanel extends Component
 		-- 시작 시 숨김(.ui 기본이 켜져 있어도 명시적으로 내린다).
 		if isvalid(self.helpPanel) then self.helpPanel.Enable = false end
 		
-		log("[HelpPanel] OnBeginPlay OK")
+-- 		log("[HelpPanel] OnBeginPlay OK")
 	end
 
 	method void Connect(Entity e, any fn)
@@ -89,7 +89,7 @@ script HelpPanel extends Component
 		self:BringFront(self.helpPanel, 1000000)
 		self:BringFront(self.helpButton, 1000001)
 		self:ShowTab(self.activeTab)
-		log("[HelpPanel] Open tab=" .. tostring(self.activeTab))
+-- 		log("[HelpPanel] Open tab=" .. tostring(self.activeTab))
 	end
 
 	method void Close()
@@ -97,7 +97,7 @@ script HelpPanel extends Component
 		if self:IsClient() == false then return end
 		self.isOpen = false
 		if isvalid(self.helpPanel) then self.helpPanel.Enable = false end
-		log("[HelpPanel] Close")
+-- 		log("[HelpPanel] Close")
 	end
 
 	method void BringFront(Entity e, integer idx)
@@ -170,7 +170,7 @@ script HelpPanel extends Component
 			if tc ~= nil then tc.Text = tostring(page) .. " / " .. tostring(total) end
 		end
 		
-		log("[HelpPanel] tab=" .. tostring(tab) .. " page=" .. tostring(page) .. "/" .. tostring(total))
+-- 		log("[HelpPanel] tab=" .. tostring(tab) .. " page=" .. tostring(page) .. "/" .. tostring(total))
 	end
 
 	method void OnEndPlay()

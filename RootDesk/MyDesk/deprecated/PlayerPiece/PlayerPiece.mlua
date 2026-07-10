@@ -44,7 +44,7 @@ script PlayerPiece extends Component
 			-- 다시 가만히 서 있는 모션(stand1 등)으로 자동 복귀합니다.
 			self.Entity.StateComponent:ChangeState("IDLE")
 		
-			log("말 이동 완료!")
+-- 			log("말 이동 완료!")
 		
 			-- (선택) 여기에 _TurnManager:AdvanceTurn() 등을 호출하여
 			-- 이동이 완전히 끝난 직후 다음 턴으로 넘어가게 할 수 있습니다.

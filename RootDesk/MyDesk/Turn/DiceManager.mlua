@@ -47,7 +47,7 @@ script DiceManager extends Logic
 		        self._dice2 = d2
 		        self._total = total
 		
-		        log("[DiceManager] 주사위: " .. tostring(d1) .. " + " .. tostring(d2) .. " = " .. tostring(total))
+-- 		        log("[DiceManager] 주사위: " .. tostring(d1) .. " + " .. tostring(d2) .. " = " .. tostring(total))
 		        return total
 	end
 

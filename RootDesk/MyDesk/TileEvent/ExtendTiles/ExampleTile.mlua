@@ -22,14 +22,14 @@ script ExampleTile extends BaseTile
 		if outcome == "GreatSuccess" then
 			-- 대성공: 공/마 +10%
 			self:AddMainAttack(piece, "percent", self.bonusAttackPct)
-			log("[ExampleTile] 대성공 — 공/마 +" .. tostring(self.bonusAttackPct) .. "%")
+-- 			log("[ExampleTile] 대성공 — 공/마 +" .. tostring(self.bonusAttackPct) .. "%")
 		elseif outcome == "Fail" then
 			-- 실패: 올스탯 -5 (음수 = 감소)
 			self:AddAllStat(piece, "flat", -5)
-			log("[ExampleTile] 실패 — 올스탯 -5")
+-- 			log("[ExampleTile] 실패 — 올스탯 -5")
 		else
 			-- 성공/그 외: 추가 효과 없음.
-			log("[ExampleTile] 성공 — 기본 효과만 적용")
+-- 			log("[ExampleTile] 성공 — 기본 효과만 적용")
 		end
 	end
 

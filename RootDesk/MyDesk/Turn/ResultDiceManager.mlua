@@ -64,7 +64,7 @@ script ResultDiceManager extends Logic
 				self._dice2 = d2
 				self._total = total
 		
-				log("[ResultDiceManager] 주사위: " .. tostring(d1) .. " + " .. tostring(d2) .. " = " .. tostring(total) .. " (" .. self.GameOutcome .. ")")
+-- 				log("[ResultDiceManager] 주사위: " .. tostring(d1) .. " + " .. tostring(d2) .. " = " .. tostring(total) .. " (" .. self.GameOutcome .. ")")
 				
 				-- 기존 방식대로 total 1개만 리턴
 				return total
@@ -81,7 +81,7 @@ script ResultDiceManager extends Logic
 		pct = self:NormalizePercents(pct)
 		self._currentResultTable = self:PlaceOutcomes(pct.fail, pct.success, pct.great)
 		
-		log("[ResultDiceManager] 목표확률 실패=" .. tostring(pct.fail) .. "% 성공=" .. tostring(pct.success) .. "% 대성공=" .. tostring(pct.great) .. "%")
+-- 		log("[ResultDiceManager] 목표확률 실패=" .. tostring(pct.fail) .. "% 성공=" .. tostring(pct.success) .. "% 대성공=" .. tostring(pct.great) .. "%")
 	end
 
 	method table DeriveOutcomePercents(number playerCombatPower, number targetCombatPower)
@@ -209,7 +209,7 @@ script ResultDiceManager extends Logic
 		local fallback = { fail = self.BaseFailPct, success = 100 - self.BaseFailPct - self.BaseGreatPct, great = self.BaseGreatPct }
 		local ds = _DataService:GetTable("BossProbability")
 		if isvalid(ds) == false then
-			log_warning("[ResultDiceManager] BossProbability 데이터셋 없음 → 기본확률 폴백")
+-- 			log_warning("[ResultDiceManager] BossProbability 데이터셋 없음 → 기본확률 폴백")
 			return fallback
 		end
 		local diff = string.lower(difficulty)
@@ -227,7 +227,7 @@ script ResultDiceManager extends Logic
 				}
 			end
 		end
-		log_warning("[ResultDiceManager] BossProbability 행 없음: " .. tostring(bossKey) .. "/" .. tostring(difficulty) .. " → 기본확률 폴백")
+-- 		log_warning("[ResultDiceManager] BossProbability 행 없음: " .. tostring(bossKey) .. "/" .. tostring(difficulty) .. " → 기본확률 폴백")
 		return fallback
 	end
 
@@ -238,7 +238,7 @@ script ResultDiceManager extends Logic
 		-- 그 외 흐름(2d6/효과음/프로퍼티 저장/리턴)은 Roll()과 동일. BossTile 등은 Roll() 대신 이걸 호출하면 된다.
 		local pct = self:LookupBossPercents(bossKey, difficulty, playerCombatPower)
 		self._currentResultTable = self:PlaceOutcomes(pct.fail, pct.success, pct.great)
-		log("[ResultDiceManager] 보스표 확률 실패=" .. tostring(pct.fail) .. "% 성공=" .. tostring(pct.success) .. "% 대성공=" .. tostring(pct.great) .. "% (CP=" .. tostring(playerCombatPower) .. ")")
+-- 		log("[ResultDiceManager] 보스표 확률 실패=" .. tostring(pct.fail) .. "% 성공=" .. tostring(pct.success) .. "% 대성공=" .. tostring(pct.great) .. "% (CP=" .. tostring(playerCombatPower) .. ")")
 		
 		local d1 = _UtilLogic:RandomIntegerRange(1, 6)
 		local d2 = _UtilLogic:RandomIntegerRange(1, 6)
@@ -253,7 +253,7 @@ script ResultDiceManager extends Logic
 		self._dice2 = d2
 		self._total = total
 		
-		log("[ResultDiceManager] 보스 주사위: " .. tostring(d1) .. " + " .. tostring(d2) .. " = " .. tostring(total) .. " (" .. self.GameOutcome .. ")")
+-- 		log("[ResultDiceManager] 보스 주사위: " .. tostring(d1) .. " + " .. tostring(d2) .. " = " .. tostring(total) .. " (" .. self.GameOutcome .. ")")
 		return total
 	end
 

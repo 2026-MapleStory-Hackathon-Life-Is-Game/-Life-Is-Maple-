@@ -28,7 +28,7 @@ script DebugGrantItemsButton extends Logic
 	method void OnClick(ButtonClickEvent event)
 		-- 토글 뒤집기 → 서버에 지급/회수 요청 → 버튼 표시 갱신.
 		self._on = not self._on
-		log("[DebugGrantItemsButton] 테스트 아이템 토글 → " .. tostring(self._on))
+-- 		log("[DebugGrantItemsButton] 테스트 아이템 토글 → " .. tostring(self._on))
 		_PlayerStatInit:SetTestItems(self._on)
 		self:UpdateVisual()
 	end

@@ -50,7 +50,7 @@ script PetShopManager extends Logic
 			self._spawned = {}
 			_WorldShopService:SetProcessPurchaseCallback(function(info) return self:OnProcessPurchase(info) end)
 			self.userEnterHandler = _UserService:ConnectEvent(UserEnterEvent, self.OnUserEnter)
-			log("[PetShop] 서버 초기화: 구매 콜백 + 입장 이벤트 등록")
+-- 			log("[PetShop] 서버 초기화: 구매 콜백 + 입장 이벤트 등록")
 		else
 			self:WireClient()
 		end
@@ -62,11 +62,11 @@ script PetShopManager extends Logic
 		-- info: { ProductId, PurchaseId, UserId, OrderNumber } — 무료 상품은 OrderNumber=0.
 		local pet = self:PetByPid(info.ProductId)
 		if pet == nil then
-			log_warning("[PetShop] 알 수 없는 상품 결제: " .. tostring(info.ProductId))
+-- 			log_warning("[PetShop] 알 수 없는 상품 결제: " .. tostring(info.ProductId))
 			return false
 		end
 		self:GrantPet(info.UserId, info.ProductId)
-		log("[PetShop] 구매 지급 완료: user=" .. tostring(info.UserId) .. " pet=" .. pet.name)
+-- 		log("[PetShop] 구매 지급 완료: user=" .. tostring(info.UserId) .. " pet=" .. pet.name)
 		return true
 	end
 
@@ -83,7 +83,7 @@ script PetShopManager extends Logic
 		local st = _DataStorageService:GetUserDataStorage(userId)
 		if isvalid(st) == false then return end
 		st:SetAsync("EquippedPet", pid, function(ec, key)
-			if ec ~= 0 then log_warning("[PetShop] 소유 저장 오류코드=" .. tostring(ec)) end
+-- 			if ec ~= 0 then log_warning("[PetShop] 소유 저장 오류코드=" .. tostring(ec)) end
 		end)
 	end
 
@@ -104,7 +104,7 @@ script PetShopManager extends Logic
 		local spawnPos = Vector3(pos0.x - 0.55, pos0.y + 0.15, pos0.z)
 		local e = _SpawnService:SpawnByModelId("pet", "Pet_" .. userId, spawnPos, map)
 		if isvalid(e) == false then
-			log_warning("[PetShop] 펫 스폰 실패: " .. tostring(userId))
+-- 			log_warning("[PetShop] 펫 스폰 실패: " .. tostring(userId))
 			return
 		end
 		
@@ -116,7 +116,7 @@ script PetShopManager extends Logic
 		if isvalid(pf) then pf.OwnerUserId = userId end
 		
 		self._spawned[userId] = e
-		log("[PetShop] 펫 소환: " .. pet.name .. " (user=" .. tostring(userId) .. ")")
+-- 		log("[PetShop] 펫 소환: " .. pet.name .. " (user=" .. tostring(userId) .. ")")
 	end
 
 	@ExecSpace("ServerOnly")
@@ -136,11 +136,11 @@ script PetShopManager extends Logic
 		if ec == 0 and raw ~= nil and raw ~= "" then
 			if self:PetByPid(raw) ~= nil then
 				self:SpawnPetFor(event.UserId, raw)
-				log("[PetShop] 재입장 펫 재소환: " .. tostring(raw))
+-- 				log("[PetShop] 재입장 펫 재소환: " .. tostring(raw))
 			end
 		elseif ec ~= 0 and ec ~= 1000002 then
 			-- 1000002 = NotFound(펫 없음). 그 외만 경고.
-			log_warning("[PetShop] 소유 로드 오류코드=" .. tostring(ec))
+-- 			log_warning("[PetShop] 소유 로드 오류코드=" .. tostring(ec))
 		end
 	end
 
@@ -154,7 +154,7 @@ script PetShopManager extends Logic
 		self:SaveOwned(userId, pids)
 		-- 대표펫 = 목록 첫 번째. GrantPet가 EquippedPet 저장 + 소환 처리.
 		self:GrantPet(userId, pets[1].pid)
-		log("[PetShop] 전체 펫 지급 완료: user=" .. tostring(userId) .. " 소유=" .. tostring(#pids) .. "종 대표=" .. pets[1].name)
+-- 		log("[PetShop] 전체 펫 지급 완료: user=" .. tostring(userId) .. " 소유=" .. tostring(#pids) .. "종 대표=" .. pets[1].name)
 	end
 
 	@ExecSpace("ServerOnly")
@@ -162,7 +162,7 @@ script PetShopManager extends Logic
 		-- 소유목록 + 장착 펫 데이터 제거 + 소환 펫 제거.
 		self:ClearPetData(userId)
 		self:DespawnPet(userId)
-		log("[PetShop] 펫 데이터 전부 제거 완료: user=" .. tostring(userId))
+-- 		log("[PetShop] 펫 데이터 전부 제거 완료: user=" .. tostring(userId))
 	end
 
 	@ExecSpace("ServerOnly")
@@ -172,7 +172,7 @@ script PetShopManager extends Logic
 		if isvalid(st) == false then return end
 		local joined = table.concat(pids, ",")
 		st:SetAsync("OwnedPets", joined, function(ec, key)
-			if ec ~= 0 then log_warning("[PetShop] 소유목록 저장 오류코드=" .. tostring(ec)) end
+-- 			if ec ~= 0 then log_warning("[PetShop] 소유목록 저장 오류코드=" .. tostring(ec)) end
 		end)
 	end
 
@@ -182,10 +182,10 @@ script PetShopManager extends Logic
 		local st = _DataStorageService:GetUserDataStorage(userId)
 		if isvalid(st) == false then return end
 		st:SetAsync("EquippedPet", "", function(ec, key)
-			if ec ~= 0 then log_warning("[PetShop] 장착 초기화 오류코드=" .. tostring(ec)) end
+-- 			if ec ~= 0 then log_warning("[PetShop] 장착 초기화 오류코드=" .. tostring(ec)) end
 		end)
 		st:SetAsync("OwnedPets", "", function(ec, key)
-			if ec ~= 0 then log_warning("[PetShop] 소유목록 초기화 오류코드=" .. tostring(ec)) end
+-- 			if ec ~= 0 then log_warning("[PetShop] 소유목록 초기화 오류코드=" .. tostring(ec)) end
 		end)
 	end
 
@@ -269,7 +269,7 @@ script PetShopManager extends Logic
 	method void OnBuyClick(string pid)
 		-- 구매 버튼: MSW 결제창 표시(무료 상품은 0코인). 결과는 서버 콜백에서 지급.
 		_SFXManager:PlayClick()
-		log("[PetShop] 구매창 요청: " .. tostring(pid))
+-- 		log("[PetShop] 구매창 요청: " .. tostring(pid))
 		_WorldShopService:PromptPurchase(pid)
 	end
 
@@ -277,7 +277,7 @@ script PetShopManager extends Logic
 	method void OnGetAllClick()
 		-- 모든 펫 구매처리 요청(본인). 실제 소유 저장/소환은 서버에서 처리.
 		_SFXManager:PlayClick()
-		log("[PetShop] 전체 펫 구매처리 요청")
+-- 		log("[PetShop] 전체 펫 구매처리 요청")
 		self:RequestGrantAll()
 	end
 
@@ -285,7 +285,7 @@ script PetShopManager extends Logic
 	method void OnResetAllClick()
 		-- 펫 구매 데이터 전부 제거 요청(본인). 실제 삭제/디스폰은 서버에서 처리.
 		_SFXManager:PlayClick()
-		log("[PetShop] 전체 펫 데이터 제거 요청")
+-- 		log("[PetShop] 전체 펫 데이터 제거 요청")
 		self:RequestResetAll()
 	end
 

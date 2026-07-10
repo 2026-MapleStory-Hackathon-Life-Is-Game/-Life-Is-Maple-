@@ -24,7 +24,7 @@ script DebugNextStageButton extends Logic
 	@ExecSpace("ClientOnly")
 	method void OnClick(ButtonClickEvent event)
 		-- 다음 스테이지 이동(싱글) 강제 실행.
-		log("[DebugNextStageButton] 다음스테이지(TEST) 클릭 → DebugNextStage")
+-- 		log("[DebugNextStageButton] 다음스테이지(TEST) 클릭 → DebugNextStage")
 		_GameModeManager:DebugNextStage()
 	end
 

@@ -56,12 +56,12 @@ script EndTile extends BaseTile
 				end
 			end
 			if doRoll then
-				log("[EndTile] 종료 칸 도착 → 큐브 획득 주사위 tile=" .. self.Entity.Name)
+-- 				log("[EndTile] 종료 칸 도착 → 큐브 획득 주사위 tile=" .. self.Entity.Name)
 				self:StartCubeRoll(piece, endOwnerId, false)   -- 도착 보너스 롤: 넘기기 없음
 				return
 			end
 			-- 롤 없이 바로 완주 처리(싱글 전체 / 멀티 꼴찌 / 소유자 없음).
-			log("[EndTile] 종료 칸 도착 → 큐브 롤 없이 완주 tile=" .. self.Entity.Name)
+-- 			log("[EndTile] 종료 칸 도착 → 큐브 롤 없이 완주 tile=" .. self.Entity.Name)
 			self:FinishEndTile(piece)
 			return
 		end
@@ -74,7 +74,7 @@ script EndTile extends BaseTile
 			return
 		end
 		self._step = 0
-		log("[EndTile] 검은 마법사 결전 — 보스 선택 표시 tile=" .. self.Entity.Name)
+-- 		log("[EndTile] 검은 마법사 결전 — 보스 선택 표시 tile=" .. self.Entity.Name)
 		self:ClientShowBossSelect(self:Dlg("intro"), ownerId)
 		-- 관전자: 검은 마법사 선택 화면을 읽기전용 로스터(단일 보스)로 방송(피드백 12).
 		_BossUI:SpectatorShowRoster(self:Dlg("intro"), { "Black_Mage" }, { "Hard" }, ownerId)
@@ -87,7 +87,7 @@ script EndTile extends BaseTile
 		if isvalid(piece) == false then return end
 		if senderUserId ~= self:OwnerUserId(piece) then return end
 		self._step = 2
-		log("[EndTile] 검은 마법사 선택 (" .. tostring(bossKey) .. "/" .. tostring(diffKey) .. ") → 도전")
+-- 		log("[EndTile] 검은 마법사 선택 (" .. tostring(bossKey) .. "/" .. tostring(diffKey) .. ") → 도전")
 		local ownerId = self:OwnerUserId(piece)
 		self:ClientStartChallenge(self:Dlg("challenge"), ownerId)
 		-- 관전자: 로스터 닫고 도전 문구 + 검은 마법사 이미지 미러(피드백 12).
@@ -131,7 +131,7 @@ script EndTile extends BaseTile
 			self._step = 3
 			local key = "lose"
 			if self._won then key = "win" end
-			log("[EndTile] 검은 마법사 판정 CP=" .. tostring(cp) .. " / 적정=" .. tostring(req) .. " → " .. key)
+-- 			log("[EndTile] 검은 마법사 판정 CP=" .. tostring(cp) .. " / 적정=" .. tostring(req) .. " → " .. key)
 			self:ClientShowText(self:Dlg(key), "BlackMage", self._won, ownerId)
 			-- 관전자: 승/패 결과 문구 미러(승리=환호/패배=울음). PortraitEmote는 win/lose를 모르므로 대성공/실패로 매핑, die 이미지 없음("").
 			_EventTileUI:SpectatorBossFollow(self._won, (self._won and "대성공" or "실패"), self:Dlg(key), "", ownerId)
@@ -171,7 +171,7 @@ script EndTile extends BaseTile
 		end
 		-- 보상 즉시 지급(cubes=0이면 GrantCube 내부에서 무시).
 		self:GrantCube(piece, cubes)
-		log("[EndTile] 큐브 롤 owner=" .. ownerId .. " 주사위=" .. tostring(d1) .. "+" .. tostring(d2) .. "=" .. tostring(sum) .. " → " .. outcomeLabel .. " (큐브 " .. tostring(cubes) .. "개)")
+-- 		log("[EndTile] 큐브 롤 owner=" .. ownerId .. " 주사위=" .. tostring(d1) .. "+" .. tostring(d2) .. "=" .. tostring(sum) .. " → " .. outcomeLabel .. " (큐브 " .. tostring(cubes) .. "개)")
 
 		local leadText = "결승선에 도착했다!\n주사위를 굴려 미라클 큐브를 획득하자!"
 		local resultText = "아쉽지만 이번엔 큐브를 얻지 못했다..."
@@ -196,7 +196,7 @@ script EndTile extends BaseTile
 			_MultiTurnManager:OnWaitingCubeRollDone()
 			return
 		end
-		log("[EndTile] 완주자 대기 큐브 롤 owner=" .. ownerId)
+-- 		log("[EndTile] 완주자 대기 큐브 롤 owner=" .. ownerId)
 		self:StartCubeRoll(piece, ownerId, true)   -- 완주자 대기 롤: '넘기기' 노출(30초 동안 배낭 열 시간 확보)
 	end
 
@@ -254,7 +254,7 @@ script EndTile extends BaseTile
 		self:ApplyClearRankReward(piece)
 		-- 엔딩 요약을 결과창과 통합 → 별도 정리 표/'다음' 없이 바로 종료 흐름(FinishEndTile→통합 결과 카드/멀티 순위표)으로 진행.
 		self:FinishEndTile(piece)
-		log("[EndTile] 검은 마법사 결전 종료(won=" .. tostring(self._won) .. ") → 통합 결과 카드")
+-- 		log("[EndTile] 검은 마법사 결전 종료(won=" .. tostring(self._won) .. ") → 통합 결과 카드")
 	end
 
 	@ExecSpace("ServerOnly")
@@ -286,8 +286,8 @@ script EndTile extends BaseTile
 		end
 		self:AddMainStat(piece, "percent", mainPct)
 		self:AddMainAttack(piece, "percent", attackPct)
-		log("[EndTile] 검은마법사 클리어 순위보상 rank=" .. tostring(rank) .. "/" .. tostring(total)
-			.. " → 주스탯+" .. tostring(mainPct) .. "% 공격+" .. tostring(attackPct) .. "%")
+-- 		log("[EndTile] 검은마법사 클리어 순위보상 rank=" .. tostring(rank) .. "/" .. tostring(total)
+-- 			.. " → 주스탯+" .. tostring(mainPct) .. "% 공격+" .. tostring(attackPct) .. "%")
 	end
 
 	method integer BlackMageRequiredPower()

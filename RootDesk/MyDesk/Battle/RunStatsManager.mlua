@@ -23,7 +23,7 @@ script RunStatsManager extends Component
 		self.StartElapsed = _UtilLogic.ElapsedSeconds
 		self.TurnCount = 0
 		self.TileVisits = self:NewVisits()
-		log("[RunStatsManager] BeginRun startElapsed=" .. tostring(self.StartElapsed))
+-- 		log("[RunStatsManager] BeginRun startElapsed=" .. tostring(self.StartElapsed))
 	end
 
 	@ExecSpace("ServerOnly")

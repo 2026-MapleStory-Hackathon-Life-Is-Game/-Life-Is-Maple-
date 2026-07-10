@@ -63,7 +63,7 @@ script RomanceTile extends BaseTile
 				return self:DecodeText(ds:GetCell(i, "Text"))
 			end
 		end
-		log_warning("[RomanceTile] 대사 키 없음: " .. tostring(key))
+-- 		log_warning("[RomanceTile] 대사 키 없음: " .. tostring(key))
 		return ""
 	end
 
@@ -175,7 +175,7 @@ script RomanceTile extends BaseTile
 		local ownerId = self:OwnerUserId(piece)
 		local rm = self:Romance(piece)
 		if ownerId == "" or isvalid(rm) == false then
-			log_warning("[RomanceTile] 소유자/RomanceManager 없음 → 즉시 종료")
+-- 			log_warning("[RomanceTile] 소유자/RomanceManager 없음 → 즉시 종료")
 			self:FinishEvent()
 			return
 		end
@@ -202,7 +202,7 @@ script RomanceTile extends BaseTile
 		
 		self._eventId = eventId
 		self._seq = 1
-		log("[RomanceTile] 연애 이벤트 시작 event=" .. eventId .. " stage=" .. tostring(rm.Stage))
+-- 		log("[RomanceTile] 연애 이벤트 시작 event=" .. eventId .. " stage=" .. tostring(rm.Stage))
 		self:PlayScene()
 	end
 
@@ -216,7 +216,7 @@ script RomanceTile extends BaseTile
 		local rm = self:Romance(piece)
 		local step = self:Step(self._eventId, self._seq)
 		if step == nil then
-			log_warning("[RomanceTile] 씬 없음 event=" .. self._eventId .. " seq=" .. tostring(self._seq))
+-- 			log_warning("[RomanceTile] 씬 없음 event=" .. self._eventId .. " seq=" .. tostring(self._seq))
 			self:FinishEvent()
 			return
 		end
@@ -315,9 +315,9 @@ script RomanceTile extends BaseTile
 		local resultText = self:Fill(self:GetText(resultKey), rm)
 		resultText = self:FillPlaceDesc(resultText, tier)
 		self._pendingNext = step.next
-		log("[RomanceTile] 확률게임 group=" .. step.group
-			.. " 확률(대/성/실)=" .. tostring(greatPct) .. "/" .. tostring(successPct) .. "/" .. tostring(failPct)
-			.. " 주사위=" .. tostring(d1) .. "+" .. tostring(d2) .. "=" .. tostring(sum) .. " → " .. outcomeLabel)
+-- 		log("[RomanceTile] 확률게임 group=" .. step.group
+-- 			.. " 확률(대/성/실)=" .. tostring(greatPct) .. "/" .. tostring(successPct) .. "/" .. tostring(failPct)
+-- 			.. " 주사위=" .. tostring(d1) .. "+" .. tostring(d2) .. "=" .. tostring(sum) .. " → " .. outcomeLabel)
 		self:ClientShowRoll(leadText, "idle", resultText, d1, d2, sum, greatPct, successPct, failPct, outcomeLabel, npcKey, ownerId)
 			-- 주사위 보드는 actor가 리드를 넘겨 보드가 뜨는 순간(OnRollLeadDone)에 방송된다. 여기선 씬 리드 미러만.
 		_EventTileUI:SpectatorSceneRoll(leadText, resultText, "idle", npcKey, ownerId)
@@ -381,7 +381,7 @@ script RomanceTile extends BaseTile
 				key = self._partnerKeys[index]
 			end
 			if key == "" then
-				log_warning("[RomanceTile] 상대 선택 인덱스 무효(index=" .. tostring(index) .. ") → 종료")
+-- 				log_warning("[RomanceTile] 상대 선택 인덱스 무효(index=" .. tostring(index) .. ") → 종료")
 				self:FinishEvent()
 				return
 			end
@@ -399,7 +399,7 @@ script RomanceTile extends BaseTile
 				key = self._dateKeys[index]
 			end
 			if key == "" then
-				log_warning("[RomanceTile] 데이트 장소 인덱스 무효(index=" .. tostring(index) .. ") → 종료")
+-- 				log_warning("[RomanceTile] 데이트 장소 인덱스 무효(index=" .. tostring(index) .. ") → 종료")
 				self:FinishEvent()
 				return
 			end
@@ -423,7 +423,7 @@ script RomanceTile extends BaseTile
 		if ownerId ~= "" then self:ClientHide(ownerId) end
 		if ownerId ~= "" then _EventTileUI:SpectatorSceneHide(ownerId) end
 		_GameModeManager:NotifyTileEventDone()
-		log("[RomanceTile] 연애 이벤트 종료")
+-- 		log("[RomanceTile] 연애 이벤트 종료")
 	end
 
 	@ExecSpace("Client")

@@ -30,7 +30,7 @@ script RomanceManager extends Component
 	method void SelectPartner(string key)
 		-- 연애 상대 확정(단계는 바꾸지 않는다 — 곧바로 룰렛이 이어진다).
 		self.Partner = key
-		log("[RomanceManager] 연애 상대 선택 = " .. tostring(key))
+-- 		log("[RomanceManager] 연애 상대 선택 = " .. tostring(key))
 	end
 
 	@ExecSpace("ServerOnly")
@@ -38,14 +38,14 @@ script RomanceManager extends Component
 		-- 대성공: 즉시 결혼 → 결혼 완료 단계로 진행.
 		self.Married = true
 		self.Stage = 2
-		log("[RomanceManager] 대성공 즉시 결혼 완료")
+-- 		log("[RomanceManager] 대성공 즉시 결혼 완료")
 	end
 
 	@ExecSpace("ServerOnly")
 	method void SetPendingMarry()
 		-- 성공: 다음 연애 칸에서 자동 결혼하도록 대기 단계로 진행.
 		self.Stage = 1
-		log("[RomanceManager] 결혼 대기(다음 칸에서 결혼)")
+-- 		log("[RomanceManager] 결혼 대기(다음 칸에서 결혼)")
 	end
 
 	@ExecSpace("ServerOnly")
@@ -53,7 +53,7 @@ script RomanceManager extends Component
 		-- 결혼 이벤트 완료(성공 경로): 결혼 완료 단계로 진행.
 		self.Married = true
 		self.Stage = 2
-		log("[RomanceManager] 결혼 이벤트 완료")
+-- 		log("[RomanceManager] 결혼 이벤트 완료")
 	end
 
 	@ExecSpace("ServerOnly")
@@ -62,7 +62,7 @@ script RomanceManager extends Component
 		-- 실제 버프 적용(BuffManager:SetBuff)은 RomanceTile에서 하고, 여기서는 잔여 턴만 관리한다.
 		self.DateBuffName = buffName
 		self.DateBuffTurns = turns
-		log("[RomanceManager] 데이트 버프 = " .. tostring(buffName) .. " (" .. tostring(turns) .. "턴)")
+-- 		log("[RomanceManager] 데이트 버프 = " .. tostring(buffName) .. " (" .. tostring(turns) .. "턴)")
 	end
 
 	@ExecSpace("ServerOnly")
@@ -70,11 +70,11 @@ script RomanceManager extends Component
 		-- 플레이어 자신의 턴이 시작될 때마다 호출. 데이트 버프 잔여 턴을 1 줄이고, 0이 되면 버프를 제거한다.
 		if self.DateBuffTurns <= 0 then return end
 		self.DateBuffTurns -= 1
-		log("[RomanceManager] 데이트 버프 잔여 턴 → " .. tostring(self.DateBuffTurns))
+-- 		log("[RomanceManager] 데이트 버프 잔여 턴 → " .. tostring(self.DateBuffTurns))
 		if self.DateBuffTurns <= 0 and self.DateBuffName ~= "" then
 			local buff = self.Entity:GetComponent("script.BuffManager")
 			if isvalid(buff) then buff:ClearBuff(self.DateBuffName) end
-			log("[RomanceManager] 데이트 버프 소멸: " .. self.DateBuffName)
+-- 			log("[RomanceManager] 데이트 버프 소멸: " .. self.DateBuffName)
 			self.DateBuffName = ""
 		end
 	end
@@ -83,14 +83,14 @@ script RomanceManager extends Component
 	method void AddFamilyMember()
 		-- 데이트 대성공: 가족 구성원 +1.
 		self.FamilyMembers += 1
-		log("[RomanceManager] 가족 구성원 → " .. tostring(self.FamilyMembers) .. "명")
+-- 		log("[RomanceManager] 가족 구성원 → " .. tostring(self.FamilyMembers) .. "명")
 	end
 
 	@ExecSpace("ServerOnly")
 	method void CreateUnion()
 		-- 유니온 창설 완료 표시.
 		self.UnionCreated = true
-		log("[RomanceManager] 유니온 창설 완료")
+-- 		log("[RomanceManager] 유니온 창설 완료")
 	end
 
 	@ExecSpace("ServerOnly")
@@ -103,7 +103,7 @@ script RomanceManager extends Component
 		self.UnionCreated = false
 		self.DateBuffName = ""
 		self.DateBuffTurns = 0
-		log("[RomanceManager] 상태 전체 초기화")
+-- 		log("[RomanceManager] 상태 전체 초기화")
 	end
 
 end

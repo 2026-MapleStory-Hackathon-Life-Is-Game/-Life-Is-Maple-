@@ -8,7 +8,7 @@ script HelpOpenButton extends Component
 		-- 어떤 패널의 HelpButton에든 이 컴포넌트만 붙이면 동작하는 재사용 버튼 컴포넌트.
 		if self:IsClient() == false then return end
 		self.clickHandler = self.Entity:ConnectEvent(ButtonClickEvent, self.OnClick)
-		log("[HelpOpenButton] wired: " .. self.Entity.Name)
+-- 		log("[HelpOpenButton] wired: " .. self.Entity.Name)
 	end
 
 	method void OnClick(ButtonClickEvent event)
@@ -18,16 +18,16 @@ script HelpOpenButton extends Component
 		if _SFXManager ~= nil then _SFXManager:PlayClick() end
 		local e = _EntityService:GetEntityByPath("/ui/HelpPanelGroup/HelpCtrl")
 		if isvalid(e) == false then
-			log_warning("[HelpOpenButton] HelpCtrl 엔티티를 찾지 못함")
+-- 			log_warning("[HelpOpenButton] HelpCtrl 엔티티를 찾지 못함")
 			return
 		end
 		---@type HelpPanel
 		local hp = e:GetComponent("script.HelpPanel")
 		if isvalid(hp) then
 			hp:Toggle()
-			log("[HelpOpenButton] HelpPanel Toggle 요청: " .. self.Entity.Name)
+-- 			log("[HelpOpenButton] HelpPanel Toggle 요청: " .. self.Entity.Name)
 		else
-			log_warning("[HelpOpenButton] HelpPanel 컴포넌트를 찾지 못함")
+-- 			log_warning("[HelpOpenButton] HelpPanel 컴포넌트를 찾지 못함")
 		end
 	end
 
