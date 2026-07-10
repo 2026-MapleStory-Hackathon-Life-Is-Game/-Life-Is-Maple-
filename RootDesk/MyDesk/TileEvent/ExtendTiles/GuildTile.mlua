@@ -125,7 +125,7 @@ script GuildTile extends EventTileBase
 		local ownerId = self:OwnerUserId(piece)
 		local gm = self:Guild(piece)
 		if ownerId == "" or isvalid(gm) == false then
-			log_warning("[GuildTile] 소유자/GuildManager 없음 → 즉시 종료")
+-- 			log_warning("[GuildTile] 소유자/GuildManager 없음 → 즉시 종료")
 			self:FinishEvent()
 			return
 		end
@@ -141,11 +141,11 @@ script GuildTile extends EventTileBase
 		self._event = event
 		self._seq = self:GuildFirstSeq(event)
 		if self._seq <= 0 then
-			log_warning("[GuildTile] 길드 이벤트 씬 없음 event=" .. event)
+-- 			log_warning("[GuildTile] 길드 이벤트 씬 없음 event=" .. event)
 			self:FinishEvent()
 			return
 		end
-		log("[GuildTile] 길드 이벤트 시작 event=" .. event .. " firstSeq=" .. tostring(self._seq))
+-- 		log("[GuildTile] 길드 이벤트 시작 event=" .. event .. " firstSeq=" .. tostring(self._seq))
 		self:PlayScene()
 	end
 
@@ -158,7 +158,7 @@ script GuildTile extends EventTileBase
 		
 		local node = self:GuildNode(self._event, self._seq)
 		if node == nil then
-			log_warning("[GuildTile] 노드 없음 event=" .. self._event .. " seq=" .. tostring(self._seq))
+-- 			log_warning("[GuildTile] 노드 없음 event=" .. self._event .. " seq=" .. tostring(self._seq))
 			self:FinishEvent()
 			return
 		end
@@ -228,8 +228,8 @@ script GuildTile extends EventTileBase
 			else
 				self._pendingNext = 0
 			end
-			log("[GuildTile] 확률게임 event=" .. self._event .. " seq=" .. tostring(self._seq)
-				.. " 주사위=" .. tostring(d1) .. "+" .. tostring(d2) .. "=" .. tostring(sum) .. " → " .. outcomeLabel)
+-- 			log("[GuildTile] 확률게임 event=" .. self._event .. " seq=" .. tostring(self._seq)
+-- 				.. " 주사위=" .. tostring(d1) .. "+" .. tostring(d2) .. "=" .. tostring(sum) .. " → " .. outcomeLabel)
 			-- 길드 롤(창설/신규 길드원 가입)은 outcome 기반: 성공/대성공=웃음, 실패=울음.
 			self:ClientShowRoll(node.text, "idle", resultText, d1, d2, sum, greatPct, successPct, failPct, outcomeLabel, npcKey, ownerId)
 			-- 주사위 보드는 actor가 리드를 넘겨 보드가 뜨는 순간(OnRollLeadDone)에 방송된다. 여기선 씬 리드 미러만.
@@ -295,7 +295,7 @@ script GuildTile extends EventTileBase
 		end
 		local row = self:FindViceRow(key)
 		if row == 0 then
-			log_warning("[GuildTile] 부길마 선택 인덱스 무효(index=" .. tostring(index) .. ") → 종료")
+-- 			log_warning("[GuildTile] 부길마 선택 인덱스 무효(index=" .. tostring(index) .. ") → 종료")
 			self:FinishEvent()
 			return
 		end
@@ -306,12 +306,15 @@ script GuildTile extends EventTileBase
 		local attackGain = tonumber(ds:GetCell(row, "AttackGain")) or 0
 		local flavor = _VillageEventFlowManager:DecodeText(ds:GetCell(row, "Flavor"))
 		
-		if statKind ~= "" and statGain ~= 0 then self:AddSpecificStat(piece, statKind, statGain) end
-		if attackGain ~= 0 then self:AddMainAttack(piece, "flat", attackGain) end
+		-- 부길마 영입 효과를 '버프 카드'로 적용한다(피드백 9). 길마처럼 왼쪽 버프칸에 카드로 뜨고 툴팁이 나온다.
+		--   ViceMaster 버프(BuffData.csv)는 주스탯+30·공격/마력+10 — 직업별 주스탯이 곧 해당 스탯이라 전 직업 동일 효과.
+		--   (기존의 AddSpecificStat/AddMainAttack raw 스탯 직접 가산을 대체.)
+		local bm = piece:GetComponent("script.BuffManager")
+		if isvalid(bm) then bm:SetBuff("ViceMaster") end
 		local gm = self:Guild(piece)
 		if isvalid(gm) then gm:CompleteVice() end
-		log("[GuildTile] 부길마 영입 = " .. tostring(displayName)
-			.. " (" .. tostring(statKind) .. "+" .. tostring(statGain) .. ", 공/마+" .. tostring(attackGain) .. ")")
+-- 		log("[GuildTile] 부길마 영입 = " .. tostring(displayName)
+-- 			.. " (" .. tostring(statKind) .. "+" .. tostring(statGain) .. ", 공/마+" .. tostring(attackGain) .. ")")
 		
 		local ownerId = self:OwnerUserId(piece)
 		self._curNodeType = ""
@@ -340,7 +343,7 @@ script GuildTile extends EventTileBase
 		if ownerId ~= "" then self:ClientHide(ownerId) end
 		if ownerId ~= "" then _EventTileUI:SpectatorSceneHide(ownerId) end
 		_GameModeManager:NotifyTileEventDone()
-		log("[GuildTile] 길드 이벤트 종료")
+-- 		log("[GuildTile] 길드 이벤트 종료")
 	end
 
 	method string StatLabel(string kind)

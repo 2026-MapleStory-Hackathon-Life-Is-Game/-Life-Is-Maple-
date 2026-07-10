@@ -31,6 +31,8 @@ script BuffPanelUI extends Logic
 
 	property integer _familyMemberCount = 0
 
+	property integer _afkWarnCount = 0
+
 	method void OnBeginPlay()
 		-- 템플릿/툴팁을 숨기고 내부 상태를 초기화한다.
 		self.cards = {}
@@ -94,7 +96,7 @@ script BuffPanelUI extends Logic
 		-- 버프 1개에 대한 카드를 복제·배치하고 아이콘/호버 툴팁을 세팅한다.
 		local rowIdx = self:FindRow(ds, buffName)
 		if rowIdx == -1 then
-			log_warning("[BuffPanelUI] 버프 행 없음: " .. buffName)
+-- 			log_warning("[BuffPanelUI] 버프 행 없음: " .. buffName)
 			return
 		end
 		
@@ -161,6 +163,11 @@ script BuffPanelUI extends Logic
 		-- 결혼 버프(웨딩 팡파르)면 현재 가족 구성원 수를 덧붙인다.
 		if ds:GetCell(rowIdx, "BuffName") == "Wedding_Fanfare" then
 			table.insert(lines, "가족 구성원: " .. tostring(self._familyMemberCount) .. "명")
+		end
+
+		-- AFK 경고 버프면 현재 경고 스택과 강제 퇴장 안내를 덧붙인다(피드백 6).
+		if ds:GetCell(rowIdx, "BuffName") == "AFK_Warning" then
+			table.insert(lines, "현재 " .. tostring(self._afkWarnCount) .. "스택 (3스택 시 강제 퇴장)")
 		end
 		
 		return table.concat(lines, "\n")
@@ -233,6 +240,8 @@ script BuffPanelUI extends Logic
 		-- 3) 스크롤 최상단 초기화 + 표시.
 		local scroll = self.tooltip.ScrollLayoutGroupComponent
 		if isvalid(scroll) then scroll:ResetScrollPosition(UITransformAxis.Vertical) end
+		-- 툴팁을 형제 맨 앞으로 올려 캐릭터 정보 패널 등 다른 UI 뒤에 가리지 않게 한다(피드백 8).
+		if isvalid(tt) then _UILogic:SetSiblingIndex(tt, 1000000) end
 		self.tooltip.Enable = true
 	end
 

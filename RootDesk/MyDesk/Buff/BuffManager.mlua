@@ -7,7 +7,12 @@ script BuffManager extends Component
 
 	property table DynamicMods = {}
 
-	@TargetUserSync
+	property integer AfkWarnCount = 0   -- 현재 AFK 경고 스택(0이면 경고 버프 미표시). 버프 툴팁 '현재 N스택' 표시용.
+
+	-- 전 클라 동기화: 보드의 진영 변형 타일 아트를 '현재 턴 actor'의 진영에 맞춰 관전자에게도 올바르게
+	-- 표시하려면 모든 클라가 이 값을 읽을 수 있어야 한다. 상단 PlayerInfo 패널의 상대 진영 표기도 이 값에 의존.
+	-- (기존 @TargetUserSync는 본인 클라에만 전파돼 관전자가 actor의 진영을 몰라 자기 기준/"없음"으로 오표시됐다.)
+	@Sync
 	property string CampName = ""
 
 	method void OnBeginPlay()
@@ -35,7 +40,8 @@ script BuffManager extends Component
 		self.ListBuffs = {}
 		self.DynamicMods = self:EmptyModifier()
 		self.CampName = ""   -- 진영 라벨도 초기화(진영 버프 슬롯은 위에서 비워지지만 이름 라벨은 별도 필드).
-		log("BuffManager: 버프 전체 초기화")
+		self.AfkWarnCount = 0   -- AFK 경고 스택도 초기화.
+-- 		log("BuffManager: 버프 전체 초기화")
 		-- 전투력 재계산 + 버프바 UI 갱신.
 		self:OnBuffsChanged()
 	end
@@ -45,7 +51,7 @@ script BuffManager extends Component
 		local userDataSet = _DataService:GetTable("BuffData")
 		
 		if isvalid(userDataSet) == false then
-			log_error("BuffManager: dataset 'BuffData' not found")
+-- 			log_error("BuffManager: dataset 'BuffData' not found")
 			return -1
 		end
 		
@@ -65,7 +71,7 @@ script BuffManager extends Component
 		local rowIdx = self:FindBuffRow(buffName)
 		
 		if rowIdx == -1 then
-			log_warning("BuffManager.SetBuff: no buff named " .. buffName)
+-- 			log_warning("BuffManager.SetBuff: no buff named " .. buffName)
 			return
 		end
 		
@@ -99,22 +105,22 @@ script BuffManager extends Component
 			-- (더 낮은 Tier만 무시 → 더 높은 등급 버프가 강등되지 않음. 동일 Tier는 갱신 허용)
 			local cur = self.SlotBuffs[category]
 			if cur ~= nil and (cur.tier or 0) > buff.tier then
-				log("BuffManager: [슬롯:" .. category .. "] 유지 — 기존 Tier("
-					.. tostring(cur.tier) .. ") > 새 Tier(" .. tostring(buff.tier)
-					.. "), " .. buffName .. " 무시")
+-- 				log("BuffManager: [슬롯:" .. category .. "] 유지 — 기존 Tier("
+-- 					.. tostring(cur.tier) .. ") > 새 Tier(" .. tostring(buff.tier)
+-- 					.. "), " .. buffName .. " 무시")
 				return
 			end
 			self.SlotBuffs[category] = buff
 			if category == "Camp" then
 				self.CampName = buffName
-				log("BuffManager: 진영 키 = " .. self.CampName)
+-- 				log("BuffManager: 진영 키 = " .. self.CampName)
 			end
-			log("BuffManager: [슬롯:" .. category .. "] → " .. buffName
-				.. " 적용 (Tier " .. tostring(buff.tier) .. ")")
+-- 			log("BuffManager: [슬롯:" .. category .. "] → " .. buffName
+-- 				.. " 적용 (Tier " .. tostring(buff.tier) .. ")")
 		else
 			-- 대분류 없음 → 리스트에 누적된다.
 			table.insert(self.ListBuffs, buff)
-			log("BuffManager: [리스트] + " .. buffName .. " 추가")
+-- 			log("BuffManager: [리스트] + " .. buffName .. " 추가")
 		end
 		
 		-- 전투력 재계산 + 버프바 UI 갱신.
@@ -126,7 +132,7 @@ script BuffManager extends Component
 		-- 슬롯 버프면 해당 슬롯을 비우고, 리스트 버프면 같은 이름 항목을 모두 제거합니다.
 		local rowIdx = self:FindBuffRow(buffName)
 		if rowIdx == -1 then
-			log_warning("BuffManager.ClearBuff: no buff named " .. buffName)
+-- 			log_warning("BuffManager.ClearBuff: no buff named " .. buffName)
 			return
 		end
 		
@@ -140,18 +146,46 @@ script BuffManager extends Component
 		if category ~= "" then
 			self.SlotBuffs[category] = nil
 			if category == "Camp" then self.CampName = "" end
-			log("BuffManager: [슬롯:" .. category .. "] 제거")
+-- 			log("BuffManager: [슬롯:" .. category .. "] 제거")
 		else -- 만약 카테고리가 존재하지 않는다면 동일한 버프의 이름을 전부 제거합니다.
 			for i = #self.ListBuffs, 1, -1 do
 				if self.ListBuffs[i].buffName == buffName then
 					table.remove(self.ListBuffs, i)
 				end
 			end
-			log("BuffManager: [리스트] " .. buffName .. " 제거")
+-- 			log("BuffManager: [리스트] " .. buffName .. " 제거")
 		end
 		
 		-- 전투력 재계산 + 버프바 UI 갱신.
 		self:OnBuffsChanged()
+	end
+
+	method boolean HasListBuff(string buffName)
+		-- 리스트(누적형) 버프에 해당 이름이 이미 있는지.
+		for i = 1, #self.ListBuffs do
+			if self.ListBuffs[i].buffName == buffName then return true end
+		end
+		return false
+	end
+
+	@ExecSpace("ServerOnly")
+	method void SetAfkWarning(integer count)
+		-- AFK 경고 스택 표시(피드백 6). count>0이면 'AFK_Warning' 리스트 버프를 켜고(중복 방지) 카운트 텍스트를 갱신,
+		-- count==0이면 버프를 제거한다. count 자체는 AfkWarnCount에 저장돼 툴팁 '현재 N스택'에 쓰인다.
+		self.AfkWarnCount = count
+		if count > 0 then
+			if self:HasListBuff("AFK_Warning") then
+				self:PushBuffUI()          -- 이미 표시 중 → 카운트 텍스트만 갱신
+			else
+				self:SetBuff("AFK_Warning") -- 내부에서 PushBuffUI 호출
+			end
+		else
+			if self:HasListBuff("AFK_Warning") then
+				self:ClearBuff("AFK_Warning")
+			else
+				self:PushBuffUI()
+			end
+		end
 	end
 
 	method string GetSlotBuffName(string category)
@@ -192,7 +226,7 @@ script BuffManager extends Component
 		local nextTier = self:GetSlotTier(category) + 1
 		local nextName = self:FindBuffByCategoryTier(category, nextTier)
 		if nextName == "" then
-			log("BuffManager: [" .. category .. "] 더 높은 Tier 없음 → 승급 없음")
+-- 			log("BuffManager: [" .. category .. "] 더 높은 Tier 없음 → 승급 없음")
 			return
 		end
 		self:SetBuff(nextName)
@@ -204,11 +238,11 @@ script BuffManager extends Component
 		-- mods 예: { allStatFlat = 10 } / { statPct = 5, attackFlat = 10 }. 음수면 감소.
 		-- 사용 가능한 키: statFlat statPct allStatFlat allStatPct attackFlat attackPct damagePct critPct
 		self:Accumulate(self.DynamicMods, mods)
-		log("BuffManager: [동적] 수치 버프 누적 → "
-			.. "stat(" .. tostring(self.DynamicMods.statFlat) .. "/" .. tostring(self.DynamicMods.statPct) .. "%) "
-			.. "all(" .. tostring(self.DynamicMods.allStatFlat) .. "/" .. tostring(self.DynamicMods.allStatPct) .. "%) "
-			.. "atk(" .. tostring(self.DynamicMods.attackFlat) .. "/" .. tostring(self.DynamicMods.attackPct) .. "%) "
-			.. "dmg(" .. tostring(self.DynamicMods.damagePct) .. "%) crit(" .. tostring(self.DynamicMods.critPct) .. "%)")
+-- 		log("BuffManager: [동적] 수치 버프 누적 → "
+-- 			.. "stat(" .. tostring(self.DynamicMods.statFlat) .. "/" .. tostring(self.DynamicMods.statPct) .. "%) "
+-- 			.. "all(" .. tostring(self.DynamicMods.allStatFlat) .. "/" .. tostring(self.DynamicMods.allStatPct) .. "%) "
+-- 			.. "atk(" .. tostring(self.DynamicMods.attackFlat) .. "/" .. tostring(self.DynamicMods.attackPct) .. "%) "
+-- 			.. "dmg(" .. tostring(self.DynamicMods.damagePct) .. "%) crit(" .. tostring(self.DynamicMods.critPct) .. "%)")
 		-- 전투력 재계산 + 버프바 UI 갱신.
 		self:OnBuffsChanged()
 	end
@@ -288,13 +322,13 @@ script BuffManager extends Component
 		local cp = self.Entity:GetComponent("script.CombatPowerManager")
 		if isvalid(cp) then
 			cp:CalculateCurrentCombatPower()
-			log("BuffManager: 버프 반영 전투력 재계산 → " .. tostring(cp.CombatPower))
+-- 			log("BuffManager: 버프 반영 전투력 재계산 → " .. tostring(cp.CombatPower))
 		end
 	end
 
 	@ExecSpace("ServerOnly")
 	method void PushBuffUI()
-		-- 현재 활성 버프 이름 목록을 소유 플레이어 클라이언트로 보내 버프바 UI를 갱신한다.
+		-- 현재 활성 버프 이름 목록을 소유 플레이어 클라이언트로 보내 버프바 UI를 갱신한다(AFK 경고 스택 포함).
 		if isvalid(self.Entity) == false then return end
 		local pc = self.Entity.PlayerComponent
 		if pc == nil then return end
