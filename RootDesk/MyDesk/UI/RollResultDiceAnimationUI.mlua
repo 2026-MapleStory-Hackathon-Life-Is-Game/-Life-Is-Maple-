@@ -176,7 +176,7 @@ script RollResultDiceAnimationUI extends Logic
 				-- '넘기기'는 완주자 대기 큐브 롤(_allowSkip)에서만 노출. 그 외 롤에선 숨김.
 				if isvalid(self.SkipButton) then self.SkipButton.Enable = self._allowSkip end
 				if isvalid(self.ResultTextPanel) then self.ResultTextPanel.Enable = false end
-				log("[RollResultDiceUI] Show → 패널 표시, 굴리기 버튼 대기(수동). RollBtn=" .. tostring(isvalid(self.RollButton)) .. " allowSkip=" .. tostring(self._allowSkip))
+-- 				log("[RollResultDiceUI] Show → 패널 표시, 굴리기 버튼 대기(수동). RollBtn=" .. tostring(isvalid(self.RollButton)) .. " allowSkip=" .. tostring(self._allowSkip))
 	end
 
 	@ExecSpace("ClientOnly")
@@ -196,7 +196,7 @@ script RollResultDiceAnimationUI extends Logic
 			local lp = _UserService.LocalPlayer
 			if isvalid(lp) then myId = lp.PlayerComponent.UserId end
 			self:RequestSpectatorRoll(self._pendD1, self._pendD2, self._pendTotal, self._pendOutcome, myId)
-			log("[RollResultDiceUI] 굴리기 클릭 → 주사위 연출(끝난 뒤 '다음' 노출) + 관전자 공개 방송")
+-- 			log("[RollResultDiceUI] 굴리기 클릭 → 주사위 연출(끝난 뒤 '다음' 노출) + 관전자 공개 방송")
 	end
 
 	@ExecSpace("ClientOnly")
@@ -246,7 +246,7 @@ script RollResultDiceAnimationUI extends Logic
 			self:ClosePanel()
 			local onComplete = self._pendOnComplete
 			self._pendOnComplete = nil   -- 재진입/중복 실행 방지
-			log("[RollResultDiceUI] 다음 클릭 → 패널 닫고 onComplete 실행. cb=" .. tostring(onComplete ~= nil))
+-- 			log("[RollResultDiceUI] 다음 클릭 → 패널 닫고 onComplete 실행. cb=" .. tostring(onComplete ~= nil))
 			if onComplete ~= nil then
 				onComplete()
 			end
@@ -276,9 +276,9 @@ script RollResultDiceAnimationUI extends Logic
 
 			local isActor = false
 			local lp = _UserService.LocalPlayer
-			if isvalid(lp) and lp.PlayerComponent.UserId == actorUserId then isActor = true end
+			if isvalid(lp) and lp.PlayerComponent ~= nil and lp.PlayerComponent.UserId == actorUserId then isActor = true end
 			if isvalid(self.RollButton) then self.RollButton.Enable = isActor end
-			log("[RollResultDiceUI] ShowMulti actor=" .. actorUserId .. " isActor=" .. tostring(isActor))
+-- 			log("[RollResultDiceUI] ShowMulti actor=" .. actorUserId .. " isActor=" .. tostring(isActor))
 	end
 
 	@ExecSpace("ClientOnly")
@@ -287,7 +287,7 @@ script RollResultDiceAnimationUI extends Logic
 			self:PlayRevealAnimation()
 			local isActor = false
 			local lp = _UserService.LocalPlayer
-			if isvalid(lp) and lp.PlayerComponent.UserId == self._pendActorUserId then isActor = true end
+			if isvalid(lp) and lp.PlayerComponent ~= nil and lp.PlayerComponent.UserId == self._pendActorUserId then isActor = true end
 			self._pendAllowNext = isActor   -- actor에게만, 그리고 공개 연출(2초) 종료 후에 '다음' 노출(조기 진행/공개 방지)
 	end
 
@@ -304,11 +304,11 @@ script RollResultDiceAnimationUI extends Logic
 		-- 관전자(비-actor)에게 결과 주사위 '보드'만 먼저 표시하고, actor가 실제로 굴린 순간(SpectatorRevealDice)에만 공개한다.
 		-- (변경 전엔 롤 시작 시 타이머로 자동 공개 → actor가 굴리기 전에 결과가 노출되던 문제 수정.) actor는 자기 인터랙티브 경로를 쓰므로 스킵.
 		local lp = _UserService.LocalPlayer
-		if isvalid(lp) and lp.PlayerComponent.UserId == actorUserId then
-			log("[RollResultDiceUI] SpectatorDice 보드 스킵(actor=" .. actorUserId .. ")")
+		if isvalid(lp) and lp.PlayerComponent ~= nil and lp.PlayerComponent.UserId == actorUserId then
+-- 			log("[RollResultDiceUI] SpectatorDice 보드 스킵(actor=" .. actorUserId .. ")")
 			return
 		end
-		log("[RollResultDiceUI] SpectatorDice 보드 표시 후 대기(actor=" .. actorUserId .. ")")
+-- 		log("[RollResultDiceUI] SpectatorDice 보드 표시 후 대기(actor=" .. actorUserId .. ")")
 		self:ShowSpectatorBoard(d1, d2, total, resultTable, gameOutcome)
 	end
 
@@ -339,12 +339,14 @@ script RollResultDiceAnimationUI extends Logic
 	method void RequestSpectatorBoard(integer d1, integer d2, integer total, table resultTable, string outcome, string actorUserId)
 		-- actor의 주사위 보드가 뜬 순간(리드 종료 후), 서버 경유로 관전자에게 결과 '보드'를 방송한다.
 		-- (도착 즉시 방송을 대체 → 관전자도 actor처럼 '리드(소개) → 보드' 순서를 그대로 본다.)
+		if senderUserId ~= actorUserId then return end   -- actor 본인 요청만 허용(위조 방지).
 		self:SpectatorDiceBroadcast(d1, d2, total, resultTable, outcome, actorUserId)
 	end
 
 	@ExecSpace("Server")
 	method void RequestSpectatorRoll(integer d1, integer d2, integer total, string outcome, string actorUserId)
 		-- actor가 이벤트/큐브 주사위 '굴리기'를 실제로 누른 순간, 서버 경유로 관전자에게 공개를 방송한다.
+		if senderUserId ~= actorUserId then return end   -- actor 본인 요청만 허용(위조 방지).
 		self:SpectatorRevealDice(d1, d2, total, outcome, actorUserId)
 	end
 
@@ -352,7 +354,7 @@ script RollResultDiceAnimationUI extends Logic
 	method void SpectatorRevealDice(integer d1, integer d2, integer total, string outcome, string actorUserId)
 		-- 관전자: 대기 중이던 보드에서 실제 주사위 공개 연출 재생 + 씬 결과문구 진행 후 자동 닫힘. actor 본인은 로컬 연출을 쓰므로 스킵.
 		local lp = _UserService.LocalPlayer
-		if isvalid(lp) and lp.PlayerComponent.UserId == actorUserId then return end
+		if isvalid(lp) and lp.PlayerComponent ~= nil and lp.PlayerComponent.UserId == actorUserId then return end
 		if self._spectatorTimer1 ~= 0 then _TimerService:ClearTimer(self._spectatorTimer1) self._spectatorTimer1 = 0 end
 		if self._spectatorTimer2 ~= 0 then _TimerService:ClearTimer(self._spectatorTimer2) self._spectatorTimer2 = 0 end
 		self._pendD1 = d1
@@ -368,7 +370,7 @@ script RollResultDiceAnimationUI extends Logic
 		self._spectatorTimer2 = _TimerService:SetTimerOnce(function()
 			self._spectatorTimer2 = 0
 			self:ClosePanel()
-			log("[RollResultDiceUI] SpectatorDice 공개 후 자동 닫힘")
+-- 			log("[RollResultDiceUI] SpectatorDice 공개 후 자동 닫힘")
 		end, self.SpectatorResultHold)
 	end
 
@@ -394,7 +396,7 @@ script RollResultDiceAnimationUI extends Logic
 		if isvalid(self.SkipButton) then self.SkipButton.Enable = false end
 		self:ClosePanel()
 		_EventTileUI:AdvanceActiveTile()   -- 활성 타일(EndTile)에 진행 요청 → RequestAdvance(_waitingRoll) → OnWaitingCubeRollDone
-		log("[RollResultDiceUI] 넘기기 클릭 → 대기 큐브 롤 건너뛰고 턴 종료")
+-- 		log("[RollResultDiceUI] 넘기기 클릭 → 대기 큐브 롤 건너뛰고 턴 종료")
 	end
 
 	@ExecSpace("ClientOnly")
@@ -436,10 +438,10 @@ script RollResultDiceAnimationUI extends Logic
 		local fail = 100 - great - success
 		if fail < 0 then
 			fail = 0
-			log_warning("[RollResultDiceUI] 대성공+성공=" .. tostring(great + success) .. "%(>100) — 실패 0%로 고정(합계 100 초과)")
+-- 			log_warning("[RollResultDiceUI] 대성공+성공=" .. tostring(great + success) .. "%(>100) — 실패 0%로 고정(합계 100 초과)")
 		elseif math.abs((great + success + inFail) - 100) > 0.001 then
-			log("[RollResultDiceUI] 합계 " .. tostring(great + success + inFail) .. "% ≠ 100 → 실패를 "
-				.. tostring(inFail) .. "% → " .. tostring(fail) .. "%로 조정")
+-- 			log("[RollResultDiceUI] 합계 " .. tostring(great + success + inFail) .. "% ≠ 100 → 실패를 "
+-- 				.. tostring(inFail) .. "% → " .. tostring(fail) .. "%로 조정")
 		end
 		return { great = great, success = success, fail = fail }
 	end
@@ -456,8 +458,8 @@ script RollResultDiceAnimationUI extends Logic
 		-- 확률 → 2d6 결과판 계산(누적분포 기반, ResultDiceManager와 동일 규칙) 후 보드 UI 갱신.
 		self.currentBoard = _ResultDiceManager:PlaceOutcomes(p.fail, p.success, p.great)
 		self:UpdateBoardUI(self.currentBoard)
-		log("[RollResultDiceUI] 확률 설정 → 대성공=" .. tostring(p.great)
-			.. "% 성공=" .. tostring(p.success) .. "% 실패=" .. tostring(p.fail) .. "%")
+-- 		log("[RollResultDiceUI] 확률 설정 → 대성공=" .. tostring(p.great)
+-- 			.. "% 성공=" .. tostring(p.success) .. "% 실패=" .. tostring(p.fail) .. "%")
 		return self.currentBoard
 	end
 

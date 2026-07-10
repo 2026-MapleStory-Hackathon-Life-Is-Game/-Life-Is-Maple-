@@ -115,7 +115,7 @@ script RomanceGuildSelectUI extends Logic
 	method void SpectatorShow(string title, table names, table ruids, string actorUserId)
 			-- 관전자에게 선택 카드를 읽기전용으로 방송. actor는 자기 인터랙티브 경로를 쓰므로 스킵.
 			local lp = _UserService.LocalPlayer
-			if isvalid(lp) and lp.PlayerComponent.UserId == actorUserId then return end
+			if isvalid(lp) and lp.PlayerComponent ~= nil and lp.PlayerComponent.UserId == actorUserId then return end
 			-- actor 닉네임을 상태문구에 넣는다("OO 고르는 중...").
 			local who = "다른 유저"
 			local ae = _UserService:GetUserEntityByUserId(actorUserId)
@@ -148,7 +148,7 @@ script RomanceGuildSelectUI extends Logic
 	method void SpectatorHide(string actorUserId)
 			-- 관전자 선택 카드 닫기. actor 스킵.
 			local lp = _UserService.LocalPlayer
-			if isvalid(lp) and lp.PlayerComponent.UserId == actorUserId then return end
+			if isvalid(lp) and lp.PlayerComponent ~= nil and lp.PlayerComponent.UserId == actorUserId then return end
 			self:Hide()
 	end
 

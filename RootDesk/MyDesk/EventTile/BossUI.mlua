@@ -350,7 +350,7 @@ script BossUI extends Logic
 				if idx <= 4 then self:SetCardImage(idx, spawn:GetCell(i, "BossName")) end
 			end
 		end
-		log("[BossUI] 보스 이미지 프리캐시 tile=" .. tostring(tileName) .. " 보스수=" .. tostring(idx))
+-- 		log("[BossUI] 보스 이미지 프리캐시 tile=" .. tostring(tileName) .. " 보스수=" .. tostring(idx))
 	end
 
 	@ExecSpace("ClientOnly")
@@ -390,7 +390,7 @@ script BossUI extends Logic
 				self:SetCardDrops(i, self._bossKeys[i], self._bossDiffs[i])
 			end
 		end
-		log("[BossUI] 지역 보스 로스터 표시 보스수=" .. tostring(n))
+-- 		log("[BossUI] 지역 보스 로스터 표시 보스수=" .. tostring(n))
 	end
 
 	@ExecSpace("ClientOnly")
@@ -423,14 +423,14 @@ script BossUI extends Logic
 		self:SetCard1Name(bossName)   -- 1번 카드 이름을 보스명(검은 마법사)으로 런타임 교체
 		self:SetCardImage(1, bossKey) -- 1번 카드 보스 선택 이미지도 교체
 		self:SetCardDrops(1, bossKey, nil) -- 단일 모드: 제한 없음(BossProbability 실존 난이도 전부)
-		log("[BossUI] 단일 보스 선택 표시: " .. tostring(bossName))
+-- 		log("[BossUI] 단일 보스 선택 표시: " .. tostring(bossName))
 	end
 
 	@ExecSpace("Client")
 	method void SpectatorShowRoster(string introText, table bossKeys, table bossDiffs, string actorUserId)
 		-- 관전자: actor의 보스 로스터를 읽기전용으로 방송(어떤 보스를 고르는지 보이게, 피드백 11). actor는 자기 경로를 쓰므로 스킵.
 		local lp = _UserService.LocalPlayer
-		if isvalid(lp) and lp.PlayerComponent.UserId == actorUserId then return end
+		if isvalid(lp) and lp.PlayerComponent ~= nil and lp.PlayerComponent.UserId == actorUserId then return end
 		local who = "다른 유저"
 		local ae = _UserService:GetUserEntityByUserId(actorUserId)
 		if isvalid(ae) and ae.PlayerComponent ~= nil and ae.PlayerComponent.Nickname ~= nil and ae.PlayerComponent.Nickname ~= "" then
@@ -465,14 +465,14 @@ script BossUI extends Logic
 				self:SetCardDrops(i, bossKeys[i], self:SplitDiffs(bossDiffs[i]))
 			end
 		end
-		log("[BossUI] 관전 보스 로스터 표시 보스수=" .. tostring(n) .. " actor=" .. who)
+-- 		log("[BossUI] 관전 보스 로스터 표시 보스수=" .. tostring(n) .. " actor=" .. who)
 	end
 
 	@ExecSpace("Client")
 	method void SpectatorHide(string actorUserId)
 		-- 관전자 보스 로스터 닫기(actor가 선택을 완료해 전투 연출로 넘어갈 때). actor 스킵.
 		local lp = _UserService.LocalPlayer
-		if isvalid(lp) and lp.PlayerComponent.UserId == actorUserId then return end
+		if isvalid(lp) and lp.PlayerComponent ~= nil and lp.PlayerComponent.UserId == actorUserId then return end
 		self:Hide()
 	end
 
@@ -547,7 +547,7 @@ script BossUI extends Logic
 		
 		if isvalid(self.SelectionPanel) then self.SelectionPanel.Enable = false end
 		if isvalid(self.DetailPanel) then self.DetailPanel.Enable = true end
-		log("[BossUI] 보스 상세: " .. tostring(self._bossNames[idx]))
+-- 		log("[BossUI] 보스 상세: " .. tostring(self._bossNames[idx]))
 	end
 
 	@ExecSpace("ClientOnly")

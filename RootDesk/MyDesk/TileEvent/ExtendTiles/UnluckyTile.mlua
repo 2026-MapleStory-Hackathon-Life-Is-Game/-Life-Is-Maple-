@@ -16,12 +16,14 @@ script UnluckyTile extends EventTileBase
 			self:FinishEventTile()
 			return
 		end
-		-- NPC 이름 키 목록(';' 구분)을 페이지별 RUID 목록으로 해석해 클라에 전달한다.
-		local npcCsv = self:ResolvePageNpcRUIDs(ev.npcKey)
-		self:ClientShowUnlucky(ev.message, ev.anim or "idle", npcCsv, ownerId)
+		-- NPC 이름 키 목록(';' 구분)을 '그대로' 클라에 전달하고, RUID 해석은 클라에서 한다(피드백 7).
+		--   기존엔 서버에서 ResolvePageNpcRUIDs로 해석했는데, 다른 이벤트 타일은 전부 클라에서 GetNpcRUID로
+		--   해석한다. 서버 해석이 (컴파일된 데이터셋 편차 등으로) 빈 값을 내면 이미지가 조용히 사라졌다.
+		local npcKeys = ev.npcKey or ""
+		self:ClientShowUnlucky(ev.message, ev.anim or "idle", npcKeys, ownerId)
 		-- 관전자 미러(전원 방송, actor 스킵): 불행 이벤트도 나머지 유저가 보게 한다.
-		_EventTileUI:SpectatorUnlucky(ev.message, ev.anim or "idle", npcCsv, ownerId)
-		log("[UnluckyTile] 불행 이벤트 발생 tile=" .. self.Entity.Name)
+		_EventTileUI:SpectatorUnlucky(ev.message, ev.anim or "idle", npcKeys, ownerId)
+-- 		log("[UnluckyTile] 불행 이벤트 발생 tile=" .. self.Entity.Name)
 	end
 
 	method table RollEvent(Entity piece)
@@ -33,7 +35,7 @@ script UnluckyTile extends EventTileBase
 		
 		local ds = _DataService:GetTable("UnluckyEvent")
 		if isvalid(ds) == false then
-			log_error("[UnluckyTile] UnluckyEvent 데이터셋 없음")
+-- 			log_error("[UnluckyTile] UnluckyEvent 데이터셋 없음")
 			return nil
 		end
 		local rows = ds:GetRowCount()
@@ -48,7 +50,7 @@ script UnluckyTile extends EventTileBase
 			if match(i) then total += (tonumber(ds:GetCell(i, "Weight")) or 0) end
 		end
 		if total <= 0 then
-			log_warning("[UnluckyTile] 해당 (Stage,Region) 불행 이벤트 없음 stage=" .. tostring(stage) .. " region=" .. tostring(region))
+-- 			log_warning("[UnluckyTile] 해당 (Stage,Region) 불행 이벤트 없음 stage=" .. tostring(stage) .. " region=" .. tostring(region))
 			return nil
 		end
 		
@@ -103,10 +105,11 @@ script UnluckyTile extends EventTileBase
 	end
 
 	@ExecSpace("Client")
-	method void ClientShowUnlucky(string message, string anim, string npcRuidsCsv)
-		-- 도착 플레이어 클라: 씬(페이지)별 NPC 교체 불행 이벤트 표시.
+	method void ClientShowUnlucky(string message, string anim, string npcKeys)
+		-- 도착 플레이어 클라: NPC 이름 키를 이 자리(클라)에서 RUID로 해석한 뒤 씬(페이지)별 NPC 교체 불행 이벤트 표시.
 		-- 울음은 '시작'이 아니라 스탯 감소 문구가 나오는 '마지막 페이지'에 도달했을 때 재생하도록 예약한다.
 		-- (초상화는 SetPortrait(anim)로 idle에서 시작 → 마지막 페이지에서 울음 포즈로 전환.)
+		local npcRuidsCsv = self:ResolvePageNpcRUIDs(npcKeys)
 		_EventTileUI:ShowPagedNpcEvent(message, anim, npcRuidsCsv, self)
 		_EventTileUI:ArmPageEndEmote("cry")
 	end

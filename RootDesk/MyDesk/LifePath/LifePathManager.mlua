@@ -1,7 +1,10 @@
 @Component
 script LifePathManager extends Component
 
-	@TargetUserSync
+	-- 전 클라이언트 동기화: 보드의 인생분기(길드/연애) 타일 아트를 '현재 턴 actor'의 분기에 맞춰
+	-- 관전자에게도 올바르게 표시하려면, 소유자 본인뿐 아니라 모든 클라가 이 값을 읽을 수 있어야 한다.
+	-- (기존 @TargetUserSync는 본인 클라에만 전파돼, 관전자가 actor의 분기를 몰라 자기 기준으로 오표시됐다.)
+	@Sync
 	property string LifePath = ""
 
 	method void OnBeginPlay()
@@ -15,14 +18,14 @@ script LifePathManager extends Component
 	method void SetLifePath(string path)
 		-- 인생 분기 확정("Guild"/"Romance").
 		self.LifePath = path
-		log("[LifePathManager] 인생 분기 = " .. tostring(path))
+-- 		log("[LifePathManager] 인생 분기 = " .. tostring(path))
 	end
 
 	@ExecSpace("ServerOnly")
 	method void ResetAll()
 		-- 게임 종료 시 초기화(GameModeManager.ResetPlayerStats에서 호출).
 		self.LifePath = ""
-		log("[LifePathManager] 인생 분기 초기화")
+-- 		log("[LifePathManager] 인생 분기 초기화")
 	end
 
 end

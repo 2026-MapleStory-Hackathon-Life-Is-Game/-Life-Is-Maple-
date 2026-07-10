@@ -22,6 +22,11 @@ script TileManager extends Logic
 
 	property integer _monsterRetries = 0
 
+	-- 인생분기(길드/연애) 타일 아트를 '현재 턴 actor' 기준으로 유지하기 위한 폴링 상태.
+	property string _lastArtActor = ""
+
+	property number _artPollAcc = 0
+
 	method void CollectTiles()
 		self.tileEntities = {}
 				local entities = _EntityService:GetEntitiesByTag("HexaTile")
@@ -31,7 +36,7 @@ script TileManager extends Logic
 					self.tileEntities[key] = entity
 					count += 1
 				end
-				log("[TileManager] 타일 수집: " .. tostring(count) .. "개")
+-- 				log("[TileManager] 타일 수집: " .. tostring(count) .. "개")
 				
 				if self:IsServer() then
 					self:BuildVariants()
@@ -90,7 +95,7 @@ script TileManager extends Logic
 					self:CollectTiles()
 				else
 					_TimerService:SetTimerOnce(function()
-						log("[TileManager] 클라이언트 타일 수집 지연 실행")
+-- 						log("[TileManager] 클라이언트 타일 수집 지연 실행")
 						if next(self.tileGraph) == nil then
 							self:BuildTileGraph()
 						end
@@ -400,7 +405,7 @@ script TileManager extends Logic
 		if lv > cp.Level then
 			cp:SetLevel(lv)
 			cp:PlayLevelUpFx()   -- 레벨 상승 감지 → 레벨업 연출(효과음+이펙트) 전 클라 재생
-			log("[TileManager] 레벨 적용: " .. key .. " (Stage=" .. tostring(data.stage) .. " Tier=" .. tostring(data.tier) .. ") → Lv." .. tostring(lv))
+-- 			log("[TileManager] 레벨 적용: " .. key .. " (Stage=" .. tostring(data.stage) .. " Tier=" .. tostring(data.tier) .. ") → Lv." .. tostring(lv))
 		end
 	end
 
@@ -482,7 +487,7 @@ script TileManager extends Logic
 				end
 			end
 		end
-		log("[TileManager] 사냥 타일 몬스터 롤 완료: " .. tostring(count) .. "개")
+-- 		log("[TileManager] 사냥 타일 몬스터 롤 완료: " .. tostring(count) .. "개")
 	end
 
 	method string RollMonster(integer stage, string region, integer tier, string tileType)
@@ -578,11 +583,36 @@ script TileManager extends Logic
 		return true
 	end
 
-	method string LocalLifePathArtType()
-		-- 내(LocalPlayer) 인생 분기에 따라 'Guild' 타일의 표시 타입을 결정한다. Romance면 "Union", 아니면 "Guild".
+	method string ArtOwnerUserId()
+		-- 보드 인생분기 타일 아트의 기준이 되는 유저 id.
+		--   멀티 턴 진행 중이면 '현재 턴 actor'(관전자도 actor의 분기로 봐야 하므로), 아니면 본인(LocalPlayer).
+		if _MultiTurnManager ~= nil and _MultiTurnManager._isActive then
+			local a = _MultiTurnManager._currentPlayerUserId
+			if a ~= nil and a ~= "" then return a end
+		end
 		local me = _UserService.LocalPlayer
-		if isvalid(me) == false then return "Guild" end
-		local lp = me:GetComponent("script.LifePathManager")
+		if isvalid(me) and isvalid(me.PlayerComponent) then return me.PlayerComponent.UserId end
+		return ""
+	end
+
+	method Entity ArtOwnerPlayer()
+		-- ArtOwnerUserId에 해당하는 플레이어 엔티티. 본인이면 LocalPlayer, 아니면 userId로 조회. 실패 시 LocalPlayer.
+		local me = _UserService.LocalPlayer
+		local uid = self:ArtOwnerUserId()
+		if isvalid(me) and isvalid(me.PlayerComponent) and me.PlayerComponent.UserId == uid then return me end
+		if uid ~= "" then
+			local e = _UserService:GetUserEntityByUserId(uid)
+			if isvalid(e) then return e end
+		end
+		return me
+	end
+
+	method string LocalLifePathArtType()
+		-- 현재 턴 actor(관전 중이면 그 사람)의 인생 분기에 따라 'Guild' 타일의 표시 타입 결정. Romance면 "Union", 아니면 "Guild".
+		-- 멀티 턴이 없으면(싱글/게임 전) 본인(LocalPlayer) 기준. → @Sync LifePath라 모든 클라가 actor의 분기를 읽을 수 있다.
+		local owner = self:ArtOwnerPlayer()
+		if isvalid(owner) == false then return "Guild" end
+		local lp = owner:GetComponent("script.LifePathManager")
 		if isvalid(lp) and lp.LifePath == "Romance" then return "Union" end
 		return "Guild"
 	end
@@ -811,7 +841,45 @@ script TileManager extends Logic
 		local list = self:GatherMapPreloadRUIDs(mapName)
 		if #list == 0 then return end
 		_ResourceService:PreloadAsync(list, function(_results) end)
-		log("[TileManager] 맵 에셋 백그라운드 워밍: " .. tostring(mapName) .. " " .. tostring(#list) .. "개")
+-- 		log("[TileManager] 맵 에셋 백그라운드 워밍: " .. tostring(mapName) .. " " .. tostring(#list) .. "개")
+	end
+
+	@ExecSpace("ClientOnly")
+	method void OnUpdate(number delta)
+		-- 현재 턴 actor가 바뀌면 인생분기(길드/연애) 타일 아트를 그 actor 기준으로 다시 적용한다.
+		-- (LifePath는 @Sync라 관전자도 actor의 분기를 읽을 수 있다. 폴링 패턴은 OtherPlayersPanel과 동일.)
+		self._artPollAcc = self._artPollAcc + delta
+		if self._artPollAcc < 0.3 then return end
+		self._artPollAcc = 0
+		local actor = self:ArtOwnerUserId()
+		if actor == self._lastArtActor then return end
+		self._lastArtActor = actor
+		self:ApplyLifePathArtLocal()
+		self:ApplyCampVisualsLocal()   -- 진영 변형 타일도 actor 진영으로 재도색.
+	end
+
+	@ExecSpace("ClientOnly")
+	method void ApplyLifePathArtLocal()
+		-- 'Guild' 타입(인생분기) 타일의 대형아트(TileType_TileSprite)와 칸 아이콘(Dummy_TileSprite)을
+		-- 현재 ArtOwner(턴 actor 또는 본인) 기준으로 다시 적용한다. (몬스터/그 외 타입 아트는 건드리지 않는다.)
+		if self:CountTiles() == 0 then return end
+		for key, entity in pairs(self.tileEntities) do
+			if isvalid(entity) then
+				local data = self.tileGraph[key]
+				if data ~= nil and data.type == "Guild" then
+					self:ApplyTileTypeIcon(entity, data.type)
+					local ruid = self:LifePathTileArt(data.type)
+					if ruid ~= "" then
+						local child = self:FindChild(entity, "TileType_TileSprite")
+						if isvalid(child) and isvalid(child.SpriteRendererComponent) then
+							child.SpriteRendererComponent.SpriteRUID = ruid
+							child.SpriteRendererComponent.SortingLayer = "Default"
+							child.SpriteRendererComponent.OrderInLayer = 2
+						end
+					end
+				end
+			end
+		end
 	end
 
 	@ExecSpace("ClientOnly")
@@ -833,7 +901,9 @@ script TileManager extends Logic
 	@ExecSpace("ClientOnly")
 	method boolean ApplyCampVisualsLocal()
 		if self:CountTiles() == 0 then return false end
-				local me = _UserService.LocalPlayer
+				-- 진영 변형 타일도 '현재 턴 actor' 기준으로 칠한다(관전자가 actor의 진영을 봐야 함).
+				-- CampName은 @Sync라 모든 클라가 actor의 진영을 읽을 수 있다. 멀티 아니면 본인(ArtOwnerPlayer가 처리).
+				local me = self:ArtOwnerPlayer()
 				if not isvalid(me) then return false end
 				local buff = me:GetComponent("script.BuffManager")
 				if not isvalid(buff) then return false end
@@ -868,7 +938,7 @@ script TileManager extends Logic
 	method void BuildTileGraph()
 		local ds = _DataService:GetTable("TileEventData")
 				if not isvalid(ds) then
-					log_warning("[TileManager] TileEventData 테이블 없음")
+-- 					log_warning("[TileManager] TileEventData 테이블 없음")
 					return
 				end
 		
@@ -941,7 +1011,7 @@ script TileManager extends Logic
 					count += 1
 				end
 		
-				log("[TileManager] 타일 그래프 구성 완료: " .. tostring(count) .. "개")
+-- 				log("[TileManager] 타일 그래프 구성 완료: " .. tostring(count) .. "개")
 	end
 
 end

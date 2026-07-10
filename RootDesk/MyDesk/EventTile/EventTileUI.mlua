@@ -139,6 +139,8 @@ script EventTileUI extends Logic
 
 	property table _specPages = {}
 
+	property table _specChoiceLabels = {}   -- 관전 선택지 씬: 마지막 페이지에서 읽기전용 버튼으로 표시할 라벨(비어 있으면 일반 텍스트)
+
 	property integer _specPageIdx = 0
 
 	property integer _specPageTimer = 0
@@ -175,6 +177,10 @@ script EventTileUI extends Logic
 	property integer _specImgFromPage = 0
 
 	property string _specImgPage2RUID = ""
+
+	-- 텍스트 이벤트(사냥/사냥+/불행) 관전 페이지 게이팅용.
+	property boolean _pageSpecSync = false      -- actor: 이 페이지 이벤트를 관전자에게 페이지 단위로 방송할지
+	property string _specLastEmote = ""          -- 관전: 마지막 페이지 도달 시 1회 재생할 초상 연출(불행 울음 등)
 
 	property string _pageEndEmote = ""
 
@@ -424,7 +430,7 @@ script EventTileUI extends Logic
 		self:StopTyping()
 		local comp = self:GetTextComp()
 		if comp == nil then
-			log_warning("[EventTileUI] UIText/TextComponent 를 찾을 수 없습니다: " .. self.TextPath)
+-- 			log_warning("[EventTileUI] UIText/TextComponent 를 찾을 수 없습니다: " .. self.TextPath)
 			return
 		end
 		self._textComp = comp
@@ -937,7 +943,7 @@ script EventTileUI extends Logic
 		else
 			source = _UserService.LocalPlayer
 			if isvalid(source) == false or source.PlayerComponent == nil then
-				log_warning("[EventTileUI] EnsurePortraitIdentity: LocalPlayer 미확보 — 초상화 외형 고정 실패")
+-- 				log_warning("[EventTileUI] EnsurePortraitIdentity: LocalPlayer 미확보 — 초상화 외형 고정 실패")
 				return
 			end
 			identityUserId = tostring(source.PlayerComponent.UserId)
@@ -955,7 +961,7 @@ script EventTileUI extends Logic
 				end
 			end
 		end
-		log("[EventTileUI] 초상화 외형 고정 완료 user=" .. identityUserId .. " spec=" .. self._specActorUserId)
+-- 		log("[EventTileUI] 초상화 외형 고정 완료 user=" .. identityUserId .. " spec=" .. self._specActorUserId)
 	end
 
 	@ExecSpace("ClientOnly")
@@ -1005,7 +1011,7 @@ script EventTileUI extends Logic
 			self:PortraitPlayEmotion("Cry")
 			self:PortraitCry()
 		end
-		log("[EventTileUI] 초상화 결과 연출 outcome=" .. tostring(outcome))
+-- 		log("[EventTileUI] 초상화 결과 연출 outcome=" .. tostring(outcome))
 	end
 
 	@ExecSpace("ClientOnly")
@@ -1018,7 +1024,7 @@ script EventTileUI extends Logic
 			self:PortraitPlayEmotion("Cry")
 			self:PortraitCry()
 		end
-		log("[EventTileUI] 초상화 결과 연출(명시) kind=" .. tostring(kind))
+-- 		log("[EventTileUI] 초상화 결과 연출(명시) kind=" .. tostring(kind))
 	end
 
 	@ExecSpace("ClientOnly")
@@ -1144,10 +1150,46 @@ script EventTileUI extends Logic
 		-- 버튼 1개에 라벨/클릭(→ index 선택 전달) 연결 후 활성화.
 		if isvalid(btn) == false then return end
 		btn.Enable = true
+		if isvalid(btn.ButtonComponent) then btn.ButtonComponent.Enable = true end   -- 이전 관전(읽기전용) 때 꺼둔 상호작용 복구.
 		if isvalid(btn.TextComponent) then btn.TextComponent.Text = label end
 		local idx = index
 		local hd = btn:ConnectEvent(ButtonClickEvent, function() self:OnChoicePick(idx) end)
 		table.insert(self._choiceHandlers, { entity = btn, hd = hd })
+	end
+
+	@ExecSpace("ClientOnly")
+	method void RevealChoicesReadOnly(table labels)
+		-- 관전자: actor와 '동일한' 선택 버튼 UI를 클릭 불가 상태로 표시(라벨만, 클릭 핸들러 없음, ButtonComponent 비활성).
+		-- RevealChoices(actor용)와 버튼 배치/이미지 규칙을 동일하게 맞춰 actor 화면과 겹쳐 보이게 한다.
+		self:HideAllButtons()
+		local n = #labels
+		if n <= 2 then
+			if isvalid(self.BinaryChoiceGroup) then self.BinaryChoiceGroup.Enable = true end
+			local bbtns = { self.AcceptButton, self.DeclineButton }
+			local acceptDecline = self:IsAcceptDeclineLabels(labels)
+			for i = 1, n do
+				local ruid = self.BinaryBlueRUID
+				if i == 2 and acceptDecline then ruid = self.BinaryGrayRUID end
+				self:SetButtonImage(bbtns[i], ruid)
+				self:SetChoiceButtonReadOnly(bbtns[i], labels[i])
+			end
+		else
+			if isvalid(self.MultipleChoiceGroup) then self.MultipleChoiceGroup.Enable = true end
+			local sbtns = { self.Select1, self.Select2, self.Select3, self.Select4 }
+			if n > 4 then n = 4 end
+			for i = 1, n do
+				self:SetChoiceButtonReadOnly(sbtns[i], labels[i])
+			end
+		end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void SetChoiceButtonReadOnly(Entity btn, string label)
+		-- 읽기전용 선택 버튼: 라벨만 세팅, 클릭 핸들러는 걸지 않고, ButtonComponent만 꺼서 호버/클릭을 막는다(엔티티는 보이게).
+		if isvalid(btn) == false then return end
+		btn.Enable = true
+		if isvalid(btn.TextComponent) then btn.TextComponent.Text = label end
+		if isvalid(btn.ButtonComponent) then btn.ButtonComponent.Enable = false end
 	end
 
 	@ExecSpace("ClientOnly")
@@ -1181,6 +1223,7 @@ script EventTileUI extends Logic
 	@ExecSpace("ClientOnly")
 	method void ShowPagedText(string fullText, any onComplete)
 		-- 텍스트를 페이지로 나눠 첫 장 표시 + '다음'. 마지막 장에서 '다음' → onComplete(self).
+		self._pageSpecSync = false   -- 기본 off(보스/선택 씬 등). 사냥/사냥+/불행 진입점에서만 true로 켠다.
 		self._pages = self:SplitPages(fullText)
 		self._pageIdx = 1
 		self._pageDone = onComplete
@@ -1210,6 +1253,8 @@ script EventTileUI extends Logic
 			if self._pageIdx >= #self._pages then
 				self:FirePageEndEmote()
 			end
+			-- 관전 게이팅: actor가 페이지를 넘긴 '이 순간' 관전자도 같은 페이지로 진행(결과 선노출/페이지 스킵 방지).
+			if self._pageSpecSync then self:BroadcastSpectatorPage(self._pageIdx) end
 		else
 			local cb = self._pageDone
 			if cb ~= nil then cb(self) end
@@ -1284,7 +1329,7 @@ script EventTileUI extends Logic
 			end
 		end
 		if isvalid(self.MonstersGroup) then self.MonstersGroup.Enable = false end
-		log("[EventTileUI] ClearEventImages: NPC/몬스터 이미지 RUID 비움")
+-- 		log("[EventTileUI] ClearEventImages: NPC/몬스터 이미지 RUID 비움")
 	end
 
 	@ExecSpace("ClientOnly")
@@ -1320,6 +1365,7 @@ script EventTileUI extends Logic
 		end
 		self:SetPortrait(anim)
 		self:ShowPagedText(message, self.OnEventDone)
+		self._pageSpecSync = true   -- 사냥/사냥+ 등: 페이지 넘김을 관전자에게 방송(게이팅).
 	end
 
 	@ExecSpace("ClientOnly")
@@ -1346,6 +1392,7 @@ script EventTileUI extends Logic
 			self:SetNPCImage(false, "")   -- NPC 없는 불행(예: 리멘)은 초상 숨김.
 		end
 		self:ShowPagedText(message, self.OnEventDone)
+		self._pageSpecSync = true   -- 불행: 페이지 넘김을 관전자에게 방송(게이팅).
 	end
 
 	@ExecSpace("ClientOnly")
@@ -1404,7 +1451,7 @@ script EventTileUI extends Logic
 		if self._luFxWanted == false then return end
 		local e = _EntityService:GetEntityByPath(self.LevelUpFxPath)
 		if isvalid(e) == false then
-			log_warning("[EventTileUI] LevelUpFx 엔티티를 찾을 수 없습니다: " .. self.LevelUpFxPath)
+-- 			log_warning("[EventTileUI] LevelUpFx 엔티티를 찾을 수 없습니다: " .. self.LevelUpFxPath)
 			return
 		end
 		if isvalid(e.SpriteGUIRendererComponent) then
@@ -1413,7 +1460,7 @@ script EventTileUI extends Logic
 		e.Enable = true
 		if self._luFxTimer ~= 0 then _TimerService:ClearTimer(self._luFxTimer) end
 		self._luFxTimer = _TimerService:SetTimerOnce(function() self:HideLevelUpFx() end, self.LevelUpFxSeconds)
-		log("[EventTileUI] 레벨업 이펙트 재생")
+-- 		log("[EventTileUI] 레벨업 이펙트 재생")
 	end
 
 	@ExecSpace("ClientOnly")
@@ -1504,7 +1551,7 @@ script EventTileUI extends Logic
 			_IntroCutscene:OnOpeningBannerReady()
 			if self._luFxFallbackTimer ~= 0 then _TimerService:ClearTimer(self._luFxFallbackTimer) end
 			self._luFxFallbackTimer = _TimerService:SetTimerOnce(function() self:PlayOpeningLevelUpFx() end, 12.0)
-			log("[EventTileUI] 오프닝 레벨업 이펙트 보류(인트로 트리거 대기)")
+-- 			log("[EventTileUI] 오프닝 레벨업 이펙트 보류(인트로 트리거 대기)")
 		else
 			self:ShowLevelUpFx()             -- 초상화 중심에 레벨업 이펙트 1회 재생
 		end
@@ -1516,7 +1563,7 @@ script EventTileUI extends Logic
 		local full = banner
 		if line ~= "" then full = banner .. "\n\n" .. line end
 		self:ShowPagedText(self:NormalizePages(full), self.OnLevelUpNext)
-		log("[EventTileUI] 레벨업 배너 표시 Lv." .. tostring(level) .. " 대사=" .. tostring(line ~= ""))
+-- 		log("[EventTileUI] 레벨업 배너 표시 Lv." .. tostring(level) .. " 대사=" .. tostring(line ~= ""))
 	end
 
 	@ExecSpace("ClientOnly")
@@ -1552,6 +1599,7 @@ script EventTileUI extends Logic
 		self:SetNPCImage(true, _NpcInfoManager:GetNpcRUID(npcKey))   -- 마을 이벤트: 등장 NPC 이미지 표시
 		self:SetPortrait(anim)
 		self:ShowPagedText(text, self.OnTextAdvance)
+		self._pageSpecSync = true   -- 마을/길드/연애 대사: 페이지 넘김을 관전자에게 게이팅(자동 넘김 금지, actor '다음' 클릭에만 진행).
 	end
 
 	@ExecSpace("ClientOnly")
@@ -1615,6 +1663,7 @@ script EventTileUI extends Logic
 		self._pages = self:SplitPages(text)
 		self._pageIdx = 1
 		self:ShowChoicePage()
+		self._pageSpecSync = true   -- 선택지 프롬프트 페이지 넘김을 관전자에게 게이팅(자동 넘김 금지, actor '다음' 클릭에만 진행).
 	end
 
 	@ExecSpace("ClientOnly")
@@ -1632,6 +1681,8 @@ script EventTileUI extends Logic
 	method void OnChoicePageNext()
 		self._pageIdx = self._pageIdx + 1
 		self:ShowChoicePage()
+		-- 관전 게이팅: actor가 프롬프트 페이지를 넘긴 순간 관전자도 같은 페이지로(마지막 페이지 도달 시 읽기전용 선택 버튼).
+		if self._pageSpecSync then self:BroadcastSpectatorPage(self._pageIdx) end
 	end
 
 	@ExecSpace("ClientOnly")
@@ -1665,7 +1716,7 @@ script EventTileUI extends Logic
 			local bbtns = { self.AcceptButton, self.DeclineButton }
 			-- 수락/거절형이면 1번=파랑, 2번(거절)=회색. 그 외 중립 2지선다는 둘 다 파랑.
 			local acceptDecline = self:IsAcceptDeclineLabels(labels)
-			log("[EventTileUI] 2지선다 노출 n=" .. tostring(n) .. " 수락/거절형=" .. tostring(acceptDecline))
+-- 			log("[EventTileUI] 2지선다 노출 n=" .. tostring(n) .. " 수락/거절형=" .. tostring(acceptDecline))
 			for i = 1, n do
 				local ruid = self.BinaryBlueRUID
 				if i == 2 and acceptDecline then ruid = self.BinaryGrayRUID end
@@ -1768,6 +1819,7 @@ script EventTileUI extends Logic
 	method void StopSpectatorTimers()
 		-- 관전 자동 넘김 타이머 정지(새 씬 진입/닫기 시 잔상·이중 넘김 방지).
 		if self._specPageTimer ~= 0 then _TimerService:ClearTimer(self._specPageTimer) self._specPageTimer = 0 end
+		self._specChoiceLabels = {}   -- 선택지 라벨 상태 초기화(다음 씬이 선택지가 아니면 읽기전용 버튼 미표시).
 	end
 
 	@ExecSpace("ClientOnly")
@@ -1808,54 +1860,61 @@ script EventTileUI extends Logic
 	method void SpectatorSceneText(string text, string anim, string npcKey, string actorUserId)
 		-- 관전자: 텍스트 씬 읽기전용 미러(자동 넘김). actor는 자기 인터랙티브 경로를 쓰므로 스킵.
 		local lp = _UserService.LocalPlayer
-		if isvalid(lp) and lp.PlayerComponent.UserId == actorUserId then return end
+		if isvalid(lp) and lp.PlayerComponent ~= nil and lp.PlayerComponent.UserId == actorUserId then return end
 		self._specActorUserId = actorUserId
 		self:ShowSpectatorText(text, anim, npcKey)
 	end
 
 	@ExecSpace("ClientOnly")
 	method void ShowSpectatorText(string text, string anim, string npcKey)
-		-- 관전 텍스트 표시: 그룹/NPC이미지/초상화 + 자동 넘김 페이지.
+		-- 관전 텍스트 표시: 그룹/NPC이미지/초상화 + actor 페이스 게이팅.
+		-- 자동 넘김(타이머) 대신 첫 페이지만 보여주고, 이후는 actor가 '다음'을 누른 순간(SpectatorEventPageSet)에만 진행한다.
 		self:StopSpectatorTimers()
 		self:ShowGroup()
+		self:HideAllButtons()   -- 이전 씬의 버튼(읽기전용 선택 등) 잔재 제거.
 		self:SetNPCImage(true, _NpcInfoManager:GetNpcRUID(npcKey))
 		self:SetPortrait(anim)
-		self:ShowSpectatorPaged(self:SplitPages(text), nil)
+		self._pageSpecSync = false
+		self._specPages = self:SplitPages(text)
+		self._specPageIdx = 1
+		self._specLastEmote = ""
+		self._specImgFromPage = 0
+		if #self._specPages > 0 then self:SetText(self._specPages[1]) end
 	end
 
 	@ExecSpace("Client")
 	method void SpectatorSceneChoices(string text, string anim, table labels, string npcKey, string actorUserId)
 		-- 관전자: 선택지 씬 읽기전용 미러(프롬프트 자동 넘김 → 선택지 라벨 정적 표시). 버튼 미생성. actor 스킵.
 		local lp = _UserService.LocalPlayer
-		if isvalid(lp) and lp.PlayerComponent.UserId == actorUserId then return end
+		if isvalid(lp) and lp.PlayerComponent ~= nil and lp.PlayerComponent.UserId == actorUserId then return end
 		self._specActorUserId = actorUserId
 		self:ShowSpectatorChoices(text, anim, labels, npcKey)
 	end
 
 	@ExecSpace("ClientOnly")
 	method void ShowSpectatorChoices(string text, string anim, table labels, string npcKey)
-		-- 관전 선택지 표시: 프롬프트 페이지 뒤에 선택지 라벨을 담은 합성 페이지를 붙여 자동 넘김. 실제 버튼은 만들지 않는다.
+		-- 관전 선택지 표시: 프롬프트를 actor 페이스로 게이팅하고, 마지막 페이지에서 actor와 '동일한' 읽기전용(클릭 불가) 선택 버튼을 보여준다.
+		-- (기존엔 선택지를 '▶라벨' 텍스트 페이지로만 붙여 자동 넘김 → actor 선택창과 모양이 달랐고 페이스가 어긋났다.)
 		self:StopSpectatorTimers()
 		self:ShowGroup()
+		self:HideAllButtons()   -- 이전 씬의 버튼(읽기전용 선택 등) 잔재 제거.
 		self:SetNPCImage(true, _NpcInfoManager:GetNpcRUID(npcKey))
 		self:SetPortrait(anim)
-		local pages = self:SplitPages(text)
-		local labelText = ""
-		for i = 1, #labels do
-			if labels[i] ~= nil and labels[i] ~= "" then
-				if labelText ~= "" then labelText = labelText .. "\n" end
-				labelText = labelText .. "▶ " .. labels[i]
-			end
-		end
-		if labelText ~= "" then table.insert(pages, labelText) end
-		self:ShowSpectatorPaged(pages, nil)
+		self._pageSpecSync = false
+		self._specPages = self:SplitPages(text)
+		self._specPageIdx = 1
+		self._specLastEmote = ""
+		self._specImgFromPage = 0
+		self._specChoiceLabels = labels   -- 마지막 페이지 도달 시 읽기전용 버튼으로 표시(StopSpectatorTimers가 {}로 지운 뒤 여기서 설정).
+		if #self._specPages > 0 then self:SetText(self._specPages[1]) end
+		if #self._specPages <= 1 then self:RevealChoicesReadOnly(labels) end   -- 단일 페이지 프롬프트면 즉시 버튼 표시.
 	end
 
 	@ExecSpace("Client")
 	method void SpectatorSceneRoll(string leadText, string resultText, string anim, string npcKey, string actorUserId)
 		-- 관전자: roll 씬 리드/결과 문구 미러(주사위 자체는 2a 병행). actor 스킵.
 		local lp = _UserService.LocalPlayer
-		if isvalid(lp) and lp.PlayerComponent.UserId == actorUserId then return end
+		if isvalid(lp) and lp.PlayerComponent ~= nil and lp.PlayerComponent.UserId == actorUserId then return end
 		self._specActorUserId = actorUserId
 		self:ShowSpectatorRoll(leadText, resultText, anim, npcKey)
 	end
@@ -1866,6 +1925,7 @@ script EventTileUI extends Logic
 		-- (변경 전엔 SpectatorRollLeadHold 타이머로 결과 문구를 자동 노출 → actor가 굴리기 전에 결과가 스포일되던 문제 수정.)
 		self:StopSpectatorTimers()
 		self:ShowGroup()
+		self:HideAllButtons()   -- 이전 씬의 버튼(읽기전용 선택 등) 잔재 제거.
 		self:SetNPCImage(true, _NpcInfoManager:GetNpcRUID(npcKey))
 		self:SetPortrait(anim)
 		self._specRollResultText = resultText   -- actor 굴림 시 표시할 결과 문구 보관(대기)
@@ -1886,7 +1946,7 @@ script EventTileUI extends Logic
 	method void SpectatorBossFightText(string challengeText, string bossStandRUID, string actorUserId)
 		-- 관전자: 보스 도전 문구 미러. actor 스킵.
 		local lp = _UserService.LocalPlayer
-		if isvalid(lp) and lp.PlayerComponent.UserId == actorUserId then return end
+		if isvalid(lp) and lp.PlayerComponent ~= nil and lp.PlayerComponent.UserId == actorUserId then return end
 		self._specActorUserId = actorUserId
 		self:ShowSpectatorBossFight(challengeText, bossStandRUID)
 	end
@@ -1906,7 +1966,7 @@ script EventTileUI extends Logic
 		-- 관전자: 보스 결과 후속(성공 시 die 이미지 + 결과 문구) 즉시 미러. actor 스킵.
 		-- ⚠ 즉시 표시 버전: 주사위 롤이 없는 흐름(EndTile 검은 마법사=CP 판정) 전용. 주사위 롤이 있는 BossTile은 SpectatorBossFollowDeferred 사용.
 		local lp = _UserService.LocalPlayer
-		if isvalid(lp) and lp.PlayerComponent.UserId == actorUserId then return end
+		if isvalid(lp) and lp.PlayerComponent ~= nil and lp.PlayerComponent.UserId == actorUserId then return end
 		self._specActorUserId = actorUserId
 		self:ShowSpectatorBossFollow(win, outcome, outcomeText, bossDieRUID)
 	end
@@ -1916,7 +1976,7 @@ script EventTileUI extends Logic
 		-- 관전자: 보스 결과 후속을 도착 즉시 표시하지 않고 보관 → actor가 실제 주사위를 굴린 순간(SpectatorRevealBossFollow)에 공개.
 		--         그때까지 화면엔 도전 문구(SpectatorBossFightText) 미러가 유지된다(승패 조기 스포일 방지). 주사위 롤이 있는 BossTile 전용.
 		local lp = _UserService.LocalPlayer
-		if isvalid(lp) and lp.PlayerComponent.UserId == actorUserId then return end
+		if isvalid(lp) and lp.PlayerComponent ~= nil and lp.PlayerComponent.UserId == actorUserId then return end
 		self._specActorUserId = actorUserId
 		self._specBossWin = win
 		self._specBossOutcome = outcome
@@ -1949,7 +2009,7 @@ script EventTileUI extends Logic
 	method void SpectatorSceneHide(string actorUserId)
 		-- 관전자: 씬 미러 닫기. actor는 자기 ClientHide를 쓰므로 스킵.
 		local lp = _UserService.LocalPlayer
-		if isvalid(lp) and lp.PlayerComponent.UserId == actorUserId then return end
+		if isvalid(lp) and lp.PlayerComponent ~= nil and lp.PlayerComponent.UserId == actorUserId then return end
 		self:HideSpectatorScene()
 	end
 
@@ -1969,7 +2029,7 @@ script EventTileUI extends Logic
 		-- 관전자: 사냥/사냥+ 등 EventTileBase 텍스트 이벤트 미러(몬스터/NPC 이미지 + 자동 넘김). actor 스킵.
 		-- npcFromPage > 0 이면 사냥+ 분할 이미지: 페이지1=일반 사냥 몬스터, 그 페이지부터 사냥+(엘리트/NPC) 이미지로 전환.
 		local lp = _UserService.LocalPlayer
-		if isvalid(lp) and lp.PlayerComponent.UserId == actorUserId then return end
+		if isvalid(lp) and lp.PlayerComponent ~= nil and lp.PlayerComponent.UserId == actorUserId then return end
 		self._specActorUserId = actorUserId
 		self:ShowSpectatorEvent(message, anim, monsterRUID, imageKind, npcKey, npcFromPage, page2Ruid)
 	end
@@ -1996,7 +2056,14 @@ script EventTileUI extends Logic
 			self:SetMonsterImages(monsterRUID)
 		end
 		self:SetPortrait(anim)
-		self:ShowSpectatorPaged(self:SplitPages(message), nil)
+		-- 관전 게이팅: 자동 넘김 대신 첫 페이지(일반 사냥 등)만 표시하고, 이후는 actor가 '다음'을 누르는
+		--   순간(SpectatorEventPageSet)에만 진행한다. → 관전자가 결과를 먼저 보거나 페이지를 건너뛰지 않는다.
+		self:StopSpectatorTimers()
+		self._pageSpecSync = false
+		self._specPages = self:SplitPages(message)
+		self._specPageIdx = 1
+		self._specLastEmote = ""
+		if #self._specPages > 0 then self:SetText(self._specPages[1]) end
 	end
 
 	@ExecSpace("Client")
@@ -2004,7 +2071,7 @@ script EventTileUI extends Logic
 		-- 관전자: 불행 이벤트 미러(첫 페이지 NPC 이미지 + 자동 넘김 + 마지막 울음). actor 스킵.
 		-- npcKeysCsv는 NPC 이름 키(';' 구분) — RUID 해석은 여기(클라)에서 한다(피드백 7, 서버 해석 실패 방지).
 		local lp = _UserService.LocalPlayer
-		if isvalid(lp) and lp.PlayerComponent.UserId == actorUserId then return end
+		if isvalid(lp) and lp.PlayerComponent ~= nil and lp.PlayerComponent.UserId == actorUserId then return end
 		self._specActorUserId = actorUserId
 		self:ShowSpectatorUnlucky(message, anim, npcKeysCsv)
 	end
@@ -2023,7 +2090,80 @@ script EventTileUI extends Logic
 			self:SetNPCImage(false, "")
 		end
 		self:SetPortrait(anim)
-		self:ShowSpectatorPaged(self:SplitPages(message), function() self:PortraitEmoteKind("cry") end)
+		-- 관전 게이팅: 자동 넘김 대신 첫 페이지만 표시하고 actor 페이스에 맞춰 진행. 마지막 페이지 도달 시 울음(1회).
+		self:StopSpectatorTimers()
+		self._pageSpecSync = false
+		self._specPages = self:SplitPages(message)
+		self._specPageIdx = 1
+		self._specLastEmote = "cry"
+		if #self._specPages > 0 then self:SetText(self._specPages[1]) end
+		if #self._specPages <= 1 then self:PortraitEmoteKind("cry") self._specLastEmote = "" end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void BroadcastSpectatorPage(integer pageIdx)
+		-- actor: 텍스트 이벤트(사냥/사냥+/불행) 페이지를 넘긴 순간, 그 페이지 인덱스를 서버 경유로 관전자에게 전달(게이팅).
+		local lp = _UserService.LocalPlayer
+		local uid = ""
+		if isvalid(lp) and lp.PlayerComponent ~= nil then uid = lp.PlayerComponent.UserId end
+		if uid == "" then return end
+		self:RequestSpectatorEventPage(pageIdx, uid)
+	end
+
+	@ExecSpace("Server")
+	method void RequestSpectatorEventPage(integer pageIdx, string actorUserId)
+		-- actor 클라 → 서버 → 전원 방송(관전자 페이지 동기화). actor 위조 방지.
+		if senderUserId ~= actorUserId then return end
+		-- actor가 페이지를 넘긴 = 진행 입력 → 멀티 턴 감시(30초) 재무장(정상 플레이어가 천천히 읽어도 AFK 자동진행 안 되게).
+		if _GameModeManager ~= nil and _GameModeManager._activeMode == "MULTI" then
+			_MultiTurnManager:NotifyTileInteraction()
+		end
+		self:SpectatorEventPageSet(pageIdx, actorUserId)
+	end
+
+	@ExecSpace("ClientOnly")
+	method void ForceHideAllEventUI()
+		-- AFK 강제 완료: 역할(actor/관전자) 무관하게 이벤트 UI를 모두 닫는다(스테일 UI/늦은 클릭 방지).
+		self:StopSpectatorTimers()
+		self:Hide()
+		self:HideSpectatorScene()
+		self._activeTile = nil
+		self._specActorUserId = ""
+	end
+
+	@ExecSpace("Client")
+	method void SpectatorEventPageSet(integer pageIdx, string actorUserId)
+		-- 관전자: actor가 넘긴 페이지로 진행(자기 자신=actor는 스킵). 진행 중인 관전 씬의 actor와 일치할 때만.
+		local lp = _UserService.LocalPlayer
+		if isvalid(lp) and lp.PlayerComponent ~= nil and lp.PlayerComponent.UserId == actorUserId then return end
+		if actorUserId ~= self._specActorUserId then return end
+		self:SetSpectatorPage(pageIdx)
+	end
+
+	@ExecSpace("ClientOnly")
+	method void SetSpectatorPage(integer pageIdx)
+		-- 관전 텍스트 이벤트: 지정 페이지로 전환(사냥+ 이미지 전환 / 마지막 페이지 연출 포함). actor 페이스에 맞춰 호출된다.
+		local n = #self._specPages
+		if n == 0 then return end
+		if pageIdx < 1 then pageIdx = 1 end
+		if pageIdx > n then pageIdx = n end
+		self._specPageIdx = pageIdx
+		-- 사냥+ 분할 이미지: 지정 페이지 도달 시 일반 사냥 몬스터 → 엘리트/NPC 이미지로 전환(1회).
+		if self._specImgFromPage > 0 and pageIdx >= self._specImgFromPage then
+			self:SetMonsterImages("")
+			if self._specImgPage2RUID ~= "" then self:SetNPCImage(true, self._specImgPage2RUID) end
+			self._specImgFromPage = 0
+		end
+		self:SetText(self._specPages[pageIdx])
+		-- 관전 선택지: 마지막 프롬프트 페이지 도달 시 actor와 동일한 읽기전용 선택 버튼 노출.
+		if self._specChoiceLabels ~= nil and #self._specChoiceLabels > 0 and pageIdx >= n then
+			self:RevealChoicesReadOnly(self._specChoiceLabels)
+		end
+		-- 마지막 페이지 도달 시 예약 연출(불행 울음 등) 1회.
+		if pageIdx >= n and self._specLastEmote ~= "" then
+			self:PortraitEmoteKind(self._specLastEmote)
+			self._specLastEmote = ""
+		end
 	end
 
 end
