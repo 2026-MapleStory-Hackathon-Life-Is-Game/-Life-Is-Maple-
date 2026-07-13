@@ -384,11 +384,16 @@ script MultiTurnManager extends Logic
 	end
 
 	method table CollectOccupants(string actorUserId, string mapName, string tileName)
-		-- 같은 맵·같은 currentTile에 서 있는 다른 유저(본인/완주자 제외) userId 배열.
+		-- 같은 맵·같은 currentTile에 서 있는 다른 유저(본인/완주자 제외)를 '턴 순서'로 반환.
+		-- 강탈량이 패자 잔량에 의존해 순서가 결과에 영향을 주므로, 턴 순서표(_playerUserIds, 0-based)를 그대로 따른다.
 		local out = {}
-		for userId, ue in pairs(_UserService.UserEntities) do
-			if userId ~= actorUserId and isvalid(ue) and ue.PlayerMovement ~= nil then
-				if ue.CurrentMapName == mapName
+		if self._playerUserIds == nil then return out end
+		for i = 0, self._playerCount - 1 do
+			local userId = self._playerUserIds[i]
+			if userId ~= nil and userId ~= actorUserId then
+				local ue = _UserService:GetUserEntityByUserId(userId)
+				if isvalid(ue) and ue.PlayerMovement ~= nil
+					and ue.CurrentMapName == mapName
 					and ue.PlayerMovement.currentTile == tileName
 					and self:IsFinished(userId) == false then
 					table.insert(out, userId)

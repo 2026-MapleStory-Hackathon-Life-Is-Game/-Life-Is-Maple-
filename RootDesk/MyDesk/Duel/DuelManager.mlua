@@ -53,6 +53,12 @@ script DuelManager extends Logic
 
 	@ExecSpace("ServerOnly")
 	method void RunNextDuel()
+		-- 게임/턴이 더 이상 이 대결 시퀀스의 상태(TILE)가 아니면 중단(이탈·게임종료 등으로 stale 스탯변경/방송 방지).
+		if _MultiTurnManager == nil or _MultiTurnManager._isActive == false
+			or _MultiTurnManager._currentState ~= "TILE" then
+			self._dqQueue = nil
+			return
+		end
 		-- 큐에서 다음 점유자 1명과 대결. 없으면 시퀀스 종료 → 칸 이벤트로 복귀.
 		if self._dqQueue == nil or self._dqIndex > #self._dqQueue then
 			self._dqQueue = nil
