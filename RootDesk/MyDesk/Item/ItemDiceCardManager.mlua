@@ -44,6 +44,12 @@ script ItemDiceCardManager extends Logic
 		self:NotifyCardApplied(cardKey, value, senderUserId)
 	end
 
+	@ExecSpace("Server")
+	method void ClearCard()
+		-- 클라(카드 장전 해제) → 서버. 요청자의 예약된 주사위 고정값을 취소.
+		_DiceManager:ClearForced(senderUserId)
+	end
+
 	@ExecSpace("Client")
 	method void NotifyCardApplied(string cardKey, integer value)
 		-- 결과 피드백(기본: 로그). 토스트/UI 연동은 다음 단계.

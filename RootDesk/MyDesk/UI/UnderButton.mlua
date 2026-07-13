@@ -25,6 +25,18 @@ script UnderButton extends Component
 
 	property ButtonComponent BagButton = "620689f7-d644-4347-94c3-9a74de27cc46"
 
+	-- 주사위 고정 카드 버튼(주사위 패널 위에 배치). 낮은=1~6, 높은=7~12 범위 랜덤 고정.
+	property ButtonComponent BtnCardLow = "bfe4a390-132e-45c4-b2dc-1ae76a4c443d"
+
+	property ButtonComponent BtnCardHigh = "79594592-eca1-4f1d-a583-8a49f5e92ab5"
+
+	property any cardLowHandler = nil
+
+	property any cardHighHandler = nil
+
+	-- 현재 예약(장전)된 카드: ""=없음 / "low" / "high". 굴리면 해제.
+	property string _armedCard = ""
+
 	property ButtonComponent btnMapBack = "0533069c-9624-4b11-bb19-720ff7977b62"
 
 	property ButtonComponent btnCharClose = "a1a14fd7-6fbf-442e-bdcd-e06f1e5f96f9"
@@ -81,6 +93,16 @@ script UnderButton extends Component
 			if isvalid(self.BagButton) and isvalid(self.BagButton.Entity) then
 				self.bagHandler = self.BagButton.Entity:ConnectEvent(ButtonClickEvent, self.OnClickBag)
 			end
+
+			-- 주사위 고정 카드 버튼 배선 + 장전 표시 초기화.
+			if isvalid(self.BtnCardLow) and isvalid(self.BtnCardLow.Entity) then
+				self.cardLowHandler = self.BtnCardLow.Entity:ConnectEvent(ButtonClickEvent, self.OnClickCardLow)
+			end
+			if isvalid(self.BtnCardHigh) and isvalid(self.BtnCardHigh.Entity) then
+				self.cardHighHandler = self.BtnCardHigh.Entity:ConnectEvent(ButtonClickEvent, self.OnClickCardHigh)
+			end
+			self._armedCard = ""
+			self:ApplyCardArmedVisual()
 		
 			-- 상황별 버튼(돌아가기/닫기) 배선 + 시작 숨김.
 			self._hudCtx = ""
@@ -155,6 +177,12 @@ script UnderButton extends Component
 					end
 					if self.bagHandler ~= nil and isvalid(self.BagButton.Entity) then
 						self.BagButton.Entity:DisconnectEvent(ButtonClickEvent, self.bagHandler)
+					end
+					if self.cardLowHandler ~= nil and isvalid(self.BtnCardLow) and isvalid(self.BtnCardLow.Entity) then
+						self.BtnCardLow.Entity:DisconnectEvent(ButtonClickEvent, self.cardLowHandler)
+					end
+					if self.cardHighHandler ~= nil and isvalid(self.BtnCardHigh) and isvalid(self.BtnCardHigh.Entity) then
+						self.BtnCardHigh.Entity:DisconnectEvent(ButtonClickEvent, self.cardHighHandler)
 					end
 					if self.mapBackHandler ~= nil and isvalid(self.btnMapBack) and isvalid(self.btnMapBack.Entity) then
 						self.btnMapBack.Entity:DisconnectEvent(ButtonClickEvent, self.mapBackHandler)
@@ -262,9 +290,55 @@ script UnderButton extends Component
 		_SFXManager:PlayClick()
 		_SingleTurnManager:RequestRollDice()
 		_MultiTurnManager:RequestRollDice()
-		
+
+		-- 굴렸으니 카드 장전 표시 해제(서버 고정값은 이번 굴림에 소비됨).
+		self._armedCard = ""
+		self:ApplyCardArmedVisual()
+
 		self.DicePanel.Visible = false
 		self.WholePanel.Visible = true
+	end
+
+	method void OnClickCardLow(any event)
+		-- 낮은 숫자 카드 사용 → 다음 이동 주사위를 1~6 범위 랜덤으로 고정.
+		self:UseDiceCard("low")
+	end
+
+	method void OnClickCardHigh(any event)
+		-- 높은 숫자 카드 사용 → 다음 이동 주사위를 7~12 범위 랜덤으로 고정.
+		self:UseDiceCard("high")
+	end
+
+	method void UseDiceCard(string cardKey)
+		-- 카드 사용 공통 처리: 내 DICE 차례에서만, 같은 카드 재클릭이면 해제(토글), 아니면 장전.
+		if self:IsMyDiceTurn() == false then return end
+		_SFXManager:PlayClick()
+		if self._armedCard == cardKey then
+			-- 같은 카드 다시 누르면 장전 해제.
+			self._armedCard = ""
+			_ItemDiceCardManager:ClearCard()
+		else
+			self._armedCard = cardKey
+			_ItemDiceCardManager:UseCard(cardKey)
+		end
+		self:ApplyCardArmedVisual()
+	end
+
+	method void ApplyCardArmedVisual()
+		-- 장전된 카드는 또렷하게(알파 1), 나머지는 흐리게(알파 0.4) 표시. 없으면 둘 다 또렷.
+		self:SetCardAlpha(self.BtnCardLow, self._armedCard == "" or self._armedCard == "low")
+		self:SetCardAlpha(self.BtnCardHigh, self._armedCard == "" or self._armedCard == "high")
+	end
+
+	method void SetCardAlpha(ButtonComponent btn, boolean bright)
+		-- 카드 버튼 배경 스프라이트 알파 조정으로 장전 여부를 시각화.
+		if isvalid(btn) == false or isvalid(btn.Entity) == false then return end
+		local spr = btn.Entity.SpriteGUIRendererComponent
+		if spr == nil then return end
+		local c = spr.Color
+		local a = 0.4
+		if bright then a = 1.0 end
+		spr.Color = Color(c.r, c.g, c.b, a)
 	end
 
 	method void OnDicePanelClickClose(any event)
