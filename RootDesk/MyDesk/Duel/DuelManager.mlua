@@ -1,0 +1,38 @@
+@Logic
+script DuelManager extends Logic
+
+	method integer StealAmountForStage(integer stage)
+		-- 단계별 강탈량. 빈칸/nil/≤0/행없음 → 0(대결 스킵 신호).
+		local ds = _DataService:GetTable("DuelBalance")
+		if isvalid(ds) == false then return 0 end
+		for i = 1, ds:GetRowCount() do
+			if (tonumber(ds:GetCell(i, "Stage")) or 0) == stage then
+				local n = tonumber(ds:GetCell(i, "StealAmount"))
+				if n == nil or n <= 0 then return 0 end
+				return math.floor(n)
+			end
+		end
+		return 0
+	end
+
+	method integer StealableFrom(any loserCP, integer N)
+		-- 패자가 실제로 내놓을 수 있는 가산 주스탯(제로섬 상한). min(N, 패자 주스탯필드 잔량).
+		if isvalid(loserCP) == false or N <= 0 then return 0 end
+		local avail = loserCP:GetStat(loserCP:MainStatField())
+		if avail < 0 then avail = 0 end
+		local steal = N
+		if avail < steal then steal = avail end
+		return math.floor(steal)
+	end
+
+	@ExecSpace("ServerOnly")
+	method integer ApplySteal(any winnerCP, any loserCP, integer N)
+		-- 패자 주스탯 −steal, 승자 주스탯 +steal(각자 자기 주스탯 타입). 실제 이전량 반환.
+		local steal = self:StealableFrom(loserCP, N)
+		if steal <= 0 then return 0 end
+		loserCP:AddMainStat("flat", -steal)   -- AddMainStat 내부에서 0하한+전투력 재계산+@Sync
+		winnerCP:AddMainStat("flat", steal)
+		return steal
+	end
+
+end
