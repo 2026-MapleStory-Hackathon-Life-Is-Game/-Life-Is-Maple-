@@ -70,17 +70,22 @@ script OtherPlayersPanel extends Logic
 				local name = "?"
 				local power = 0
 				local level = 1
+				local camp = ""   -- 진영 키(BuffManager.CampName, per-piece @Sync)
+				local job = ""    -- 직업 키(CombatPowerManager.CurrentJob, per-piece @Sync)
 				if isvalid(ue) and ue.PlayerComponent ~= nil then
 					name = ue.PlayerComponent.Nickname
 					local cp = ue:GetComponent("script.CombatPowerManager")
 					if isvalid(cp) then
 						power = cp.CombatPower
 						level = cp.Level
+						if cp.CurrentJob ~= nil then job = cp.CurrentJob end
 					end
+					local bf = ue:GetComponent("script.BuffManager")
+					if isvalid(bf) and bf.CampName ~= nil then camp = bf.CampName end
 				end
 				local fin = 0
 				if mgr._finishSync[uid] ~= nil then fin = mgr._finishSync[uid] end
-				table.insert(rows, { ent = ue, name = name, power = power, level = level, uid = uid, fin = fin })
+				table.insert(rows, { ent = ue, name = name, power = power, level = level, uid = uid, fin = fin, camp = camp, job = job })
 			end
 		end
 
@@ -101,6 +106,8 @@ script OtherPlayersPanel extends Logic
 					if r.fin > 0 then pw = pw .. "  [완주]" end
 					self:SetNodeText(rowE, "UIText_1", pw)                              -- 전투력
 					self:SetNodeText(rowE, "UIText_Level", "Lv." .. tostring(r.level))  -- 레벨
+					-- 진영/직업(.ui 기본값 "모험가/해적" placeholder를 실제 per-piece 값으로 덮어쓴다).
+					self:SetNodeText(rowE, "UIText", self:CampKo(r.camp) .. "/" .. self:JobKo(r.job))
 					-- 초상화: 담당 유저가 바뀔 때만 재적용(폴링마다 SetEquip 방지 → 깜빡임/부하 방지).
 					if self._rowUid[i] ~= r.uid then
 						self:ApplyRowPortrait(rowE, r.ent, r.uid)
@@ -145,6 +152,27 @@ script OtherPlayersPanel extends Logic
 				end
 			end
 		end
+	end
+
+	method string CampKo(string camp)
+		-- 진영 영문 키 → 한글. 미선택("") → '없음'. (PlayerInfoPanel과 동일 규칙)
+		if camp == nil or camp == "" then return "없음" end
+		if camp == "Adventurer" then return "모험가"
+		elseif camp == "Cygnus" then return "시그너스"
+		elseif camp == "Resistance" then return "레지스탕스"
+		elseif camp == "Nova" then return "노바" end
+		return camp
+	end
+
+	method string JobKo(string job)
+		-- 직업 영문 키 → 한글. 미선택("" 또는 Beginner=초기 직업) → '없음'. (PlayerInfoPanel과 동일 규칙)
+		if job == nil or job == "" or job == "Beginner" then return "없음" end
+		if job == "Warrior" then return "전사"
+		elseif job == "Archer" then return "궁수"
+		elseif job == "Mage" then return "마법사"
+		elseif job == "Thief" then return "도적"
+		elseif job == "Pirate" then return "해적" end
+		return job
 	end
 
 	method string FmtPower(number value)
