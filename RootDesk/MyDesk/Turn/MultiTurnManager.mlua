@@ -358,47 +358,86 @@ script MultiTurnManager extends Logic
 
 	@ExecSpace("Server")
 	method void OnTile()
-		        local startedEvent = false
-		        local interactive = false
-		        self._skipResultDice = false
-		        for userId, userEntity in pairs(_UserService.UserEntities) do
-		            if userId == self._currentPlayerUserId then
-		                if userEntity.PlayerMovement ~= nil then
-		                    local mapName = userEntity.CurrentMapName
-		                    local tileName = userEntity.PlayerMovement.currentTile
-		                    -- ⚠ 분류(interactive/skipResultDice)는 TriggerArrive '전에' 확정한다.
-		                    --   TriggerArrive가 타일에 따라 이벤트를 '동기적으로 완료'할 수 있기 때문(예: 마지막 완주자 End 타일 →
-		                    --   OnArrive→FinishEndTile→NotifyTileEventDone→OnTileEventComplete가 이 안에서 곧바로 실행).
-		                    --   과거엔 _skipResultDice를 TriggerArrive 뒤에 세팅해, 그 동기 완료 시점에 아직 false여서
-		                    --   꼴찌 완주자가 결과 주사위를 굴려버렸다. (부수효과 없는 판정이라 먼저 계산해도 안전.)
-		                    interactive = _TileManager:IsInteractiveArrive(mapName, tileName, userEntity)
-		                    self._skipResultDice = _TileManager:IsEventArrive(mapName, tileName, userEntity)
-		                    startedEvent = _TileManager:TriggerArrive(mapName, tileName, userEntity)
-		                end
-		                break
-		            end
-		        end
+		-- 도착 칸에 다른 유저가 있으면 대결을 선행하고, 완료 후 칸 이벤트로 이어간다.
+		-- 대결이 없거나 스킵 단계면 즉시 기존 칸 이벤트 흐름.
+		local actorE = nil
+		for userId, ue in pairs(_UserService.UserEntities) do
+			if userId == self._currentPlayerUserId then actorE = ue break end
+		end
+		if isvalid(actorE) == false or actorE.PlayerMovement == nil then
+			self:RunTileArrival() return
+		end
+		local mapName  = actorE.CurrentMapName
+		local tileName = actorE.PlayerMovement.currentTile
+		local stage    = _TileManager:GetTileStage(mapName, tileName)
+		local N = 0
+		if _DuelManager ~= nil then N = _DuelManager:StealAmountForStage(stage) end
+		if N <= 0 then
+			self:RunTileArrival() return   -- 이 단계는 대결 스킵
+		end
+		local occ = self:CollectOccupants(self._currentPlayerUserId, mapName, tileName)
+		if #occ == 0 then
+			self:RunTileArrival() return   -- 점유자 없음
+		end
+		-- 대결 선행 → 완료 시 OnDuelsComplete가 RunTileArrival을 호출.
+		_DuelManager:RunDuels(self._currentPlayerUserId, occ, N)
+	end
 
-		        -- TriggerArrive가 이벤트를 동기적으로 완료했다면 이미 OnTileEventComplete가 상태를 TILE에서 넘겼다.
-		        -- 그 경우 아래 대기/전이 로직을 다시 타면 이중 전이가 되므로 여기서 중단한다.
-		        if self._currentState ~= "TILE" then return end
+	method table CollectOccupants(string actorUserId, string mapName, string tileName)
+		-- 같은 맵·같은 currentTile에 서 있는 다른 유저(본인/완주자 제외) userId 배열.
+		local out = {}
+		for userId, ue in pairs(_UserService.UserEntities) do
+			if userId ~= actorUserId and isvalid(ue) and ue.PlayerMovement ~= nil then
+				if ue.CurrentMapName == mapName
+					and ue.PlayerMovement.currentTile == tileName
+					and self:IsFinished(userId) == false then
+					table.insert(out, userId)
+				end
+			end
+		end
+		return out
+	end
 
-		        if startedEvent and interactive then
-		            -- 인터랙티브 타일(예: 마을): 타일이 _GameModeManager:NotifyTileEventDone()으로
-		            -- OnTileEventComplete를 호출할 때까지 대기(고정 타이머 없음).
--- 		            log("[MultiTurnManager] 인터랙티브 타일 도착 — 완료 신호 대기")
-		            self:StartTurnWatch()   -- 타일 상호작용 30초 대기 감시(초과 시 강제 완료로 턴 진행, 피드백 6)
-		        elseif startedEvent then
-		            -- 이벤트 타일: TileEventUI 표시 시간만큼 기다린 뒤 TURN_END로 진행.
-		            local waitSec = _EventTileUI.AutoHideSeconds
-		            if waitSec == nil or waitSec <= 0 then waitSec = 5.0 end
--- 		            log("[MultiTurnManager] 이벤트 타일 도착 — " .. tostring(waitSec) .. "초 후 턴 종료로 진행")
-		            _TimerService:SetTimerOnce(function()
-		                self:OnTileEventComplete()
-		            end, waitSec)
-		        else
-		            self:AdvanceToState("RESULT_DICE")
-		        end
+	@ExecSpace("Server")
+	method void OnDuelsComplete()
+		-- 대결 시퀀스 종료 → 그 칸의 원래 이벤트 진행. (상태가 아직 TILE일 때만)
+		if not self._isActive then return end
+		if self._currentState ~= "TILE" then return end
+		self:RunTileArrival()
+	end
+
+	@ExecSpace("Server")
+	method void RunTileArrival()
+		-- (기존 OnTile 본문) 도착 타일 분류 + TriggerArrive + 대기/전이.
+		local startedEvent = false
+		local interactive = false
+		self._skipResultDice = false
+		for userId, userEntity in pairs(_UserService.UserEntities) do
+			if userId == self._currentPlayerUserId then
+				if userEntity.PlayerMovement ~= nil then
+					local mapName = userEntity.CurrentMapName
+					local tileName = userEntity.PlayerMovement.currentTile
+					interactive = _TileManager:IsInteractiveArrive(mapName, tileName, userEntity)
+					self._skipResultDice = _TileManager:IsEventArrive(mapName, tileName, userEntity)
+					startedEvent = _TileManager:TriggerArrive(mapName, tileName, userEntity)
+				end
+				break
+			end
+		end
+
+		if self._currentState ~= "TILE" then return end
+
+		if startedEvent and interactive then
+			self:StartTurnWatch()
+		elseif startedEvent then
+			local waitSec = _EventTileUI.AutoHideSeconds
+			if waitSec == nil or waitSec <= 0 then waitSec = 5.0 end
+			_TimerService:SetTimerOnce(function()
+				self:OnTileEventComplete()
+			end, waitSec)
+		else
+			self:AdvanceToState("RESULT_DICE")
+		end
 	end
 
 	@ExecSpace("Server")
