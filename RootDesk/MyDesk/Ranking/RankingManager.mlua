@@ -305,6 +305,7 @@ script RankingManager extends Logic
 				self:SetRowHighlight(i, false)
 				self:SetCell(i, "Rank", tostring(i) .. "위")
 				self:SetCell(i, "Name", tostring(rec.name))
+				self:SetNameBadge(i, tostring(rec.userId))
 				self:SetCell(i, "Power", self:FormatPower(rec.power))
 				self:SetCell(i, "Job", self:JobKo(tostring(rec.job)))
 				self:SetCell(i, "Camp", self:CampKo(tostring(rec.camp)))
@@ -326,6 +327,25 @@ script RankingManager extends Logic
 		if isvalid(e) and isvalid(e.TextComponent) then
 			e.TextComponent.Text = text
 		end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void SetNameBadge(integer row, string userId)
+		-- 이름 셀 색으로 '이미 친구' 표시(친구=분홍 강조, 아니면 기본색).
+		local e = _EntityService:GetEntityByPath(self.panelBase .. "Cell" .. tostring(row) .. "_Name")
+		if isvalid(e) == false or isvalid(e.TextComponent) == false then return end
+		if _FriendManager ~= nil and _FriendManager:IsFriendClient(userId) then
+			e.TextComponent.FontColor = Color(0.82, 0.30, 0.48, 1)
+		else
+			e.TextComponent.FontColor = Color(0.270588, 0.325490, 0.443137, 1)
+		end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void RefreshBadges()
+		-- 친구 목록 변동 시 랭킹 표를 다시 그려 배지를 갱신한다.
+		if self._clientRecords == nil then return end
+		self:RenderTable()
 	end
 
 	@ExecSpace("ClientOnly")
