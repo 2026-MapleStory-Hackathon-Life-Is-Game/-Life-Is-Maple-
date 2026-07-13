@@ -37,6 +37,7 @@ script PlayerStatInit extends Logic
 		self:AddIfMissing(p, "script.ExtraTableManager")
 		self:AddIfMissing(p, "script.CombatPowerManager")
 		self:AddIfMissing(p, "script.CubeInventory")
+		self:AddIfMissing(p, "script.DiceCardInventory")   -- 주사위 고정 카드(낮은/높은) 보유
 		self:AddIfMissing(p, "script.RunStatsManager")   -- 엔딩 정리용 런 기록(턴/시간/타일방문)
 -- 		log("[PlayerStatInit] 전투 컴포넌트 부착 완료: " .. event.UserId)
 		
@@ -87,7 +88,15 @@ script PlayerStatInit extends Logic
 			bag:ResetAll()
 			bag:AddMiracleCube(999)
 		end
-		
+
+		-- 주사위 고정 카드 테스트용: 낮은/높은 각 5장(중복 지급 방지로 0으로 되돌린 뒤 지급).
+		local dcards = p:GetComponent("script.DiceCardInventory")
+		if isvalid(dcards) then
+			dcards:ResetAll()
+			dcards:Add("low", 5)
+			dcards:Add("high", 5)
+		end
+
 		local cp = p:GetComponent("script.CombatPowerManager")
 		if isvalid(cp) then cp:CalculateCurrentCombatPower() end
 	end
@@ -102,6 +111,8 @@ script PlayerStatInit extends Logic
 		end
 		local bag = p:GetComponent("script.CubeInventory")
 		if isvalid(bag) then bag:ResetAll() end
+		local dcards = p:GetComponent("script.DiceCardInventory")
+		if isvalid(dcards) then dcards:ResetAll() end
 -- 		log("[PlayerStatInit] (디버그) 더미 아이템 회수 완료")
 		
 		local cp = p:GetComponent("script.CombatPowerManager")

@@ -37,6 +37,9 @@ script UnderButton extends Component
 	-- 현재 예약(장전)된 카드: ""=없음 / "low" / "high". 굴리면 해제.
 	property string _armedCard = ""
 
+	-- 카드 버튼 보유 수 라이브 갱신 폴링 타이머(주사위 패널 열린 동안).
+	property number _cardPollTimer = 0
+
 	property ButtonComponent btnMapBack = "0533069c-9624-4b11-bb19-720ff7977b62"
 
 	property ButtonComponent btnCharClose = "a1a14fd7-6fbf-442e-bdcd-e06f1e5f96f9"
@@ -102,7 +105,7 @@ script UnderButton extends Component
 				self.cardHighHandler = self.BtnCardHigh.Entity:ConnectEvent(ButtonClickEvent, self.OnClickCardHigh)
 			end
 			self._armedCard = ""
-			self:ApplyCardArmedVisual()
+			self:UpdateCardButtons()
 		
 			-- 상황별 버튼(돌아가기/닫기) 배선 + 시작 숨김.
 			self._hudCtx = ""
@@ -204,6 +207,17 @@ script UnderButton extends Component
 		-- 중앙 상단 턴 안내(남은시간 / 배낭 차단 안내) 갱신.
 		self:UpdateTurnTimerText(delta)
 
+		-- 카드 버튼: 주사위 패널이 열려 있는 동안 보유 수/장전 상태를 주기적으로 갱신(굴림 소비/지급 반영).
+		if isvalid(self.DicePanel) and self.DicePanel.Visible then
+			self._cardPollTimer = self._cardPollTimer + delta
+			if self._cardPollTimer >= 0.25 then
+				self._cardPollTimer = 0
+				-- 서버 장전 상태로 재동기화(인벤에서 사용/굴림 소비 등 외부 변화 반영).
+				self._armedCard = self:ArmedCard()
+				self:UpdateCardButtons()
+			end
+		end
+
 		-- 캐릭터 정보 패널(Ctrl)은 숨겨진 UIGroup 내부라 자체 OnUpdate가 tick되지 않는다.
 		-- 항상 tick하는 이 HUD가 열린 동안의 라이브 갱신(스탯/장비 변경 폴링, 우클릭 메뉴 엣지)을 대신 구동한다.
 		-- → 올스탯 +10 같은 이벤트가 패널이 열린 채로 발생해도 즉시 반영된다.
@@ -283,6 +297,9 @@ script UnderButton extends Component
 				_MapViewManager:CloseMapView()
 				self.DicePanel.Visible = true
 				self.WholePanel.Visible = false
+				-- 카드 버튼 보유 수/장전 상태를 최신으로(서버 장전값 반영).
+				self._armedCard = self:ArmedCard()
+				self:UpdateCardButtons()
 	end
 
 	method void OnClickRoll(any event)
@@ -293,7 +310,7 @@ script UnderButton extends Component
 
 		-- 굴렸으니 카드 장전 표시 해제(서버 고정값은 이번 굴림에 소비됨).
 		self._armedCard = ""
-		self:ApplyCardArmedVisual()
+		self:UpdateCardButtons()
 
 		self.DicePanel.Visible = false
 		self.WholePanel.Visible = true
@@ -309,36 +326,72 @@ script UnderButton extends Component
 		self:UseDiceCard("high")
 	end
 
+	method integer CardCount(string cardKey)
+		-- 로컬 플레이어의 카드 보유 수(없으면 0). DiceCardInventory @TargetUserSync 값을 읽는다.
+		local p = _UserService.LocalPlayer
+		if isvalid(p) == false then return 0 end
+		local inv = p:GetComponent("script.DiceCardInventory")
+		if isvalid(inv) == false then return 0 end
+		return inv:GetCount(cardKey)
+	end
+
+	method string ArmedCard()
+		-- 현재 장전된 카드(서버 권위, DiceCardInventory.ArmedCard 동기값). 없으면 "".
+		-- 주사위 패널 버튼/인벤 어디서 장전했든 일관되게 반영된다.
+		local p = _UserService.LocalPlayer
+		if isvalid(p) == false then return "" end
+		local inv = p:GetComponent("script.DiceCardInventory")
+		if isvalid(inv) == false then return "" end
+		return inv.ArmedCard
+	end
+
 	method void UseDiceCard(string cardKey)
-		-- 카드 사용 공통 처리: 내 DICE 차례에서만, 같은 카드 재클릭이면 해제(토글), 아니면 장전.
+		-- 카드 사용 공통 처리: 내 DICE 차례에서만. 같은 카드 재클릭=장전 해제(토글), 아니면 보유 중일 때만 장전.
 		if self:IsMyDiceTurn() == false then return end
-		_SFXManager:PlayClick()
-		if self._armedCard == cardKey then
-			-- 같은 카드 다시 누르면 장전 해제.
+		if self:ArmedCard() == cardKey then
+			-- 이미 이 카드가 장전됨 → 해제(토글). 아직 굴리지 않았으니 소비 없음.
+			_SFXManager:PlayClick()
 			self._armedCard = ""
 			_ItemDiceCardManager:ClearCard()
 		else
+			-- 새로 장전: 보유 0이면 사용 불가(장전 안 함).
+			if self:CardCount(cardKey) <= 0 then
+				_SFXManager:PlayClick()
+				return
+			end
+			_SFXManager:PlayClick()
 			self._armedCard = cardKey
 			_ItemDiceCardManager:UseCard(cardKey)
 		end
-		self:ApplyCardArmedVisual()
+		self:UpdateCardButtons()
 	end
 
-	method void ApplyCardArmedVisual()
-		-- 장전된 카드는 또렷하게(알파 1), 나머지는 흐리게(알파 0.4) 표시. 없으면 둘 다 또렷.
-		self:SetCardAlpha(self.BtnCardLow, self._armedCard == "" or self._armedCard == "low")
-		self:SetCardAlpha(self.BtnCardHigh, self._armedCard == "" or self._armedCard == "high")
+	method void UpdateCardButtons()
+		-- 카드 버튼 라벨(범위 + 보유 수) + 알파(장전/보유 상태) 갱신.
+		self:SetCardButton(self.BtnCardLow, "낮은 1-6", "low")
+		self:SetCardButton(self.BtnCardHigh, "높은 7-12", "high")
 	end
 
-	method void SetCardAlpha(ButtonComponent btn, boolean bright)
-		-- 카드 버튼 배경 스프라이트 알파 조정으로 장전 여부를 시각화.
+	method void SetCardButton(ButtonComponent btn, string baseLabel, string cardKey)
+		-- 카드 버튼 1개 갱신. 라벨=범위+보유수, 알파=(0장 흐림/장전 선명/다른카드 장전 시 흐림/기본 선명).
 		if isvalid(btn) == false or isvalid(btn.Entity) == false then return end
+		local count = self:CardCount(cardKey)
+		local tc = btn.Entity:GetComponent("MOD.Core.TextComponent")
+		if tc ~= nil then
+			tc.Text = baseLabel .. "\n" .. tostring(count) .. "장"
+			tc.FontSize = 22
+		end
 		local spr = btn.Entity.SpriteGUIRendererComponent
-		if spr == nil then return end
-		local c = spr.Color
-		local a = 0.4
-		if bright then a = 1.0 end
-		spr.Color = Color(c.r, c.g, c.b, a)
+		if spr ~= nil then
+			local c = spr.Color
+			local a = 1.0
+			if count <= 0 then
+				a = 0.3   -- 보유 없음 → 사용 불가 표시
+			elseif self._armedCard ~= "" and self._armedCard ~= cardKey then
+				a = 0.4   -- 다른 카드가 장전됨 → 이 카드는 흐리게
+			end
+			spr.Color = Color(c.r, c.g, c.b, a)
+		end
 	end
 
 	method void OnDicePanelClickClose(any event)

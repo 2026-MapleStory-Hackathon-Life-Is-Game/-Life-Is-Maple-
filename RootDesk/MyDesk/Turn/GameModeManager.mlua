@@ -354,6 +354,10 @@ script GameModeManager extends Logic
 		            local sm = self:CollectRunSummary(piece)
 		            _ResultUI:ShowSingle(pname, ipower, pjob, pcamp, rank, isNew, avatar,
 		                sm.minutes, sm.lifeInfo, sm.titleType, sm.turns, sm.visits, uid)
+			            -- 잠재 코인 적립: 싱글 완주 기본 40 + 신기록 시 +30.
+			            local coin = 40
+			            if isNew then coin = coin + 30 end
+			            _MetaProgressionManager:AwardCoins(uid, coin)
 		        end
 		
 		        -- 로비 복귀 + 스탯 초기화는 결과 카드를 '닫을 때'로 미룬다(ResultUI.HideCard → ReturnToLobbyAfterResult).
@@ -504,6 +508,8 @@ script GameModeManager extends Logic
 		            camps[i] = r.camp
 		            avatars[i] = r.avatar
 		            uids[i] = r.userId
+		            -- 잠재 코인 적립: 결과 카드에 보이는 순위(전투력 내림차순 i)로 지급.
+		            _MetaProgressionManager:AwardByMultiRank(r.userId, i)
 		        end
 		        _ResultUI:ShowMulti(names, powers, jobs, camps, avatars, uids, 1)
 
@@ -543,6 +549,9 @@ script GameModeManager extends Logic
 		        -- 미라클 큐브 인벤토리 + 미확정 잠재 후보 초기화.
 		        local bag = entity:GetComponent("script.CubeInventory")
 		        if isvalid(bag) then bag:ResetAll() end
+		        -- 주사위 고정 카드 인벤토리 초기화.
+		        local dcards = entity:GetComponent("script.DiceCardInventory")
+		        if isvalid(dcards) then dcards:ResetAll() end
 		        local runstats = entity:GetComponent("script.RunStatsManager")
 		        if isvalid(runstats) then runstats:ResetAll() end
 		        if entity.PlayerComponent ~= nil then

@@ -1,0 +1,61 @@
+@Component
+script DiceCardInventory extends Component
+
+	-- 플레이어별 주사위 고정 카드 보유 수(본인 클라에만 동기화).
+	@TargetUserSync
+	property integer LowCardCount = 0
+
+	@TargetUserSync
+	property integer HighCardCount = 0
+
+	-- 현재 '다음 굴림'에 장전된 카드("low"/"high", 없으면 ""). 서버가 갱신 → 본인 클라가 읽어 UI 하이라이트에 사용.
+	@TargetUserSync
+	property string ArmedCard = ""
+
+	method integer GetCount(string cardKey)
+		-- 카드 보유 수(low/high). 알 수 없는 키면 0.
+		if cardKey == "low" then return self.LowCardCount end
+		if cardKey == "high" then return self.HighCardCount end
+		return 0
+	end
+
+	@ExecSpace("ServerOnly")
+	method void Add(string cardKey, integer n)
+		-- 카드 n개 지급(보상/디버그). n<0이면 회수(0 미만으로는 안 내려감).
+		if n == 0 then return end
+		if cardKey == "low" then
+			self.LowCardCount = math.max(0, self.LowCardCount + n)
+		elseif cardKey == "high" then
+			self.HighCardCount = math.max(0, self.HighCardCount + n)
+		end
+	end
+
+	@ExecSpace("ServerOnly")
+	method boolean Consume(string cardKey)
+		-- 카드 1개 소비. 보유 중이면 1 차감하고 true, 없으면 false.
+		if cardKey == "low" and self.LowCardCount > 0 then
+			self.LowCardCount = self.LowCardCount - 1
+			return true
+		end
+		if cardKey == "high" and self.HighCardCount > 0 then
+			self.HighCardCount = self.HighCardCount - 1
+			return true
+		end
+		return false
+	end
+
+	@ExecSpace("ServerOnly")
+	method void SetArmed(string cardKey)
+		-- 장전 카드 표시 갱신(서버 → 본인 클라 동기화). ""=해제.
+		self.ArmedCard = cardKey or ""
+	end
+
+	@ExecSpace("ServerOnly")
+	method void ResetAll()
+		-- 게임 종료 초기화: 보유 카드 전량 소거 + 장전 해제.
+		self.LowCardCount = 0
+		self.HighCardCount = 0
+		self.ArmedCard = ""
+	end
+
+end

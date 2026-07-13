@@ -13,6 +13,9 @@ script DiceManager extends Logic
 	-- 서버 전용: userId → 다음 이동 주사위에 강제 적용할 고정 합계(1~12). 아이템(주사위 고정 카드)이 예약.
 	property any _forced = nil
 
+	-- 서버 전용: userId → 그 고정값이 어떤 카드("low"/"high")에서 왔는지. 굴림 시 해당 카드 1개 소비용(카드 외 예약이면 "").
+	property any _forcedCard = nil
+
 	property string two_SFX = "bfd2e465bd1642fca3ebc675803c07bb"
 
 	property string three_SFX = "8dea906403d945dba263ec03e4c04052"
@@ -39,14 +42,24 @@ script DiceManager extends Logic
 	method integer Roll(string rollerUserId)
 		        -- rollerUserId에 고정값이 예약돼 있으면 그 값으로 확정(1회 소비), 없으면 1~6 두 개 랜덤.
 		        if self._forced == nil then self._forced = {} end
+		        if self._forcedCard == nil then self._forcedCard = {} end
 		        local forced = nil
-		        if rollerUserId ~= nil and rollerUserId ~= "" then forced = self._forced[rollerUserId] end
+		        local forcedCard = ""
+		        if rollerUserId ~= nil and rollerUserId ~= "" then
+		            forced = self._forced[rollerUserId]
+		            forcedCard = self._forcedCard[rollerUserId] or ""
+		        end
 
 		        local d1 = 0
 		        local d2 = 0
 		        local total = 0
 		        if forced ~= nil then
-		            self._forced[rollerUserId] = nil   -- 1회성 소비(다음 굴림엔 영향 없음)
+		            self._forced[rollerUserId] = nil       -- 1회성 소비(다음 굴림엔 영향 없음)
+		            self._forcedCard[rollerUserId] = nil
+		            -- 카드로 고정된 굴림이면 이 시점(실제 굴림)에 카드 1개를 인벤에서 소비한다.
+		            if forcedCard ~= "" then
+		                _ItemDiceCardManager:ConsumeCardOnRoll(rollerUserId, forcedCard)
+		            end
 		            total = forced
 		            if total <= 1 then
 		                -- 두 주사위로는 1을 만들 수 없어 (1,0)으로 표기. 이동은 total=1로 정상.
@@ -78,22 +91,25 @@ script DiceManager extends Logic
 	end
 
 	@ExecSpace("ServerOnly")
-	method void SetForcedTotal(string userId, integer total)
+	method void SetForcedTotal(string userId, integer total, string cardKey)
 		        -- 지정 유저의 '다음 이동 주사위' 결과를 total(1~12)로 고정 예약. 아이템 효과 진입점.
+		        -- cardKey: 이 예약이 어떤 카드에서 왔는지("low"/"high"). 카드 외 예약이면 "" 전달 → 굴림 시 카드 소비 안 함.
 		        if self._forced == nil then self._forced = {} end
+		        if self._forcedCard == nil then self._forcedCard = {} end
 		        if userId == nil or userId == "" then return end
 		        local t = total
 		        if t < 1 then t = 1 end
 		        if t > 12 then t = 12 end
 		        self._forced[userId] = t
+		        self._forcedCard[userId] = cardKey or ""
 	end
 
 	@ExecSpace("ServerOnly")
 	method void ClearForced(string userId)
-		        -- 예약된 고정값 취소.
-		        if self._forced == nil then return end
+		        -- 예약된 고정값 취소(카드 마커도 함께 제거 → 소비되지 않음).
 		        if userId == nil or userId == "" then return end
-		        self._forced[userId] = nil
+		        if self._forced ~= nil then self._forced[userId] = nil end
+		        if self._forcedCard ~= nil then self._forcedCard[userId] = nil end
 	end
 
 	@ExecSpace("ServerOnly")

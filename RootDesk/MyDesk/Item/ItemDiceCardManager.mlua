@@ -24,21 +24,53 @@ script ItemDiceCardManager extends Logic
 		return _UtilLogic:RandomIntegerRange(def.min, def.max)
 	end
 
+	method any InvOf(string userId)
+		-- userId의 플레이어 DiceCardInventory 컴포넌트(없으면 nil). 서버/클라 공용 조회.
+		if userId == nil or userId == "" then return nil end
+		local p = _UserService:GetUserEntityByUserId(userId)
+		if isvalid(p) == false then return nil end
+		return p:GetComponent("script.DiceCardInventory")
+	end
+
 	@ExecSpace("ServerOnly")
 	method integer ApplyCardFor(string userId, string cardKey)
-		-- 서버 진입점: 지정 유저의 '다음 이동 주사위'를 카드 범위 내 랜덤 값으로 고정. 확정값 반환(0=실패).
+		-- 서버 진입점: 지정 유저의 '다음 이동 주사위'를 카드 범위 내 랜덤 값으로 고정 예약. 확정값 반환(0=실패).
+		-- 소비는 여기서 하지 않는다(실제 굴림 시 DiceManager가 ConsumeCardOnRoll 호출).
 		if userId == nil or userId == "" then return 0 end
 		local value = self:RollCardValue(cardKey)
 		if value <= 0 then return 0 end
-		_DiceManager:SetForcedTotal(userId, value)
+		_DiceManager:SetForcedTotal(userId, value, cardKey)
+		local inv = self:InvOf(userId)
+		if isvalid(inv) then inv:SetArmed(cardKey) end   -- 클라 하이라이트용 장전 표시(동기화)
 -- 		log("[ItemDiceCard] " .. tostring(cardKey) .. " → " .. tostring(userId) .. " 다음 주사위=" .. tostring(value))
 		return value
 	end
 
+	@ExecSpace("ServerOnly")
+	method void ConsumeCardOnRoll(string userId, string cardKey)
+		-- 실제 굴림 시 DiceManager가 호출. 예약을 발생시킨 카드 1개를 인벤에서 차감 + 장전 해제.
+		local inv = self:InvOf(userId)
+		if isvalid(inv) then
+			inv:Consume(cardKey)
+			inv:SetArmed("")
+		end
+	end
+
+	@ExecSpace("ServerOnly")
+	method void GrantCard(string userId, string cardKey, integer n)
+		-- 카드 n개 지급(보상/디버그 진입점).
+		local inv = self:InvOf(userId)
+		if isvalid(inv) then inv:Add(cardKey, n) end
+	end
+
 	@ExecSpace("Server")
 	method void UseCard(string cardKey)
-		-- 클라(아이템 사용) → 서버. 요청자의 다음 이동 주사위를 카드로 고정.
-		-- (인벤토리 보유/소비 처리는 다음 단계. 지금은 효과 적용만.)
+		-- 클라(아이템 사용) → 서버. 보유 중일 때만 다음 이동 주사위를 카드로 고정 예약.
+		-- (실제 카드 소비는 굴림 시점. 보유 0이면 장전조차 하지 않는다.)
+		local inv = self:InvOf(senderUserId)
+		if isvalid(inv) == false or inv:GetCount(cardKey) <= 0 then
+			return
+		end
 		local value = self:ApplyCardFor(senderUserId, cardKey)
 		if value <= 0 then return end
 		self:NotifyCardApplied(cardKey, value, senderUserId)
@@ -46,8 +78,10 @@ script ItemDiceCardManager extends Logic
 
 	@ExecSpace("Server")
 	method void ClearCard()
-		-- 클라(카드 장전 해제) → 서버. 요청자의 예약된 주사위 고정값을 취소.
+		-- 클라(카드 장전 해제) → 서버. 요청자의 예약된 주사위 고정값을 취소(카드 소비 없음) + 장전 표시 해제.
 		_DiceManager:ClearForced(senderUserId)
+		local inv = self:InvOf(senderUserId)
+		if isvalid(inv) then inv:SetArmed("") end
 	end
 
 	@ExecSpace("Client")

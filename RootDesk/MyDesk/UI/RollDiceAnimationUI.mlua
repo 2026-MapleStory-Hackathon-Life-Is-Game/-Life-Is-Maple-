@@ -76,6 +76,13 @@ script RollDiceAnimationUI extends Logic
 	@ExecSpace("ClientOnly")
 	method void ApplyDieFace(integer value, SpriteGUIRendererComponent normalDice, table sprites, Entity normalEntity, Entity oneEntity)
 		-- 눈금이 1이면 일반 주사위를 끄고 전용 '1' 주사위를 켠다. 그 외 눈금이면 일반 주사위에 해당 스프라이트를 적용.
+		if value <= 0 then
+			-- 두 주사위로 표현할 수 없는 슬롯(예: 고정 total=1의 둘째 주사위 d2=0)은 빈 칸으로 둔다.
+			-- (스프라이트 배열에 0번이 없어 예전엔 이전 눈금 잔상/빈 RUID가 남았음.)
+			if isvalid(normalEntity) then normalEntity.Enable = false end
+			if isvalid(oneEntity) then oneEntity.Enable = false end
+			return
+		end
 		if value == 1 then
 			if isvalid(normalEntity) then normalEntity.Enable = false end
 			if isvalid(oneEntity) then oneEntity.Enable = true end
