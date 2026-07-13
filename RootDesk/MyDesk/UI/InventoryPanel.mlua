@@ -140,7 +140,17 @@ script InventoryPanel extends Component
 			end)
 			table.insert(self._T.tabH, { entity = closeBtn, evtH = ch })
 		end
-		
+
+		-- 합성(Mix) 버튼 → 합성 대상(메인) 선택 패널 진입. 탭/닫기와 동일하게 _T.tabH로 함께 해제.
+		local mixBtn = _EntityService:GetEntityByPath(base .. "BtnMix")
+		if isvalid(mixBtn) then
+			local mh = mixBtn:ConnectEvent(ButtonClickEvent, function()
+				_SFXManager:PlayClick()
+				self:OnClickMix()
+			end)
+			table.insert(self._T.tabH, { entity = mixBtn, evtH = mh })
+		end
+
 		-- 큐브 사용 모드 배너는 기본 숨김(미라클 큐브 셀을 누르면 켜진다).
 		self._cubeUseMode = false
 		self._lastBannerSig = ""
@@ -925,6 +935,13 @@ script InventoryPanel extends Component
 		-- '닫기': 메뉴만 닫는다.
 		_SFXManager:PlayClick()
 		self:CloseContextMenu()
+	end
+
+	method void OnClickMix()
+		-- 합성 버튼(BtnMix): 우클릭 없이도 합성 시작. 강화할 '대상(메인)' 장비를 먼저 고르는 선택 패널을 연다.
+		-- 대상 선택 → 같은 아이템 재료 선택 → 확률 합성(ForgeManager). 흐름은 CubeTargetSelect가 담당.
+		if _CubeTargetSelect ~= nil then _CubeTargetSelect:OpenForgeMainSelect() end
+-- 		log("[InventoryPanel] BtnMix → 합성 대상 선택")
 	end
 
 	@ExecSpace("ClientOnly")

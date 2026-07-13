@@ -29,6 +29,8 @@ script CubeTargetSelect extends Logic
 
 	property string _forgeMainName = ""   -- 합성 메인 EquipName(같은 아이템만 재료)
 
+	property boolean _forgeSelectMode = false   -- 합성 '대상(메인)' 선택 모드(BtnMix 진입: 대상 선택 → 재료 선택)
+
 	method void OnBeginPlay()
 		-- 클라: 패널 숨김 + GridView 셀 프리팹 주입 + 탭/닫기 버튼 배선.
 		if self:IsClient() == false then return end
@@ -102,6 +104,7 @@ script CubeTargetSelect extends Logic
 			return
 		end
 		self._forgeMode = false             -- 큐브 모드: 합성 모드 잔재 해제
+		self._forgeSelectMode = false       -- 합성 대상 선택 모드 잔재 해제
 		self:SetTabsVisible(true)
 		self:SetTitle("미라클 큐브 사용 대상 선택")
 		self.isOpen = true
@@ -119,6 +122,7 @@ script CubeTargetSelect extends Logic
 		-- 셀 선택 → CubeConfirmPopup.OpenForge(메인, 재료) → ForgeManager.RequestForge.
 		if self:IsClient() == false then return end
 		self._forgeMode = true
+		self._forgeSelectMode = false       -- 재료 선택 단계로 진입 → 대상 선택 모드 해제
 		self._forgeMainId = mainId
 		self._forgeMainName = mainName
 		self:SetTabsVisible(false)          -- 재료는 항상 같은 아이템(같은 분류) → 탭 불필요
@@ -128,6 +132,49 @@ script CubeTargetSelect extends Logic
 		self:BringToFront()
 		self:Rebuild()
 -- 		log("[CubeTargetSelect] OpenForge main=" .. mainId .. " (" .. mainName .. ")")
+	end
+
+	@ExecSpace("ClientOnly")
+	method void OpenForgeMainSelect()
+		-- 합성 '대상(메인)' 선택: BtnMix(합성 버튼) 진입점.
+		-- 전체 장비를 탭으로 훑어 강화할 장비를 먼저 고른다. 셀 선택 → StartForge → (같은 아이템 재료가 있으면) OpenForge(재료 선택)로 전환.
+		if self:IsClient() == false then return end
+		self._forgeMode = false
+		self._forgeSelectMode = true
+		self:SetTabsVisible(true)           -- 대상은 무기/방어구/장신구 전체에서 고른다 → 탭 표시
+		self:SetTitle("합성할 장비 선택")
+		self.isOpen = true
+		self.activeCat = "Weapon"
+		if isvalid(self.selectRoot) then self.selectRoot.Enable = true end
+		self:BringToFront()
+		self:UpdateTabVisual()
+		self:Rebuild()
+-- 		log("[CubeTargetSelect] OpenForgeMainSelect")
+	end
+
+	method void StartForge(string mainId, string mainName)
+		-- 합성 대상(메인) 확정: 최대 스타포스/재료 없음 가드 후 재료 선택(OpenForge)으로 전환.
+		-- 가드 로직은 InventoryPanel.OnCtxForge와 동일 규칙(같은 EquipName 다른 인스턴스가 있어야 합성 가능).
+		local p = _UserService.LocalPlayer
+		if isvalid(p) == false then return end
+		---@type BaseEquipment
+		local m = _EquipmentRouter:ManagerForInstance(p, mainId)
+		if isvalid(m) == false then return end
+		if m:GetStar(mainId) >= m.MaxStar then
+			-- 이미 최대 스타포스 → 재료 소모 없이 안내만.
+			self:Close()
+			_CubeConfirmPopup:ShowForgeResult(mainName, "max", m:GetStar(mainId))
+			return
+		end
+		local matCount = #(m:ForgeMaterialsFor(mainId, mainName))
+		if matCount <= 0 then
+			-- 같은 아이템(재료 후보)이 없으면 합성 불가 안내.
+			self:Close()
+			_CubeConfirmPopup:ShowForgeResult(mainName, "nomat", 0)
+			return
+		end
+		self:OpenForge(mainId, mainName)
+-- 		log("[CubeTargetSelect] StartForge main=" .. mainName .. "(" .. mainId .. ") 재료후보=" .. tostring(matCount))
 	end
 
 	method void SetTabsVisible(boolean v)
@@ -165,6 +212,7 @@ script CubeTargetSelect extends Logic
 		-- 선택 패널 닫기.
 		self.isOpen = false
 		self._forgeMode = false             -- 합성 모드 잔재 해제(다음 큐브 열기에 누수 방지)
+		self._forgeSelectMode = false       -- 합성 대상 선택 모드 잔재 해제
 		if isvalid(self.selectRoot) then self.selectRoot.Enable = false end
 	end
 
@@ -328,6 +376,10 @@ script CubeTargetSelect extends Logic
 					_CubeConfirmPopup:OpenForge(self._forgeMainId, instanceId, self._forgeMainName)
 				end
 -- 				log("[CubeTargetSelect] 재료 선택 → 합성확인: " .. equipName .. "(" .. instanceId .. ")")
+			elseif self._forgeSelectMode then
+				-- 선택 셀 = 합성 대상(메인). 가드 후 같은 아이템 재료 선택으로 전환.
+				self:StartForge(instanceId, equipName)
+-- 				log("[CubeTargetSelect] 대상 선택 → 재료 선택: " .. equipName .. "(" .. instanceId .. ")")
 			else
 				_CubeConfirmPopup:Open(instanceId, equipName)
 -- 				log("[CubeTargetSelect] 대상 선택 → 확인: " .. equipName .. "(" .. instanceId .. ")")

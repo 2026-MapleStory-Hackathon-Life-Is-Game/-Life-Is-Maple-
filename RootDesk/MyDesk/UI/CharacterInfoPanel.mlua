@@ -61,6 +61,8 @@ script CharacterInfoPanel extends Component
 
 	property ButtonComponent ctxBtnUnequip = "26241197-5c25-4712-bb28-23b35e6b2e54"
 
+	property ButtonComponent ctxBtnForge = "0d5870f5-b00d-40aa-acbb-6d48ea191481"
+
 	property ButtonComponent ctxBtnCube = "c79c5aee-cda3-45bd-9ba9-d12d54042329"
 
 	property ButtonComponent ctxBtnClose = "34accd66-4ee6-4d08-a120-e9ee127aae02"
@@ -70,6 +72,16 @@ script CharacterInfoPanel extends Component
 	property any _ctxHandlers = nil
 
 	property any escHandler = nil
+
+	property boolean _isMobile = false
+
+	property any _ctxCenter = nil
+
+	property any _ctxSize = nil
+
+	property number _ctxOpenTime = 0
+
+	property any touchDownHandler = nil
 
 	method void OnBeginPlay()
 		-- 클라 전용: 패널 시작은 숨김 + 슬롯 호버/더블클릭 배선.
@@ -82,17 +94,27 @@ script CharacterInfoPanel extends Component
 			self.invPanel = nil
 			self._hoverCat = ""
 			self._lastMouse1 = false
+			-- 플랫폼 판별: 모바일은 메뉴를 화면 왼쪽에 고정한다(커서 없음). 배낭과 동일 규칙.
+			self._isMobile = false
+			if Environment ~= nil then self._isMobile = Environment:IsMobilePlatform() end
+			self._ctxCenter = nil
+			self._ctxSize = nil
+			self._ctxOpenTime = 0
 			self:SetPanelVisible(false)
 			self:WireSlot(self.weaponIcon, "Weapon")
 			self:WireSlot(self.armorIcon, "Armor")
 			self:WireSlot(self.accessoryIcon, "Accessory")
-			-- 슬롯 우클릭 컨텍스트 메뉴: 기본 숨김 + 3버튼(장착해제/잠재능력 재설정/닫기) 배선.
+			-- 슬롯 클릭/탭·우클릭 컨텍스트 메뉴: 기본 숨김 + 4버튼(장착해제/합성/잠재능력 재설정/닫기) 배선.
 			self._ctxCat = ""
 			self._ctxHandlers = {}
 			if isvalid(self.ctxMenu) then self.ctxMenu.Enable = false end
 			if isvalid(self.ctxBtnUnequip) then
 				local hu = self.ctxBtnUnequip.Entity:ConnectEvent(ButtonClickEvent, function() self:OnCtxUnequip() end)
 				table.insert(self._ctxHandlers, { entity = self.ctxBtnUnequip.Entity, evtH = hu })
+			end
+			if isvalid(self.ctxBtnForge) then
+				local hf = self.ctxBtnForge.Entity:ConnectEvent(ButtonClickEvent, function() self:OnCtxForge() end)
+				table.insert(self._ctxHandlers, { entity = self.ctxBtnForge.Entity, evtH = hf })
 			end
 			if isvalid(self.ctxBtnCube) then
 				local hc = self.ctxBtnCube.Entity:ConnectEvent(ButtonClickEvent, function() self:OnCtxCube() end)
@@ -105,6 +127,8 @@ script CharacterInfoPanel extends Component
 			-- ESC 키로 캐릭터 정보 패널 닫기. _InputService의 KeyDownEvent 구독.
 			-- Close()를 직접 호출해도 UnderButton:OnUpdate가 openExclusive를 매 프레임 동기화하므로 desync 없음.
 			self.escHandler = _InputService:ConnectEvent(KeyDownEvent, self.OnKeyDown)
+			-- 컨텍스트 메뉴 바깥 클릭/탭 → 메뉴 닫기(PC 좌클릭·모바일 탭 공통). 배낭과 동일.
+			self.touchDownHandler = _InputService:ConnectEvent(ScreenTouchEvent, self.OnScreenTouchDown)
 		end
 	end
 
@@ -382,16 +406,29 @@ script CharacterInfoPanel extends Component
 	end
 
 	method void OpenContextMenu(string category)
-		-- 장착 슬롯 우클릭 메뉴를 커서 옆(오른쪽 약간 아래)에 띄운다.
+		-- 장착 슬롯 클릭/탭·우클릭 메뉴: PC는 커서 옆(오른쪽 약간 아래), 모바일은 화면 왼쪽에 고정.
 		if isvalid(self.ctxMenu) == false then return end
 		self._ctxCat = category
-		local cur = _InputService:GetCursorPosition()
-		local uiPos = _UILogic:ScreenToUIPosition(cur)
 		local ut = self.ctxMenu.UITransformComponent
-		if isvalid(ut) then ut.anchoredPosition = Vector2(uiPos.x + 110, uiPos.y - 30) end
+		local center
+		if self._isMobile then
+			-- 모바일: 커서 추적 없이 화면 왼쪽에 고정(세로 중앙). 캔버스 ±960 기준, 왼쪽 여백 40.
+			local hw = 94
+			if isvalid(ut) then hw = ut.RectSize.x * 0.5 end
+			center = Vector2(-960 + hw + 40, 0)
+		else
+			-- PC: 메뉴 중심을 커서 오른쪽으로 약 110px 이동 → 왼쪽 변이 커서 옆에 붙는다.
+			local uiPos = _UILogic:ScreenToUIPosition(_InputService:GetCursorPosition())
+			center = Vector2(uiPos.x + 110, uiPos.y - 30)
+		end
+		if isvalid(ut) then ut.anchoredPosition = center end
 		-- 미라클 큐브 보유 여부로 '잠재능력 재설정' 버튼 활성/반투명 갱신.
 		self:UpdateCtxCubeButton()
 		self.ctxMenu.Enable = true
+		-- 바깥 클릭 닫기용 영역 저장: 메뉴 중심(anchoredPosition과 동일 UI좌표계)과 크기(RectSize).
+		self._ctxCenter = center
+		if isvalid(ut) then self._ctxSize = ut.RectSize end
+		self._ctxOpenTime = _UtilLogic.ElapsedSeconds
 		_EquipTooltip:Hide()
 -- 		log("[CharacterInfoPanel] 컨텍스트 메뉴 열기: " .. category)
 	end
@@ -400,6 +437,8 @@ script CharacterInfoPanel extends Component
 		-- 컨텍스트 메뉴 숨김.
 		if isvalid(self.ctxMenu) and self.ctxMenu.Enable then self.ctxMenu.Enable = false end
 		self._ctxCat = ""
+		self._ctxCenter = nil
+		self._ctxSize = nil
 	end
 
 	method void UpdateCtxCubeButton()
@@ -456,45 +495,82 @@ script CharacterInfoPanel extends Component
 -- 		log("[CharacterInfoPanel] 컨텍스트: 잠재 재설정 " .. eq .. "(" .. eqId .. ")")
 	end
 
+	method void OnCtxForge()
+		-- '합성': 같은 아이템을 재료로 스타포스 강화. 재료 선택 패널을 연다(배낭과 동일 로직).
+		_SFXManager:PlayClick()
+		local cat = self._ctxCat
+		self:CloseContextMenu()
+		if cat == "" then return end
+		local eqId = self:EquippedIdOf(cat)
+		local name = self:EquippedOf(cat)
+		if eqId == "" or name == "" then return end
+		local p = _UserService.LocalPlayer
+		if isvalid(p) == false then return end
+		---@type BaseEquipment
+		local m = _EquipmentRouter:ManagerForInstance(p, eqId)
+		if isvalid(m) == false then return end
+		-- 이미 최대 스타포스면 재료 소모 없이 안내만.
+		if m:GetStar(eqId) >= m.MaxStar then
+			_CubeConfirmPopup:ShowForgeResult(name, "max", m:GetStar(eqId))
+			return
+		end
+		-- 같은 EquipName의 다른 인스턴스(재료 후보, 장착품 포함) 개수 확인.
+		local matCount = #(m:ForgeMaterialsFor(eqId, name))
+		if matCount <= 0 then
+			_CubeConfirmPopup:ShowForgeResult(name, "nomat", 0)
+			return
+		end
+		_EquipTooltip:Hide()
+		_CubeTargetSelect:OpenForge(eqId, name)
+-- 		log("[CharacterInfoPanel] 컨텍스트: 합성 " .. name .. "(" .. eqId .. ") 재료후보=" .. tostring(matCount))
+	end
+
 	method void OnCtxClose()
 		-- '닫기': 메뉴만 닫는다.
 		_SFXManager:PlayClick()
 		self:CloseContextMenu()
 	end
 
-	method void OnSlotClicked(string category)
-		-- 더블클릭(0.3초 내 같은 슬롯 2회) → 장착 해제 + 배낭 열려 있으면 탭 자동전환.
-		local now = _UtilLogic.ElapsedSeconds
-		if self._lastSlotCat == category and (now - self._lastSlotTime) <= 0.3 then
-			self._lastSlotCat = ""
-			local p = _UserService.LocalPlayer
-			if isvalid(p) then
-				local m = _EquipmentRouter:ManagerFor(p, category)
-				if isvalid(m) then m:RequestUnequip() end
-			end
-			-- 해제하면 그 슬롯이 비는데 마우스가 그 자리에 남아 호버 툴팁이 떠 있게 된다 → 숨김.
-			_EquipTooltip:Hide()
-			if isvalid(self.invPanel) == false then
-				local ie = _EntityService:GetEntityByPath("/ui/InGameUIGroup/Inventory_Panel/Ctrl")
-				if isvalid(ie) then
-					self.invPanel = ie:GetComponent("script.InventoryPanel")
-				end
-			end
-			if isvalid(self.invPanel) and self.invPanel.isOpen then
-				self.invPanel:SelectTab(category)
-			end
--- 			log("[CharacterInfoPanel] 더블클릭 해제: " .. category)
-		else
-			self._lastSlotCat = category
-			self._lastSlotTime = now
+	@ExecSpace("ClientOnly")
+	method void OnScreenTouchDown(ScreenTouchEvent event)
+		-- 컨텍스트 메뉴가 열려 있을 때 메뉴 밖을 누르면(=다른 부분 클릭/탭) 메뉴를 닫는다.
+		-- PC 좌클릭(TouchId=1)과 모바일 탭 모두 이 이벤트로 들어온다. 우클릭(Mouse1)은 발생시키지 않는다.
+		if self.isOpen == false then return end
+		if isvalid(self.ctxMenu) == false or self.ctxMenu.Enable == false then return end
+		-- 방금 연 메뉴가 같은 입력에 즉시 닫히는 것 방지(오픈 직후 가드).
+		if (_UtilLogic.ElapsedSeconds - self._ctxOpenTime) < 0.15 then return end
+		if self._ctxCenter == nil or self._ctxSize == nil then return end
+		-- 메뉴 배치와 동일한 변환(ScreenToUIPosition)으로 터치점을 UI좌표로 바꿔 메뉴 사각형과 비교.
+		local uiPt = _UILogic:ScreenToUIPosition(event.TouchPoint)
+		local hx = self._ctxSize.x * 0.5
+		local hy = self._ctxSize.y * 0.5
+		if math.abs(uiPt.x - self._ctxCenter.x) <= hx and math.abs(uiPt.y - self._ctxCenter.y) <= hy then
+			-- 메뉴 내부 클릭 → 버튼이 직접 처리하도록 두고 여기서 닫지 않는다(다운에서 닫으면 버튼 클릭이 소실됨).
+			return
 		end
+		self:CloseContextMenu()
+-- 		log("[CharacterInfoPanel] 바깥 클릭 → 컨텍스트 메뉴 닫기")
+	end
+
+	method void OnSlotClicked(string category)
+		-- 슬롯 클릭/탭 → 컨텍스트 메뉴 열기(배낭과 동일). 장착품이 있을 때만.
+		-- 장착 해제는 이제 메뉴 안(장착 해제 버튼)에 있으므로 더블클릭 즉시해제는 제거했다.
+		-- 큐브 사용 모드(인벤에서 재설정 대상 선택 중)에는 메뉴를 열지 않는다.
+		if self:IsCubeUseModeActive() then return end
+		if self:EquippedOf(category) == "" then return end
+		self:OpenContextMenu(category)
+-- 		log("[CharacterInfoPanel] 슬롯 클릭 → 컨텍스트 메뉴: " .. category)
 	end
 
 	method void OnEndPlay()
-		-- 슬롯 + 컨텍스트 메뉴 + ESC 키 이벤트 핸들 해제.
+		-- 슬롯 + 컨텍스트 메뉴 + ESC 키 + 화면 터치 이벤트 핸들 해제.
 		if self.escHandler ~= nil then
 			_InputService:DisconnectEvent(KeyDownEvent, self.escHandler)
 			self.escHandler = nil
+		end
+		if self.touchDownHandler ~= nil then
+			_InputService:DisconnectEvent(ScreenTouchEvent, self.touchDownHandler)
+			self.touchDownHandler = nil
 		end
 		if self.slotHandlers ~= nil then
 			for _, r in ipairs(self.slotHandlers) do
