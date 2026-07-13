@@ -1,6 +1,12 @@
 @Logic
 script DuelManager extends Logic
 
+	property string _dqActor = ""       -- 현재 대결 시퀀스의 도착자 userId
+	property integer _dqN = 0           -- 이번 시퀀스 강탈량
+	property any _dqQueue = nil         -- 남은 점유자 userId 배열
+	property integer _dqIndex = 0       -- 다음 처리할 큐 인덱스(1-based)
+	property number _revealSeconds = 2.5 -- 대결 1회 공개 연출 시간(초)
+
 	method integer StealAmountForStage(integer stage)
 		-- 단계별 강탈량. 빈칸/nil/≤0/행없음 → 0(대결 스킵 신호).
 		local ds = _DataService:GetTable("DuelBalance")
@@ -33,6 +39,69 @@ script DuelManager extends Logic
 		loserCP:AddMainStat("flat", -steal)   -- AddMainStat 내부에서 0하한+전투력 재계산+@Sync
 		winnerCP:AddMainStat("flat", steal)
 		return steal
+	end
+
+	@ExecSpace("ServerOnly")
+	method void RunDuels(string actorUserId, table occupantUserIds, integer stealAmount)
+		-- 도착자 vs 각 점유자 순차 대결. 시퀀스 끝나면 MultiTurnManager로 복귀.
+		self._dqActor = actorUserId
+		self._dqN = stealAmount
+		self._dqQueue = occupantUserIds
+		self._dqIndex = 1
+		self:RunNextDuel()
+	end
+
+	@ExecSpace("ServerOnly")
+	method void RunNextDuel()
+		-- 큐에서 다음 점유자 1명과 대결. 없으면 시퀀스 종료 → 칸 이벤트로 복귀.
+		if self._dqQueue == nil or self._dqIndex > #self._dqQueue then
+			self._dqQueue = nil
+			if _MultiTurnManager ~= nil then _MultiTurnManager:OnDuelsComplete() end
+			return
+		end
+		local occUid = self._dqQueue[self._dqIndex]
+		self._dqIndex = self._dqIndex + 1
+
+		local actorE = _UserService:GetUserEntityByUserId(self._dqActor)
+		local occE   = _UserService:GetUserEntityByUserId(occUid)
+		if isvalid(actorE) == false or isvalid(occE) == false then
+			self:RunNextDuel() return   -- 접속끊김 등 → 이 대결 스킵
+		end
+		local actorCP = actorE:GetComponent("script.CombatPowerManager")
+		local occCP   = occE:GetComponent("script.CombatPowerManager")
+		if isvalid(actorCP) == false or isvalid(occCP) == false then
+			self:RunNextDuel() return
+		end
+
+		-- 1d6 vs 1d6. 무승부 = 비김(강탈 없음).
+		local aRoll = _UtilLogic:RandomIntegerRange(1, 6)
+		local oRoll = _UtilLogic:RandomIntegerRange(1, 6)
+		local winnerUid = ""
+		local steal = 0
+		if aRoll > oRoll then
+			winnerUid = self._dqActor
+			steal = self:ApplySteal(actorCP, occCP, self._dqN)
+		elseif oRoll > aRoll then
+			winnerUid = occUid
+			steal = self:ApplySteal(occCP, actorCP, self._dqN)
+		end
+		-- 전원 공개 연출 방송(무승부면 winnerUid="").
+		self:ShowDuelReveal(self._dqActor, occUid, aRoll, oRoll, winnerUid, steal)
+		-- 연출 시간 뒤 다음 대결.
+		_TimerService:SetTimerOnce(function() self:RunNextDuel() end, self._revealSeconds)
+	end
+
+	@ExecSpace("Multicast")
+	method void ShowDuelReveal(string actorUserId, string occUserId, integer actorRoll, integer occRoll, string winnerUserId, integer steal)
+		-- 전원 클라 공개 연출(v1: 사운드 + 로그 배너). 이후 태스크에서 리치 UI로 승격 가능.
+		if _SFXManager ~= nil then _SFXManager:PlayClick() end
+		local msg = "[대결] 주사위 " .. tostring(actorRoll) .. " vs " .. tostring(occRoll)
+		if winnerUserId == "" then
+			msg = msg .. " — 무승부(비김)"
+		else
+			msg = msg .. " — 승자 강탈 " .. tostring(steal)
+		end
+		log(msg)
 	end
 
 end
