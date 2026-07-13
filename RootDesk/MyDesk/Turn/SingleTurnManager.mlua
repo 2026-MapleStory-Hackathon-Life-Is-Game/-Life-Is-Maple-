@@ -125,7 +125,7 @@ script SingleTurnManager extends Logic
 		        end
 		        self._isRolling = true
 		
-		        local total = _DiceManager:Roll()
+		        local total = _DiceManager:Roll(senderUserId)
 		        self.remainDiceTotal = total
 		        -- 개별 눈은 DiceManager의 @Sync 프로퍼티에서 읽음
 		

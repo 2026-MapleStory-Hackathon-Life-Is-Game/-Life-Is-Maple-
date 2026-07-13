@@ -10,6 +10,9 @@ script DiceManager extends Logic
 	@Sync
 	property integer _total = 0
 
+	-- 서버 전용: userId → 다음 이동 주사위에 강제 적용할 고정 합계(1~12). 아이템(주사위 고정 카드)이 예약.
+	property any _forced = nil
+
 	property string two_SFX = "bfd2e465bd1642fca3ebc675803c07bb"
 
 	property string three_SFX = "8dea906403d945dba263ec03e4c04052"
@@ -33,22 +36,74 @@ script DiceManager extends Logic
 	property string twelve_SFX = "919a0108f61e419d842a54566bb39b7b"
 
 	@ExecSpace("Server")
-	method integer Roll()
-		        local d1 = _UtilLogic:RandomIntegerRange(1, 6)
-		        local d2 = _UtilLogic:RandomIntegerRange(1, 6)
-		        local total = d1 + d2
-		
+	method integer Roll(string rollerUserId)
+		        -- rollerUserId에 고정값이 예약돼 있으면 그 값으로 확정(1회 소비), 없으면 1~6 두 개 랜덤.
+		        if self._forced == nil then self._forced = {} end
+		        local forced = nil
+		        if rollerUserId ~= nil and rollerUserId ~= "" then forced = self._forced[rollerUserId] end
+
+		        local d1 = 0
+		        local d2 = 0
+		        local total = 0
+		        if forced ~= nil then
+		            self._forced[rollerUserId] = nil   -- 1회성 소비(다음 굴림엔 영향 없음)
+		            total = forced
+		            if total <= 1 then
+		                -- 두 주사위로는 1을 만들 수 없어 (1,0)으로 표기. 이동은 total=1로 정상.
+		                d1 = 1
+		                d2 = 0
+		            else
+		                local lo = math.max(1, total - 6)
+		                local hi = math.min(6, total - 1)
+		                d1 = _UtilLogic:RandomIntegerRange(lo, hi)
+		                d2 = total - d1
+		            end
+		        else
+		            d1 = _UtilLogic:RandomIntegerRange(1, 6)
+		            d2 = _UtilLogic:RandomIntegerRange(1, 6)
+		            total = d1 + d2
+		        end
+
 				-- 주사위 던진 결과를 출력함
 				_TimerService:SetTimerOnce(function()
 				    self:PlayTotalDiceSFX(total)
 				end, 2.0)
-		
+
 		        self._dice1 = d1
 		        self._dice2 = d2
 		        self._total = total
-		
+
 -- 		        log("[DiceManager] 주사위: " .. tostring(d1) .. " + " .. tostring(d2) .. " = " .. tostring(total))
 		        return total
+	end
+
+	@ExecSpace("ServerOnly")
+	method void SetForcedTotal(string userId, integer total)
+		        -- 지정 유저의 '다음 이동 주사위' 결과를 total(1~12)로 고정 예약. 아이템 효과 진입점.
+		        if self._forced == nil then self._forced = {} end
+		        if userId == nil or userId == "" then return end
+		        local t = total
+		        if t < 1 then t = 1 end
+		        if t > 12 then t = 12 end
+		        self._forced[userId] = t
+	end
+
+	@ExecSpace("ServerOnly")
+	method void ClearForced(string userId)
+		        -- 예약된 고정값 취소.
+		        if self._forced == nil then return end
+		        if userId == nil or userId == "" then return end
+		        self._forced[userId] = nil
+	end
+
+	@ExecSpace("ServerOnly")
+	method integer PeekForced(string userId)
+		        -- 예약된 고정값 조회(없으면 0). 디버그/검증용.
+		        if self._forced == nil then return 0 end
+		        if userId == nil or userId == "" then return 0 end
+		        local v = self._forced[userId]
+		        if v == nil then return 0 end
+		        return v
 	end
 
 	@ExecSpace("Client")
@@ -67,7 +122,9 @@ script DiceManager extends Logic
 		elseif total == 11 then ruid = self.eleven_SFX
 		elseif total == 12 then ruid = self.twelve_SFX
 		end
-		
+
+		-- 등록된 효과음이 없는 값(예: 고정 아이템의 1)은 소리 없이 넘어감(빈 RUID → LEA-3007 방지).
+		if ruid == nil or ruid == "" then return end
 		--total 값에 따른 효과음 출력
 		_SoundService:PlaySound(ruid, _SFXManager.volume)
 		

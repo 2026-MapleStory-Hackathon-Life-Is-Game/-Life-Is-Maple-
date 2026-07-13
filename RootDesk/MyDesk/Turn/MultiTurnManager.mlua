@@ -663,7 +663,7 @@ script MultiTurnManager extends Logic
 		        self:ClearTurnWatch()   -- actor가 직접 굴림 → 대기 감시 해제(피드백 6)
 		        self._isRolling = true
 		
-		        local total = _DiceManager:Roll()
+		        local total = _DiceManager:Roll(self._currentPlayerUserId)
 		        self.remainDiceTotal = total
 -- 		        log("[MultiTurnManager] 주사위 결과: " .. tostring(total))
 		
@@ -820,7 +820,7 @@ script MultiTurnManager extends Logic
 		        if self._currentState ~= "DICE" then return end
 		        if self._isRolling then return end
 		        self._isRolling = true
-		        local total = _DiceManager:Roll()
+		        local total = _DiceManager:Roll(self._currentPlayerUserId)
 		        self.remainDiceTotal = total
 -- 		        log("[MultiTurnManager] 자동 주사위 결과: " .. tostring(total))
 		        self:PlayDiceAnimation(_DiceManager._dice1, _DiceManager._dice2, total)
