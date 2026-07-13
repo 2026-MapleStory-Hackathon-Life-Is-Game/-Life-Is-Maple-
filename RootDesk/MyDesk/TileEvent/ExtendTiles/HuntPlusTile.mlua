@@ -11,6 +11,13 @@ script HuntPlusTile extends HuntTile
 -- 			log_warning("[HuntPlusTile] 사냥+ 이벤트 nil — 기본 사냥만 표시")
 			return huntEv
 		end
+		-- 사냥+ 장비/무기/큐브 드랍 지급(있을 때만). 스탯과 달리 OnArrive의 ApplyReward가 처리하지 않으므로
+		-- 여기서 직접 지급한다. plusEv가 존재하는 모든 경로에서 정확히 한 번만 실행된다(중복/누락 방지).
+		if plusEv.drops ~= nil then
+			for i = 1, #plusEv.drops do
+				self:ApplyRewardString(piece, plusEv.drops[i])
+			end
+		end
 		-- (희박) 기본 사냥이 nil이면 사냥+ 이벤트만 표시.
 		if huntEv == nil then
 			return plusEv
@@ -100,6 +107,16 @@ script HuntPlusTile extends HuntTile
 		else
 			imageRUID = _NpcInfoManager:GetNpcRUID(targetKey)
 		end
+		-- 장비/무기/큐브 드랍(선택): DropReward_1~3 열에 보상 토큰("item:EquipName"/"weapon:Family"/"cube:N")을
+		-- 넣으면, 비어있지 않은 것을 전부 지급한다(BossTile의 랜덤 1개와 달리, 채워진 건 모두 확정 지급).
+		-- 토큰 형식은 BossTile과 동일하게 ApplyRewardString(ParseReward)이 그대로 해석한다.
+		local drops = {}
+		local d1 = ds:GetCell(pick, "DropReward_1")
+		local d2 = ds:GetCell(pick, "DropReward_2")
+		local d3 = ds:GetCell(pick, "DropReward_3")
+		if d1 ~= nil and d1 ~= "" then table.insert(drops, d1) end
+		if d2 ~= nil and d2 ~= "" then table.insert(drops, d2) end
+		if d3 ~= nil and d3 ~= "" then table.insert(drops, d3) end
 		return {
 			eventType     = "HuntPlus",
 			message       = text,
@@ -108,6 +125,7 @@ script HuntPlusTile extends HuntTile
 			statValue     = statGain,
 			plusImageRUID = imageRUID,      -- 페이지2 이미지 RUID(레지스트리에서 해석 완료)
 			anim          = anim,
+			drops         = drops,          -- DropReward_1~3 중 비어있지 않은 보상 토큰들
 		}
 	end
 
