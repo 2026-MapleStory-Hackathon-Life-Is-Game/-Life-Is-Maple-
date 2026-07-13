@@ -119,9 +119,13 @@ script CombatPowerManager extends Component
 		if name == self:MainStatField() then
 			local mainVal = base + self:LevelMainStat()
 			local pct     = self.BaseStatPct + (extra.statPct or 0) + allPct
-			return (mainVal + (extra.statFlat or 0) + allFlat) * (1 + pct / 100)
+			local v = (mainVal + (extra.statFlat or 0) + allFlat) * (1 + pct / 100)
+			if v < 0 then v = 0 end   -- 올스탯 감소(불운 타일 등)로 음수가 돼도 표시 스탯은 0 하한.
+			return v
 		end
-		return (base + allFlat) * (1 + allPct / 100)
+		local v = (base + allFlat) * (1 + allPct / 100)
+		if v < 0 then v = 0 end       -- 부스탯도 올스탯 감소로 음수가 될 수 있어 0 하한.
+		return v
 	end
 
 	method number StatLevelPart(string name)
@@ -295,7 +299,10 @@ script CombatPowerManager extends Component
 		local mainPct     = self.BaseStatPct + extra.statPct + allPct
 		local mainApplied = (mainVal + extra.statFlat + allFlat) * (1 + mainPct / 100)
 		local subApplied  = (subVal + 3 * allFlat) * (1 + allPct / 100)
-		
+		-- 올스탯 감소(불운 타일 등)로 적용 스탯이 음수가 되면 0 하한(표시 스탯과 동일 규칙 → 전투력이 음수/역전되지 않음).
+		if mainApplied < 0 then mainApplied = 0 end
+		if subApplied  < 0 then subApplied  = 0 end
+
 		local effective = mainApplied + subApplied / 4
 		return effective * 4.5 / 100
 	end
