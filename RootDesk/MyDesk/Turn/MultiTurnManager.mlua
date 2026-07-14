@@ -542,6 +542,10 @@ script MultiTurnManager extends Logic
 	@ExecSpace("Server")
 	method void OnTurnEnd()
 		        if not self._isActive then return end
+		        -- 턴 종료 직전: 방금 턴을 마친 actor에게 카드 획득 이벤트 판정(확률 발동 시 랜덤 카드 + 획득 팝업).
+		        if self._currentPlayerUserId ~= nil and self._currentPlayerUserId ~= "" then
+		            _ItemDiceCardManager:RollAcquisition(self._currentPlayerUserId)
+		        end
 		        -- '3연속' 판정: 방금 턴을 마친 actor가 이번 턴에 AFK 자동진행을 겪지 않았다면(정상 플레이) 누적 스트라이크를 리셋한다.
 		        -- (여기서 _currentPlayerUserId는 아직 '방금 끝낸 actor' — 다음 플레이어 지정은 아래에서 이뤄진다.)
 		        if self._turnAutoFlagged == false then

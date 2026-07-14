@@ -1,0 +1,70 @@
+@Logic
+script DiceCardGetPopup extends Logic
+
+	property Entity dim = "e10565ed-7dc6-40b6-ac71-d4ac067cbe98"
+
+	property Entity panel = "6efdfb4c-6f79-4cac-8b32-c0c545d152ad"
+
+	property TextComponent bigText = "6a284899-2e5c-44ae-8587-7c3e7b33406f"
+
+	property TextComponent nameText = "f7870bbb-55c4-4de6-9ae6-d05728fe1993"
+
+	property ButtonComponent btnConfirm = "fc748df1-bbbb-4a9b-8716-03bcdb608d2c"
+
+	property any confirmHandler = nil
+
+	@ExecSpace("ClientOnly")
+	method void OnBeginPlay()
+		-- 팝업은 기본 숨김. 확인 버튼/딤 클릭으로 닫는다.
+		self:SetShown(false)
+		if isvalid(self.btnConfirm) and isvalid(self.btnConfirm.Entity) then
+			self.confirmHandler = self.btnConfirm.Entity:ConnectEvent(ButtonClickEvent, self.OnClickConfirm)
+		end
+	end
+
+	method void SetShown(boolean shown)
+		-- 딤 + 패널을 함께 토글.
+		if isvalid(self.dim) then self.dim.Enable = shown end
+		if isvalid(self.panel) then self.panel.Enable = shown end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void Open(string cardKey)
+		-- 카드 획득 팝업 표시. cardKey로 큰 숫자/범위 + 카드 이름을 채운다.
+		local def = _ItemDiceCardManager:CardDef(cardKey)
+		local big = ""
+		local nm = ""
+		if def ~= nil then
+			nm = def.name
+			if def.num ~= nil then
+				big = tostring(def.num)
+			else
+				big = tostring(def.min) .. "~" .. tostring(def.max)
+			end
+		end
+		local bt = self.bigText
+		if isvalid(bt) then bt.Text = big end
+		local nt = self.nameText
+		if isvalid(nt) then nt.Text = nm end
+		self:SetShown(true)
+	end
+
+	method void OnClickConfirm(any event)
+		-- '확인' → 닫기.
+		_SFXManager:PlayClick()
+		self:Close()
+	end
+
+	@ExecSpace("ClientOnly")
+	method void Close()
+		-- 팝업 숨김.
+		self:SetShown(false)
+	end
+
+	method void OnEndPlay()
+		if self.confirmHandler ~= nil and isvalid(self.btnConfirm) and isvalid(self.btnConfirm.Entity) then
+			self.btnConfirm.Entity:DisconnectEvent(ButtonClickEvent, self.confirmHandler)
+		end
+	end
+
+end

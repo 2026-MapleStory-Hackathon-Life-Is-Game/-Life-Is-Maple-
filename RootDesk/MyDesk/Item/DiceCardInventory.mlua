@@ -1,47 +1,43 @@
 @Component
 script DiceCardInventory extends Component
 
-	-- 플레이어별 주사위 고정 카드 보유 수(본인 클라에만 동기화).
-	@TargetUserSync
-	property integer LowCardCount = 0
+	-- 플레이어별 주사위 고정 카드 보유 수. 키 = 카드키("low"/"high"/"num1".."num12"), 값 = 보유 수.
+	-- 플레이어마다 이 컴포넌트 인스턴스가 따로 있어 @Sync여도 각 클라는 자기 플레이어 것만 읽는다.
+	-- (SyncTable은 = 초기화 금지 — 런타임에 서버가 채운다.)
+	@Sync
+	property SyncTable<string, integer> Counts
 
-	@TargetUserSync
-	property integer HighCardCount = 0
-
-	-- 현재 '다음 굴림'에 장전된 카드("low"/"high", 없으면 ""). 서버가 갱신 → 본인 클라가 읽어 UI 하이라이트에 사용.
+	-- 현재 '다음 굴림'에 장전된 카드(없으면 ""). 서버 갱신 → 본인 클라가 읽어 UI 하이라이트에 사용.
 	@TargetUserSync
 	property string ArmedCard = ""
 
 	method integer GetCount(string cardKey)
-		-- 카드 보유 수(low/high). 알 수 없는 키면 0.
-		if cardKey == "low" then return self.LowCardCount end
-		if cardKey == "high" then return self.HighCardCount end
-		return 0
+		-- 카드 보유 수. 없으면 0.
+		if cardKey == nil or cardKey == "" then return 0 end
+		local v = self.Counts[cardKey]
+		if v == nil then return 0 end
+		return v
 	end
 
 	@ExecSpace("ServerOnly")
 	method void Add(string cardKey, integer n)
-		-- 카드 n개 지급(보상/디버그). n<0이면 회수(0 미만으로는 안 내려감).
-		if n == 0 then return end
-		if cardKey == "low" then
-			self.LowCardCount = math.max(0, self.LowCardCount + n)
-		elseif cardKey == "high" then
-			self.HighCardCount = math.max(0, self.HighCardCount + n)
-		end
+		-- 카드 n개 지급(보상/디버그). 합계는 0 미만으로 내려가지 않음.
+		if cardKey == nil or cardKey == "" or n == 0 then return end
+		local cur = self.Counts[cardKey]
+		if cur == nil then cur = 0 end
+		local nv = cur + n
+		if nv < 0 then nv = 0 end
+		self.Counts[cardKey] = nv
 	end
 
 	@ExecSpace("ServerOnly")
 	method boolean Consume(string cardKey)
 		-- 카드 1개 소비. 보유 중이면 1 차감하고 true, 없으면 false.
-		if cardKey == "low" and self.LowCardCount > 0 then
-			self.LowCardCount = self.LowCardCount - 1
-			return true
-		end
-		if cardKey == "high" and self.HighCardCount > 0 then
-			self.HighCardCount = self.HighCardCount - 1
-			return true
-		end
-		return false
+		if cardKey == nil or cardKey == "" then return false end
+		local cur = self.Counts[cardKey]
+		if cur == nil or cur <= 0 then return false end
+		self.Counts[cardKey] = cur - 1
+		return true
 	end
 
 	@ExecSpace("ServerOnly")
@@ -52,9 +48,14 @@ script DiceCardInventory extends Component
 
 	@ExecSpace("ServerOnly")
 	method void ResetAll()
-		-- 게임 종료 초기화: 보유 카드 전량 소거 + 장전 해제.
-		self.LowCardCount = 0
-		self.HighCardCount = 0
+		-- 게임 종료 초기화: 모든 카드 0 + 장전 해제. (SyncTable엔 Clear 없음 → 키 수집 후 0으로.)
+		local keys = {}
+		for k, _ in pairs(self.Counts) do
+			table.insert(keys, k)
+		end
+		for _, k in ipairs(keys) do
+			self.Counts[k] = 0
+		end
 		self.ArmedCard = ""
 	end
 

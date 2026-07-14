@@ -290,6 +290,13 @@ script SingleTurnManager extends Logic
 	@ExecSpace("Server")
 	method void OnTurnEnd()
 -- 		        log("[SingleTurnManager] 턴 종료 → 다음 턴 시작")
+		        -- 턴 종료 직전: actor에게 카드 획득 이벤트 판정(확률 발동 시 랜덤 카드 + 획득 팝업).
+		        for _, ue in pairs(_UserService.UserEntities) do
+		            if isvalid(ue.PlayerComponent) then
+		                _ItemDiceCardManager:RollAcquisition(ue.PlayerComponent.UserId)
+		            end
+		            break   -- 싱글이라 플레이어는 한 명
+		        end
 		        self:AdvanceState()
 	end
 

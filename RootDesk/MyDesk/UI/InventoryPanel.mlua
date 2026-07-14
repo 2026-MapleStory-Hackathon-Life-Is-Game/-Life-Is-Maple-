@@ -312,7 +312,10 @@ script InventoryPanel extends Component
 		local s = table.concat(parts, ",")
 		if self.activeTab == "Item" and self._cubeUseMode == false then
 			s = s .. "|cube" .. tostring(self:CubeCount())
-			s = s .. "|dcl" .. tostring(self:DiceCardCount("low")) .. "|dch" .. tostring(self:DiceCardCount("high"))
+			for _, key in ipairs(_ItemDiceCardManager:CardOrder()) do
+				local c = self:DiceCardCount(key)
+				if c > 0 then s = s .. "|" .. key .. tostring(c) end
+			end
 		end
 		return s
 	end
@@ -407,11 +410,17 @@ script InventoryPanel extends Component
 		if isvalid(p) == false then return {} end
 		if self.activeTab == "Item" then
 			if self._cubeUseMode then return self:AllEquipList(p) end
-			-- 소비 아이템: 미라클 큐브 + 주사위 고정 카드(낮은/높은). 보유 0인 항목은 숨김.
+			-- 소비 아이템: 미라클 큐브 + 주사위 고정 카드(낮은/높은/숫자1~12). 보유 0인 항목은 숨김.
 			local out = {}
 			if self:CubeCount() > 0 then table.insert(out, { kind = "cube" }) end
-			if self:DiceCardCount("low") > 0 then table.insert(out, { kind = "dicecard", cardKey = "low", name = "낮은 숫자 카드" }) end
-			if self:DiceCardCount("high") > 0 then table.insert(out, { kind = "dicecard", cardKey = "high", name = "높은 숫자 카드" }) end
+			for _, key in ipairs(_ItemDiceCardManager:CardOrder()) do
+				if self:DiceCardCount(key) > 0 then
+					local def = _ItemDiceCardManager:CardDef(key)
+					local nm = ""
+					if def ~= nil then nm = def.name end
+					table.insert(out, { kind = "dicecard", cardKey = key, name = nm })
+				end
+			end
 			return out
 		end
 		---@type BaseEquipment
@@ -480,23 +489,38 @@ script InventoryPanel extends Component
 				tc.Alignment = TextAlignmentType.LowerRight
 			end
 		elseif rec.kind == "dicecard" then
-			-- 주사위 고정 카드 셀: 낮은=주사위 눈2 / 높은=주사위 눈6 아이콘 + 보유 수 텍스트.
-			-- 흰색 주사위 스프라이트를 카드 색(낮은=파랑 / 높은=주황)으로 틴트 → 어두운 패널에서도 또렷 + 색으로 구분.
+			-- 주사위 고정 카드 셀.
+			--   낮은=주사위 눈2(파랑) / 높은=주사위 눈6(주황): 아이콘 + 보유 수(우하단).
+			--   숫자 카드(정확값): 카드 배경(보라) + 숫자를 크게 중앙에(+보유2 이상이면 ×N). 7~12는 주사위 눈이 없어 숫자 텍스트로 식별.
+			local key = rec.cardKey
+			local def = _ItemDiceCardManager:CardDef(key)
+			local cnt = self:DiceCardCount(key)
+			local isNum = (def ~= nil and def.num ~= nil)
 			if isvalid(rend) then
-				local icon = "a2ab7e2cb3734c6d9d35e09b602670aa"   -- 눈 2(낮은 카드)
-				local tint = Color(0.42, 0.62, 0.98, 1)           -- 낮은=파랑
-				if rec.cardKey == "high" then
-					icon = "b302d911b3c64014b000b494a95898dc"       -- 눈 6(높은 카드)
-					tint = Color(0.98, 0.62, 0.28, 1)              -- 높은=주황
+				if key == "low" then
+					rend.ImageRUID = DataRef("a2ab7e2cb3734c6d9d35e09b602670aa")   -- 눈 2
+					rend.Color = Color(0.42, 0.62, 0.98, 1)
+				elseif key == "high" then
+					rend.ImageRUID = DataRef("b302d911b3c64014b000b494a95898dc")   -- 눈 6
+					rend.Color = Color(0.98, 0.62, 0.28, 1)
+				else
+					rend.ImageRUID = DataRef("4fea64a3307cda641809ad8be0d4890b")   -- 카드 배경
+					rend.Color = Color(0.55, 0.50, 0.85, 1)
 				end
-				rend.ImageRUID = DataRef(icon)
-				rend.Color = tint
 				rend.Outline = false
 			end
 			if tc ~= nil then
-				tc.Text = tostring(self:DiceCardCount(rec.cardKey))
-				tc.FontSize = 18
-				tc.Alignment = TextAlignmentType.LowerRight
+				if isNum then
+					local t = tostring(def.num)
+					if cnt > 1 then t = t .. "×" .. tostring(cnt) end
+					tc.Text = t
+					tc.FontSize = 30
+					tc.Alignment = TextAlignmentType.MiddleCenter
+				else
+					tc.Text = tostring(cnt)
+					tc.FontSize = 18
+					tc.Alignment = TextAlignmentType.LowerRight
+				end
 			end
 		else
 			-- 장비 셀: 아이콘만 표시(이름 텍스트 없음). RUID만 조회.

@@ -89,12 +89,15 @@ script PlayerStatInit extends Logic
 			bag:AddMiracleCube(999)
 		end
 
-		-- 주사위 고정 카드 테스트용: 낮은/높은 각 5장(중복 지급 방지로 0으로 되돌린 뒤 지급).
+		-- 주사위 고정 카드 테스트용: 낮은/높은 각 3장 + 숫자 1~12 각 2장(중복 지급 방지로 0으로 되돌린 뒤 지급).
 		local dcards = p:GetComponent("script.DiceCardInventory")
 		if isvalid(dcards) then
 			dcards:ResetAll()
-			dcards:Add("low", 5)
-			dcards:Add("high", 5)
+			dcards:Add("low", 3)
+			dcards:Add("high", 3)
+			for i = 1, 12 do
+				dcards:Add("num" .. tostring(i), 2)
+			end
 		end
 
 		local cp = p:GetComponent("script.CombatPowerManager")
