@@ -1,32 +1,20 @@
 @Logic
 script DebugResetPotentialShop extends Logic
 
-	-- [디버그] 잠재 성장 상점(로비 ShopPanel/PotentialPanel)의 구매(영구 업글) 상태를 되돌리는 버튼.
+	-- [디버그] 잠재 성장 상점(로비 ShopPanel)의 구매(영구 업글) 상태를 되돌리는 버튼.
 	-- 이미 구매/최대치가 된 상태에서 구매 플로우를 재확인하기 위한 개발용. 출시 전 제거 대상.
-	-- 미사용 Row(Row3)를 런타임에 활성화해 버튼으로 재활용 → .ui/타 스크립트 무수정(자립).
+	-- 버튼은 ShopPanel 좌측 탭 그룹 아래에 별도로 추가된 DebugResetBtn(경로 참조, 바인딩주입 X).
 
-	property string rowPath = "/ui/LobbyUIGroup/ShopPanel/PotentialPanel/Rows/Row3"
+	property string btnPath = "/ui/LobbyUIGroup/ShopPanel/DebugResetBtn"
 
 	property any _handler = nil
 
 	@ExecSpace("ClientOnly")
 	method void OnBeginPlay()
-		-- 미사용 Row3를 켜고 '구매 초기화' 버튼으로 라벨링 + 클릭 배선(클라).
-		local row = _EntityService:GetEntityByPath(self.rowPath)
-		if isvalid(row) == false then return end
-		row.Enable = true
-		local nameE = _EntityService:GetEntityByPath(self.rowPath .. "/Name")
-		if isvalid(nameE) and isvalid(nameE.TextComponent) then
-			nameE.TextComponent.Text = "구매 초기화\n(디버그)"
-		end
-		-- 재활용 Row의 잔여 아이콘은 숨긴다(펫 패널에서 복사된 더미 스프라이트).
-		local iconE = _EntityService:GetEntityByPath(self.rowPath .. "/UISprite")
-		if isvalid(iconE) then iconE.Enable = false end
-		local btn = _EntityService:GetEntityByPath(self.rowPath .. "/BtnBuy")
-		if isvalid(btn) then
-			if isvalid(btn.TextComponent) then btn.TextComponent.Text = "초기화" end
-			self._handler = btn:ConnectEvent(ButtonClickEvent, self.OnClick)
-		end
+		-- 좌측 디버그 버튼 클릭 배선(클라).
+		local btn = _EntityService:GetEntityByPath(self.btnPath)
+		if isvalid(btn) == false then return end
+		self._handler = btn:ConnectEvent(ButtonClickEvent, self.OnClick)
 	end
 
 	@ExecSpace("ClientOnly")
@@ -57,7 +45,7 @@ script DebugResetPotentialShop extends Logic
 	@ExecSpace("ClientOnly")
 	method void OnEndPlay()
 		-- 버튼 이벤트 핸들 해제.
-		local btn = _EntityService:GetEntityByPath(self.rowPath .. "/BtnBuy")
+		local btn = _EntityService:GetEntityByPath(self.btnPath)
 		if isvalid(btn) and self._handler ~= nil then
 			btn:DisconnectEvent(ButtonClickEvent, self._handler)
 		end
