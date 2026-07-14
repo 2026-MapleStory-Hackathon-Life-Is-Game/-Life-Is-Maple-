@@ -3,9 +3,11 @@ script ExtraTableManager extends Component
 
 	method table CreateEmptyExtra()
 		-- extra 기본 골격 (모든 키 0으로 시작)
+		-- strPct/dexPct/intPct/lukPct = 특정 스탯별 퍼센트(펫 옵션 등). 해당 스탯에만 적용.
 		return {
 		        statFlat = 0, statPct = 0,
 		        allStatFlat = 0, allStatPct = 0,
+		        strPct = 0, dexPct = 0, intPct = 0, lukPct = 0,
 		        attackFlat = 0, attackPct = 0,
 		        damagePct = 0,
 		        bossDamagePct = 0,
@@ -20,6 +22,10 @@ script ExtraTableManager extends Component
 		    extra.statPct       = extra.statPct      + (m.statPct or 0)
 		    extra.allStatFlat   = extra.allStatFlat   + (m.allStatFlat or 0)
 		    extra.allStatPct    = extra.allStatPct    + (m.allStatPct or 0)
+		    extra.strPct        = (extra.strPct or 0)  + (m.strPct or 0)
+		    extra.dexPct        = (extra.dexPct or 0)  + (m.dexPct or 0)
+		    extra.intPct        = (extra.intPct or 0)  + (m.intPct or 0)
+		    extra.lukPct        = (extra.lukPct or 0)  + (m.lukPct or 0)
 		    extra.attackFlat    = extra.attackFlat    + (m.attackFlat or 0)
 		    extra.attackPct     = extra.attackPct     + (m.attackPct or 0)
 		    extra.damagePct     = extra.damagePct     + (m.damagePct or 0)
@@ -28,14 +34,18 @@ script ExtraTableManager extends Component
 	end
 
 	method table GetExtra()
-		-- 같은 플레이어의 BuffManager + EquipmentRouter 수정자를 합산한다.
+		-- 같은 플레이어의 BuffManager + EquipmentRouter + 펫 옵션 수정자를 합산한다.
 		local extra = self:CreateEmptyExtra()
-		
+
 		local buff = self.Entity:GetComponent("script.BuffManager")
 		if isvalid(buff) then self:AddModifiers(extra, buff:GetModifiers()) end
-		
+
 		self:AddModifiers(extra, _EquipmentRouter:TotalModifiers(self.Entity))
-		
+
+		-- 장착 펫 옵션(있으면). 특정 스탯 %/올스탯 % 를 합산.
+		local pet = self.Entity:GetComponent("script.PetStatBonus")
+		if isvalid(pet) then self:AddModifiers(extra, pet:GetModifiers()) end
+
 		return extra
 	end
 

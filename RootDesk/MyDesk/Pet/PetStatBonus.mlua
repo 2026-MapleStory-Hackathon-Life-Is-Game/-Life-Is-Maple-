@@ -1,0 +1,52 @@
+@Component
+script PetStatBonus extends Component
+
+	-- 장착(소환) 중인 펫이 부여하는 추가 스탯 옵션(퍼센트). 장착 1마리분만 보관(교체 시 덮어씀).
+	-- 특정 스탯 %(STR/DEX/INT/LUK)는 해당 스탯에만, AllStatPct는 4스탯 전체에 적용된다(전투력/표시 계산에서 처리).
+	@Sync
+	property number StrPct = 0
+
+	@Sync
+	property number DexPct = 0
+
+	@Sync
+	property number IntPct = 0
+
+	@Sync
+	property number LukPct = 0
+
+	@Sync
+	property number AllStatPct = 0
+
+	@ExecSpace("ServerOnly")
+	method void SetBonus(number strPct, number dexPct, number intPct, number lukPct, number allStatPct)
+		-- 장착 펫의 옵션으로 덮어쓴다(SET 의미 → 펫 교체/재소환에 안전, 중복 누적 없음).
+		self.StrPct = strPct
+		self.DexPct = dexPct
+		self.IntPct = intPct
+		self.LukPct = lukPct
+		self.AllStatPct = allStatPct
+	end
+
+	@ExecSpace("ServerOnly")
+	method void Clear()
+		-- 펫 해제 시 옵션 제거.
+		self.StrPct = 0
+		self.DexPct = 0
+		self.IntPct = 0
+		self.LukPct = 0
+		self.AllStatPct = 0
+	end
+
+	method table GetModifiers()
+		-- 펫 옵션을 extra 수정자 형태로 반환한다(ExtraTableManager가 합산). per-stat % + 올스탯 %.
+		return {
+			strPct     = self.StrPct,
+			dexPct     = self.DexPct,
+			intPct     = self.IntPct,
+			lukPct     = self.LukPct,
+			allStatPct = self.AllStatPct,
+		}
+	end
+
+end

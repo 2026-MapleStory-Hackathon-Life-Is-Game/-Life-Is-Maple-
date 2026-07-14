@@ -21,13 +21,15 @@ script PetShopManager extends Logic
 		-- 이름(안정 키) ↔ 인게임 팔로워/썸네일 스프라이트(쁘띠 move 애니). 서버/클라 공통.
 		-- productId는 월드마다 바뀌므로 하드코딩하지 않고 이름으로 런타임 조회(BuildShopMaps).
 		-- 순서 = 상점 그리드 Row1..Row6. 상점에 등록한 상품명과 name이 정확히 일치해야 매칭됨.
+		-- bonus = 장착 시 부여하는 추가 스탯 옵션(퍼센트). 특정 스탯 %는 그 스탯에만, allStatPct는 4스탯 전체.
+		--   아란=STR10 / 메르=DEX10 / 에반·루미=INT10 / 팬텀=LUK10 / 은월=올스탯9.
 		return {
-			{ name = "쁘띠 루미", ruid = "079d10343b0c41718d67fb619cc8ee60" },
-			{ name = "쁘띠 팬텀", ruid = "a4954fe77b3148fa9bbb85543498fb82" },
-			{ name = "쁘띠 아란", ruid = "0b3329aa82ac46a7a44e053d133eda89" },
-			{ name = "쁘띠 메르", ruid = "e51e5cb8822846569ab2d69f99cbac58" },
-			{ name = "쁘띠 은월", ruid = "42d1bed405ec48c4a3cd7de63aff0d44" },
-			{ name = "쁘띠 에반", ruid = "6fc322e47e2d415f967865a632ec1b1e" },
+			{ name = "쁘띠 루미", ruid = "079d10343b0c41718d67fb619cc8ee60", bonus = { intPct = 10 } },
+			{ name = "쁘띠 팬텀", ruid = "a4954fe77b3148fa9bbb85543498fb82", bonus = { lukPct = 10 } },
+			{ name = "쁘띠 아란", ruid = "0b3329aa82ac46a7a44e053d133eda89", bonus = { strPct = 10 } },
+			{ name = "쁘띠 메르", ruid = "e51e5cb8822846569ab2d69f99cbac58", bonus = { dexPct = 10 } },
+			{ name = "쁘띠 은월", ruid = "42d1bed405ec48c4a3cd7de63aff0d44", bonus = { allStatPct = 9 } },
+			{ name = "쁘띠 에반", ruid = "6fc322e47e2d415f967865a632ec1b1e", bonus = { intPct = 10 } },
 		}
 	end
 
@@ -155,17 +157,51 @@ script PetShopManager extends Logic
 		e:AddComponent("script.PetFollow")
 		local pf = e:GetComponent("script.PetFollow")
 		if isvalid(pf) then pf.OwnerUserId = userId end
-		
+
 		self._spawned[userId] = e
+		-- 장착 펫의 추가 스탯 옵션 적용(전투력 재계산 포함).
+		self:ApplyPetBonus(userId, pet)
 -- 		log("[PetShop] 펫 소환: " .. pet.name .. " (user=" .. tostring(userId) .. ")")
 	end
 
 	@ExecSpace("ServerOnly")
+	method void ApplyPetBonus(string userId, table pet)
+		-- 장착 펫의 bonus(퍼센트 옵션)를 플레이어 PetStatBonus에 SET하고 전투력을 재계산한다.
+		-- SET 의미라 펫 교체/재소환에 안전(중복 누적 없음). bonus 없으면 전부 0.
+		local p = _UserService:GetUserEntityByUserId(userId)
+		if isvalid(p) == false then return end
+		local pb = p:GetComponent("script.PetStatBonus")
+		if isvalid(pb) == false then
+			-- 입장 핸들러 순서 경쟁으로 아직 미부착일 수 있음 → 직접 부착(중복은 AddComponent가 무시).
+			p:AddComponent("script.PetStatBonus")
+			pb = p:GetComponent("script.PetStatBonus")
+		end
+		if isvalid(pb) == false then return end
+		local b = {}
+		if pet ~= nil and pet.bonus ~= nil then b = pet.bonus end
+		pb:SetBonus(b.strPct or 0, b.dexPct or 0, b.intPct or 0, b.lukPct or 0, b.allStatPct or 0)
+		local cp = p:GetComponent("script.CombatPowerManager")
+		if isvalid(cp) then cp:CalculateCurrentCombatPower() end
+	end
+
+	@ExecSpace("ServerOnly")
+	method void ClearPetBonus(string userId)
+		-- 펫 해제 시 옵션 제거 + 전투력 재계산.
+		local p = _UserService:GetUserEntityByUserId(userId)
+		if isvalid(p) == false then return end
+		local pb = p:GetComponent("script.PetStatBonus")
+		if isvalid(pb) then pb:Clear() end
+		local cp = p:GetComponent("script.CombatPowerManager")
+		if isvalid(cp) then cp:CalculateCurrentCombatPower() end
+	end
+
+	@ExecSpace("ServerOnly")
 	method void DespawnPet(string userId)
-		-- 기존 소환 펫 제거.
+		-- 기존 소환 펫 제거 + 스탯 옵션 해제. (SpawnPetFor 중간 호출 시엔 직후 ApplyPetBonus가 다시 SET)
 		local old = self._spawned[userId]
 		if isvalid(old) then old:Destroy() end
 		self._spawned[userId] = nil
+		self:ClearPetBonus(userId)
 	end
 
 	@ExecSpace("ServerOnly")

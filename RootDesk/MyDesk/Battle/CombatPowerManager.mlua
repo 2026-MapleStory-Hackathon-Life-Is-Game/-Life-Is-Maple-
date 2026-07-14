@@ -116,14 +116,15 @@ script CombatPowerManager extends Component
 		local allFlat = extra.allStatFlat or 0
 		local allPct  = extra.allStatPct or 0
 		local base    = self:GetStat(name)
+		local perPct  = self:PerStatPct(extra, name)   -- 특정 스탯 %(펫 옵션 등)
 		if name == self:MainStatField() then
 			local mainVal = base + self:LevelMainStat()
-			local pct     = self.BaseStatPct + (extra.statPct or 0) + allPct
+			local pct     = self.BaseStatPct + (extra.statPct or 0) + allPct + perPct
 			local v = (mainVal + (extra.statFlat or 0) + allFlat) * (1 + pct / 100)
 			if v < 0 then v = 0 end   -- 올스탯 감소(불운 타일 등)로 음수가 돼도 표시 스탯은 0 하한.
 			return v
 		end
-		local v = (base + allFlat) * (1 + allPct / 100)
+		local v = (base + allFlat) * (1 + (allPct + perPct) / 100)
 		if v < 0 then v = 0 end       -- 부스탯도 올스탯 감소로 음수가 될 수 있어 0 하한.
 		return v
 	end
@@ -284,6 +285,45 @@ script CombatPowerManager extends Component
 		elseif name == "LUK" then self.LUK = v end
 	end
 
+	method number PerStatPct(table extra, string name)
+		-- 특정 스탯(STR/DEX/INT/LUK) 이름의 추가 퍼센트(펫 옵션 등). 없으면 0.
+		if name == "STR" then return extra.strPct or 0
+		elseif name == "DEX" then return extra.dexPct or 0
+		elseif name == "INT" then return extra.intPct or 0
+		elseif name == "LUK" then return extra.lukPct or 0 end
+		return 0
+	end
+
+	method number PerStatIncrement(table extra)
+		-- 특정 스탯 %가 유효스탯에 더하는 증분(주스탯=가중치1, 부스탯=가중치1/4).
+		-- 코어 공식(주/부 합산)은 그대로 두고, 특정 스탯 %만큼의 증가분만 별도로 가산해 위험을 최소화한다.
+		--   스탯 S 증분 = (S의 퍼센트 적용 전 합) * p/100
+		--   (기존 (base+flat)*(1+pct/100) 에서 pct에 p를 더할 때 늘어나는 양과 정확히 일치.)
+		local allFlat  = extra.allStatFlat or 0
+		local statFlat = extra.statFlat or 0
+		local main     = self:MainStatField()
+		local total    = 0
+		local names    = { "STR", "DEX", "INT", "LUK" }
+		for _, s in ipairs(names) do
+			local p = self:PerStatPct(extra, s)
+			if p ~= 0 then
+				local preSum
+				if s == main then
+					preSum = self:GetStat(s) + self:LevelMainStat() + statFlat + allFlat
+				else
+					preSum = self:GetStat(s) + allFlat
+				end
+				local inc = preSum * p / 100
+				if s == main then
+					total = total + inc
+				else
+					total = total + inc / 4
+				end
+			end
+		end
+		return total
+	end
+
 	method number CalculateCurrentMainStat(table extra)
 		-- 메이플식: 유효스탯 = 주스탯_적용 + (부스탯 3개 합)_적용 / 4
 		--   주스탯_적용     = (주스탯값 + 주가산 + 올스탯가산) * (1 + (base% + 주스탯% + 올스탯%) / 100)
@@ -304,6 +344,8 @@ script CombatPowerManager extends Component
 		if subApplied  < 0 then subApplied  = 0 end
 
 		local effective = mainApplied + subApplied / 4
+		-- 특정 스탯 %(펫 옵션 등) 증분 가산. 없으면 0이라 기존 결과와 동일.
+		effective = effective + self:PerStatIncrement(extra)
 		return effective * 4.5 / 100
 	end
 
@@ -334,7 +376,7 @@ script CombatPowerManager extends Component
 		if isvalid(ext) then
 			extra = ext:GetExtra()
 		else
-			extra = { statFlat = 0, statPct = 0, allStatFlat = 0, allStatPct = 0, attackFlat = 0, attackPct = 0, damagePct = 0, critPct = 0 }
+			extra = { statFlat = 0, statPct = 0, allStatFlat = 0, allStatPct = 0, strPct = 0, dexPct = 0, intPct = 0, lukPct = 0, attackFlat = 0, attackPct = 0, damagePct = 0, critPct = 0 }
 		end
 		
 		local stat   = self:CalculateCurrentMainStat(extra)
@@ -349,6 +391,10 @@ script CombatPowerManager extends Component
 			self.CurrentExtra["statPct"]       = extra.statPct or 0
 			self.CurrentExtra["allStatFlat"]   = extra.allStatFlat or 0
 			self.CurrentExtra["allStatPct"]    = extra.allStatPct or 0
+			self.CurrentExtra["strPct"]        = extra.strPct or 0
+			self.CurrentExtra["dexPct"]        = extra.dexPct or 0
+			self.CurrentExtra["intPct"]        = extra.intPct or 0
+			self.CurrentExtra["lukPct"]        = extra.lukPct or 0
 			self.CurrentExtra["attackFlat"]    = extra.attackFlat or 0
 			self.CurrentExtra["attackPct"]     = extra.attackPct or 0
 			self.CurrentExtra["damagePct"]     = extra.damagePct or 0
@@ -382,6 +428,10 @@ script CombatPowerManager extends Component
 			statPct       = self.CurrentExtra["statPct"] or 0,
 			allStatFlat   = self.CurrentExtra["allStatFlat"] or 0,
 			allStatPct    = self.CurrentExtra["allStatPct"] or 0,
+			strPct        = self.CurrentExtra["strPct"] or 0,
+			dexPct        = self.CurrentExtra["dexPct"] or 0,
+			intPct        = self.CurrentExtra["intPct"] or 0,
+			lukPct        = self.CurrentExtra["lukPct"] or 0,
 			attackFlat    = self.CurrentExtra["attackFlat"] or 0,
 			attackPct     = self.CurrentExtra["attackPct"] or 0,
 			damagePct     = self.CurrentExtra["damagePct"] or 0,
@@ -400,6 +450,10 @@ script CombatPowerManager extends Component
 			statPct       = cur.statPct - curEq.statPct + swapEq.statPct,
 			allStatFlat   = cur.allStatFlat - (curEq.allStatFlat or 0) + (swapEq.allStatFlat or 0),
 			allStatPct    = cur.allStatPct - (curEq.allStatPct or 0) + (swapEq.allStatPct or 0),
+			strPct        = cur.strPct or 0,   -- 펫 옵션(장비 교체와 무관하게 유지)
+			dexPct        = cur.dexPct or 0,
+			intPct        = cur.intPct or 0,
+			lukPct        = cur.lukPct or 0,
 			attackFlat    = cur.attackFlat - curEq.attackFlat + swapEq.attackFlat,
 			attackPct     = cur.attackPct - curEq.attackPct + swapEq.attackPct,
 			damagePct     = cur.damagePct - curEq.damagePct + swapEq.damagePct,
@@ -421,6 +475,10 @@ script CombatPowerManager extends Component
 			statPct       = cur.statPct - f.statPct + t.statPct,
 			allStatFlat   = cur.allStatFlat - f.allStatFlat + t.allStatFlat,
 			allStatPct    = cur.allStatPct - f.allStatPct + t.allStatPct,
+			strPct        = cur.strPct or 0,   -- 펫 옵션(잠재 교체와 무관하게 유지)
+			dexPct        = cur.dexPct or 0,
+			intPct        = cur.intPct or 0,
+			lukPct        = cur.lukPct or 0,
 			attackFlat    = cur.attackFlat - f.attackFlat + t.attackFlat,
 			attackPct     = cur.attackPct - f.attackPct + t.attackPct,
 			damagePct     = cur.damagePct - f.damagePct + t.damagePct,

@@ -37,6 +37,7 @@ script PlayerStatInit extends Logic
 		self:AddIfMissing(p, "script.ExtraTableManager")
 		self:AddIfMissing(p, "script.CombatPowerManager")
 		self:AddIfMissing(p, "script.CubeInventory")
+		self:AddIfMissing(p, "script.PetStatBonus")   -- 장착 펫의 추가 스탯 옵션(퍼센트) 보관
 		self:AddIfMissing(p, "script.DiceCardInventory")   -- 주사위 고정 카드(낮은/높은) 보유
 		self:AddIfMissing(p, "script.RunStatsManager")   -- 엔딩 정리용 런 기록(턴/시간/타일방문)
 -- 		log("[PlayerStatInit] 전투 컴포넌트 부착 완료: " .. event.UserId)
