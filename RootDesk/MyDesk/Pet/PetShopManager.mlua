@@ -25,13 +25,14 @@ script PetShopManager extends Logic
 		-- 순서 = 상점 그리드 Row1..Row6. 상점에 등록한 상품명과 name이 정확히 일치해야 매칭됨.
 		-- bonus = 장착 시 부여하는 추가 스탯 옵션(퍼센트). 특정 스탯 %는 그 스탯에만, allStatPct는 4스탯 전체.
 		--   아란=STR10 / 메르=DEX10 / 에반·루미=INT10 / 팬텀=LUK10 / 은월=올스탯9.
+		-- buff = 해당 펫의 BuffData 행 이름(게임 시작 시 SetBuff로 버프바에 표시. 스탯은 bonus/PetStatBonus가 담당).
 		return {
-			{ name = "쁘띠 루미", ruid = "079d10343b0c41718d67fb619cc8ee60", bonus = { intPct = 10 } },
-			{ name = "쁘띠 팬텀", ruid = "a4954fe77b3148fa9bbb85543498fb82", bonus = { lukPct = 10 } },
-			{ name = "쁘띠 아란", ruid = "0b3329aa82ac46a7a44e053d133eda89", bonus = { strPct = 10 } },
-			{ name = "쁘띠 메르", ruid = "e51e5cb8822846569ab2d69f99cbac58", bonus = { dexPct = 10 } },
-			{ name = "쁘띠 은월", ruid = "42d1bed405ec48c4a3cd7de63aff0d44", bonus = { allStatPct = 9 } },
-			{ name = "쁘띠 에반", ruid = "6fc322e47e2d415f967865a632ec1b1e", bonus = { intPct = 10 } },
+			{ name = "쁘띠 루미", ruid = "079d10343b0c41718d67fb619cc8ee60", bonus = { intPct = 10 }, buff = "Pet_Lumi" },
+			{ name = "쁘띠 팬텀", ruid = "a4954fe77b3148fa9bbb85543498fb82", bonus = { lukPct = 10 }, buff = "Pet_Phantom" },
+			{ name = "쁘띠 아란", ruid = "0b3329aa82ac46a7a44e053d133eda89", bonus = { strPct = 10 }, buff = "Pet_Aran" },
+			{ name = "쁘띠 메르", ruid = "e51e5cb8822846569ab2d69f99cbac58", bonus = { dexPct = 10 }, buff = "Pet_Mer" },
+			{ name = "쁘띠 은월", ruid = "42d1bed405ec48c4a3cd7de63aff0d44", bonus = { allStatPct = 9 }, buff = "Pet_Eunwol" },
+			{ name = "쁘띠 에반", ruid = "6fc322e47e2d415f967865a632ec1b1e", bonus = { intPct = 10 }, buff = "Pet_Evan" },
 		}
 	end
 
@@ -184,6 +185,25 @@ script PetShopManager extends Logic
 		pb:SetBonus(b.strPct or 0, b.dexPct or 0, b.intPct or 0, b.lukPct or 0, b.allStatPct or 0)
 		local cp = p:GetComponent("script.CombatPowerManager")
 		if isvalid(cp) then cp:CalculateCurrentCombatPower() end
+	end
+
+	@ExecSpace("ServerOnly")
+	method void ApplyPetBuff(string userId)
+		-- 게임 맵 진입 시 호출: 현재 장착 펫(EquippedPet)의 버프를 버프바에 표시(시각 전용).
+		-- 스탯은 PetStatBonus가 담당하므로 이 버프의 CSV 스탯 컬럼은 비어 있음(이중 적용 없음).
+		-- 펫이 없으면 아무것도 안 함(SetBuff 미호출). 슬롯 버프라 이후 펫 교체 시 자동 교체.
+		local p = _UserService:GetUserEntityByUserId(userId)
+		if isvalid(p) == false then return end
+		local st = _DataStorageService:GetUserDataStorage(userId)
+		if isvalid(st) == false then return end
+		local ec, raw = st:GetAndWait("EquippedPet")
+		if ec ~= 0 or raw == nil or raw == "" then return end
+		local pet = self:PetByName(raw)
+		if pet == nil or pet.buff == nil or pet.buff == "" then return end
+		local bm = p:GetComponent("script.BuffManager")
+		if isvalid(bm) == false then return end
+		bm:SetBuff(pet.buff)
+-- 		log("[PetShop] 펫 버프 적용: " .. tostring(pet.buff) .. " (user=" .. tostring(userId) .. ")")
 	end
 
 	@ExecSpace("ServerOnly")

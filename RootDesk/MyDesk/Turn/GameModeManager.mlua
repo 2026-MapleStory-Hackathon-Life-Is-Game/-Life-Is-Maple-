@@ -70,6 +70,8 @@ script GameModeManager extends Logic
 		        local starter = _UserService:GetUserEntityByUserId(senderUserId)
 		        -- 게임 시작 시 기본 무기 '몽둥이(Cudgel)'를 지급+장착한다(아직 직업 선택 전의 시작 무기).
 		        if isvalid(starter) then _JobWeaponManager:EquipStarterCudgel(starter) end
+		        -- 장착 중인 펫이 있으면 첫 게임 맵 진입 시점에 펫 버프를 버프바에 표시(시각 전용, 스탯은 PetStatBonus 담당).
+		        if _PetShopManager ~= nil then _PetShopManager:ApplyPetBuff(senderUserId) end
 		        -- 엔딩 정리용 런 기록 초기화(baseline 시각 + 턴/방문 카운터).
 		        if isvalid(starter) then
 		            local rsInit = starter:GetComponent("script.RunStatsManager")
@@ -213,6 +215,8 @@ script GameModeManager extends Logic
 		        for _, uid in ipairs(userIds) do
 		        	local pe = _UserService:GetUserEntityByUserId(uid)
 		        	if isvalid(pe) then _JobWeaponManager:EquipStarterCudgel(pe) end
+		        	-- 각 플레이어의 장착 펫 버프를 버프바에 표시(시각 전용).
+		        	if _PetShopManager ~= nil then _PetShopManager:ApplyPetBuff(uid) end
 		        end
 		        _MultiTurnManager:Start(userIds)
 	end
