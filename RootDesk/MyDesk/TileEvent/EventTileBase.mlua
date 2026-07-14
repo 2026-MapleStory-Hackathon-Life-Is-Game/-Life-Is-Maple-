@@ -135,6 +135,9 @@ script EventTileBase extends BaseTile
 			elseif r.kind == "cube" then
 				-- 미라클 큐브 지급: "cube:N" (예: cube:3).
 				self:GrantCube(piece, r.value)
+			elseif r.kind == "dicecard" then
+				-- 주사위 고정 카드 지급: "dicecard:low" / "dicecard:high" / "dicecard:num5" / "dicecard:random".
+				self:GrantCardTile(piece, r.raw)
 			else
 				-- 스탯 보상. mode = "flat"(기본) / "percent"('%' 접미사가 있던 경우). ParseReward가 판별해 담아준다.
 				self:ApplyReward(piece, { statKind = r.kind, statMode = r.mode or "flat", statValue = r.value })
