@@ -1,0 +1,66 @@
+@Logic
+script DebugResetPotentialShop extends Logic
+
+	-- [디버그] 잠재 성장 상점(로비 ShopPanel/PotentialPanel)의 구매(영구 업글) 상태를 되돌리는 버튼.
+	-- 이미 구매/최대치가 된 상태에서 구매 플로우를 재확인하기 위한 개발용. 출시 전 제거 대상.
+	-- 미사용 Row(Row3)를 런타임에 활성화해 버튼으로 재활용 → .ui/타 스크립트 무수정(자립).
+
+	property string rowPath = "/ui/LobbyUIGroup/ShopPanel/PotentialPanel/Rows/Row3"
+
+	property any _handler = nil
+
+	@ExecSpace("ClientOnly")
+	method void OnBeginPlay()
+		-- 미사용 Row3를 켜고 '구매 초기화' 버튼으로 라벨링 + 클릭 배선(클라).
+		local row = _EntityService:GetEntityByPath(self.rowPath)
+		if isvalid(row) == false then return end
+		row.Enable = true
+		local nameE = _EntityService:GetEntityByPath(self.rowPath .. "/Name")
+		if isvalid(nameE) and isvalid(nameE.TextComponent) then
+			nameE.TextComponent.Text = "구매 초기화\n(디버그)"
+		end
+		-- 재활용 Row의 잔여 아이콘은 숨긴다(펫 패널에서 복사된 더미 스프라이트).
+		local iconE = _EntityService:GetEntityByPath(self.rowPath .. "/UISprite")
+		if isvalid(iconE) then iconE.Enable = false end
+		local btn = _EntityService:GetEntityByPath(self.rowPath .. "/BtnBuy")
+		if isvalid(btn) then
+			if isvalid(btn.TextComponent) then btn.TextComponent.Text = "초기화" end
+			self._handler = btn:ConnectEvent(ButtonClickEvent, self.OnClick)
+		end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void OnClick(ButtonClickEvent event)
+		-- 클릭 → 서버에 잠재상점(메타 프로그레션) 초기화 요청.
+		_SFXManager:PlayClick()
+		self:RequestReset()
+	end
+
+	@ExecSpace("Server")
+	method void RequestReset()
+		-- [디버그] 요청 클라의 잠재 성장 상점 구매(영구 업글) 초기화 + 재테스트용 코인 지급.
+		--   MetaProgressionManager의 기존 공개 API만 사용(캐시 참조 수정 → 저장 → UI 푸시).
+		--   LoadState는 인메모리 캐시 테이블을 '참조'로 반환하므로 s의 필드 수정이 곧 캐시 반영이다.
+		local userId = senderUserId
+		if userId == nil or userId == "" then return end
+		if _MetaProgressionManager == nil then return end
+		local s = _MetaProgressionManager:LoadState(userId)
+		s.incomeLv = 0
+		s.probLv = 0
+		s.coin = 9999   -- 구매 재테스트를 바로 할 수 있도록 넉넉히 지급.
+		if s.totalEarned == nil or s.totalEarned < s.coin then s.totalEarned = s.coin end
+		_MetaProgressionManager:SaveState(userId)
+		_MetaProgressionManager:PushMeta(s.coin, s.incomeLv, s.probLv, s.totalEarned, userId)
+		log("[DebugResetPotentialShop] 잠재상점 초기화: user=" .. userId .. " coin=9999 incomeLv=0 probLv=0")
+	end
+
+	@ExecSpace("ClientOnly")
+	method void OnEndPlay()
+		-- 버튼 이벤트 핸들 해제.
+		local btn = _EntityService:GetEntityByPath(self.rowPath .. "/BtnBuy")
+		if isvalid(btn) and self._handler ~= nil then
+			btn:DisconnectEvent(ButtonClickEvent, self._handler)
+		end
+	end
+
+end
