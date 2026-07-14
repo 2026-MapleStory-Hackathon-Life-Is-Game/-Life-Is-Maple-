@@ -16,6 +16,8 @@ script DiceManager extends Logic
 	-- 서버 전용: userId → 그 고정값이 어떤 카드("low"/"high")에서 왔는지. 굴림 시 해당 카드 1개 소비용(카드 외 예약이면 "").
 	property any _forcedCard = nil
 
+	property string one_SFX = "5a0366d5cd2c40d0af999380772e9658"
+
 	property string two_SFX = "bfd2e465bd1642fca3ebc675803c07bb"
 
 	property string three_SFX = "8dea906403d945dba263ec03e4c04052"
@@ -125,8 +127,9 @@ script DiceManager extends Logic
 	@ExecSpace("Client")
 	method void PlayTotalDiceSFX(number total)
 		local ruid = ""
-		
-		if total == 2 then ruid = self.two_SFX
+
+		if total == 1 then ruid = self.one_SFX
+		elseif total == 2 then ruid = self.two_SFX
 		elseif total == 3 then ruid = self.three_SFX
 		elseif total == 4 then ruid = self.four_SFX
 		elseif total == 5 then ruid = self.five_SFX
