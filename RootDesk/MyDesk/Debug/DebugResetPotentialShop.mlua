@@ -26,20 +26,24 @@ script DebugResetPotentialShop extends Logic
 
 	@ExecSpace("Server")
 	method void RequestReset()
-		-- [디버그] 요청 클라의 잠재 성장 상점 구매(영구 업글) 초기화 + 재테스트용 코인 지급.
-		--   MetaProgressionManager의 기존 공개 API만 사용(캐시 참조 수정 → 저장 → UI 푸시).
-		--   LoadState는 인메모리 캐시 테이블을 '참조'로 반환하므로 s의 필드 수정이 곧 캐시 반영이다.
+		-- [디버그] 요청 클라의 상점 구매 초기화: (1)잠재 성장 상점(메타 영구 업글) + (2)펫 상점(소유/장착 펫).
+		--   메타: MetaProgressionManager의 기존 공개 API만 사용(캐시 참조 수정 → 저장 → UI 푸시).
+		--     LoadState는 인메모리 캐시 테이블을 '참조'로 반환하므로 s의 필드 수정이 곧 캐시 반영이다.
 		local userId = senderUserId
 		if userId == nil or userId == "" then return end
-		if _MetaProgressionManager == nil then return end
-		local s = _MetaProgressionManager:LoadState(userId)
-		s.incomeLv = 0
-		s.probLv = 0
-		s.coin = 9999   -- 구매 재테스트를 바로 할 수 있도록 넉넉히 지급.
-		if s.totalEarned == nil or s.totalEarned < s.coin then s.totalEarned = s.coin end
-		_MetaProgressionManager:SaveState(userId)
-		_MetaProgressionManager:PushMeta(s.coin, s.incomeLv, s.probLv, s.totalEarned, userId)
-		log("[DebugResetPotentialShop] 잠재상점 초기화: user=" .. userId .. " coin=9999 incomeLv=0 probLv=0")
+		-- (1) 잠재 성장 상점 초기화 + 재테스트용 코인 지급.
+		if _MetaProgressionManager ~= nil then
+			local s = _MetaProgressionManager:LoadState(userId)
+			s.incomeLv = 0
+			s.probLv = 0
+			s.coin = 9999   -- 구매 재테스트를 바로 할 수 있도록 넉넉히 지급.
+			if s.totalEarned == nil or s.totalEarned < s.coin then s.totalEarned = s.coin end
+			_MetaProgressionManager:SaveState(userId)
+			_MetaProgressionManager:PushMeta(s.coin, s.incomeLv, s.probLv, s.totalEarned, userId)
+		end
+		-- (2) 펫 상점 초기화: 소유/장착 펫 데이터 제거 + 소환 펫 디스폰 + 상점 버튼 라벨 갱신(기존 구현 재사용).
+		if _PetShopManager ~= nil then _PetShopManager:ResetAllPets(userId) end
+		log("[DebugResetPotentialShop] 상점 구매 초기화: user=" .. userId .. " (잠재 coin=9999/0/0 + 펫 소유/장착 제거)")
 	end
 
 	@ExecSpace("ClientOnly")
