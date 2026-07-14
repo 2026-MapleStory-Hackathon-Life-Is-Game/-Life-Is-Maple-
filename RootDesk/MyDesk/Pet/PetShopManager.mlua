@@ -19,6 +19,10 @@ script PetShopManager extends Logic
 
 	property any _idToName = nil
 
+	property any _owned = nil
+
+	property string _equipped = ""
+
 	method table PetList()
 		-- 이름(안정 키) ↔ 인게임 팔로워/썸네일 스프라이트(쁘띠 move 애니). 서버/클라 공통.
 		-- productId는 월드마다 바뀌므로 하드코딩하지 않고 이름으로 런타임 조회(BuildShopMaps).
@@ -38,12 +42,22 @@ script PetShopManager extends Logic
 
 	method table Categories()
 		-- 카테고리 키 → (버튼 이름, 패널 이름). 펫만 기능, 나머지는 더미 패널.
+		-- Cash(환전)는 LeftTabGroup에 탭 버튼이 없다 → btn="" (WireBtn이 무효 경로를 스킵).
+		-- 여기에 포함시키는 목적은 ShowCategory 배타 전환 + BtnClose 배선 + 시작 시 숨김을 태우기 위함.
+		-- 실제 열기는 LifeCoinExchange가 캐시 헤더 클릭으로 ShowCategory("Cash")를 호출한다.
 		return {
 			{ key = "Pet",       btn = "PetBtn",       panel = "PetPanel" },
 			{ key = "Potential", btn = "PotentialBtn", panel = "PotentialPanel" },
 			{ key = "Guild",     btn = "GuildBtn",     panel = "GuildPanel" },
 			{ key = "Romance",   btn = "RomanceBtn",   panel = "RomancePanel" },
+			{ key = "Cash",      btn = "",             panel = "CashPanel" },
 		}
+	end
+
+	method string ProductIdByName(string name)
+		-- 상품명 → 현재 월드 productId(없으면 nil). LifeCoinExchange 등 다른 상점이 재사용.
+		if self._nameToId == nil then return nil end
+		return self._nameToId[name]
 	end
 
 	method any PetByName(string name)
@@ -108,10 +122,15 @@ script PetShopManager extends Logic
 		local pet = nil
 		if name ~= nil then pet = self:PetByName(name) end
 		if pet == nil then
+			-- 펫이 아니면 라이프 코인 환전 팩인지 확인(결제 콜백은 월드당 1개라 여기서 분기).
+			if name ~= nil and _LifeCoinExchange ~= nil and _LifeCoinExchange:TryGrant(info.UserId, name) then
+				return true
+			end
 -- 			log_warning("[PetShop] 알 수 없는 상품 결제: " .. tostring(info.ProductId))
 			return false
 		end
-		self:GrantPet(info.UserId, pet.name)
+		-- 구매 = 소유만 기록(자동 장착 안 함). 이후 상점 버튼이 '장착하기'로 바뀐다.
+		self:GrantOwnership(info.UserId, pet.name)
 -- 		log("[PetShop] 구매 지급 완료: user=" .. tostring(info.UserId) .. " pet=" .. pet.name)
 		return true
 	end
@@ -121,6 +140,92 @@ script PetShopManager extends Logic
 		-- 소유(장착) 저장 + 즉시 소환. 식별자는 이름(월드 간 안정).
 		self:SaveEquipped(userId, petName)
 		self:SpawnPetFor(userId, petName)
+	end
+
+	method table OwnedNames(table set)
+		-- 소유 집합 → PetList 순서의 이름 배열(안정 정렬). 상점 그리드 순서와 일치.
+		local names = {}
+		for _, p in ipairs(self:PetList()) do
+			if set[p.name] == true then table.insert(names, p.name) end
+		end
+		return names
+	end
+
+	@ExecSpace("ServerOnly")
+	method table LoadOwnedSet(string userId)
+		-- OwnedPets(콤마 문자열) → { name=true } 집합. 레거시 호환: EquippedPet도 소유로 간주.
+		local set = {}
+		local st = _DataStorageService:GetUserDataStorage(userId)
+		if isvalid(st) == false then return set end
+		local ec, raw = st:GetAndWait("OwnedPets")
+		if ec == 0 and raw ~= nil and raw ~= "" then
+			for token in string.gmatch(raw, "([^,]+)") do
+				if token ~= "" then set[token] = true end
+			end
+		end
+		local ec2, eq = st:GetAndWait("EquippedPet")
+		if ec2 == 0 and eq ~= nil and eq ~= "" then set[eq] = true end
+		return set
+	end
+
+	@ExecSpace("ServerOnly")
+	method void GrantOwnership(string userId, string petName)
+		-- 구매 완료 처리: 소유 목록에 추가(자동 장착하지 않음) + 상태 전송.
+		-- 방금 SaveOwned로 쓴 값을 다시 읽지 않고, 계산한 names로 바로 전송(SetAsync 경쟁 회피).
+		local set = self:LoadOwnedSet(userId)
+		set[petName] = true
+		local names = self:OwnedNames(set)
+		self:SaveOwned(userId, names)
+		local equipped = self:LoadEquipped(userId)
+		self:SendPetState(userId, table.concat(names, ","), equipped)
+	end
+
+	@ExecSpace("ServerOnly")
+	method string LoadEquipped(string userId)
+		-- 현재 장착 펫 이름(없으면 ""). 상태 전송용 조회.
+		local st = _DataStorageService:GetUserDataStorage(userId)
+		if isvalid(st) == false then return "" end
+		local ec, eq = st:GetAndWait("EquippedPet")
+		if ec == 0 and eq ~= nil then return eq end
+		return ""
+	end
+
+	@ExecSpace("ServerOnly")
+	method void PushPetStateTo(string userId)
+		-- 저장소에서 소유/장착을 읽어 해당 클라로 전송(방금 쓴 값이 없는 조회 상황용).
+		local set = self:LoadOwnedSet(userId)
+		local ownedCsv = table.concat(self:OwnedNames(set), ",")
+		self:SendPetState(userId, ownedCsv, self:LoadEquipped(userId))
+	end
+
+	@ExecSpace("ServerOnly")
+	method void SendPetState(string userId, string ownedCsv, string equipped)
+		-- 계산된 소유/장착 상태를 해당 클라로 전송(버튼 라벨 갱신용).
+		self:ReceivePetState(ownedCsv, equipped or "", userId)
+	end
+
+	@ExecSpace("Server")
+	method void RequestPetState()
+		-- 클라→서버: 요청 클라의 현재 소유/장착 상태를 되돌려 push.
+		local userId = senderUserId
+		if userId == nil or userId == "" then return end
+		self:PushPetStateTo(userId)
+	end
+
+	@ExecSpace("Server")
+	method void RequestEquipPet(string petName)
+		-- 클라→서버: 소유한 펫을 무료로 장착/교체(재결제 없음). 미소유 펫은 차단.
+		local userId = senderUserId
+		if userId == nil or userId == "" then return end
+		if self:PetByName(petName) == nil then return end
+		local set = self:LoadOwnedSet(userId)
+		if set[petName] ~= true then
+-- 			log_warning("[PetShop] 미소유 펫 장착 시도 차단: " .. tostring(petName))
+			return
+		end
+		self:SaveEquipped(userId, petName)
+		self:SpawnPetFor(userId, petName)
+		self:SendPetState(userId, table.concat(self:OwnedNames(set), ","), petName)
 	end
 
 	@ExecSpace("ServerOnly")
@@ -253,6 +358,8 @@ script PetShopManager extends Logic
 		self:SaveOwned(userId, names)
 		-- 대표펫 = 목록 첫 번째. GrantPet가 EquippedPet 저장 + 소환 처리.
 		self:GrantPet(userId, pets[1].name)
+		-- 소유 전체 + 대표펫 장착 상태를 클라에 반영(버튼 라벨 교체하기).
+		self:SendPetState(userId, table.concat(names, ","), pets[1].name)
 -- 		log("[PetShop] 전체 펫 지급 완료: user=" .. tostring(userId) .. " 소유=" .. tostring(#names) .. "종 대표=" .. pets[1].name)
 	end
 
@@ -261,6 +368,8 @@ script PetShopManager extends Logic
 		-- 소유목록 + 장착 펫 데이터 제거 + 소환 펫 제거.
 		self:ClearPetData(userId)
 		self:DespawnPet(userId)
+		-- 소유/장착 모두 비워졌음을 클라에 반영(버튼 라벨 구매하기).
+		self:SendPetState(userId, "", "")
 -- 		log("[PetShop] 펫 데이터 전부 제거 완료: user=" .. tostring(userId))
 	end
 
@@ -293,6 +402,8 @@ script PetShopManager extends Logic
 		-- 열기/카테고리/닫기/구매 버튼 배선 + 펫 카드(이름/아이콘) 세팅. 상점은 시작 시 숨김.
 		self._btnH = {}
 		self._hoverH = {}
+		self._owned = {}
+		self._equipped = ""
 		local shop = _EntityService:GetEntityByPath(self.shopPanelPath)
 		if isvalid(shop) then shop.Enable = false end
 		
@@ -302,7 +413,10 @@ script PetShopManager extends Logic
 		for _, c in ipairs(self:Categories()) do
 			local key = c.key
 			-- 카테고리 버튼은 ShopPanel/LeftTabGroup 하위에 있음(직속 아님).
-			self:WireBtn(self.shopPanelPath .. "/LeftTabGroup/" .. c.btn, function() self:ShowCategory(key) end)
+			-- btn 빈 문자열(Cash 등 탭 없는 카테고리)은 스킵 → 트레일링 슬래시 경로 오배선 방지.
+			if c.btn ~= nil and c.btn ~= "" then
+				self:WireBtn(self.shopPanelPath .. "/LeftTabGroup/" .. c.btn, function() self:ShowCategory(key) end)
+			end
 			self:WireBtn(self.shopPanelPath .. "/" .. c.panel .. "/BtnClose", function() self:CloseShop() end)
 			local pnl = _EntityService:GetEntityByPath(self.shopPanelPath .. "/" .. c.panel)
 			if isvalid(pnl) then pnl.Enable = false end
@@ -325,10 +439,17 @@ script PetShopManager extends Logic
 				iconE.SpriteGUIRendererComponent.ImageRUID = DataRef(pets[i].ruid)
 			end
 			local capturedName = pets[i].name
-			self:WireBtn(rowPath .. "/BtnBuy", function() self:OnBuyClick(capturedName) end)
+			-- 상태 수신 전 기본 라벨: 구매하기.
+			local btnE = _EntityService:GetEntityByPath(rowPath .. "/BtnBuy")
+			if isvalid(btnE) and isvalid(btnE.TextComponent) then btnE.TextComponent.Text = "구매하기" end
+			-- 클릭은 소유 여부에 따라 구매/장착으로 분기(OnRowClick).
+			self:WireBtn(rowPath .. "/BtnBuy", function() self:OnRowClick(capturedName) end)
 			-- 펫 옵션 호버 툴팁 배선.
 			self:WirePetHover(rowPath, pets[i])
 		end
+
+		-- 내 소유/장착 상태 요청 → 서버가 push하면 버튼 라벨이 갱신됨.
+		self:RequestPetState()
 	end
 
 	@ExecSpace("ClientOnly")
@@ -386,6 +507,8 @@ script PetShopManager extends Logic
 		if isvalid(shop) == false then return end
 		shop.Enable = true
 		self:ShowCategory("Pet")
+		-- 열 때마다 최신 소유/장착 상태 재요청(버튼 라벨 최신화).
+		self:RequestPetState()
 	end
 
 	@ExecSpace("ClientOnly")
@@ -419,6 +542,77 @@ script PetShopManager extends Logic
 		end
 -- 		log("[PetShop] 구매창 요청: " .. tostring(petName) .. " → " .. tostring(pid))
 		_WorldShopService:PromptPurchase(pid)
+	end
+
+	@ExecSpace("ClientOnly")
+	method void OnRowClick(string petName)
+		-- 카드 버튼 클릭: 미소유=결제창, 소유=무료 장착/교체 요청.
+		local owned = self._owned
+		if owned ~= nil and owned[petName] == true then
+			-- 이미 이 펫을 장착 중이면 무시(버튼도 비활성이지만 이중 안전장치).
+			if self._equipped == petName then return end
+			_SFXManager:PlayClick()
+			self:RequestEquipPet(petName)
+		else
+			-- OnBuyClick가 클릭음 + 결제창 처리.
+			self:OnBuyClick(petName)
+		end
+	end
+
+	@ExecSpace("Client")
+	method void ReceivePetState(string ownedCsv, string equipped)
+		-- 서버가 보낸 내 펫 소유/장착 상태 수신 → 캐시 후 버튼 라벨 갱신.
+		self._owned = self:ParseCsvSet(ownedCsv)
+		self._equipped = equipped or ""
+		self:RefreshButtons()
+	end
+
+	method table ParseCsvSet(string csv)
+		-- 콤마 조인 문자열 → { name=true } 집합. 빈 문자열이면 빈 집합.
+		local set = {}
+		if csv == nil or csv == "" then return set end
+		for token in string.gmatch(csv, "([^,]+)") do
+			if token ~= "" then set[token] = true end
+		end
+		return set
+	end
+
+	@ExecSpace("ClientOnly")
+	method void RefreshButtons()
+		-- 소유/장착 상태에 따라 각 펫 카드 버튼 라벨/활성을 4분기로 갱신.
+		--   미소유=구매하기 / 소유+아무것도 장착안함=장착하기 / 소유+다른 펫 장착중=교체하기 /
+		--   소유+이 펫 장착중=장착중(버튼 비활성: 보이지만 클릭 불가).
+		local owned = self._owned
+		if owned == nil then owned = {} end
+		local hasEquipped = (self._equipped ~= nil and self._equipped ~= "")
+		local pets = self:PetList()
+		for i = 1, #pets do
+			local name = pets[i].name
+			local rowPath = self.petPanelPath .. "/Rows/Row" .. tostring(i)
+			local btnE = _EntityService:GetEntityByPath(rowPath .. "/BtnBuy")
+			if isvalid(btnE) then
+				local label = "구매하기"
+				local clickable = true
+				if owned[name] == true then
+					if self._equipped == name then
+						-- 이미 이 펫을 장착 중 → 비활성 + '장착중'.
+						label = "장착중"
+						clickable = false
+					elseif hasEquipped then
+						-- 다른 펫을 장착 중.
+						label = "교체하기"
+					else
+						-- 소유했지만 아무것도 장착 안 함.
+						label = "장착하기"
+					end
+				end
+				if isvalid(btnE.TextComponent) then btnE.TextComponent.Text = label end
+				-- 엔티티가 아니라 ButtonComponent만 꺼서 '보이지만 클릭 불가'로 만든다
+				-- (스프라이트/텍스트는 별도 컴포넌트라 그대로 표시). RefreshButtons가 매번 재설정하므로
+				-- 장착 해제/교체 시 자동으로 다시 활성화된다.
+				if isvalid(btnE.ButtonComponent) then btnE.ButtonComponent.Enable = clickable end
+			end
+		end
 	end
 
 	@ExecSpace("ClientOnly")
