@@ -13,6 +13,8 @@ script PetShopManager extends Logic
 
 	property any _btnH = nil
 
+	property any _hoverH = nil
+
 	property any _nameToId = nil
 
 	property any _idToName = nil
@@ -270,6 +272,7 @@ script PetShopManager extends Logic
 	method void WireClient()
 		-- 열기/카테고리/닫기/구매 버튼 배선 + 펫 카드(이름/아이콘) 세팅. 상점은 시작 시 숨김.
 		self._btnH = {}
+		self._hoverH = {}
 		local shop = _EntityService:GetEntityByPath(self.shopPanelPath)
 		if isvalid(shop) then shop.Enable = false end
 		
@@ -303,7 +306,47 @@ script PetShopManager extends Logic
 			end
 			local capturedName = pets[i].name
 			self:WireBtn(rowPath .. "/BtnBuy", function() self:OnBuyClick(capturedName) end)
+			-- 펫 옵션 호버 툴팁 배선.
+			self:WirePetHover(rowPath, pets[i])
 		end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void WirePetHover(string rowPath, table pet)
+		-- HoverZone(자식 없는 투명 버튼) 호버 시 HoverInfo(정보 박스)를 표시한다.
+		-- 정보 텍스트는 펫 옵션으로 1회 세팅. 기본은 숨김.
+		local info = _EntityService:GetEntityByPath(rowPath .. "/HoverInfo")
+		if isvalid(info) then info.Enable = false end
+		local txtE = _EntityService:GetEntityByPath(rowPath .. "/HoverInfo/Txt")
+		if isvalid(txtE) and isvalid(txtE.TextComponent) then
+			txtE.TextComponent.Text = self:BonusText(pet)
+		end
+		local zone = _EntityService:GetEntityByPath(rowPath .. "/HoverZone")
+		if isvalid(zone) == false then return end
+		local capturedInfo = info
+		local h = zone:ConnectEvent(ButtonStateChangeEvent, function(ev)
+			-- PC=Hover, 모바일 롱프레스=Pressed → 표시. 그 외(Normal/Released)=숨김.
+			local st = ev.state
+			local show = (st == ButtonState.Hover or st == ButtonState.Pressed)
+			if isvalid(capturedInfo) then capturedInfo.Enable = show end
+		end)
+		table.insert(self._hoverH, { entity = zone, evtH = h })
+	end
+
+	method string BonusText(table pet)
+		-- 펫 옵션을 사람이 읽을 텍스트로 조립한다(헤더 + 스탯 1줄).
+		local b = nil
+		if pet ~= nil then b = pet.bonus end
+		local line = ""
+		if b ~= nil then
+			if (b.strPct or 0) ~= 0 then line = "STR +" .. tostring(b.strPct) .. "%"
+			elseif (b.dexPct or 0) ~= 0 then line = "DEX +" .. tostring(b.dexPct) .. "%"
+			elseif (b.intPct or 0) ~= 0 then line = "INT +" .. tostring(b.intPct) .. "%"
+			elseif (b.lukPct or 0) ~= 0 then line = "LUK +" .. tostring(b.lukPct) .. "%"
+			elseif (b.allStatPct or 0) ~= 0 then line = "올스탯 +" .. tostring(b.allStatPct) .. "%" end
+		end
+		if line == "" then line = "옵션 없음" end
+		return "추가 옵션\n\n" .. line
 	end
 
 	@ExecSpace("ClientOnly")
@@ -400,6 +443,15 @@ script PetShopManager extends Logic
 				end
 			end
 			self._btnH = nil
+		end
+		-- 펫 옵션 호버 핸들 해제.
+		if self._hoverH ~= nil then
+			for _, r in ipairs(self._hoverH) do
+				if isvalid(r.entity) and r.evtH ~= nil then
+					r.entity:DisconnectEvent(ButtonStateChangeEvent, r.evtH)
+				end
+			end
+			self._hoverH = nil
 		end
 	end
 
