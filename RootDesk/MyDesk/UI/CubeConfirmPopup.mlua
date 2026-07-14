@@ -13,7 +13,14 @@ script CubeConfirmPopup extends Logic
 
 	property string _instanceId = ""
 
-	property string _mode = "cube"      -- "cube"(큐브 사용 확인) | "forge"(합성 확인) | "result"(합성 결과)
+	property string _mode = "cube"      -- "cube"(큐브 사용 확인) | "forge"(합성 확인) | "result"(합성 결과) | "dice"(주사위 카드 사용 확인)
+
+	property string _cardKey = ""       -- dice 모드: 사용할 주사위 카드키(low/high/num1..num12)
+
+	-- dice 모드에서 도착 타일 아이콘/확장 레이아웃에 쓰는 경로(경로 기반 참조 → .ui 바인딩 주입 불필요).
+	property string windowPath = "/ui/PotentialCubeGroup/Confirm/Window"
+
+	property string tileIconPath = "/ui/PotentialCubeGroup/Confirm/Window/TileIcon"
 
 	property string _mainId = ""        -- 합성 메인(강화 대상) 인스턴스
 
@@ -27,6 +34,7 @@ script CubeConfirmPopup extends Logic
 		-- 클라: 패널 숨김 + 예/아니오 버튼 배선.
 		if self:IsClient() == false then return end
 		if isvalid(self.groupRoot) then self.groupRoot.Enable = false end
+		self:SetDiceIcon("", false)   -- 도착 아이콘 초기 숨김(dice 모드에서만 표시)
 		if isvalid(self.btnYes) then
 			self._yesH = self.btnYes.Entity:ConnectEvent(ButtonClickEvent, function() self:OnYes() end)
 		end
@@ -59,6 +67,7 @@ script CubeConfirmPopup extends Logic
 	method void Open(string instanceId, string equipName)
 		-- 확인 패널 열기(대상=장비 인스턴스). 인벤 OnCellClicked(큐브모드)/캐릭터패널 우클릭에서 호출.
 		if self:IsClient() == false then return end
+		self:ResetDiceExtras()
 		self._mode = "cube"
 		self._instanceId = instanceId
 		self._equipName = equipName
@@ -72,10 +81,121 @@ script CubeConfirmPopup extends Logic
 	end
 
 	@ExecSpace("ClientOnly")
+	method void OpenDice(string cardKey)
+		-- 주사위 고정 카드 사용 확인 패널. 인벤 우클릭 '사용한다' / 더블클릭에서 호출.
+		-- 메시지 = 카드명 + 예상 도착 안내(텍스트) + 도착 타일 아이콘 스프라이트(분기 선택창처럼).
+		if self:IsClient() == false then return end
+		self._mode = "dice"
+		self._cardKey = cardKey
+		local def = _ItemDiceCardManager:CardDef(cardKey)
+		local cname = cardKey
+		if def ~= nil and def.name ~= nil then cname = def.name end
+		local pv = self:DicePreview(cardKey, def)
+		self:SetText(self.msgText, "'" .. cname .. "' 카드를\n지금 사용하시겠습니까?\n\n" .. pv.text)
+		-- 도착 타일 아이콘: 확정 도착이 있고(숫자카드) 종류 아이콘이 존재할 때만 표시.
+		local showIcon = (pv.icon ~= nil and pv.icon ~= "")
+		self:SetDiceIcon(pv.icon, showIcon)
+		self:Layout(showIcon)
+		self:SetButtonLabel(self.btnYes, "예")
+		self:SetButtonLabel(self.btnNo, "아니오")
+		if isvalid(self.btnNo) and isvalid(self.btnNo.Entity) then self.btnNo.Entity.Enable = true end
+		if isvalid(self.groupRoot) then self.groupRoot.Enable = true end
+		self:BringToFront()
+	end
+
+	method table DicePreview(string cardKey, any def)
+		-- 이 카드를 사용해 다음 이동 주사위를 고정했을 때의 예상 도착 안내 { text, icon(도착 타일 종류 아이콘 RUID) }.
+		--   숫자 카드(min==max): 정확한 칸 수 → PredictLanding으로 도착 타일 종류/아이콘.
+		--   범위 카드(low/high): 굴림 후 값이 정해지므로 '범위'만 안내(아이콘 없음).
+		local out = { text = "", icon = "" }
+		if def == nil then return out end
+		local p = _UserService.LocalPlayer
+		if isvalid(p) == false then out.text = "예상 도착: 알 수 없음" return out end
+		local mv = p.PlayerMovement
+		if isvalid(mv) == false then out.text = "예상 도착: 알 수 없음" return out end
+		local map = p.CurrentMapName
+		local cur = mv.currentTile
+		if def.num ~= nil then
+			-- 숫자 카드: 정확히 def.num칸 전진.
+			local dest = _TileManager:PredictLanding(map, cur, def.num)
+			if dest == nil or dest == "" then
+				out.text = tostring(def.num) .. "칸 이동 → 도중 갈림길이 있어 도착 칸을 확정할 수 없습니다."
+				return out
+			end
+			local t = _TileManager:GetTileType(map, dest)
+			-- 길드 타일은 내 인생분기에 따라 연애/길드로 갈리므로 보드와 동일 규칙으로 해석.
+			if t == "Guild" then t = _TileManager:LocalLifePathArtType() end
+			local kor = t
+			if _BranchSelectUI ~= nil then kor = _BranchSelectUI:TypeKorean(t) end
+			out.text = tostring(def.num) .. "칸 이동 → 예상 도착 칸: 「" .. kor .. "」"
+			out.icon = _TileManager:TileTypeIconRUID(t)
+			return out
+		end
+		-- 범위 카드: 도착 칸은 굴림 후 확정.
+		out.text = tostring(def.min) .. "~" .. tostring(def.max) .. "칸 이동 (도착 칸은 굴림 후 확정)"
+		return out
+	end
+
+	@ExecSpace("ClientOnly")
+	method void SetDiceIcon(string ruid, boolean show)
+		-- 도착 타일 아이콘 스프라이트 세팅/표시. show=false거나 ruid 없으면 숨김.
+		local e = _EntityService:GetEntityByPath(self.tileIconPath)
+		if isvalid(e) == false then return end
+		if show and ruid ~= nil and ruid ~= "" then
+			local sr = e.SpriteGUIRendererComponent
+			if isvalid(sr) then sr.ImageRUID = DataRef(ruid) end
+			e.Enable = true
+		else
+			e.Enable = false
+		end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void Layout(boolean expanded)
+		-- 도착 아이콘 표시 여부에 따라 창/메시지/버튼 배치 전환.
+		--   expanded(아이콘 표시): 창을 키우고 메시지 위/버튼 아래로, 가운데 아이콘 공간 확보.
+		--   기본(아이콘 없음, 큐브/합성/결과 모드 포함): 원래 컴팩트 레이아웃.
+		local win = _EntityService:GetEntityByPath(self.windowPath)
+		if expanded then
+			if isvalid(win) and isvalid(win.UITransformComponent) then win.UITransformComponent.RectSize = Vector2(680, 380) end
+			self:SetPosE(self.msgText, 0, 120)
+			self:SetPosB(self.btnYes, -160, -140)
+			self:SetPosB(self.btnNo, 160, -140)
+		else
+			if isvalid(win) and isvalid(win.UITransformComponent) then win.UITransformComponent.RectSize = Vector2(680, 300) end
+			self:SetPosE(self.msgText, 0, 50)
+			self:SetPosB(self.btnYes, -160, -88)
+			self:SetPosB(self.btnNo, 160, -88)
+		end
+	end
+
+	method void SetPosE(Entity e, number x, number y)
+		-- 엔티티 anchoredPosition 설정.
+		if isvalid(e) == false then return end
+		local ut = e.UITransformComponent
+		if isvalid(ut) then ut.anchoredPosition = Vector2(x, y) end
+	end
+
+	method void SetPosB(ButtonComponent btn, number x, number y)
+		-- 버튼 엔티티 anchoredPosition 설정.
+		if isvalid(btn) == false or isvalid(btn.Entity) == false then return end
+		local ut = btn.Entity.UITransformComponent
+		if isvalid(ut) then ut.anchoredPosition = Vector2(x, y) end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void ResetDiceExtras()
+		-- dice 전용 요소(도착 아이콘/확장 레이아웃)를 원래대로 되돌린다(비-dice 모드 열 때 호출).
+		self:SetDiceIcon("", false)
+		self:Layout(false)
+	end
+
+	@ExecSpace("ClientOnly")
 	method void OpenForgeWarn(string mainId, string materialId, string equipName)
 		-- 합성 경고 패널: 재료로 선택한 장비가 스타포스/잠재를 가진 '강화된' 장비일 때 실수 소모 방지용 사전 확인.
 		--   '예' → 정상 합성 확인(OpenForge)으로 진행, '취소' → 재료 선택 유지(닫기만).
 		if self:IsClient() == false then return end
+		self:ResetDiceExtras()
 		self._mode = "forgewarn"
 		self._mainId = mainId
 		self._materialId = materialId
@@ -93,6 +213,7 @@ script CubeConfirmPopup extends Logic
 	method void OpenForge(string mainId, string materialId, string equipName)
 		-- 합성 확인 패널: 메인(mainId)에 재료(materialId, 같은 아이템)를 소모해 스타포스 강화 시도.
 		if self:IsClient() == false then return end
+		self:ResetDiceExtras()
 		self._mode = "forge"
 		self._mainId = mainId
 		self._materialId = materialId
@@ -110,6 +231,7 @@ script CubeConfirmPopup extends Logic
 	method void ShowForgeResult(string equipName, string outcome, integer newStar)
 		-- 합성 결과 표시(서버 ForgeManager.NotifyForgeResult에서 호출). '확인' 버튼 하나만.
 		if self:IsClient() == false then return end
+		self:ResetDiceExtras()
 		self._mode = "result"
 		local nm = self:DisplayName(equipName)
 		local msg = "합성 결과: " .. tostring(outcome)
@@ -177,6 +299,14 @@ script CubeConfirmPopup extends Logic
 			-- 합성 결과 확인 → 닫기만.
 			_SFXManager:PlayClick()
 			self:Close()
+			return
+		end
+		if self._mode == "dice" then
+			-- 주사위 카드 사용 확정 → 다음 이동 주사위 고정 예약(보유>0일 때만, 실제 소비는 굴림 시점).
+			_SFXManager:PlayClick()
+			local ck = self._cardKey
+			self:Close()
+			if _ItemDiceCardManager ~= nil then _ItemDiceCardManager:UseCard(ck) end
 			return
 		end
 		-- cube 모드(기존): 인벤 큐브 사용 모드 종료 후 실제 큐브 사용 요청.

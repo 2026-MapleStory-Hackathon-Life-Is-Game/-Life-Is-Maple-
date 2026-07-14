@@ -7,14 +7,24 @@ script ItemDiceCardManager extends Logic
 
 	method table CardDefs()
 		-- 주사위 고정 카드 정의. 사용 시 min~max 범위 랜덤 값 1개로 다음 이동 주사위를 고정한다.
-		-- key → { name=표시명, min, max, num=정확한 숫자(숫자카드만) }. num 카드는 min==max라 정확값 고정.
+		-- key → { name=표시명, min, max, num=정확한 숫자(숫자카드만), ruid=카드 스프라이트 }. num 카드는 min==max라 정확값 고정.
+		-- ruid는 인벤 셀 아이콘/획득 팝업 등에서 공용으로 쓰는 단일 출처.
 		if self._cardDefs ~= nil then return self._cardDefs end
+		-- 숫자 카드(1~12) 스프라이트 RUID(인덱스=숫자).
+		local numRuids = {
+			"41016d459f0b41e8bd06a76e559307f2", "4d92c40a4a6f4fcf8a37a390d01a23d6",
+			"1c2b9aca748b401ca559dbc58b5f6495", "ac022eb3ffe6428c98d7e063661efec2",
+			"8522796c6f0b4e97a3d06a5b7b3e374f", "32e0e4c2fc1f44dd89ae79f0f15b9955",
+			"5a345a20f1924952b9306b3b502437f1", "78f4252ff7dd4014b75a0786036d249a",
+			"0ad8c4c6347840ad9a827c4bf52a2c57", "23d99bf79f3e4a79935abb78fe4f2ed5",
+			"ad6e03f6610e4eb5be12e1b03d72062c", "6d9bc46c3c8649479e49b0258f301c8c",
+		}
 		local defs = {
-			low  = { name = "낮은 숫자 카드", min = 1, max = 6 },
-			high = { name = "높은 숫자 카드", min = 7, max = 12 },
+			low  = { name = "낮은 숫자 카드", min = 1, max = 6,  ruid = "7ea6ab638c8c48b28d8e064adeee74d7" },
+			high = { name = "높은 숫자 카드", min = 7, max = 12, ruid = "6b14fb78dd2c48c3a0fb8ee634abd969" },
 		}
 		for i = 1, 12 do
-			defs["num" .. i] = { name = tostring(i) .. " 카드", min = i, max = i, num = i }
+			defs["num" .. i] = { name = tostring(i) .. " 카드", min = i, max = i, num = i, ruid = numRuids[i] }
 		end
 		self._cardDefs = defs
 		return defs
