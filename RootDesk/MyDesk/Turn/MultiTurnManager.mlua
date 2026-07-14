@@ -286,6 +286,11 @@ script MultiTurnManager extends Logic
 		            if userId == self._currentPlayerUserId then
 		                local rm = userEntity:GetComponent("script.RomanceManager")
 		                if isvalid(rm) then rm:OnTurnPassed() end
+		                -- 잠재 상점 트랙1: 자기 턴 3회마다 조각 지급. 완주자(대기 큐브 롤)는 제외.
+		                if self:IsFinished(userId) == false then
+		                    local ci = userEntity:GetComponent("script.CubeInventory")
+		                    if isvalid(ci) then ci:TickTurnIncome(userId) end
+		                end
 		                break
 		            end
 		        end

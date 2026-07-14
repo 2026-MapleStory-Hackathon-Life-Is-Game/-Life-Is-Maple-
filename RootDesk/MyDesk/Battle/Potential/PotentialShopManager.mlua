@@ -1,0 +1,233 @@
+@Logic
+script PotentialShopManager extends Logic
+
+	-- 잠재 성장 상점(ShopPanel/PotentialPanel 탭)의 클라 UI 컨트롤러.
+	-- 상점 개폐/탭 전환/닫기는 PetShopManager가 이미 담당하고, 여기서는 PotentialPanel의
+	-- 두 트랙 카드(Row1=연합 물자 지원, Row2=잠재 향상 확률)를 MetaProgressionManager에 배선한다.
+	-- 노드는 경로로 참조(PetShopManager와 동일 방식) → .ui 바인딩 주입 불필요.
+
+	property string shopPanelPath = "/ui/LobbyUIGroup/ShopPanel"
+
+	property string potPanelPath = "/ui/LobbyUIGroup/ShopPanel/PotentialPanel"
+
+	property string shopBtnPath = "/ui/LobbyUIGroup/ShopBtn"
+
+	-- 상점 공용 캐시 헤더(모든 탭에서 보임). 라이프 코인 = 통합 재화.
+	property string lifeCoinDataPath = "/ui/LobbyUIGroup/ShopPanel/CurrentCashPanel/CurrentLifeCoin_Data"
+
+	-- (구)월드코인 노드를 '누적 라이프 코인'(평생 획득 총액=충전+게임 획득) 표시로 재사용.
+	-- 월드코인 잔액은 조회 API가 없어 표시 불가 → 누적 획득으로 대체.
+	property string totalEarnedDataPath = "/ui/LobbyUIGroup/ShopPanel/CurrentCashPanel/CurrentWorldCoin_Data"
+
+	property any _btnH = nil
+
+	property any _hoverH = nil
+
+	-- ── 표시용 상수 미러(MetaProgressionManager와 값 동일 유지) ──
+	method table IncomeEffect()
+		-- 레벨(1~3)별 효과 문구(호버 툴팁 표시용). 카드 겉면은 트랙명+레벨만 노출.
+		return { "3턴당 큐브 1개", "3턴당 1.5개", "3턴당 2개" }
+	end
+
+	method table IncomePrice()
+		return { 150, 400, 800 }
+	end
+
+	method table ProbEffect()
+		return { "승급 확률 +1%", "승급 확률 +3%", "승급 확률 +5%" }
+	end
+
+	method table ProbPrice()
+		return { 100, 300, 600 }
+	end
+
+	method void OnBeginPlay()
+		-- 클라만 UI 배선(서버 데이터는 MetaProgressionManager 담당).
+		if self:IsClient() then
+			self:WireClient()
+		end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void WireClient()
+		-- 두 카드 정적 세팅 + 구매/탭 버튼 배선 + 초기 메타 요청.
+		self._btnH = {}
+		self._hoverH = {}
+
+		-- 패널 제목/부제(정적). 카드 본문(제목+효과+가격)은 ApplyMeta가 Name에 멀티라인으로 채운다.
+		self:SetText(self.potPanelPath .. "/Title", "잠재 성장 상점")
+		self:SetText(self.potPanelPath .. "/Sub", "라이프 코인으로 트랙을 영구 강화하세요")
+
+		-- 누적 라이프 코인 노드는 ApplyMeta가 서버 메타로 채운다(초기값은 RequestMeta 응답 대기).
+
+		-- 구매 버튼(트랙별).
+		self:WireBtn(self.potPanelPath .. "/Rows/Row1/BtnBuy", function() self:OnBuy("income") end)
+		self:WireBtn(self.potPanelPath .. "/Rows/Row2/BtnBuy", function() self:OnBuy("prob") end)
+
+		-- 세트효과 호버 툴팁 배선(내용은 RenderCard가 레벨에 맞춰 채움).
+		self:WireHover(self.potPanelPath .. "/Rows/Row1")
+		self:WireHover(self.potPanelPath .. "/Rows/Row2")
+
+		-- 상점 열기/잠재 탭 클릭 시마다 최신 메타 요청(공용 라이프 코인 헤더+카드 갱신).
+		self:WireBtn(self.shopBtnPath, function() self:RequestMeta() end)
+		self:WireBtn(self.shopPanelPath .. "/LeftTabGroup/PotentialBtn", function() self:RequestMeta() end)
+
+		-- 초기 1회 요청(로비 진입 직후 값 채움).
+		self:RequestMeta()
+	end
+
+	@ExecSpace("ClientOnly")
+	method void RequestMeta()
+		-- 서버에 현재 메타(코인/레벨) 요청 → 응답은 MetaProgressionManager.PushMeta → ApplyMeta.
+		if _MetaProgressionManager ~= nil then _MetaProgressionManager:RequestMeta() end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void OnBuy(string track)
+		-- 구매 요청(서버 검증/차감). 결과는 PushMeta로 되돌아와 ApplyMeta가 갱신.
+		_SFXManager:PlayClick()
+		if _MetaProgressionManager ~= nil then _MetaProgressionManager:RequestPurchase(track) end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void ApplyMeta(integer coin, integer incomeLv, integer probLv, integer totalEarned)
+		-- 코인 잔액 + 누적 획득 + 두 카드(현재 효과/다음 효과·가격/구매 버튼) 갱신.
+		-- 라이프 코인(통합 재화)은 상점 공용 캐시 헤더에 표시. 잠재 패널 안의 별도 코인 표기는 없앰.
+		self:SetTextGUI(self.lifeCoinDataPath, tostring(coin))
+		-- 누적 라이프 코인(충전+게임 획득 총액, 소비해도 감소 안 함).
+		self:SetTextGUI(self.totalEarnedDataPath, tostring(totalEarned))
+		self:RenderCard(self.potPanelPath .. "/Rows/Row1", "연합 물자 지원", incomeLv, self:IncomeEffect(), self:IncomePrice(), coin)
+		self:RenderCard(self.potPanelPath .. "/Rows/Row2", "잠재 향상 확률", probLv, self:ProbEffect(), self:ProbPrice(), coin)
+	end
+
+	@ExecSpace("ClientOnly")
+	method void RenderCard(string rowPath, string title, integer lv, table effects, table prices, integer coin)
+		-- 한 트랙 카드 렌더. 겉면은 트랙명+레벨만(간결), 실제 효과 수치는
+		-- 호버 툴팁(세트효과 3줄, 현재 레벨만 밝게)에서만 노출한다. 버튼 라벨/활성도 갱신.
+		self:SetText(rowPath .. "/Name", self:CardFaceText(title, lv))
+		self:SetText(rowPath .. "/HoverInfo/Txt", self:SetEffectTooltip(title, lv, effects, prices))
+
+		local btnLabel = "구매"
+		local canBuy = true
+		if lv >= 3 then
+			btnLabel = "최대"
+			canBuy = false
+		elseif coin < prices[lv + 1] then
+			canBuy = false
+		end
+		self:SetText(rowPath .. "/BtnBuy", btnLabel)
+		local btn = _EntityService:GetEntityByPath(rowPath .. "/BtnBuy")
+		if isvalid(btn) then btn.Enable = canBuy end
+	end
+
+	method string CardFaceText(string title, integer lv)
+		-- 카드 겉면(호버 안 했을 때): 트랙명 + 현재 레벨만 간결히("연합 물자 지원 Lv1").
+		-- 상세 효과/다음 가격은 호버 툴팁에서만 노출.
+		return title .. " Lv" .. tostring(lv)
+	end
+
+	method string SetEffectTooltip(string title, integer lv, table effects, table prices)
+		-- 메이플 세트효과 스타일: lv1~3 효과를 모두 나열하되 '현재 적용 중인 레벨'만 밝게, 나머지는 어둡게.
+		-- 효과는 대체형(상위가 하위를 덮음)이라 현재 레벨 1줄만 발동으로 본다. lv=0이면 전부 어둡게.
+		local bright = "FFE7A8"   -- 발동(밝게)
+		local dark = "6B6B76"     -- 미발동(어둡게)
+		local hint = "B9C0D4"     -- 안내 문구
+		local out = "<color=#" .. bright .. ">" .. title .. "  Lv." .. tostring(lv) .. "</color>\n\n"
+		for i = 1, 3 do
+			local col = dark
+			local mark = "     "
+			if i == lv then
+				col = bright
+				mark = "▸ "
+			end
+			out = out .. "<color=#" .. col .. ">" .. mark .. "Lv" .. tostring(i) .. "  " .. tostring(effects[i]) .. "</color>\n"
+		end
+		if lv >= 3 then
+			out = out .. "\n<color=#" .. hint .. ">최대 강화 완료</color>"
+		else
+			out = out .. "\n<color=#" .. hint .. ">다음: " .. tostring(effects[lv + 1]) .. " (" .. tostring(prices[lv + 1]) .. " 라이프코인)</color>"
+		end
+		return out
+	end
+
+	@ExecSpace("ClientOnly")
+	method void WireHover(string rowPath)
+		-- HoverZone(투명 버튼) 호버 시 HoverInfo(세트효과 박스)를 표시/숨김. 내용은 RenderCard가 채움.
+		local info = _EntityService:GetEntityByPath(rowPath .. "/HoverInfo")
+		if isvalid(info) then info.Enable = false end
+		local zone = _EntityService:GetEntityByPath(rowPath .. "/HoverZone")
+		if isvalid(zone) == false then return end
+		local capturedInfo = info
+		-- 툴팁은 '자기 행 바깥쪽'으로 열리도록 .ui에서 위치를 잡아 옆 카드를 안 덮는다(Row1=왼쪽/Row2=오른쪽).
+		-- 남은 것은 '같은 행 내부' z뿐: 호버 시 HoverInfo를 자기 행 자식 중 맨 앞으로 올려 Name/UISprite에 안 가리게 한다.
+		-- (Row는 레이아웃 그룹이 없어 자식 형제 인덱스를 바꿔도 위치는 안 변함. Rows의 ScrollLayoutGroup은
+		--  직속 자식 Row들만 배치하므로 손자인 HoverInfo 재정렬은 카드 배치에 영향 없음.)
+		-- 원래(authored) sibling index를 기억해 두고 언호버 시 그대로 원복 → 형제 순서가 안 흔들린다.
+		local origIdx = 0
+		if isvalid(capturedInfo) and isvalid(capturedInfo.UITransformComponent) then
+			origIdx = _UILogic:GetSiblingIndex(capturedInfo.UITransformComponent)
+		end
+		local h = zone:ConnectEvent(ButtonStateChangeEvent, function(ev)
+			-- PC=Hover, 모바일 롱프레스=Pressed → 표시. 그 외(Normal/Released)=숨김.
+			local st = ev.state
+			local show = (st == ButtonState.Hover or st == ButtonState.Pressed)
+			if isvalid(capturedInfo) then capturedInfo.Enable = show end
+			if isvalid(capturedInfo) and isvalid(capturedInfo.UITransformComponent) then
+				if show then
+					-- 호버: 같은 행 안에서 맨 앞으로(Name/UISprite 위).
+					_UILogic:SetSiblingIndex(capturedInfo.UITransformComponent, 1000000)
+				else
+					-- 언호버: 원래 자리로 원복(순서 흔들림 방지).
+					_UILogic:SetSiblingIndex(capturedInfo.UITransformComponent, origIdx)
+				end
+			end
+		end)
+		table.insert(self._hoverH, { entity = zone, evtH = h })
+	end
+
+	@ExecSpace("ClientOnly")
+	method void SetText(string path, string text)
+		-- 경로의 엔티티 TextComponent.Text 설정(버튼 라벨/카드 텍스트 — TextComponent 노드).
+		local e = _EntityService:GetEntityByPath(path)
+		if isvalid(e) and isvalid(e.TextComponent) then e.TextComponent.Text = text end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void SetTextGUI(string path, string text)
+		-- 경로의 엔티티 TextGUIRendererComponent.Text 설정(캐시 헤더 코인 노드 — GUI 렌더러 계열).
+		local e = _EntityService:GetEntityByPath(path)
+		if isvalid(e) and isvalid(e.TextGUIRendererComponent) then e.TextGUIRendererComponent.Text = text end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void WireBtn(string path, any fn)
+		-- 경로 버튼에 ButtonClickEvent 연결 + 핸들 보관(OnEndPlay 해제).
+		local e = _EntityService:GetEntityByPath(path)
+		if isvalid(e) == false then return end
+		local h = e:ConnectEvent(ButtonClickEvent, fn)
+		table.insert(self._btnH, { entity = e, evtH = h })
+	end
+
+	@ExecSpace("ClientOnly")
+	method void OnEndPlay()
+		-- 버튼 이벤트 핸들 해제.
+		if self._btnH ~= nil then
+			for _, r in ipairs(self._btnH) do
+				if isvalid(r.entity) and r.evtH ~= nil then
+					r.entity:DisconnectEvent(ButtonClickEvent, r.evtH)
+				end
+			end
+			self._btnH = nil
+		end
+		-- 세트효과 호버 핸들 해제.
+		if self._hoverH ~= nil then
+			for _, r in ipairs(self._hoverH) do
+				if isvalid(r.entity) and r.evtH ~= nil then
+					r.entity:DisconnectEvent(ButtonStateChangeEvent, r.evtH)
+				end
+			end
+			self._hoverH = nil
+		end
+	end
+
+end

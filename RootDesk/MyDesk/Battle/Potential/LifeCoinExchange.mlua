@@ -1,0 +1,129 @@
+@Logic
+script LifeCoinExchange extends Logic
+
+	-- 월드 코인 → 라이프 코인 환전 상점(ShopPanel/CashPanel).
+	-- 라이프 코인은 잠재 성장 상점과 동일한 통합 재화(MetaProgressionManager.coin)다.
+	-- 결제는 월드 상점(World Item) 구매로만 가능 → WorldShopService에 임의 차감/잔액조회 API가 없기 때문.
+	-- 결제 완료 콜백은 월드당 1개(PetShopManager 소유)라, 지급은 그 콜백이 이 로직의 TryGrant를 호출하는 구조.
+
+	property string shopPanelPath = "/ui/LobbyUIGroup/ShopPanel"
+
+	property string cashPanelPath = "/ui/LobbyUIGroup/ShopPanel/CashPanel"
+
+	-- LeftTabGroup의 '코인 충전' 탭. 누르면 환전 패널(CashPanel)을 토글한다(진입점).
+	property string cashBtnPath = "/ui/LobbyUIGroup/ShopPanel/LeftTabGroup/CashBtn"
+
+	property any _btnH = nil
+
+	method table PackList()
+		-- 상점 그리드 Row1..Row6 순서 = 이 목록 순서. name은 월드 상점에 등록한 상품명과 정확히 일치해야 매칭됨.
+		-- coin = 지급할 라이프 코인 수. (월드 코인 가격은 상품 등록 시 지정: 100/295/480/950/1850/4500)
+		return {
+			{ name = "100 라이프 코인",  coin = 100 },
+			{ name = "300 라이프 코인",  coin = 300 },
+			{ name = "500 라이프 코인",  coin = 500 },
+			{ name = "1000 라이프 코인", coin = 1000 },
+			{ name = "2000 라이프 코인", coin = 2000 },
+			{ name = "5000 라이프 코인", coin = 5000 },
+		}
+	end
+
+	method integer CoinByName(string name)
+		-- 상품명 → 지급 라이프 코인 수. 팩이 아니면 0.
+		for _, p in ipairs(self:PackList()) do
+			if p.name == name then return p.coin end
+		end
+		return 0
+	end
+
+	@ExecSpace("ServerOnly")
+	method boolean TryGrant(string userId, string productName)
+		-- PetShopManager의 결제 콜백이 위임 호출. 라이프 코인 팩이면 지급 후 true, 아니면 false.
+		local amount = self:CoinByName(productName)
+		if amount <= 0 then return false end
+		if _MetaProgressionManager == nil then return false end
+		-- AwardCoins가 저장 + 요청 유저 UI(라이프 코인 헤더/카드) 갱신까지 처리.
+		_MetaProgressionManager:AwardCoins(userId, amount)
+		log("[LifeCoinExchange] 환전 지급: user=" .. tostring(userId) .. " +" .. tostring(amount) .. " (" .. productName .. ")")
+		return true
+	end
+
+	method void OnBeginPlay()
+		-- 클라만 UI 배선. 서버 지급은 PetShopManager 콜백 → TryGrant 경유(별도 서버 초기화 불필요).
+		if self:IsClient() then
+			self:WireClient()
+		end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void WireClient()
+		-- 6개 팩 행의 구매 버튼 + '코인 충전' 탭(진입점) 배선.
+		-- 행 아이콘은 .ui에 저자가 넣은 이미지를 그대로 사용(상점 썸네일 덮어쓰기 안 함).
+		self._btnH = {}
+		local packs = self:PackList()
+		for i = 1, #packs do
+			local nm = packs[i].name
+			local rowBuy = self.cashPanelPath .. "/Rows/Row" .. tostring(i) .. "/BtnBuy"
+			self:WireBtn(rowBuy, function() self:OnBuy(nm) end)
+		end
+		-- CashBtn(코인 충전) 클릭 → 환전 패널 토글.
+		self:WireBtn(self.cashBtnPath, function() self:ToggleCash() end)
+	end
+
+	@ExecSpace("ClientOnly")
+	method void ToggleCash()
+		-- CashBtn 토글: CashPanel이 이미 보이면 숨김, 아니면 Cash 탭 배타 표시(+메타 갱신).
+		local pnl = _EntityService:GetEntityByPath(self.cashPanelPath)
+		if isvalid(pnl) and pnl.Enable then
+			-- 이미 열려 있음 → 닫기(상점 자체는 유지).
+			_SFXManager:PlayClick()
+			pnl.Enable = false
+			return
+		end
+		-- 닫혀 있음 → Cash만 표시(나머지 탭 숨김은 ShowCategory가 처리, 클릭음도 내부에서 재생).
+		if _PetShopManager ~= nil then
+			_PetShopManager:ShowCategory("Cash")
+		end
+		-- 헤더의 보유/누적 라이프 코인 최신화.
+		if _MetaProgressionManager ~= nil then
+			_MetaProgressionManager:RequestMeta()
+		end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void OnBuy(string packName)
+		-- 구매 버튼: 상품명으로 현재 월드 productId를 찾아 결제창 표시. 결과는 서버 콜백 → TryGrant에서 지급.
+		_SFXManager:PlayClick()
+		local pid = nil
+		if _PetShopManager ~= nil then pid = _PetShopManager:ProductIdByName(packName) end
+		if pid == nil or pid == "" then
+			-- 이 월드 상점에 해당 이름의 상품이 아직 미등록(또는 이름 불일치) → 무반응 대신 경고.
+			log_warning("[LifeCoinExchange] 상점 미등록 상품(구매 불가): " .. tostring(packName))
+			return
+		end
+		_WorldShopService:PromptPurchase(pid)
+	end
+
+	@ExecSpace("ClientOnly")
+	method void WireBtn(string path, any fn)
+		-- 경로 버튼에 ButtonClickEvent 연결 + 핸들 보관(OnEndPlay 해제용).
+		local e = _EntityService:GetEntityByPath(path)
+		if isvalid(e) == false then return end
+		local h = e:ConnectEvent(ButtonClickEvent, fn)
+		table.insert(self._btnH, { entity = e, evtH = h })
+	end
+
+	@ExecSpace("ClientOnly")
+	method void OnEndPlay()
+		-- 버튼 이벤트 핸들 해제.
+		if self._btnH ~= nil then
+			for _, r in ipairs(self._btnH) do
+				if isvalid(r.entity) and r.evtH ~= nil then
+					r.entity:DisconnectEvent(ButtonClickEvent, r.evtH)
+				end
+			end
+			self._btnH = nil
+		end
+	end
+
+end

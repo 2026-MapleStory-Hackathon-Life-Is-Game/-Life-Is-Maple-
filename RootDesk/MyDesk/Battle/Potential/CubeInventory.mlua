@@ -4,6 +4,11 @@ script CubeInventory extends Component
 	@TargetUserSync
 	property integer MiracleCubeCount = 0
 
+	@TargetUserSync
+	property integer MiracleFragmentCount = 0
+
+	property integer _incomeTurnCount = 0   -- 이 플레이어의 자기 턴 누적(정기 수입 3턴 주기 판정용)
+
 	@ExecSpace("ServerOnly")
 	method void AddMiracleCube(integer n)
 		-- 미라클 큐브 n개 지급(획득/디버그).
@@ -11,9 +16,35 @@ script CubeInventory extends Component
 	end
 
 	@ExecSpace("ServerOnly")
+	method void AddFragment(integer n)
+		-- 미라클 큐브 조각 n개 지급. 조각 2개당 큐브 1개로 자동 변환(교환 UI 없음).
+		if n <= 0 then return end
+		local total = self.MiracleFragmentCount + n
+		local cubes = total // 2
+		self.MiracleFragmentCount = total % 2
+		if cubes > 0 then self.MiracleCubeCount = self.MiracleCubeCount + cubes end
+		log("[CubeInventory] +frag " .. tostring(n) .. " -> cube+" .. tostring(cubes) .. " frag=" .. tostring(self.MiracleFragmentCount))
+	end
+
+	@ExecSpace("ServerOnly")
+	method void TickTurnIncome(string userId)
+		-- 자기 턴 시작마다 호출. 3회마다 트랙1(정기 수입) 레벨만큼 조각을 지급한다.
+		self._incomeTurnCount = self._incomeTurnCount + 1
+		if self._incomeTurnCount % 3 ~= 0 then return end
+		if _MetaProgressionManager == nil then return end
+		local frags = _MetaProgressionManager:IncomeFragmentsFor(userId)
+		if frags > 0 then
+			log("[CubeInventory] turn income user=" .. userId .. " turn=" .. tostring(self._incomeTurnCount) .. " frag+" .. tostring(frags))
+			self:AddFragment(frags)
+		end
+	end
+
+	@ExecSpace("ServerOnly")
 	method void ResetAll()
-		-- 게임 종료 초기화: 보유 미라클 큐브 수량을 0으로 되돌린다.
+		-- 게임 종료 초기화: 보유 미라클 큐브/조각 수량과 수입 턴 카운트를 0으로 되돌린다.
 		self.MiracleCubeCount = 0
+		self.MiracleFragmentCount = 0
+		self._incomeTurnCount = 0
 	end
 
 end

@@ -1,0 +1,215 @@
+@Logic
+script MetaProgressionManager extends Logic
+
+	-- 잠재 성장 상점의 메타 프로그레션(계정 영구). 재화 '잠재 코인'과 두 트랙(큐브 정기 수입/잠재 향상 확률)
+	-- 레벨을 플레이어별로 UserDataStorage에 저장한다. 인게임 훅(턴 수입/RollGrade 확률 보정)이 서버에서 조회한다.
+
+	property any _cache = nil          -- userId -> { coin, incomeLv, probLv } (서버 인메모리 캐시)
+
+	property string _storeKey = "PotentialMeta"   -- UserDataStorage 내 고정 키
+
+	-- ── 효과/가격 상수(단일 출처, 수치 조정은 여기서만) ──
+	method table IncomeFragmentsTable()
+		-- 인덱스=incomeLv+1(0~3). 값=자기 턴 3회마다 지급 조각 수(2조각=큐브 1개). Lv0=미지급.
+		return { 0, 2, 3, 4 }
+	end
+
+	method table IncomePriceTable()
+		-- incomeLv 1/2/3 해금 누적 가격(코인).
+		return { 150, 400, 800 }
+	end
+
+	method table ProbBonusTable()
+		-- 인덱스=probLv+1(0~3). 값=승급 판정에 가산할 % 포인트.
+		return { 0, 1, 3, 5 }
+	end
+
+	method table ProbPriceTable()
+		-- probLv 1/2/3 해금 누적 가격(코인).
+		return { 100, 300, 600 }
+	end
+
+	method table RankCoinTable()
+		-- 멀티 완주 순위별 코인(1~4위). 5위 이하는 마지막 값.
+		return { 100, 70, 50, 30 }
+	end
+
+	method void OnBeginPlay()
+		-- 서버: 캐시 초기화. 실제 로드는 유저별 지연 로드(LoadState).
+		if self:IsServer() then
+			self._cache = {}
+		end
+	end
+
+	-- ── 직렬화 ──
+	method string Serialize(table s)
+		-- { coin, incomeLv, probLv, totalEarned } → "coin|incomeLv|probLv|totalEarned".
+		local FS = string.char(31)
+		return tostring(s.coin) .. FS .. tostring(s.incomeLv) .. FS .. tostring(s.probLv) .. FS .. tostring(s.totalEarned)
+	end
+
+	method table Deserialize(any raw)
+		-- 역변환. 없거나 형식 불량이면 기본값(0/0/0/0). 4번째 필드(totalEarned=누적 획득)는 구버전(3필드) 호환.
+		local out = { coin = 0, incomeLv = 0, probLv = 0, totalEarned = 0 }
+		if raw == nil or raw == "" then return out end
+		local FS = string.char(31)
+		local i1 = (string.find(raw, FS, 1, true))
+		if i1 == nil then return out end
+		local i2 = (string.find(raw, FS, i1 + 1, true))
+		if i2 == nil then return out end
+		out.coin = tonumber(string.sub(raw, 1, i1 - 1)) or 0
+		out.incomeLv = tonumber(string.sub(raw, i1 + 1, i2 - 1)) or 0
+		local i3 = (string.find(raw, FS, i2 + 1, true))
+		if i3 == nil then
+			-- 구버전 레코드(3필드): 누적 기록 없음 → 현재 잔액을 하한값으로 채움.
+			out.probLv = tonumber(string.sub(raw, i2 + 1)) or 0
+			out.totalEarned = out.coin
+		else
+			out.probLv = tonumber(string.sub(raw, i2 + 1, i3 - 1)) or 0
+			out.totalEarned = tonumber(string.sub(raw, i3 + 1)) or 0
+		end
+		return out
+	end
+
+	-- ── 저장소 로드/저장(서버 전용) ──
+	@ExecSpace("ServerOnly")
+	method table LoadState(string userId)
+		-- 캐시 우선. 없으면 유저 저장소에서 1회 조회 후 캐시(이후 DB 왕복 없음).
+		if self._cache == nil then self._cache = {} end
+		if self._cache[userId] ~= nil then return self._cache[userId] end
+		local s = { coin = 0, incomeLv = 0, probLv = 0, totalEarned = 0 }
+		local store = _DataStorageService:GetUserDataStorage(userId)
+		if isvalid(store) then
+			local ec, raw = store:GetAndWait(self._storeKey)
+			if ec == 0 and raw ~= nil and raw ~= "" then s = self:Deserialize(raw) end
+		end
+		self._cache[userId] = s
+		log("[MetaProg] load " .. userId .. " coin=" .. tostring(s.coin) .. " inc=" .. tostring(s.incomeLv) .. " prob=" .. tostring(s.probLv))
+		return s
+	end
+
+	@ExecSpace("ServerOnly")
+	method void SaveState(string userId)
+		-- 캐시 상태를 유저 저장소에 커밋(구매/적립 등 이벤트 시에만 호출 — 프레임/짧은 타이머 금지).
+		if self._cache == nil then return end
+		local s = self._cache[userId]
+		if s == nil then return end
+		local store = _DataStorageService:GetUserDataStorage(userId)
+		if isvalid(store) == false then return end
+		local ec = store:SetAndWait(self._storeKey, self:Serialize(s))
+		if ec ~= 0 then
+			log_warning("[MetaProg] save 실패 user=" .. userId .. " ec=" .. tostring(ec))
+		end
+	end
+
+	-- ── 조회 API(서버 전용) ──
+	@ExecSpace("ServerOnly")
+	method integer GetCoin(string userId)
+		-- 해당 유저의 현재 코인 잔액.
+		return self:LoadState(userId).coin
+	end
+
+	@ExecSpace("ServerOnly")
+	method integer GetIncomeLv(string userId)
+		-- 트랙1(큐브 정기 수입) 레벨(0~3).
+		return self:LoadState(userId).incomeLv
+	end
+
+	@ExecSpace("ServerOnly")
+	method integer GetProbLv(string userId)
+		-- 트랙2(잠재 향상 확률) 레벨(0~3).
+		return self:LoadState(userId).probLv
+	end
+
+	@ExecSpace("ServerOnly")
+	method integer IncomeFragmentsFor(string userId)
+		-- 이 유저가 3턴당 받는 조각 수(트랙1 레벨 → 조각). Lv0=0.
+		local t = self:IncomeFragmentsTable()
+		return t[self:GetIncomeLv(userId) + 1] or 0
+	end
+
+	@ExecSpace("ServerOnly")
+	method integer ProbBonusFor(string userId)
+		-- 이 유저의 승급 확률 가산치(트랙2 레벨 → %). Lv0=0.
+		local t = self:ProbBonusTable()
+		return t[self:GetProbLv(userId) + 1] or 0
+	end
+
+	-- ── 코인 적립(게임 종료 결과 기반, 서버 전용) ──
+	@ExecSpace("ServerOnly")
+	method void AwardCoins(string userId, integer amount)
+		-- 결과 코인 적립 + 저장 + 요청 유저 UI 갱신.
+		if userId == nil or userId == "" then return end
+		if amount <= 0 then return end
+		local s = self:LoadState(userId)
+		s.coin = s.coin + amount
+		-- 누적 획득(충전+게임 획득 모두 포함). 소비 시엔 감소하지 않음.
+		s.totalEarned = (s.totalEarned or 0) + amount
+		self:SaveState(userId)
+		log("[MetaProg] award " .. userId .. " +" .. tostring(amount) .. " -> coin=" .. tostring(s.coin) .. " total=" .. tostring(s.totalEarned))
+		self:PushMeta(s.coin, s.incomeLv, s.probLv, s.totalEarned, userId)
+	end
+
+	@ExecSpace("ServerOnly")
+	method void AwardByMultiRank(string userId, integer rank)
+		-- 멀티 완주 순위(1-based)로 코인 적립.
+		local t = self:RankCoinTable()
+		local amount = t[rank]
+		if amount == nil then amount = t[#t] end
+		self:AwardCoins(userId, amount)
+	end
+
+	-- ── 구매(클라 요청 → 서버 검증) ──
+	@ExecSpace("Server")
+	method void RequestPurchase(string track)
+		-- track="income"|"prob". 다음 레벨 가격을 코인에서 차감하고 해금. 최대/코인부족이면 거부.
+		local userId = senderUserId
+		local s = self:LoadState(userId)
+		local curLv = 0
+		local priceTbl = nil
+		if track == "income" then
+			curLv = s.incomeLv
+			priceTbl = self:IncomePriceTable()
+		elseif track == "prob" then
+			curLv = s.probLv
+			priceTbl = self:ProbPriceTable()
+		else
+			return
+		end
+		if curLv >= 3 then
+			log("[MetaProg] purchase 거부(최대레벨) track=" .. track)
+			return
+		end
+		local price = priceTbl[curLv + 1] or 0
+		if s.coin < price then
+			log("[MetaProg] purchase 거부(코인부족) track=" .. track .. " need=" .. tostring(price) .. " have=" .. tostring(s.coin))
+			self:PushMeta(s.coin, s.incomeLv, s.probLv, s.totalEarned, userId)
+			return
+		end
+		s.coin = s.coin - price
+		if track == "income" then
+			s.incomeLv = curLv + 1
+		else
+			s.probLv = curLv + 1
+		end
+		self:SaveState(userId)
+		log("[MetaProg] purchase " .. track .. " -> lv" .. tostring(curLv + 1) .. " coin=" .. tostring(s.coin))
+		self:PushMeta(s.coin, s.incomeLv, s.probLv, s.totalEarned, userId)
+	end
+
+	@ExecSpace("Server")
+	method void RequestMeta()
+		-- 로비 상점 진입 시 클라가 현재 메타 상태를 요청 → 요청자에게 푸시.
+		local s = self:LoadState(senderUserId)
+		self:PushMeta(s.coin, s.incomeLv, s.probLv, s.totalEarned, senderUserId)
+	end
+
+	@ExecSpace("Client")
+	method void PushMeta(integer coin, integer incomeLv, integer probLv, integer totalEarned)
+		-- 특정 클라(호출부 마지막 인자 userId 대상)에게 메타 상태 전달 → 상점 UI 갱신.
+		if _PotentialShopManager ~= nil then
+			_PotentialShopManager:ApplyMeta(coin, incomeLv, probLv, totalEarned)
+		end
+	end
+
+end

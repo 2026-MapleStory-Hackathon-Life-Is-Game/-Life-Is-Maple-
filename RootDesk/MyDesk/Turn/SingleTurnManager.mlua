@@ -87,6 +87,11 @@ script SingleTurnManager extends Logic
 		            if isvalid(rm) then rm:OnTurnPassed() end
 		            local rs = userEntity:GetComponent("script.RunStatsManager")
 		            if isvalid(rs) then rs:AddTurn() end   -- 엔딩 정리용 총 턴 수 +1
+		            -- 잠재 상점 트랙1: 자기 턴 3회마다 미라클 큐브 조각 지급.
+		            local ci = userEntity:GetComponent("script.CubeInventory")
+		            if isvalid(ci) and isvalid(userEntity.PlayerComponent) then
+		                ci:TickTurnIncome(userEntity.PlayerComponent.UserId)
+		            end
 		            break   -- 싱글이라 플레이어는 한 명
 		        end
 		        self:AdvanceState()

@@ -20,8 +20,9 @@ script PotentialManager extends Logic
 		return ""
 	end
 
-	method string RollGrade(string curGrade)
+	method string RollGrade(string curGrade, string userId)
 		-- 큐브 결과 등급. 없음→분포(레어/에픽), 그 외→다음등급 승급 확률(실패 시 현 등급 유지).
+		-- userId가 있으면 잠재 상점 트랙2(향상 확률) 보정을 승급 판정에만 가산한다(없음→첫 부여 분포는 제외).
 		local cur = curGrade
 		if cur == nil or cur == "" then cur = "NONE" end
 		local ds = _DataService:GetTable("PotentialUpgrade")
@@ -48,6 +49,11 @@ script PotentialManager extends Logic
 		for i = 1, ds:GetRowCount() do
 			if ds:GetCell(i, "FromGrade") == cur then
 				local p = tonumber(ds:GetCell(i, "Percent")) or 0
+				if userId ~= nil and userId ~= "" and _MetaProgressionManager ~= nil then
+					local bonus = _MetaProgressionManager:ProbBonusFor(userId)
+					p = p + bonus
+					log("[PotentialManager] 승급판정 " .. cur .. " base=" .. tostring(tonumber(ds:GetCell(i, "Percent")) or 0) .. " +bonus=" .. tostring(bonus) .. " => p=" .. tostring(p))
+				end
 				if _UtilLogic:RandomIntegerRange(1, 100) <= p then return ds:GetCell(i, "ToGrade") end
 				return cur
 			end
@@ -84,14 +90,14 @@ script PotentialManager extends Logic
 		return table.concat(parts, "|")
 	end
 
-	method string RollPotential(string curGrade)
+	method string RollPotential(string curGrade, string userId)
 		-- 큐브 1회 결과 직렬화. 순서가 핵심:
 		--   1) 먼저 승급 여부를 결정한다(RollGrade).
 		--      - 없음        → 가중분포로 레어/에픽 부여(항상 성공)
 		--      - 등급 있음    → 다음 등급 승급 확률 판정. 실패하면 현 등급 유지.
 		--   2) 그 결과 등급의 풀에서 옵션 3줄을 뽑는다(RollLines).
 		--      - 승급 성공이면 새 등급 풀에서, 실패(유지)면 현 등급 풀에서 재추첨.
-		local grade = self:RollGrade(curGrade)
+		local grade = self:RollGrade(curGrade, userId)
 		return self:Serialize(grade, self:RollLines(grade))
 	end
 
@@ -211,7 +217,7 @@ script PotentialManager extends Logic
 		local cur = comp:GetInstancePotential(instanceId)
 		if cur == nil or cur == "" then
 			-- 잠재가 없던 장비: '없음 vs 새 잠재' 선택은 구도가 어색하므로 Before/After 없이 즉시 강제 확정.
-			local cand = self:RollPotential("")
+			local cand = self:RollPotential("", senderUserId)
 			comp:SetInstancePotential(instanceId, cand)
 			comp:Recalc()
 			self:NotifyCubeResult(instanceId, name, "", cand, true, senderUserId)
@@ -220,7 +226,7 @@ script PotentialManager extends Logic
 		end
 
 		-- 잠재가 이미 있는 장비: 후보를 대기열에 넣고 Before/After 카드 선택으로 확정.
-		local cand = self:RollPotential(self:GradeOf(cur))
+		local cand = self:RollPotential(self:GradeOf(cur), senderUserId)
 		self._pending[key] = cand
 		self:NotifyCubeResult(instanceId, name, cur, cand, false, senderUserId)
 		self:SpectatorCubeResult(instanceId, name, cur, cand, false, senderUserId)
@@ -275,7 +281,7 @@ script PotentialManager extends Logic
 		bag.MiracleCubeCount = bag.MiracleCubeCount - 1
 		
 		local cur = comp:GetInstancePotential(instanceId)
-		local cand = self:RollPotential(self:GradeOf(cur))
+		local cand = self:RollPotential(self:GradeOf(cur), senderUserId)
 		self._pending[key] = cand
 		self:NotifyCubeResult(instanceId, name, cur, cand, false, senderUserId)
 		self:SpectatorCubeResult(instanceId, name, cur, cand, false, senderUserId)
