@@ -160,7 +160,9 @@ script UnderButton extends Component
 				self.charCloseHandler = self.btnCharClose.Entity:ConnectEvent(ButtonClickEvent, self.OnClickCharClose)
 			end
 		
-			self.DicePanel.Visible = false
+			-- 주사위 패널은 Enable로 숨긴다. Visible=false만 쓰면 렌더만 꺼지고 클릭은 살아 있어(문서상 금지 패턴)
+			-- 숨겨진 굴리기 버튼이 겹친 '돌아가기'의 클릭을 가로챈다.
+			self.DicePanel.Enable = false
 			if isvalid(self.turnTimerText) then self.turnTimerText.Enable = false end
 		end
 
@@ -264,7 +266,7 @@ script UnderButton extends Component
 		self:UpdateTurnTimerText(delta)
 
 		-- 카드 버튼: 주사위 패널이 열려 있는 동안 보유 수/장전 상태를 주기적으로 갱신(굴림 소비/지급 반영).
-		if isvalid(self.DicePanel) and self.DicePanel.Visible then
+		if isvalid(self.DicePanel) and self.DicePanel.Enable then
 			self._cardPollTimer = self._cardPollTimer + delta
 			if self._cardPollTimer >= 0.25 then
 				self._cardPollTimer = 0
@@ -354,8 +356,8 @@ script UnderButton extends Component
 				end
 				-- 주사위 패널 열기 전 맵 뷰 닫기
 				_MapViewManager:CloseMapView()
-				self.DicePanel.Visible = true
-				self.WholePanel.Visible = false
+				self.DicePanel.Enable = true
+				self.WholePanel.Enable = false
 				-- 카드 버튼 보유 수/장전 상태를 최신으로(서버 장전값 반영). 이전 클릭의 유예는 만료 처리.
 				self._cardActAt = -100
 				self._cardArmAt = -100
@@ -375,8 +377,8 @@ script UnderButton extends Component
 		self._cardArmAt = -100
 		self:SetPickerOpen(false)
 
-		self.DicePanel.Visible = false
-		self.WholePanel.Visible = true
+		self.DicePanel.Enable = false
+		self.WholePanel.Enable = true
 	end
 
 	method void OnClickCardLow(any event)
@@ -644,8 +646,8 @@ script UnderButton extends Component
 	method void OnDicePanelClickClose(any event)
 		_SFXManager:PlayClick()
 		self:SetPickerOpen(false)   -- 다음에 열 때 3장 화면부터 시작
-		self.DicePanel.Visible = false
-		self.WholePanel.Visible = true
+		self.DicePanel.Enable = false
+		self.WholePanel.Enable = true
 	end
 
 	method void OnClickMap(any event)
