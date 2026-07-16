@@ -306,11 +306,13 @@ script GuildTile extends EventTileBase
 		local attackGain = tonumber(ds:GetCell(row, "AttackGain")) or 0
 		local flavor = _VillageEventFlowManager:DecodeText(ds:GetCell(row, "Flavor"))
 		
-		-- 부길마 영입 효과를 '버프 카드'로 적용한다(피드백 9). 길마처럼 왼쪽 버프칸에 카드로 뜨고 툴팁이 나온다.
-		--   ViceMaster 버프(BuffData.csv)는 주스탯+30·공격/마력+10 — 직업별 주스탯이 곧 해당 스탯이라 전 직업 동일 효과.
-		--   (기존의 AddSpecificStat/AddMainAttack raw 스탯 직접 가산을 대체.)
+		-- 부길마 영입 효과: '버프 카드'(공/마+10, 버프바 표시)는 유지하고, 주스탯은 뽑은 부길마 '직업의 스탯'을
+		-- 해당 스탯 필드에 직접 가산한다(실제 메이플 기준: 캡틴=DEX, 바이퍼=STR 등 — 같은 직업군도 직업마다 다를 수 있음).
+		--   ViceMaster 버프(BuffData.csv)의 MainStat는 비워 뒀다(여기서 특정 스탯을 주므로 이중 가산 방지). 버프는 공/마+10 전용.
 		local bm = piece:GetComponent("script.BuffManager")
 		if isvalid(bm) then bm:SetBuff("ViceMaster") end
+		-- 직업별 주스탯 적용: statKind(ViceMaster.csv, str/dex/int/luk) → BaseTile.AddSpecificStat이 대문자화 후 해당 스탯에 가산.
+		self:AddSpecificStat(piece, statKind, statGain)
 		local gm = self:Guild(piece)
 		if isvalid(gm) then gm:CompleteVice() end
 -- 		log("[GuildTile] 부길마 영입 = " .. tostring(displayName)
