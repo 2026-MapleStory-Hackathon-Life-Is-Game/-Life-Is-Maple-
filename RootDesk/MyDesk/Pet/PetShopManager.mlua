@@ -170,13 +170,20 @@ script PetShopManager extends Logic
 
 	@ExecSpace("ServerOnly")
 	method void GrantOwnership(string userId, string petName)
-		-- 구매 완료 처리: 소유 목록에 추가(자동 장착하지 않음) + 상태 전송.
+		-- 구매 완료 처리: 소유 목록에 추가 + 상태 전송.
+		-- 장착 중인 펫이 없으면 방금 산 펫을 즉시 장착·소환한다(빈 슬롯에 구매 = 바로 적용).
+		-- 이미 다른 펫을 장착 중이면 그대로 둔다 — 사용자가 카드의 '교체하기'로 직접 정한다.
 		-- 방금 SaveOwned로 쓴 값을 다시 읽지 않고, 계산한 names로 바로 전송(SetAsync 경쟁 회피).
 		local set = self:LoadOwnedSet(userId)
 		set[petName] = true
 		local names = self:OwnedNames(set)
 		self:SaveOwned(userId, names)
 		local equipped = self:LoadEquipped(userId)
+		if equipped == "" then
+			-- GrantPet = EquippedPet 저장 + 소환(+ ApplyPetBonus).
+			self:GrantPet(userId, petName)
+			equipped = petName
+		end
 		self:SendPetState(userId, table.concat(names, ","), equipped)
 	end
 
