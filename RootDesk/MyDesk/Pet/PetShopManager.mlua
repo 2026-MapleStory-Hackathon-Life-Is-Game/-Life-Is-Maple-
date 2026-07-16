@@ -220,6 +220,24 @@ script PetShopManager extends Logic
 	end
 
 	@ExecSpace("Server")
+	method void RequestUnequipPet()
+		-- 클라→서버: 현재 장착 펫 해제(카드의 '장착중' 버튼 클릭).
+		local userId = senderUserId
+		if userId == nil or userId == "" then return end
+		self:UnequipPet(userId)
+	end
+
+	@ExecSpace("ServerOnly")
+	method void UnequipPet(string userId)
+		-- 장착 해제: 저장 비우기 + 소환 펫 제거(+ 스탯 옵션 해제) + 상태 전송.
+		-- 소유는 그대로 두므로 카드 버튼은 '장착하기'로 돌아간다.
+		self:SaveEquipped(userId, "")
+		self:DespawnPet(userId)
+		local set = self:LoadOwnedSet(userId)
+		self:SendPetState(userId, table.concat(self:OwnedNames(set), ","), "")
+	end
+
+	@ExecSpace("Server")
 	method void RequestEquipPet(string petName)
 		-- 클라→서버: 소유한 펫을 무료로 장착/교체(재결제 없음). 미소유 펫은 차단.
 		local userId = senderUserId
@@ -553,13 +571,15 @@ script PetShopManager extends Logic
 
 	@ExecSpace("ClientOnly")
 	method void OnRowClick(string petName)
-		-- 카드 버튼 클릭: 미소유=결제창, 소유=무료 장착/교체 요청.
+		-- 카드 버튼 클릭: 미소유=결제창, 소유+이 펫 장착중=해제, 소유+미장착=무료 장착/교체 요청.
 		local owned = self._owned
 		if owned ~= nil and owned[petName] == true then
-			-- 이미 이 펫을 장착 중이면 무시(버튼도 비활성이지만 이중 안전장치).
-			if self._equipped == petName then return end
 			_SFXManager:PlayClick()
-			self:RequestEquipPet(petName)
+			if self._equipped == petName then
+				self:RequestUnequipPet()
+			else
+				self:RequestEquipPet(petName)
+			end
 		else
 			-- OnBuyClick가 클릭음 + 결제창 처리.
 			self:OnBuyClick(petName)
@@ -586,9 +606,9 @@ script PetShopManager extends Logic
 
 	@ExecSpace("ClientOnly")
 	method void RefreshButtons()
-		-- 소유/장착 상태에 따라 각 펫 카드 버튼 라벨/활성을 4분기로 갱신.
+		-- 소유/장착 상태에 따라 각 펫 카드 버튼 라벨을 4분기로 갱신.
 		--   미소유=구매하기 / 소유+아무것도 장착안함=장착하기 / 소유+다른 펫 장착중=교체하기 /
-		--   소유+이 펫 장착중=장착중(버튼 비활성: 보이지만 클릭 불가).
+		--   소유+이 펫 장착중=장착중(누르면 장착 해제).
 		local owned = self._owned
 		if owned == nil then owned = {} end
 		local hasEquipped = (self._equipped ~= nil and self._equipped ~= "")
@@ -599,12 +619,10 @@ script PetShopManager extends Logic
 			local btnE = _EntityService:GetEntityByPath(rowPath .. "/BtnBuy")
 			if isvalid(btnE) then
 				local label = "구매하기"
-				local clickable = true
 				if owned[name] == true then
 					if self._equipped == name then
-						-- 이미 이 펫을 장착 중 → 비활성 + '장착중'.
+						-- 이미 이 펫을 장착 중 → 누르면 해제(OnRowClick).
 						label = "장착중"
-						clickable = false
 					elseif hasEquipped then
 						-- 다른 펫을 장착 중.
 						label = "교체하기"
@@ -614,10 +632,8 @@ script PetShopManager extends Logic
 					end
 				end
 				if isvalid(btnE.TextComponent) then btnE.TextComponent.Text = label end
-				-- 엔티티가 아니라 ButtonComponent만 꺼서 '보이지만 클릭 불가'로 만든다
-				-- (스프라이트/텍스트는 별도 컴포넌트라 그대로 표시). RefreshButtons가 매번 재설정하므로
-				-- 장착 해제/교체 시 자동으로 다시 활성화된다.
-				if isvalid(btnE.ButtonComponent) then btnE.ButtonComponent.Enable = clickable end
+				-- 4분기 모두 클릭 가능. 이전 버전이 '장착중'에서 꺼둔 ButtonComponent가 남아 있을 수 있어 매번 켠다.
+				if isvalid(btnE.ButtonComponent) then btnE.ButtonComponent.Enable = true end
 			end
 		end
 	end
