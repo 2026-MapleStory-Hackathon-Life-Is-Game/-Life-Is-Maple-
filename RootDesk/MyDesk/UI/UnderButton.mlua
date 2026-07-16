@@ -515,7 +515,8 @@ script UnderButton extends Component
 				if def ~= nil then nm = def.name end   -- "N 카드"
 				tc.Text = nm .. "\n적용중"
 			else
-				tc.Text = "확정 숫자\n카드"
+				-- 낮은/높은 카드처럼 보유 수를 표기한다. 0장이면 반투명(아래)과 함께 '사용 불가'가 분명해진다.
+				tc.Text = "확정 숫자\n" .. tostring(self:NumCardTotal()) .. "장"
 			end
 			tc.FontSize = 22
 		end
