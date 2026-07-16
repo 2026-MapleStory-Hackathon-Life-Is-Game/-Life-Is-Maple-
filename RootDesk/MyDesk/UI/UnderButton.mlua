@@ -40,6 +40,16 @@ script UnderButton extends Component
 	-- 카드 버튼 보유 수 라이브 갱신 폴링 타이머(주사위 패널 열린 동안).
 	property number _cardPollTimer = 0
 
+	-- 마지막 카드 조작(적용/취소) 시각. 이 뒤 CARD_SYNC_HOLD초 동안은 폴링이 서버 동기값 대신
+	-- 로컬 낙관값(_armedCard)을 신뢰한다 — UseCard/ClearCard는 서버 왕복이 필요해, 그 사이
+	-- 폴링이 옛 값으로 되돌리면 하이라이트가 깜빡이기 때문.
+	-- 카운트다운이 아니라 '시각'으로 재는 이유: 이 컴포넌트의 OnUpdate는 InGameUIGroup이 숨겨져
+	-- 있으면 tick되지 않아, delta 차감식 타이머는 영원히 만료되지 않는다.
+	property number _cardActAt = -100
+
+	-- 마지막 '적용' 시각. 이 뒤 CARD_ARM_HOLD초 내의 같은 카드 재클릭은 더블클릭으로 보고 무시한다.
+	property number _cardArmAt = -100
+
 	property ButtonComponent btnMapBack = "0533069c-9624-4b11-bb19-720ff7977b62"
 
 	property ButtonComponent btnCharClose = "a1a14fd7-6fbf-442e-bdcd-e06f1e5f96f9"
@@ -65,7 +75,15 @@ script UnderButton extends Component
 	-- 중앙 상단 턴 안내 텍스트(내 턴 남은시간 / 배낭 차단 안내 겸용).
 	property Entity turnTimerText = "fc311d4b-86d1-4956-8cd4-b801295aaf64"   -- /ui/RemainTimeTextGroup/RemainTimeText (기존 InGameUIGroup/TurnTimer에서 이동)
 
-	property number _blockMsgLeft = 0           -- '내 턴이 아님' 안내 표시 잔여 시간(초)
+	property number _blockMsgLeft = 0           -- 안내 문구 표시 잔여 시간(초)
+
+	property string _blockMsg = ""              -- 표시할 안내 문구(배낭 차단 / 카드 미보유 등)
+
+	method void ShowHudMessage(string msg)
+		-- 중앙 상단에 짧은 안내 문구를 띄운다(1.5초). 남은시간 표시보다 우선한다.
+		self._blockMsg = msg
+		self._blockMsgLeft = 1.5
+	end
 
 	method void OnBeginPlay()
 		if self:IsServer() then
@@ -142,10 +160,10 @@ script UnderButton extends Component
 		local tc = self.turnTimerText:GetComponent("MOD.Core.TextComponent")
 		local show = false
 		local msg = ""
-		if self._blockMsgLeft > 0 then
+		if self._blockMsgLeft > 0 and self._blockMsg ~= "" then
 			self._blockMsgLeft -= delta
 			show = true
-			msg = "내 턴에만 배낭을 열 수 있어요"
+			msg = self._blockMsg
 		elseif _GameModeManager._activeMode == "MULTI"
 			and _MultiTurnManager._isActive and _MultiTurnManager._turnTimerActive
 			and _MultiTurnManager._turnSecondsLeft > 0 then
@@ -213,7 +231,10 @@ script UnderButton extends Component
 			if self._cardPollTimer >= 0.25 then
 				self._cardPollTimer = 0
 				-- 서버 장전 상태로 재동기화(인벤에서 사용/굴림 소비 등 외부 변화 반영).
-				self._armedCard = self:ArmedCard()
+				-- 단 방금 클릭했다면 아직 서버 왕복 전이라 낙관값을 유지한다.
+				if self:WithinCardSyncHold() == false then
+					self._armedCard = self:ArmedCard()
+				end
 				self:UpdateCardButtons()
 			end
 		end
@@ -297,7 +318,9 @@ script UnderButton extends Component
 				_MapViewManager:CloseMapView()
 				self.DicePanel.Visible = true
 				self.WholePanel.Visible = false
-				-- 카드 버튼 보유 수/장전 상태를 최신으로(서버 장전값 반영).
+				-- 카드 버튼 보유 수/장전 상태를 최신으로(서버 장전값 반영). 이전 클릭의 유예는 만료 처리.
+				self._cardActAt = -100
+				self._cardArmAt = -100
 				self._armedCard = self:ArmedCard()
 				self:UpdateCardButtons()
 	end
@@ -310,6 +333,8 @@ script UnderButton extends Component
 
 		-- 굴렸으니 카드 장전 표시 해제(서버 고정값은 이번 굴림에 소비됨).
 		self._armedCard = ""
+		self._cardActAt = -100
+		self._cardArmAt = -100
 		self:UpdateCardButtons()
 
 		self.DicePanel.Visible = false
@@ -345,50 +370,86 @@ script UnderButton extends Component
 		return inv.ArmedCard
 	end
 
+	method boolean WithinCardSyncHold()
+		-- 방금 카드를 조작해 아직 서버 왕복이 끝나지 않았을 구간인지.
+		return (_UtilLogic.ElapsedSeconds - self._cardActAt) < 0.6
+	end
+
+	method boolean WithinCardArmHold()
+		-- 방금 적용한 직후(=더블클릭의 두 번째 클릭이 들어올 만한) 구간인지.
+		return (_UtilLogic.ElapsedSeconds - self._cardArmAt) < 0.5
+	end
+
+	method string EffectiveArmed()
+		-- 적용 상태 판정값. 방금 클릭한 직후엔 서버 왕복 전이라 로컬 낙관값이 정답이고,
+		-- 그 뒤엔 서버 권위값(DiceCardInventory.ArmedCard)을 따른다.
+		if self:WithinCardSyncHold() then return self._armedCard end
+		return self:ArmedCard()
+	end
+
 	method void UseDiceCard(string cardKey)
-		-- 카드 사용 공통 처리: 내 DICE 차례에서만. 같은 카드 재클릭=장전 해제(토글), 아니면 보유 중일 때만 장전.
+		-- 카드 사용 공통 처리: 내 DICE 차례에서만.
+		-- 다른 카드 클릭=교체 적용 / 같은 카드 재클릭=적용 취소. 단 방금 적용한 직후의 재클릭은
+		-- 무시한다 — 더블클릭이 '적용→취소'로 상쇄돼 아무것도 안 걸리는 것을 막는다.
 		if self:IsMyDiceTurn() == false then return end
-		if self:ArmedCard() == cardKey then
-			-- 이미 이 카드가 장전됨 → 해제(토글). 아직 굴리지 않았으니 소비 없음.
+		if self:EffectiveArmed() == cardKey then
+			if self:WithinCardArmHold() then return end   -- 더블클릭의 두 번째 클릭 → 적용 유지
+			-- 의도적 재클릭 → 적용 취소. 아직 굴리지 않았으니 소비 없음.
 			_SFXManager:PlayClick()
 			self._armedCard = ""
+			self._cardActAt = _UtilLogic.ElapsedSeconds
 			_ItemDiceCardManager:ClearCard()
 		else
-			-- 새로 장전: 보유 0이면 사용 불가(장전 안 함).
+			-- 새로 적용: 보유 0이면 사용 불가(적용 안 함) + 이유를 안내한다.
 			if self:CardCount(cardKey) <= 0 then
 				_SFXManager:PlayClick()
+				self:ShowHudMessage("보유한 카드가 없어요")
 				return
 			end
 			_SFXManager:PlayClick()
 			self._armedCard = cardKey
+			self._cardActAt = _UtilLogic.ElapsedSeconds
+			self._cardArmAt = _UtilLogic.ElapsedSeconds
 			_ItemDiceCardManager:UseCard(cardKey)
 		end
 		self:UpdateCardButtons()
 	end
 
 	method void UpdateCardButtons()
-		-- 카드 버튼 라벨(범위 + 보유 수) + 알파(장전/보유 상태) 갱신.
+		-- 카드 버튼 라벨(범위 + 보유 수) + 알파(적용/보유 상태) 갱신.
 		self:SetCardButton(self.BtnCardLow, "낮은 1-6", "low")
 		self:SetCardButton(self.BtnCardHigh, "높은 7-12", "high")
 	end
 
 	method void SetCardButton(ButtonComponent btn, string baseLabel, string cardKey)
-		-- 카드 버튼 1개 갱신. 라벨=범위+보유수, 알파=(0장 흐림/장전 선명/다른카드 장전 시 흐림/기본 선명).
+		-- 카드 버튼 1개 갱신.
+		-- 적용중  → 알파 1.0(선명) + 라벨 "적용중"   ← 어느 카드가 걸렸는지 한눈에
+		-- 다른 카드가 적용중 → 알파 0.35(반투명)     ← 이 카드는 지금 안 걸림
+		-- 보유 0장 → 알파 0.25(가장 흐림)            ← 클릭해도 사용 불가
+		-- 그 외(아무것도 안 걸림) → 알파 1.0
 		if isvalid(btn) == false or isvalid(btn.Entity) == false then return end
 		local count = self:CardCount(cardKey)
+		local armed = self._armedCard
+		local isArmed = (armed == cardKey)
 		local tc = btn.Entity:GetComponent("MOD.Core.TextComponent")
 		if tc ~= nil then
-			tc.Text = baseLabel .. "\n" .. tostring(count) .. "장"
+			if isArmed then
+				tc.Text = baseLabel .. "\n적용중"
+			else
+				tc.Text = baseLabel .. "\n" .. tostring(count) .. "장"
+			end
 			tc.FontSize = 22
 		end
 		local spr = btn.Entity.SpriteGUIRendererComponent
 		if spr ~= nil then
 			local c = spr.Color
 			local a = 1.0
-			if count <= 0 then
-				a = 0.3   -- 보유 없음 → 사용 불가 표시
-			elseif self._armedCard ~= "" and self._armedCard ~= cardKey then
-				a = 0.4   -- 다른 카드가 장전됨 → 이 카드는 흐리게
+			if isArmed then
+				a = 1.0
+			elseif count <= 0 then
+				a = 0.25
+			elseif armed ~= "" then
+				a = 0.35
 			end
 			spr.Color = Color(c.r, c.g, c.b, a)
 		end
@@ -427,7 +488,7 @@ script UnderButton extends Component
 		-- 자기 턴이 아니면 배낭을 아예 열 수 없다(이미 열려 있으면 닫기는 허용). 남은 큐브/장비 조작은 내 턴에만.
 		if self.openExclusive ~= "BAG" and self:IsMyTurnNow() == false then
 			_SFXManager:PlayClick()
-			self._blockMsgLeft = 1.5
+			self:ShowHudMessage("내 턴에만 배낭을 열 수 있어요")
 -- 			log("[UnderButton] 내 턴이 아니라 배낭 열기 차단")
 			return
 		end
