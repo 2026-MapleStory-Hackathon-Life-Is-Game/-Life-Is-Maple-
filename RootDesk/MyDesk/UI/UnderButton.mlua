@@ -30,9 +30,26 @@ script UnderButton extends Component
 
 	property ButtonComponent BtnCardHigh = "79594592-eca1-4f1d-a583-8a49f5e92ab5"
 
+	-- 중앙 '확정 숫자 카드'. 누르면 1~12 픽커를 열고, 숫자 적용 중이면 눌러서 해제한다.
+	property ButtonComponent BtnCardNum = "455fe208-a473-44ea-840b-bd2e5d5fa99d"
+
+	-- 픽커가 열린 동안 3장이 숨겨진 자리에 나타나는 '취소하기'. 아무것도 안 고르고 되돌아간다.
+	property ButtonComponent BtnCardCancel = "45be9c05-65e5-4021-a865-490784fe7b55"
+
 	property any cardLowHandler = nil
 
 	property any cardHighHandler = nil
+
+	property any cardNumHandler = nil
+
+	property any cardCancelHandler = nil
+
+	-- 1~12 픽커 버튼 구독 기록: { { entity=, eventHandler= }, ... }
+	-- (12개라 UUID 프로퍼티 대신 DicePanel 자식 이름으로 찾는다. 'handler'는 예약어라 키로 못 씀)
+	property any numHandlers = nil
+
+	-- 1~12 픽커가 열려 있는지. 열리면 3장이 숨겨지고 픽커 + 취소하기가 보인다.
+	property boolean _pickerOpen = false
 
 	-- 현재 예약(장전)된 카드: ""=없음 / "low" / "high". 굴리면 해제.
 	property string _armedCard = ""
@@ -122,8 +139,15 @@ script UnderButton extends Component
 			if isvalid(self.BtnCardHigh) and isvalid(self.BtnCardHigh.Entity) then
 				self.cardHighHandler = self.BtnCardHigh.Entity:ConnectEvent(ButtonClickEvent, self.OnClickCardHigh)
 			end
+			if isvalid(self.BtnCardNum) and isvalid(self.BtnCardNum.Entity) then
+				self.cardNumHandler = self.BtnCardNum.Entity:ConnectEvent(ButtonClickEvent, self.OnClickCardNum)
+			end
+			if isvalid(self.BtnCardCancel) and isvalid(self.BtnCardCancel.Entity) then
+				self.cardCancelHandler = self.BtnCardCancel.Entity:ConnectEvent(ButtonClickEvent, self.OnClickCardCancel)
+			end
+			self:ConnectNumButtons()
 			self._armedCard = ""
-			self:UpdateCardButtons()
+			self:SetPickerOpen(false)   -- 픽커 닫힌 3장 상태로 시작(라벨/알파 갱신 포함)
 		
 			-- 상황별 버튼(돌아가기/닫기) 배선 + 시작 숨김.
 			self._hudCtx = ""
@@ -204,6 +228,20 @@ script UnderButton extends Component
 					end
 					if self.cardHighHandler ~= nil and isvalid(self.BtnCardHigh) and isvalid(self.BtnCardHigh.Entity) then
 						self.BtnCardHigh.Entity:DisconnectEvent(ButtonClickEvent, self.cardHighHandler)
+					end
+					if self.cardNumHandler ~= nil and isvalid(self.BtnCardNum) and isvalid(self.BtnCardNum.Entity) then
+						self.BtnCardNum.Entity:DisconnectEvent(ButtonClickEvent, self.cardNumHandler)
+					end
+					if self.cardCancelHandler ~= nil and isvalid(self.BtnCardCancel) and isvalid(self.BtnCardCancel.Entity) then
+						self.BtnCardCancel.Entity:DisconnectEvent(ButtonClickEvent, self.cardCancelHandler)
+					end
+					if self.numHandlers ~= nil then
+						for _, rec in ipairs(self.numHandlers) do
+							if isvalid(rec.entity) then
+								rec.entity:DisconnectEvent(ButtonClickEvent, rec.eventHandler)
+							end
+						end
+						self.numHandlers = nil
 					end
 					if self.mapBackHandler ~= nil and isvalid(self.btnMapBack) and isvalid(self.btnMapBack.Entity) then
 						self.btnMapBack.Entity:DisconnectEvent(ButtonClickEvent, self.mapBackHandler)
@@ -322,7 +360,7 @@ script UnderButton extends Component
 				self._cardActAt = -100
 				self._cardArmAt = -100
 				self._armedCard = self:ArmedCard()
-				self:UpdateCardButtons()
+				self:SetPickerOpen(false)   -- 항상 3장 화면으로 열린다
 	end
 
 	method void OnClickRoll(any event)
@@ -335,7 +373,7 @@ script UnderButton extends Component
 		self._armedCard = ""
 		self._cardActAt = -100
 		self._cardArmAt = -100
-		self:UpdateCardButtons()
+		self:SetPickerOpen(false)
 
 		self.DicePanel.Visible = false
 		self.WholePanel.Visible = true
@@ -349,6 +387,149 @@ script UnderButton extends Component
 	method void OnClickCardHigh(any event)
 		-- 높은 숫자 카드 사용 → 다음 이동 주사위를 7~12 범위 랜덤으로 고정.
 		self:UseDiceCard("high")
+	end
+
+	method void ConnectNumButtons()
+		-- 1~12 픽커 버튼 구독. DicePanel(=UnderButton_Panel_Dice) 직속 자식 BtnNum1..BtnNum12를 이름으로 찾는다.
+		-- 클로저로 숫자를 캡처해 핸들러 12개를 따로 만들지 않는다.
+		self.numHandlers = {}
+		if isvalid(self.DicePanel) == false then return end
+		for i = 1, 12 do
+			local e = self.DicePanel:GetChildByName("BtnNum" .. tostring(i))
+			if isvalid(e) then
+				local n = i
+				local h = e:ConnectEvent(ButtonClickEvent, function() self:OnClickNum(n) end)
+				table.insert(self.numHandlers, { entity = e, eventHandler = h })
+			end
+		end
+	end
+
+	method boolean IsNumKey(string key)
+		-- "num1".."num12"(확정 숫자 카드)인지.
+		if key == nil or key == "" then return false end
+		return string.sub(key, 1, 3) == "num"
+	end
+
+	method integer NumCardTotal()
+		-- 보유한 확정 숫자 카드(num1~num12) 총 장수. 0이면 픽커를 열어도 고를 게 없다.
+		local total = 0
+		for i = 1, 12 do
+			total = total + self:CardCount("num" .. tostring(i))
+		end
+		return total
+	end
+
+	method void SetBtnEnable(ButtonComponent btn, boolean on)
+		-- 버튼 엔티티 표시/숨김. 상태가 바뀔 때만 쓴다.
+		if isvalid(btn) == false or isvalid(btn.Entity) == false then return end
+		if btn.Entity.Enable ~= on then btn.Entity.Enable = on end
+	end
+
+	method void SetPickerOpen(boolean open)
+		-- 1~12 픽커 열기/닫기. 열리면 3장(낮은/확정/높은)을 숨기고 픽커 + '취소하기'를 보인다.
+		self._pickerOpen = open
+		self:SetBtnEnable(self.BtnCardLow, open == false)
+		self:SetBtnEnable(self.BtnCardHigh, open == false)
+		self:SetBtnEnable(self.BtnCardNum, open == false)
+		self:SetBtnEnable(self.BtnCardCancel, open)
+		if isvalid(self.DicePanel) then
+			for i = 1, 12 do
+				local e = self.DicePanel:GetChildByName("BtnNum" .. tostring(i))
+				if isvalid(e) and e.Enable ~= open then e.Enable = open end
+			end
+		end
+		self:UpdateCardButtons()
+	end
+
+	method void OnClickCardNum(any event)
+		-- 중앙 '확정 숫자 카드': 이미 숫자 카드가 적용중이면 해제, 아니면 1~12 픽커를 연다.
+		-- (해제한 뒤 다시 누르면 미적용 상태라 픽커가 다시 열린다.)
+		if self:IsMyDiceTurn() == false then return end
+		local armed = self:EffectiveArmed()
+		if self:IsNumKey(armed) then
+			self:UseDiceCard(armed)   -- 같은 카드 재클릭 = 해제(더블클릭 유예 적용)
+			return
+		end
+		if self:NumCardTotal() <= 0 then
+			_SFXManager:PlayClick()
+			self:ShowHudMessage("보유한 숫자 카드가 없어요")
+			return
+		end
+		_SFXManager:PlayClick()
+		self:SetPickerOpen(true)
+	end
+
+	method void OnClickCardCancel(any event)
+		-- 픽커 '취소하기': 아무것도 고르지 않고 3장 화면으로 돌아간다(적용 상태는 그대로).
+		_SFXManager:PlayClick()
+		self:SetPickerOpen(false)
+	end
+
+	method void OnClickNum(integer n)
+		-- 픽커에서 숫자 선택 → 그 숫자 카드 적용 후 3장 화면으로 복귀. 미보유 카드는 적용하지 않는다.
+		if self:IsMyDiceTurn() == false then return end
+		local key = "num" .. tostring(n)
+		if self:CardCount(key) <= 0 then
+			_SFXManager:PlayClick()
+			self:ShowHudMessage(tostring(n) .. " 카드가 없어요")
+			return
+		end
+		self:UseDiceCard(key)
+		self:SetPickerOpen(false)
+	end
+
+	method void UpdateNumButtons()
+		-- 픽커 버튼 1~12: 보유 중이면 원래 색, 없으면 반투명(사용 불가).
+		if isvalid(self.DicePanel) == false then return end
+		for i = 1, 12 do
+			local e = self.DicePanel:GetChildByName("BtnNum" .. tostring(i))
+			if isvalid(e) then
+				local count = self:CardCount("num" .. tostring(i))
+				local spr = e.SpriteGUIRendererComponent
+				if spr ~= nil then
+					local c = spr.Color
+					local a = 1.0
+					if count <= 0 then a = 0.25 end
+					spr.Color = Color(c.r, c.g, c.b, a)
+				end
+			end
+		end
+	end
+
+	method void UpdateNumCardButton()
+		-- 중앙 '확정 숫자 카드' 갱신.
+		--  적용중(numN) → 알파 1.0 + 라벨 "N 카드 / 적용중"
+		--  숫자카드 0장 → 알파 0.25(픽커를 열어도 고를 게 없음)
+		--  다른 카드(낮은/높은)가 적용중 → 알파 0.35(반투명)
+		local btn = self.BtnCardNum
+		if isvalid(btn) == false or isvalid(btn.Entity) == false then return end
+		local armed = self._armedCard
+		local isArmed = self:IsNumKey(armed)
+		local tc = btn.Entity:GetComponent("MOD.Core.TextComponent")
+		if tc ~= nil then
+			if isArmed then
+				local def = _ItemDiceCardManager:CardDef(armed)
+				local nm = armed
+				if def ~= nil then nm = def.name end   -- "N 카드"
+				tc.Text = nm .. "\n적용중"
+			else
+				tc.Text = "확정 숫자\n카드"
+			end
+			tc.FontSize = 22
+		end
+		local spr = btn.Entity.SpriteGUIRendererComponent
+		if spr ~= nil then
+			local c = spr.Color
+			local a = 1.0
+			if isArmed then
+				a = 1.0
+			elseif self:NumCardTotal() <= 0 then
+				a = 0.25
+			elseif armed ~= "" then
+				a = 0.35
+			end
+			spr.Color = Color(c.r, c.g, c.b, a)
+		end
 	end
 
 	method integer CardCount(string cardKey)
@@ -416,9 +597,14 @@ script UnderButton extends Component
 	end
 
 	method void UpdateCardButtons()
-		-- 카드 버튼 라벨(범위 + 보유 수) + 알파(적용/보유 상태) 갱신.
+		-- 카드 UI 갱신. 픽커가 열린 동안엔 3장이 숨겨져 있으므로 픽커 쪽만 갱신한다.
+		if self._pickerOpen then
+			self:UpdateNumButtons()
+			return
+		end
 		self:SetCardButton(self.BtnCardLow, "낮은 1-6", "low")
 		self:SetCardButton(self.BtnCardHigh, "높은 7-12", "high")
+		self:UpdateNumCardButton()
 	end
 
 	method void SetCardButton(ButtonComponent btn, string baseLabel, string cardKey)
@@ -457,6 +643,7 @@ script UnderButton extends Component
 
 	method void OnDicePanelClickClose(any event)
 		_SFXManager:PlayClick()
+		self:SetPickerOpen(false)   -- 다음에 열 때 3장 화면부터 시작
 		self.DicePanel.Visible = false
 		self.WholePanel.Visible = true
 	end
