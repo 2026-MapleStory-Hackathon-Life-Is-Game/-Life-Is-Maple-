@@ -278,6 +278,21 @@ script GameModeManager extends Logic
 		return out
 	end
 
+	property integer FinishLowCardCount = 1   -- 1·2단계 완주 시 지급할 낮은 수 카드 수(튜닝 지점)
+
+	@ExecSpace("ServerOnly")
+	method void GrantFinishLowCard(Entity piece)
+		-- 1·2단계 맵 완주(결승 도착) 시 해당 플레이어에게 낮은 수 카드를 지급하고 획득 팝업을 띄운다.
+		-- 의도: 빠른 진행(높은 수 다발)으로 전투력이 낮게 형성된 완주자가 다음 단계에서 낮은 수로 만회하도록 응원.
+		if isvalid(piece) == false or piece.PlayerComponent == nil then return end
+		local userId = piece.PlayerComponent.UserId
+		if userId == nil or userId == "" then return end
+		if _ItemDiceCardManager == nil then return end
+		_ItemDiceCardManager:GrantCard(userId, "low", self.FinishLowCardCount)
+		_ItemDiceCardManager:ShowAcquirePopup("low", userId)
+		log("[GameModeManager] 1·2단계 완주 낮은수카드 지급 user=" .. userId .. " x" .. tostring(self.FinishLowCardCount))
+	end
+
 	@ExecSpace("Server")
 	method void OnPlayerReachedEnd(Entity piece)
 		        if not self._isGameActive then return end
@@ -288,6 +303,7 @@ script GameModeManager extends Logic
 				if currentMap == "Map_01" then
 -- 					log("[GameModeManager] Map_01 완주 -> Map_02 이동")
 			
+					self:GrantFinishLowCard(piece)   -- 1·2단계 완주 → 낮은 수 카드 지급(다음 단계 응원)
 					if self._activeMode == "SINGLE" then
 						self:MoveToNextMap(piece, "Map_02")
 					elseif self._activeMode == "MULTI" then
@@ -299,6 +315,7 @@ script GameModeManager extends Logic
 			
 				elseif currentMap == "Map_02" then
 -- 					log("[GameModeManager] Map_02 완주 -> Map_03 이동")
+					self:GrantFinishLowCard(piece)   -- 1·2단계 완주 → 낮은 수 카드 지급(다음 단계 응원)
 					if self._activeMode == "SINGLE" then
 					self:MoveToNextMap(piece, "Map_03")
 					elseif self._activeMode == "MULTI" then
