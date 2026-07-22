@@ -25,6 +25,20 @@ script LoadingManager extends Logic
 
 	property any _tutClone = nil
 
+	-- 프리로드 타임아웃/재시도(모바일 암전 방어). 콜백이 제때 안 오면 재시도하고,
+	-- 재시도까지 소진되면 오버레이를 강제로 내려 검은 화면에 갇히지 않게 한다(에셋은 이후 지연 로드).
+	property number preloadTimeoutSeconds = 8.0   -- 한 번의 프리로드 시도가 이 시간 안에 콜백을 안 주면 타임아웃
+
+	property integer maxPreloadRetries = 2         -- 최초 시도 실패 후 추가 재시도 횟수(총 시도 = 1 + 이 값)
+
+	property boolean _preloadDone = false          -- 완료/강제종료 처리 1회 가드(중복·지각 콜백 무시)
+
+	property integer _preloadTimer = 0             -- 현재 시도의 타임아웃 타이머
+
+	property integer _preloadAttempt = 0           -- 현재까지 진행한 시도 횟수
+
+	property any _preloadList = nil                -- 재시도용 프리로드 RUID 목록 캐시
+
 	@ExecSpace("ClientOnly")
 	method void OnBeginPlay()
 		-- 시작 시 로딩 오버레이는 숨겨 둔다(게임 시작 시 ShowLoadingAndPreload에서 켠다).
@@ -43,27 +57,75 @@ script LoadingManager extends Logic
 	@ExecSpace("Client")
 	method void ShowLoadingAndPreload()
 		-- 게임 시작(로비→Map_01 텔레포트) 시 서버가 각 클라로 호출. 무거운 RUID를 미리 캐시한다.
+		-- 모바일에서 프리로드 콜백이 유실/지연되어 검은 로딩 화면에 갇히는 것을 막기 위해
+		-- 타임아웃 재시도 + 최종 강제 종료(fail-open)로 감싼다.
 -- 		log("[LoadingManager] ShowLoadingAndPreload 진입")
 		self:ShowOverlay()
 		self._shownAt = _UtilLogic.ElapsedSeconds
-		
+		self._preloadDone = false
+		self._preloadAttempt = 0
+
 		local list = self:GatherPreloadRUIDs()
 		if #list == 0 then
 -- 			log_warning("[LoadingManager] 프리로드 목록이 비어있음 → 오버레이 즉시 종료")
+			self._preloadDone = true
 			self:HideOverlay()
 			return
 		end
-		
--- 		log("[LoadingManager] 프리로드 시작: " .. tostring(#list) .. "개")
-		_ResourceService:PreloadAsync(list, function(_results)
--- 			log("[LoadingManager] 프리로드 완료")
+		self._preloadList = list
+		self:StartPreloadAttempt()
+	end
+
+	@ExecSpace("ClientOnly")
+	method void StartPreloadAttempt()
+		-- 프리로드 1회 시도 + 타임아웃 무장. 완료 콜백(OnPreloadComplete)과 타임아웃(OnPreloadTimeout) 중 먼저 오는 쪽이 처리한다.
+		if self._preloadDone then return end
+		self._preloadAttempt = self._preloadAttempt + 1
+		self:ArmPreloadTimeout()
+-- 		log("[LoadingManager] 프리로드 시도 " .. tostring(self._preloadAttempt) .. "/" .. tostring(self.maxPreloadRetries + 1) .. " (" .. tostring(#self._preloadList) .. "개)")
+		_ResourceService:PreloadAsync(self._preloadList, function(_results)
 			self:OnPreloadComplete()
 		end)
 	end
 
 	@ExecSpace("ClientOnly")
+	method void ArmPreloadTimeout()
+		-- 이전 타임아웃 해제 후 새 타임아웃을 무장한다.
+		self:ClearPreloadTimeout()
+		self._preloadTimer = _TimerService:SetTimerOnce(function() self:OnPreloadTimeout() end, self.preloadTimeoutSeconds)
+	end
+
+	@ExecSpace("ClientOnly")
+	method void ClearPreloadTimeout()
+		-- 프리로드 타임아웃 타이머 해제(중복/누수 방지).
+		if self._preloadTimer ~= 0 then
+			_TimerService:ClearTimer(self._preloadTimer)
+			self._preloadTimer = 0
+		end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void OnPreloadTimeout()
+		-- 타임아웃: 콜백이 제때 안 왔다. 남은 재시도가 있으면 다시 시도, 없으면 오버레이를 강제로 내린다(fail-open).
+		self._preloadTimer = 0
+		if self._preloadDone then return end   -- 완료가 아슬아슬하게 먼저 처리됐으면 무시
+		if self._preloadAttempt <= self.maxPreloadRetries then
+-- 			log_warning("[LoadingManager] 프리로드 타임아웃 → 재시도 " .. tostring(self._preloadAttempt + 1))
+			self:StartPreloadAttempt()
+		else
+-- 			log_warning("[LoadingManager] 프리로드 타임아웃(재시도 소진) → 오버레이 강제 종료(에셋은 지연 로드)")
+			self._preloadDone = true
+			self:HideOverlay()
+		end
+	end
+
+	@ExecSpace("ClientOnly")
 	method void OnPreloadComplete()
-		-- 프리로드 완료 콜백. 최소 표시 시간을 채운 뒤 오버레이를 내린다.
+		-- 프리로드 완료 콜백. 중복/지각 콜백은 무시(타임아웃 재시도로 콜백이 여러 번 도착할 수 있음).
+		if self._preloadDone then return end
+		self._preloadDone = true
+		self:ClearPreloadTimeout()
+		-- 최소 표시 시간을 채운 뒤 오버레이를 내린다.
 		local elapsed = _UtilLogic.ElapsedSeconds - self._shownAt
 		local remain = self.minShowSeconds - elapsed
 		if remain > 0 then
@@ -90,6 +152,7 @@ script LoadingManager extends Logic
 	@ExecSpace("ClientOnly")
 	method void HideOverlay()
 		-- 로딩 오버레이를 숨긴다.
+		self:ClearPreloadTimeout()   -- 남아 있을 수 있는 프리로드 타임아웃 타이머 정리
 		self:StopDotAnim()
 		self:SetOverlayEnable(false)
 		self:ClearTutorialPage()
