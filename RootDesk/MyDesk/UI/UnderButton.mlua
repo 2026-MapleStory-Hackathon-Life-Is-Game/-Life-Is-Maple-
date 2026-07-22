@@ -71,9 +71,17 @@ script UnderButton extends Component
 
 	property ButtonComponent btnCharClose = "a1a14fd7-6fbf-442e-bdcd-e06f1e5f96f9"
 
+	-- 최종 맵(검은 마법사 클리어) 완주자의 대기 턴에 주사위 버튼 자리에 뜨는 '턴 넘기기' 버튼.
+	-- 멀티 FINISHED_PASS 상태 + 내 턴일 때만 노출한다. UUID는 UIBuilder 바인딩으로 주입.
+	property ButtonComponent btnPassTurn = "be84e46c-df93-45ac-9cf1-8e717aba0056"
+
 	property any mapBackHandler = nil
 
 	property any charCloseHandler = nil
+
+	property any passTurnHandler = nil
+
+	property boolean _lastPassEnable = false
 
 	property string _hudCtx = ""
 
@@ -159,6 +167,12 @@ script UnderButton extends Component
 				self.btnCharClose.Entity.Enable = false
 				self.charCloseHandler = self.btnCharClose.Entity:ConnectEvent(ButtonClickEvent, self.OnClickCharClose)
 			end
+			-- 완주자 '턴 넘기기' 버튼: 시작 숨김. 멀티 FINISHED_PASS 내 턴에만 OnUpdate가 켠다.
+			if isvalid(self.btnPassTurn) and isvalid(self.btnPassTurn.Entity) then
+				self.btnPassTurn.Entity.Enable = false
+				self.passTurnHandler = self.btnPassTurn.Entity:ConnectEvent(ButtonClickEvent, self.OnClickPassTurn)
+			end
+			self._lastPassEnable = false
 		
 			-- 주사위 패널은 Enable로 숨긴다. Visible=false만 쓰면 렌더만 꺼지고 클릭은 살아 있어(문서상 금지 패턴)
 			-- 숨겨진 굴리기 버튼이 겹친 '돌아가기'의 클릭을 가로챈다.
@@ -251,6 +265,9 @@ script UnderButton extends Component
 					if self.charCloseHandler ~= nil and isvalid(self.btnCharClose) and isvalid(self.btnCharClose.Entity) then
 						self.btnCharClose.Entity:DisconnectEvent(ButtonClickEvent, self.charCloseHandler)
 					end
+					if self.passTurnHandler ~= nil and isvalid(self.btnPassTurn) and isvalid(self.btnPassTurn.Entity) then
+						self.btnPassTurn.Entity:DisconnectEvent(ButtonClickEvent, self.passTurnHandler)
+					end
 				end
 	end
 
@@ -323,6 +340,16 @@ script UnderButton extends Component
 				self.OpenDicePanelButton.Entity.Enable = wantDice
 			end
 		end
+
+		-- 완주자 '턴 넘기기' 버튼: 최종 맵 완주자 내 턴(FINISHED_PASS)에서만, 맵/캐릭터뷰가 아닐 때 노출.
+		-- (이 상태에선 주사위 열기 버튼은 CanOpenDicePanel=false라 자동으로 숨겨져 자리 충돌 없음.)
+		local wantPass = (ctx == "none") and self:IsMyFinishedPassTurn()
+		if self._lastPassEnable ~= wantPass then
+			self._lastPassEnable = wantPass
+			if isvalid(self.btnPassTurn) and isvalid(self.btnPassTurn.Entity) then
+				self.btnPassTurn.Entity.Enable = wantPass
+			end
+		end
 	end
 
 	method void ApplyHudContext(string ctx)
@@ -347,6 +374,24 @@ script UnderButton extends Component
 		-- 캐릭터 정보 '닫기' → 캐릭터 정보 패널 닫기(배타 상태 해제).
 		_SFXManager:PlayClick()
 		self:CloseExclusive()
+	end
+
+	method void OnClickPassTurn(any event)
+		-- 최종 맵 완주자 '턴 넘기기' → 서버에 턴 종료 요청(다음 플레이어로 진행).
+		if self:IsMyFinishedPassTurn() == false then return end
+		_SFXManager:PlayClick()
+		_MultiTurnManager:RequestFinishedPassTurn()
+	end
+
+	method boolean IsMyFinishedPassTurn()
+		-- 지금이 '내가 최종 맵 완주자로서 턴 넘기기를 눌러야 하는' 상태인지.
+		-- 멀티 진행 중 + 현재 상태 FINISHED_PASS + 현재 턴 유저가 나 일 때만 true.
+		if _GameModeManager._activeMode ~= "MULTI" then return false end
+		if _MultiTurnManager._isActive == false then return false end
+		if _MultiTurnManager._currentState ~= "FINISHED_PASS" then return false end
+		local lp = _UserService.LocalPlayer
+		if isvalid(lp) == false or lp.PlayerComponent == nil then return false end
+		return lp.PlayerComponent.UserId == _MultiTurnManager._currentPlayerUserId
 	end
 
 	method void OnDicePanelClickOpen(any event)

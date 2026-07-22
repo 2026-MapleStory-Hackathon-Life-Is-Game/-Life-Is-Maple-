@@ -294,9 +294,16 @@ script MultiTurnManager extends Logic
 		                break
 		            end
 		        end
-		        -- 완주자(현재 맵 결승 도착)는 이동/일반 주사위 대신 미라클 큐브 결과주사위를 반복 굴린다(피드백 5).
+		        -- 완주자(현재 맵 결승 도착)의 대기 턴 처리.
+		        --   · 1·2단계 맵: 이동/일반 주사위 대신 미라클 큐브 결과주사위를 반복 굴린다(피드백 5, 현행 유지).
+		        --   · 3단계 맵(최종=검은 마법사 클리어): 큐브 롤 없이 일반 턴처럼 HUD '턴 넘기기' 버튼만 노출한다.
+		        --     (최종 맵은 GetNextMapName == "" 로 판별 — Map_03에서 완주 = 검은 마법사 결전을 마친 상태.)
 		        if self:IsFinished(self._currentPlayerUserId) then
-		            self:StartFinisherCubeRoll()
+		            if self:GetNextMapName(self._currentMapName) == "" then
+		                self:StartFinishedPassTurn()
+		            else
+		                self:StartFinisherCubeRoll()
+		            end
 		            return
 		        end
 		        self:AdvanceToState("DICE")
@@ -339,6 +346,33 @@ script MultiTurnManager extends Logic
 		        self:ClearTurnWatch()
 		        self._finisherTile = nil
 		        if self._currentState ~= "FINISHER_CUBE" then return end
+		        self:AdvanceToState("TURN_END")
+	end
+
+	@ExecSpace("Server")
+	method void StartFinishedPassTurn()
+		        -- 최종 맵(검은 마법사 클리어) 완주자의 대기 턴: 큐브 롤 없이 일반 턴처럼 HUD '턴 넘기기' 버튼만 노출한다.
+		        -- 상태만 FINISHED_PASS로 두고(클라 HUD가 이 상태를 읽어 버튼을 켠다), 30초 내 미입력이면 자동으로 턴을 넘긴다.
+		        -- 완주자 보너스 턴이라 AFK 스트라이크는 부여하지 않는다(OnTurnTimeout에서 FINISHER_CUBE와 동일 취급).
+		        self._currentState = "FINISHED_PASS"
+		        self:StartTurnWatch()
+	end
+
+	@ExecSpace("Server")
+	method void RequestFinishedPassTurn()
+		        -- 완주자 HUD '턴 넘기기' 클릭 → 턴 종료. 현재 턴 actor만 유효.
+		        if not self._isActive then return end
+		        if self._currentState ~= "FINISHED_PASS" then return end
+		        if senderUserId ~= self._currentPlayerUserId then return end
+		        self:OnFinishedPassDone()
+	end
+
+	@ExecSpace("Server")
+	method void OnFinishedPassDone()
+		        -- 완주자 대기 턴 종료(버튼 클릭 또는 AFK 자동) → 다음 턴으로 진행.
+		        if not self._isActive then return end
+		        if self._currentState ~= "FINISHED_PASS" then return end
+		        self:ClearTurnWatch()
 		        self:AdvanceToState("TURN_END")
 	end
 
@@ -721,9 +755,10 @@ script MultiTurnManager extends Logic
 -- 		            log_warning("[MultiTurnManager] 잘못된 턴 진행 요청 발신자: " .. senderUserId)
 		            return
 		        end
-		        -- 완주자 큐브 롤(FINISHER_CUBE)은 상태머신 밖 흐름 → HUD 턴 버튼으로 진행시키지 않는다(큐브 롤 '다음'이 담당).
-		        if self._currentState == "FINISHER_CUBE" then
--- 		            log("[MultiTurnManager] 완주자 큐브 롤 중 — 턴 진행 버튼 무시")
+		        -- 완주자 큐브 롤(FINISHER_CUBE)/완주자 대기 턴(FINISHED_PASS)은 상태머신 밖 흐름 →
+		        -- 범용 HUD 턴 버튼으로 진행시키지 않는다(큐브 롤 '다음' / 전용 '턴 넘기기' 버튼이 담당).
+		        if self._currentState == "FINISHER_CUBE" or self._currentState == "FINISHED_PASS" then
+-- 		            log("[MultiTurnManager] 완주자 대기 흐름 — 범용 턴 진행 버튼 무시")
 		            return
 		        end
 -- 		        log("[MultiTurnManager] 턴 진행 (플레이어 " .. tostring(self._currentPlayerIndex) .. ")")
@@ -799,7 +834,7 @@ script MultiTurnManager extends Logic
 -- 		        log("[MultiTurnManager] 턴 시간 초과(" .. tostring(self.TurnTimeoutSeconds) .. "초) 자동 진행 user=" .. watchedUser .. " state=" .. watchedState)
 		        -- 이번 턴에 대해 스트라이크는 1회만 부여(같은 턴에 여러 대기 지점이 초과돼도 중복 금지).
 		        -- 단, 완주자 대기 큐브 롤(FINISHER_CUBE)은 이미 완주한 플레이어의 보너스라 AFK 스트라이크를 부여하지 않는다(피드백 5).
-		        if watchedState ~= "FINISHER_CUBE" and self._turnAutoFlagged == false then
+		        if watchedState ~= "FINISHER_CUBE" and watchedState ~= "FINISHED_PASS" and self._turnAutoFlagged == false then
 		            self._turnAutoFlagged = true
 		            self:AddAfkStrike(watchedUser)
 		            -- 강퇴로 이미 순서가 리셋됐다면 자동 진행을 멈춘다.
@@ -819,6 +854,9 @@ script MultiTurnManager extends Logic
 		            else
 		                self:OnWaitingCubeRollDone()
 		            end
+		        elseif watchedState == "FINISHED_PASS" then
+		            -- 최종 맵 완주자가 '턴 넘기기'를 안 누름 → 그대로 턴 진행.
+		            self:OnFinishedPassDone()
 		        end
 	end
 
