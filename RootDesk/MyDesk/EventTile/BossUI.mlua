@@ -57,6 +57,9 @@ script BossUI extends Logic
 
 	property Entity ChaosButton = "af964015-c85e-4fc4-b13f-b1f0c8f20bcd"
 
+	-- 검은 마법사 전용 '익스트림' 난이도 버튼(HardButton 복제, 붉은 틴트). BossProbability에 Extreme 행이 있는 보스에만 노출된다.
+	property Entity ExtremeButton = "d92916f6-6a36-49eb-9abf-2f5156064feb"
+
 	property Entity BackButton = "3c201d98-f990-403a-84b4-95714351580b"
 
 	property Entity SelectionText = "d297d26f-19c2-49d4-b639-3f61c446a0fb"
@@ -93,10 +96,11 @@ script BossUI extends Logic
 		
 		-- 난이도 버튼 구성(고정 4종). 순서 = 이지 → 노말 → 하드 → 카오스.
 		self._diffButtons = {
-			{ key = "Easy",   label = "이지",   e = self.EasyButton },
-			{ key = "Normal", label = "노말",   e = self.NormalButton },
-			{ key = "Hard",   label = "하드",   e = self.HardButton },
-			{ key = "Chaos",  label = "카오스", e = self.ChaosButton },
+			{ key = "Easy",    label = "이지",     e = self.EasyButton },
+			{ key = "Normal",  label = "노말",     e = self.NormalButton },
+			{ key = "Hard",    label = "하드",     e = self.HardButton },
+			{ key = "Chaos",   label = "카오스",   e = self.ChaosButton },
+			{ key = "Extreme", label = "익스트림", e = self.ExtremeButton },
 		}
 		
 		if isvalid(self.BossGroup) then

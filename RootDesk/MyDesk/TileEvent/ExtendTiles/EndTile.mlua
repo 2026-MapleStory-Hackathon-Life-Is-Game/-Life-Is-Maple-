@@ -7,6 +7,12 @@ script EndTile extends BaseTile
 
 	property boolean _won = false
 
+	-- 검은 마법사 선택 난이도("Hard"/"Extreme"). RequestSelect에서 저장, 적정 전투력·익스트림 보상 판정에 사용.
+	property string _diffKey = "Hard"
+
+	-- 익스트림 처치 업적 뱃지 ID(World Badge: '익스트림 검은 마법사 토벌', EPIC). 빈 문자열이면 뱃지 미지급(코인만).
+	property string BlackMageExtremeBadgeId = "6D6WYZ09M"
+
 	property boolean _cubeRolling = false
 
 	property boolean _waitingRoll = false   -- 완주 후 대기 중 반복 큐브 롤인지(도착 롤과 구분, 피드백 5)
@@ -87,6 +93,7 @@ script EndTile extends BaseTile
 		if isvalid(piece) == false then return end
 		if senderUserId ~= self:OwnerUserId(piece) then return end
 		self._step = 2
+		self._diffKey = diffKey   -- 선택 난이도 저장(Hard/Extreme) → 적정 전투력·익스트림 보상 판정에 사용
 -- 		log("[EndTile] 검은 마법사 선택 (" .. tostring(bossKey) .. "/" .. tostring(diffKey) .. ") → 도전")
 		local ownerId = self:OwnerUserId(piece)
 		self:ClientStartChallenge(self:Dlg("challenge"), ownerId)
@@ -138,6 +145,63 @@ script EndTile extends BaseTile
 		else
 			self:EndBattle()
 		end
+	end
+
+	@ExecSpace("Server")
+	method void RequestQuestRoll()
+		-- 검은 마법사 결과 주사위(다른 보스와 동일: RollByBossTable로 전투력 밴드 확률 적용).
+		-- 적정 전투력 이상(Above) = 실패 없음(2~9 성공/10~12 대성공). 미달(Below) = 확률 판정.
+		local piece = self._piece
+		if isvalid(piece) == false then return end
+		if senderUserId ~= self:OwnerUserId(piece) then return end
+		local ownerId = self:OwnerUserId(piece)
+		local cp = 0
+		local cpm = piece:GetComponent("script.CombatPowerManager")
+		if isvalid(cpm) then cp = cpm.CombatPower end
+		local req = self:BlackMageRequiredPower()
+		local total = _ResultDiceManager:RollByBossTable("Black_Mage", self._diffKey, cp)
+		local d1 = _ResultDiceManager._dice1
+		local d2 = _ResultDiceManager._dice2
+		local outcome = _ResultDiceManager.GameOutcome
+		local resultTable = _ResultDiceManager:GetResultTable()
+		self._won = (outcome == "성공" or outcome == "대성공")
+		-- 보상(등급별 코인 + 익스트림&전투력충족 뱃지)은 서버에서 즉시 지급(연출 중 이탈해도 보장).
+		self:AwardBlackMageRewards(ownerId, outcome, cp >= req)
+		local key = "lose"
+		if self._won then key = "win" end
+		local outcomeText = self:Dlg(key)
+		self:ClientShowBossDice(d1, d2, total, resultTable, outcome, outcomeText, ownerId)
+		-- 관전자: 주사위 결과 후속(승패 문구 + die)을 actor가 굴린 순간에 공개(조기 스포일 방지, 다른 보스와 동일).
+		_EventTileUI:SpectatorBossFollowDeferred(self._won, outcome, outcomeText, self:BlackMageDieRUID(), ownerId)
+	end
+
+	@ExecSpace("Client")
+	method void ClientShowBossDice(integer d1, integer d2, integer total, table resultTable, string outcome, string outcomeText)
+		-- (콜백용 self.) 보스 전투 결과 주사위 연출 → 결과 문구 → '다음' → RequestFinish.
+		_EventTileUI:BossFightDice(d1, d2, total, resultTable, outcome, outcomeText, self:BlackMageDieRUID(), self)
+	end
+
+	@ExecSpace("Server")
+	method void RequestFinish()
+		-- 보스 결과 연출 '다음' → 순위보상 + 종료(EndBattle 재사용).
+		local piece = self._piece
+		if isvalid(piece) == false then return end
+		if senderUserId ~= self:OwnerUserId(piece) then return end
+		self:EndBattle()
+	end
+
+	method string BlackMageDieRUID()
+		-- 검은 마법사 die 애니메이션 RUID(BossImage.DieAnimRUID). 없으면 "".
+		local ds = _DataService:GetTable("BossImage")
+		if isvalid(ds) == false then return "" end
+		for i = 1, ds:GetRowCount() do
+			if ds:GetCell(i, "BossName") == "Black_Mage" then
+				local d = ds:GetCell(i, "DieAnimRUID")
+				if d ~= nil then return d end
+				return ""
+			end
+		end
+		return ""
 	end
 
 	@ExecSpace("ServerOnly")
@@ -251,6 +315,7 @@ script EndTile extends BaseTile
 			_EventTileUI:SpectatorSceneHide(ownerId)   -- 관전자 결전 UI도 닫기(피드백 12).
 		end
 		-- 검은 마법사 클리어 선착순 보상: 완주 순위별 주스탯/공격력 % 버프(FinishEndTile 전 = MarkPlayerFinished 전이라 rank=_finishedCount+1).
+		-- (등급별 코인/익스트림 뱃지는 주사위 판정 시점 AwardBlackMageRewards에서 이미 지급됨.)
 		self:ApplyClearRankReward(piece)
 		-- 엔딩 요약을 결과창과 통합 → 별도 정리 표/'다음' 없이 바로 종료 흐름(FinishEndTile→통합 결과 카드/멀티 순위표)으로 진행.
 		self:FinishEndTile(piece)
@@ -290,12 +355,52 @@ script EndTile extends BaseTile
 -- 			.. " → 주스탯+" .. tostring(mainPct) .. "% 공격+" .. tostring(attackPct) .. "%")
 	end
 
+	-- 검은 마법사 결과 주사위 등급별 코인(튜닝 지점). 실패=0.
+	property integer HardSuccessCoin = 50
+
+	property integer HardGreatCoin = 100
+
+	property integer ExtremeSuccessCoin = 100
+
+	property integer ExtremeGreatCoin = 200
+
+	method integer BlackMageCoin(string outcome)
+		-- 결과 등급(성공/대성공) + 난이도(하드/익스트림)별 지급 코인. 실패는 0.
+		local great = self.HardGreatCoin
+		local succ = self.HardSuccessCoin
+		if self._diffKey == "Extreme" then
+			great = self.ExtremeGreatCoin
+			succ = self.ExtremeSuccessCoin
+		end
+		if outcome == "대성공" then return great end
+		if outcome == "성공" then return succ end
+		return 0
+	end
+
+	@ExecSpace("ServerOnly")
+	method void AwardBlackMageRewards(string ownerId, string outcome, boolean statCleared)
+		-- 검은 마법사 결과 보상: 등급별 코인 + (익스트림 & 적정전투력 이상=전투력으로 넘겼을 때만) 업적 뱃지.
+		-- statCleared = (현재 전투력 >= 적정 전투력). 주사위 운으로 성공한 미달자는 코인만 받고 뱃지는 못 받는다.
+		if ownerId == nil or ownerId == "" then return end
+		local coin = self:BlackMageCoin(outcome)
+		if coin > 0 and _MetaProgressionManager ~= nil then
+			_MetaProgressionManager:AwardCoins(ownerId, coin)
+		end
+		if self._diffKey == "Extreme" and statCleared and self.BlackMageExtremeBadgeId ~= "" then
+			_BadgeService:AwardBadgeAndWait(ownerId, self.BlackMageExtremeBadgeId)
+		end
+		log("[EndTile] 검은마법사 보상 user=" .. ownerId .. " diff=" .. self._diffKey
+			.. " outcome=" .. outcome .. " coin=" .. tostring(coin) .. " statClear=" .. tostring(statCleared))
+	end
+
 	method integer BlackMageRequiredPower()
-		-- BossProbability의 (Black_Mage, Hard) 적정 전투력. 없으면 20000.
+		-- BossProbability의 (Black_Mage, 선택 난이도) 적정 전투력. Hard=45만 / Extreme=135만. 없으면 20000.
+		local diff = self._diffKey
+		if diff == nil or diff == "" then diff = "Hard" end
 		local ds = _DataService:GetTable("BossProbability")
 		if isvalid(ds) == false then return 20000 end
 		for i = 1, ds:GetRowCount() do
-			if ds:GetCell(i, "BossName") == "Black_Mage" and ds:GetCell(i, "Difficulty") == "Hard" then
+			if ds:GetCell(i, "BossName") == "Black_Mage" and ds:GetCell(i, "Difficulty") == diff then
 				return tonumber(ds:GetCell(i, "RequiredPower")) or 20000
 			end
 		end
@@ -336,10 +441,9 @@ script EndTile extends BaseTile
 
 	@ExecSpace("Client")
 	method void ClientStartChallenge(string text)
-		-- BossUI 닫고 도전 문구 표시(콜백용 self). '다음' → RequestAdvance.
-		-- 검은 마법사는 다른 보스와 동일하게 원본 크기 × 전역 배율(BossImage 설정)로 크게 표시한다.
+		-- BossUI 닫고 보스 전투 연출 시작(다른 보스와 동일: BossFightText). 마지막 장 '다음' → RequestQuestRoll.
 		_BossUI:Hide()
-		_EventTileUI:BossSceneText(text, "idle", self:BlackMageStandRUID(), self)
+		_EventTileUI:BossFightText(text, self:BlackMageStandRUID(), self)
 	end
 
 	@ExecSpace("Client")
