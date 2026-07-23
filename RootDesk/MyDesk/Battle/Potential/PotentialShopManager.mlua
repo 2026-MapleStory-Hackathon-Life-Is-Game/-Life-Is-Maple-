@@ -23,6 +23,13 @@ script PotentialShopManager extends Logic
 
 	property any _hoverH = nil
 
+	-- 확인 팝업 문구 조립용 클라 캐시(ApplyMeta가 갱신).
+	property integer _coin = 0
+
+	property integer _incomeLv = 0
+
+	property integer _probLv = 0
+
 	-- ── 표시용 상수 미러(MetaProgressionManager와 값 동일 유지) ──
 	method table IncomeEffect()
 		-- 레벨(1~3)별 효과 문구(호버 툴팁 표시용). 카드 겉면은 트랙명+레벨만 노출.
@@ -84,15 +91,46 @@ script PotentialShopManager extends Logic
 
 	@ExecSpace("ClientOnly")
 	method void OnBuy(string track)
-		-- 구매 요청(서버 검증/차감). 결과는 PushMeta로 되돌아와 ApplyMeta가 갱신.
+		-- 라이프 코인은 즉시 차감되므로 확인 팝업을 한 번 거친 뒤에 요청한다
+		-- (월드 코인은 메월드 결제창이 확인 역할을 하지만, 라이프 코인은 그런 단계가 없음).
+		-- 확인 팝업은 PetShopManager가 상점 공용으로 소유한다(상점 개폐/탭도 그쪽 담당).
+		-- 실제 검증/차감은 서버(RequestPurchase). 결과는 PushMeta → ApplyMeta로 반영.
 		_SFXManager:PlayClick()
-		if _MetaProgressionManager ~= nil then _MetaProgressionManager:RequestPurchase(track) end
+		local lv = self._incomeLv
+		local title = "연합 물자 지원"
+		local prices = self:IncomePrice()
+		local effects = self:IncomeEffect()
+		if track == "prob" then
+			lv = self._probLv
+			title = "잠재 향상 확률"
+			prices = self:ProbPrice()
+			effects = self:ProbEffect()
+		elseif track ~= "income" then
+			return
+		end
+		-- 최대 레벨/잔액 부족이면 버튼이 이미 비활성이지만, 방어적으로 한 번 더 막는다.
+		if lv >= 3 then return end
+		local price = prices[lv + 1] or 0
+		if self._coin < price then return end
+		if _PetShopManager == nil then
+			if _MetaProgressionManager ~= nil then _MetaProgressionManager:RequestPurchase(track) end
+			return
+		end
+		local body = title .. " Lv" .. tostring(lv + 1) .. " (" .. tostring(effects[lv + 1]) .. ")"
+			.. "\n라이프 코인 " .. tostring(price) .. " 사용 (보유 " .. tostring(self._coin) .. ")"
+		_PetShopManager:OpenConfirm("강화하시겠습니까?", body, function()
+			if _MetaProgressionManager ~= nil then _MetaProgressionManager:RequestPurchase(track) end
+		end)
 	end
 
 	@ExecSpace("ClientOnly")
 	method void ApplyMeta(integer coin, integer incomeLv, integer probLv, integer totalEarned)
 		-- 코인 잔액 + 누적 획득 + 두 카드(현재 효과/다음 효과·가격/구매 버튼) 갱신.
 		-- 라이프 코인(통합 재화)은 상점 공용 캐시 헤더에 표시. 잠재 패널 안의 별도 코인 표기는 없앰.
+		-- 확인 팝업 문구(가격/보유/다음 레벨) 조립에 쓰도록 캐시도 갱신.
+		self._coin = coin
+		self._incomeLv = incomeLv
+		self._probLv = probLv
 		self:SetTextGUI(self.lifeCoinDataPath, tostring(coin))
 		-- 누적 라이프 코인(충전+게임 획득 총액, 소비해도 감소 안 함).
 		self:SetTextGUI(self.totalEarnedDataPath, tostring(totalEarned))

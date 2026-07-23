@@ -10,6 +10,9 @@ script PetShopManager extends Logic
 	-- 구매 수단 선택 팝업(라이프 코인 / 월드 코인). ShopPanel 하위라 상점을 닫으면 같이 사라진다.
 	property string buyChoicePath = "/ui/LobbyUIGroup/ShopPanel/BuyChoicePanel"
 
+	-- 라이프 코인(즉시 차감) 소비 공용 확인 팝업. 잠재 성장 상점도 OpenConfirm으로 함께 쓴다.
+	property string confirmPath = "/ui/LobbyUIGroup/ShopPanel/ConfirmPanel"
+
 	property any userEnterHandler = nil
 
 	property any _spawned = nil
@@ -34,6 +37,9 @@ script PetShopManager extends Logic
 
 	-- 선택 팝업이 대상으로 삼고 있는 펫 이름(닫히면 "").
 	property string _pendPet = ""
+
+	-- 확인 팝업에서 '확인'을 눌렀을 때 실행할 콜백(클라 전용, 닫히면 nil).
+	property any _confirmYes = nil
 
 	method table PetList()
 		-- 이름(안정 키) ↔ 인게임 팔로워/썸네일 스프라이트(쁘띠 move 애니). 서버/클라 공통.
@@ -544,6 +550,12 @@ script PetShopManager extends Logic
 		self:WireBtn(self.buyChoicePath .. "/Box/BtnLife", function() self:OnChoiceLife() end)
 		self:WireBtn(self.buyChoicePath .. "/Box/BtnWorld", function() self:OnChoiceWorld() end)
 		self:WireBtn(self.buyChoicePath .. "/Box/BtnCancel", function() self:CloseBuyChoice() end)
+
+		-- 라이프 코인 소비 공용 확인 팝업. 시작 시 숨김.
+		local cf = _EntityService:GetEntityByPath(self.confirmPath)
+		if isvalid(cf) then cf.Enable = false end
+		self:WireBtn(self.confirmPath .. "/Box/BtnYes", function() self:OnConfirmYes() end)
+		self:WireBtn(self.confirmPath .. "/Box/BtnNo", function() self:OnConfirmNo() end)
 		log("[PetShop] 병행 가격 라벨 적용(월드=" .. tostring(self:WorldPriceByName(pets[1].name)) .. " 라이프=" .. tostring(pets[1].lifeCoin) .. ") 선택팝업=" .. tostring(isvalid(bc)))
 
 		-- 내 소유/장착 상태 요청 → 서버가 push하면 버튼 라벨이 갱신됨.
@@ -646,6 +658,7 @@ script PetShopManager extends Logic
 	method void CloseShop()
 		-- 상점 전체 숨김.
 		_SFXManager:PlayClick()
+		self:CloseConfirm()
 		self:CloseBuyChoice()
 		local shop = _EntityService:GetEntityByPath(self.shopPanelPath)
 		if isvalid(shop) then shop.Enable = false end
@@ -653,8 +666,9 @@ script PetShopManager extends Logic
 
 	@ExecSpace("ClientOnly")
 	method void ShowCategory(string key)
-		-- 선택 카테고리 패널만 표시, 나머지 숨김. 탭이 바뀌면 구매 선택 팝업도 닫는다.
+		-- 선택 카테고리 패널만 표시, 나머지 숨김. 탭이 바뀌면 확인/구매 선택 팝업도 닫는다.
 		_SFXManager:PlayClick()
+		self:CloseConfirm()
 		self:CloseBuyChoice()
 		for _, c in ipairs(self:Categories()) do
 			local pnl = _EntityService:GetEntityByPath(self.shopPanelPath .. "/" .. c.panel)
@@ -755,17 +769,65 @@ script PetShopManager extends Logic
 
 	@ExecSpace("ClientOnly")
 	method void OnChoiceLife()
-		-- '라이프 코인' 선택: 클라에서 1차 잔액 확인 후 서버에 구매 요청(최종 검증/차감은 서버).
+		-- '라이프 코인' 선택: 클라에서 1차 잔액 확인 → 확인 팝업 → 서버에 구매 요청(최종 검증/차감은 서버).
+		-- 월드 코인은 메월드 결제창이 확인 단계를 대신하므로, 라이프 코인만 한 번 더 묻는다.
 		_SFXManager:PlayClick()
 		local name = self._pendPet
 		if name == nil or name == "" then return end
 		local pet = self:PetByName(name)
 		if pet == nil then return end
-		if self._coin < (pet.lifeCoin or 0) then
+		local price = pet.lifeCoin or 0
+		if self._coin < price then
 			self:SetText(self.buyChoicePath .. "/Box/Msg", "라이프 코인이 부족합니다. (보유 " .. tostring(self._coin) .. ")")
 			return
 		end
-		self:RequestBuyWithLifeCoin(name)
+		local body = pet.name .. "\n라이프 코인 " .. tostring(price) .. " 사용 (보유 " .. tostring(self._coin) .. ")"
+		self:OpenConfirm("구매하시겠습니까?", body, function() self:RequestBuyWithLifeCoin(name) end)
+	end
+
+	@ExecSpace("ClientOnly")
+	method void OpenConfirm(string title, string body, any onYes)
+		-- 라이프 코인처럼 '즉시 차감'되는 소비의 공용 확인 팝업(펫 상점 + 잠재 성장 상점 공용).
+		-- 월드 코인 결제는 메월드 결제창이 확인 역할을 하므로 이 팝업을 태우지 않는다.
+		local root = _EntityService:GetEntityByPath(self.confirmPath)
+		if isvalid(root) == false then
+			-- 팝업 노드가 없으면(구버전 .ui) 기능 자체를 막지는 않고 바로 진행.
+			if onYes ~= nil then onYes() end
+			return
+		end
+		self._confirmYes = onYes
+		self:SetText(self.confirmPath .. "/Box/Title", title)
+		self:SetText(self.confirmPath .. "/Box/Msg", body)
+		root.Enable = true
+		-- 같은 .ui 안에서는 형제 인덱스가 z → 선택 팝업 위로 올린다.
+		if isvalid(root.UITransformComponent) then
+			_UILogic:SetSiblingIndex(root.UITransformComponent, 1000000)
+		end
+		log("[PetShop] 확인 팝업 열기: " .. title .. " / " .. string.gsub(body, "\n", " | "))
+	end
+
+	@ExecSpace("ClientOnly")
+	method void CloseConfirm()
+		-- 확인 팝업 닫기 + 대기 콜백 폐기.
+		self._confirmYes = nil
+		local root = _EntityService:GetEntityByPath(self.confirmPath)
+		if isvalid(root) then root.Enable = false end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void OnConfirmYes()
+		-- '확인': 콜백을 먼저 꺼내 팝업을 닫은 뒤 실행(콜백 안에서 또 팝업을 열어도 안전).
+		_SFXManager:PlayClick()
+		local fn = self._confirmYes
+		self:CloseConfirm()
+		if fn ~= nil then fn() end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void OnConfirmNo()
+		-- '취소': 아무것도 소비하지 않고 닫기(구매 수단 선택 팝업은 그대로 남는다).
+		_SFXManager:PlayClick()
+		self:CloseConfirm()
 	end
 
 	@ExecSpace("ClientOnly")
