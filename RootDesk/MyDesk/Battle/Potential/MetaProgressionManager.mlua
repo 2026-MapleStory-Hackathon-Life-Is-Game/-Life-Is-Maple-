@@ -151,6 +151,25 @@ script MetaProgressionManager extends Logic
 	end
 
 	@ExecSpace("ServerOnly")
+	method boolean TrySpendCoins(string userId, integer amount)
+		-- 라이프 코인 차감. 잔액이 모자라면 아무것도 차감하지 않고 false.
+		-- 성공 시 저장 + 요청 유저 UI 갱신까지 처리(펫 상점 등 외부 소비처가 공용으로 호출).
+		if userId == nil or userId == "" then return false end
+		if amount <= 0 then return false end
+		local s = self:LoadState(userId)
+		if s.coin < amount then
+			log("[MetaProg] spend 거부(코인부족) user=" .. userId .. " need=" .. tostring(amount) .. " have=" .. tostring(s.coin))
+			self:PushMeta(s.coin, s.incomeLv, s.probLv, s.totalEarned, userId)
+			return false
+		end
+		s.coin = s.coin - amount
+		self:SaveState(userId)
+		log("[MetaProg] spend " .. userId .. " -" .. tostring(amount) .. " -> coin=" .. tostring(s.coin))
+		self:PushMeta(s.coin, s.incomeLv, s.probLv, s.totalEarned, userId)
+		return true
+	end
+
+	@ExecSpace("ServerOnly")
 	method void AwardByMultiRank(string userId, integer rank)
 		-- 멀티 완주 순위(1-based)로 코인 적립.
 		local t = self:RankCoinTable()
@@ -209,6 +228,10 @@ script MetaProgressionManager extends Logic
 		-- 특정 클라(호출부 마지막 인자 userId 대상)에게 메타 상태 전달 → 상점 UI 갱신.
 		if _PotentialShopManager ~= nil then
 			_PotentialShopManager:ApplyMeta(coin, incomeLv, probLv, totalEarned)
+		end
+		-- 펫 상점도 같은 잔액을 쓴다(구매 선택 팝업의 보유 코인/구매 가능 여부 표시).
+		if _PetShopManager ~= nil then
+			_PetShopManager:ApplyCoin(coin)
 		end
 	end
 

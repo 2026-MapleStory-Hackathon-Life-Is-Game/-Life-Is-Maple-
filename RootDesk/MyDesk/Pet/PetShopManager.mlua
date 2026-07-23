@@ -7,6 +7,9 @@ script PetShopManager extends Logic
 
 	property string petPanelPath = "/ui/LobbyUIGroup/ShopPanel/PetPanel"
 
+	-- 구매 수단 선택 팝업(라이프 코인 / 월드 코인). ShopPanel 하위라 상점을 닫으면 같이 사라진다.
+	property string buyChoicePath = "/ui/LobbyUIGroup/ShopPanel/BuyChoicePanel"
+
 	property any userEnterHandler = nil
 
 	property any _spawned = nil
@@ -23,6 +26,15 @@ script PetShopManager extends Logic
 
 	property string _equipped = ""
 
+	-- 상품명 → 월드 코인 가격(상점 등록값을 런타임 조회. 하드코딩 금지).
+	property any _worldPrice = nil
+
+	-- 클라 캐시: 보유 라이프 코인(MetaProgressionManager.PushMeta → ApplyCoin).
+	property integer _coin = 0
+
+	-- 선택 팝업이 대상으로 삼고 있는 펫 이름(닫히면 "").
+	property string _pendPet = ""
+
 	method table PetList()
 		-- 이름(안정 키) ↔ 인게임 팔로워/썸네일 스프라이트(쁘띠 move 애니). 서버/클라 공통.
 		-- productId는 월드마다 바뀌므로 하드코딩하지 않고 이름으로 런타임 조회(BuildShopMaps).
@@ -30,13 +42,14 @@ script PetShopManager extends Logic
 		-- bonus = 장착 시 부여하는 추가 스탯 옵션(퍼센트). 특정 스탯 %는 그 스탯에만, allStatPct는 4스탯 전체.
 		--   아란=STR10 / 메르=DEX10 / 에반·루미=INT10 / 팬텀=LUK10 / 은월=올스탯9.
 		-- buff = 해당 펫의 BuffData 행 이름(게임 시작 시 SetBuff로 버프바에 표시. 스탯은 bonus/PetStatBonus가 담당).
+		-- lifeCoin = 라이프 코인(인게임 재화) 구매가. 월드 코인 가격은 상점 등록값을 런타임 조회(_worldPrice).
 		return {
-			{ name = "쁘띠 루미", ruid = "079d10343b0c41718d67fb619cc8ee60", bonus = { intPct = 10 }, buff = "Pet_Lumi" },
-			{ name = "쁘띠 팬텀", ruid = "a4954fe77b3148fa9bbb85543498fb82", bonus = { lukPct = 10 }, buff = "Pet_Phantom" },
-			{ name = "쁘띠 아란", ruid = "0b3329aa82ac46a7a44e053d133eda89", bonus = { strPct = 10 }, buff = "Pet_Aran" },
-			{ name = "쁘띠 메르", ruid = "e51e5cb8822846569ab2d69f99cbac58", bonus = { dexPct = 10 }, buff = "Pet_Mer" },
-			{ name = "쁘띠 은월", ruid = "42d1bed405ec48c4a3cd7de63aff0d44", bonus = { allStatPct = 9 }, buff = "Pet_Eunwol" },
-			{ name = "쁘띠 에반", ruid = "6fc322e47e2d415f967865a632ec1b1e", bonus = { intPct = 10 }, buff = "Pet_Evan" },
+			{ name = "쁘띠 루미", ruid = "079d10343b0c41718d67fb619cc8ee60", bonus = { intPct = 10 }, buff = "Pet_Lumi", lifeCoin = 500 },
+			{ name = "쁘띠 팬텀", ruid = "a4954fe77b3148fa9bbb85543498fb82", bonus = { lukPct = 10 }, buff = "Pet_Phantom", lifeCoin = 500 },
+			{ name = "쁘띠 아란", ruid = "0b3329aa82ac46a7a44e053d133eda89", bonus = { strPct = 10 }, buff = "Pet_Aran", lifeCoin = 500 },
+			{ name = "쁘띠 메르", ruid = "e51e5cb8822846569ab2d69f99cbac58", bonus = { dexPct = 10 }, buff = "Pet_Mer", lifeCoin = 500 },
+			{ name = "쁘띠 은월", ruid = "42d1bed405ec48c4a3cd7de63aff0d44", bonus = { allStatPct = 9 }, buff = "Pet_Eunwol", lifeCoin = 500 },
+			{ name = "쁘띠 에반", ruid = "6fc322e47e2d415f967865a632ec1b1e", bonus = { intPct = 10 }, buff = "Pet_Evan", lifeCoin = 500 },
 		}
 	end
 
@@ -58,6 +71,14 @@ script PetShopManager extends Logic
 		-- 상품명 → 현재 월드 productId(없으면 nil). LifeCoinExchange 등 다른 상점이 재사용.
 		if self._nameToId == nil then return nil end
 		return self._nameToId[name]
+	end
+
+	method integer WorldPriceByName(string name)
+		-- 상품명 → 현재 월드에 등록된 월드 코인 가격. 미등록/미조회면 -1.
+		if self._worldPrice == nil then return -1 end
+		local p = self._worldPrice[name]
+		if p == nil then return -1 end
+		return p
 	end
 
 	method any PetByName(string name)
@@ -86,6 +107,7 @@ script PetShopManager extends Logic
 		-- 이관 후 그룹 월드에 '같은 이름'으로 상품만 재등록하면 코드 수정 없이 자동 매칭된다.
 		self._nameToId = {}
 		self._idToName = {}
+		self._worldPrice = {}
 		-- 판매중(Ing) 우선. Maker 테스트(판매기간 시작 전) 대비 대기/등록 상태도 보조로 채움.
 		self:WalkProducts(WorldShopProductStatus.Ing)
 		self:WalkProducts(WorldShopProductStatus.Waiting)
@@ -104,6 +126,8 @@ script PetShopManager extends Logic
 					if self._nameToId[prod.Name] == nil then
 						self._nameToId[prod.Name] = prod.Id
 						self._idToName[prod.Id] = prod.Name
+						-- 월드 코인 가격도 함께 캐시(카드 버튼/선택 팝업의 병행 가격 표기용).
+						self._worldPrice[prod.Name] = prod.Price
 					end
 				end
 			end
@@ -251,6 +275,48 @@ script PetShopManager extends Logic
 		self:SaveEquipped(userId, petName)
 		self:SpawnPetFor(userId, petName)
 		self:SendPetState(userId, table.concat(self:OwnedNames(set), ","), petName)
+	end
+
+	@ExecSpace("Server")
+	method void RequestBuyWithLifeCoin(string petName)
+		-- 클라→서버: 월드 코인 결제 대신 '라이프 코인'으로 펫 구매.
+		-- 잔액 검증/차감은 전부 서버에서만 한다(클라 캐시는 표시용).
+		local userId = senderUserId
+		if userId == nil or userId == "" then return end
+		local pet = self:PetByName(petName)
+		if pet == nil then return end
+		local set = self:LoadOwnedSet(userId)
+		if set[petName] == true then
+			-- 이미 소유 → 차감 없이 상태만 재전송(버튼 라벨 정정 + 팝업 닫기).
+			self:PushPetStateTo(userId)
+			self:NotifyLifeBuy(true, "", userId)
+			return
+		end
+		local price = pet.lifeCoin or 0
+		if price <= 0 then return end
+		if _MetaProgressionManager == nil then
+			self:NotifyLifeBuy(false, "지금은 구매할 수 없습니다.", userId)
+			return
+		end
+		-- TrySpendCoins는 부족하면 차감 없이 false + 잔액 UI 갱신까지 처리.
+		if _MetaProgressionManager:TrySpendCoins(userId, price) == false then
+			self:NotifyLifeBuy(false, "라이프 코인이 부족합니다.", userId)
+			return
+		end
+		-- 지급은 월드 코인 결제와 동일 경로(소유 기록 + 빈 슬롯이면 자동 장착 + 상태 전송).
+		self:GrantOwnership(userId, petName)
+		log("[PetShop] 라이프 코인 구매 완료: user=" .. tostring(userId) .. " pet=" .. petName .. " -" .. tostring(price))
+		self:NotifyLifeBuy(true, "", userId)
+	end
+
+	@ExecSpace("Client")
+	method void NotifyLifeBuy(boolean ok, string msg)
+		-- 서버 → 요청 클라: 라이프 코인 구매 결과. 성공이면 팝업 닫기, 실패면 사유 표시.
+		if ok then
+			self:CloseBuyChoice()
+		else
+			self:SetText(self.buyChoicePath .. "/Box/Msg", msg)
+		end
 	end
 
 	@ExecSpace("ServerOnly")
@@ -464,17 +530,57 @@ script PetShopManager extends Logic
 				iconE.SpriteGUIRendererComponent.ImageRUID = DataRef(pets[i].ruid)
 			end
 			local capturedName = pets[i].name
-			-- 상태 수신 전 기본 라벨: 구매하기.
-			local btnE = _EntityService:GetEntityByPath(rowPath .. "/BtnBuy")
-			if isvalid(btnE) and isvalid(btnE.TextComponent) then btnE.TextComponent.Text = "구매하기" end
+			-- 상태 수신 전 기본 라벨: 라이프/월드 코인 가격 병행 표기.
+			self:ApplyCardLabel(rowPath, self:PriceLabel(pets[i]), true)
 			-- 클릭은 소유 여부에 따라 구매/장착으로 분기(OnRowClick).
 			self:WireBtn(rowPath .. "/BtnBuy", function() self:OnRowClick(capturedName) end)
 			-- 펫 옵션 호버 툴팁 배선.
 			self:WirePetHover(rowPath, pets[i])
 		end
 
+		-- 구매 수단 선택 팝업(라이프 코인 / 월드 코인 / 취소). 시작 시 숨김.
+		local bc = _EntityService:GetEntityByPath(self.buyChoicePath)
+		if isvalid(bc) then bc.Enable = false end
+		self:WireBtn(self.buyChoicePath .. "/Box/BtnLife", function() self:OnChoiceLife() end)
+		self:WireBtn(self.buyChoicePath .. "/Box/BtnWorld", function() self:OnChoiceWorld() end)
+		self:WireBtn(self.buyChoicePath .. "/Box/BtnCancel", function() self:CloseBuyChoice() end)
+		log("[PetShop] 병행 가격 라벨 적용(월드=" .. tostring(self:WorldPriceByName(pets[1].name)) .. " 라이프=" .. tostring(pets[1].lifeCoin) .. ") 선택팝업=" .. tostring(isvalid(bc)))
+
 		-- 내 소유/장착 상태 요청 → 서버가 push하면 버튼 라벨이 갱신됨.
 		self:RequestPetState()
+	end
+
+	method string PriceLabel(table pet)
+		-- 미소유 카드 버튼 라벨: 라이프 코인 / 월드 코인 가격을 2줄로 병행 표기.
+		-- 월드 가격은 상점 조회 실패 시 "-"(결제 자체는 OnBuyClick이 경고 후 차단).
+		local wp = self:WorldPriceByName(pet.name)
+		local wtxt = "-"
+		if wp > 0 then wtxt = tostring(wp) end
+		return "라이프 " .. tostring(pet.lifeCoin or 0) .. "\n월드 " .. wtxt
+	end
+
+	@ExecSpace("ClientOnly")
+	method void ApplyCardLabel(string rowPath, string label, boolean isPrice)
+		-- 카드 버튼 텍스트 + 글자 크기 적용(2줄 가격 표기는 작게, 단일 라벨은 원래 크기).
+		local btnE = _EntityService:GetEntityByPath(rowPath .. "/BtnBuy")
+		if isvalid(btnE) == false then return end
+		if isvalid(btnE.TextComponent) then
+			btnE.TextComponent.Text = label
+			if isPrice then
+				btnE.TextComponent.FontSize = 18
+			else
+				btnE.TextComponent.FontSize = 24
+			end
+		end
+		-- 4분기 모두 클릭 가능. 이전 버전이 '장착중'에서 꺼둔 ButtonComponent가 남아 있을 수 있어 매번 켠다.
+		if isvalid(btnE.ButtonComponent) then btnE.ButtonComponent.Enable = true end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void SetText(string path, string text)
+		-- 경로 엔티티의 TextComponent.Text 설정(선택 팝업 타이틀/메시지/버튼 라벨용).
+		local e = _EntityService:GetEntityByPath(path)
+		if isvalid(e) and isvalid(e.TextComponent) then e.TextComponent.Text = text end
 	end
 
 	@ExecSpace("ClientOnly")
@@ -540,14 +646,16 @@ script PetShopManager extends Logic
 	method void CloseShop()
 		-- 상점 전체 숨김.
 		_SFXManager:PlayClick()
+		self:CloseBuyChoice()
 		local shop = _EntityService:GetEntityByPath(self.shopPanelPath)
 		if isvalid(shop) then shop.Enable = false end
 	end
 
 	@ExecSpace("ClientOnly")
 	method void ShowCategory(string key)
-		-- 선택 카테고리 패널만 표시, 나머지 숨김.
+		-- 선택 카테고리 패널만 표시, 나머지 숨김. 탭이 바뀌면 구매 선택 팝업도 닫는다.
 		_SFXManager:PlayClick()
+		self:CloseBuyChoice()
 		for _, c in ipairs(self:Categories()) do
 			local pnl = _EntityService:GetEntityByPath(self.shopPanelPath .. "/" .. c.panel)
 			if isvalid(pnl) then pnl.Enable = (c.key == key) end
@@ -571,7 +679,7 @@ script PetShopManager extends Logic
 
 	@ExecSpace("ClientOnly")
 	method void OnRowClick(string petName)
-		-- 카드 버튼 클릭: 미소유=결제창, 소유+이 펫 장착중=해제, 소유+미장착=무료 장착/교체 요청.
+		-- 카드 버튼 클릭: 미소유=구매 수단 선택 팝업, 소유+이 펫 장착중=해제, 소유+미장착=무료 장착/교체 요청.
 		local owned = self._owned
 		if owned ~= nil and owned[petName] == true then
 			_SFXManager:PlayClick()
@@ -581,9 +689,93 @@ script PetShopManager extends Logic
 				self:RequestEquipPet(petName)
 			end
 		else
-			-- OnBuyClick가 클릭음 + 결제창 처리.
-			self:OnBuyClick(petName)
+			_SFXManager:PlayClick()
+			self:OpenBuyChoice(petName)
 		end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void OpenBuyChoice(string petName)
+		-- 미소유 펫 구매 시 '라이프 코인 / 월드 코인' 중 선택하는 팝업을 연다.
+		-- 팝업 노드가 없는(구버전 .ui) 경우엔 기존 월드 코인 결제창으로 폴백.
+		local pet = self:PetByName(petName)
+		if pet == nil then return end
+		local root = _EntityService:GetEntityByPath(self.buyChoicePath)
+		if isvalid(root) == false then
+			self:OnBuyClick(petName)
+			return
+		end
+		self._pendPet = petName
+		self:SetText(self.buyChoicePath .. "/Box/Title", pet.name .. " 구매")
+		self:SetText(self.buyChoicePath .. "/Box/BtnLife", "라이프 코인 " .. tostring(pet.lifeCoin or 0))
+		local wp = self:WorldPriceByName(pet.name)
+		if wp > 0 then
+			self:SetText(self.buyChoicePath .. "/Box/BtnWorld", "월드 코인 " .. tostring(wp))
+		else
+			self:SetText(self.buyChoicePath .. "/Box/BtnWorld", "월드 코인 구매")
+		end
+		self:RefreshChoiceMsg()
+		root.Enable = true
+		-- 같은 .ui 안에서는 형제 인덱스가 z → 열 때마다 맨 앞으로 올린다.
+		if isvalid(root.UITransformComponent) then
+			_UILogic:SetSiblingIndex(root.UITransformComponent, 1000000)
+		end
+		log("[PetShop] 구매 선택 팝업 열기: " .. pet.name .. " 라이프=" .. tostring(pet.lifeCoin) .. " 월드=" .. tostring(wp))
+		-- 보유 라이프 코인 최신화 요청(응답은 MetaProgressionManager.PushMeta → ApplyCoin).
+		if _MetaProgressionManager ~= nil then _MetaProgressionManager:RequestMeta() end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void CloseBuyChoice()
+		-- 선택 팝업 닫기(대상 펫 해제). 취소 버튼 / 구매 성공 / 상점 닫기·탭 전환에서 호출.
+		self._pendPet = ""
+		local root = _EntityService:GetEntityByPath(self.buyChoicePath)
+		if isvalid(root) then root.Enable = false end
+	end
+
+	@ExecSpace("ClientOnly")
+	method void ApplyCoin(integer coin)
+		-- MetaProgressionManager.PushMeta가 호출: 보유 라이프 코인 캐시 + 열려 있는 팝업 메시지 갱신.
+		self._coin = coin
+		self:RefreshChoiceMsg()
+	end
+
+	@ExecSpace("ClientOnly")
+	method void RefreshChoiceMsg()
+		-- 팝업 안내문: 보유 라이프 코인(부족하면 경고 병기). 팝업이 닫혀 있으면 아무것도 안 함.
+		if self._pendPet == nil or self._pendPet == "" then return end
+		local pet = self:PetByName(self._pendPet)
+		if pet == nil then return end
+		local msg = "보유 라이프 코인 " .. tostring(self._coin)
+		if self._coin < (pet.lifeCoin or 0) then
+			msg = msg .. " — 라이프 코인이 부족합니다."
+		end
+		self:SetText(self.buyChoicePath .. "/Box/Msg", msg)
+	end
+
+	@ExecSpace("ClientOnly")
+	method void OnChoiceLife()
+		-- '라이프 코인' 선택: 클라에서 1차 잔액 확인 후 서버에 구매 요청(최종 검증/차감은 서버).
+		_SFXManager:PlayClick()
+		local name = self._pendPet
+		if name == nil or name == "" then return end
+		local pet = self:PetByName(name)
+		if pet == nil then return end
+		if self._coin < (pet.lifeCoin or 0) then
+			self:SetText(self.buyChoicePath .. "/Box/Msg", "라이프 코인이 부족합니다. (보유 " .. tostring(self._coin) .. ")")
+			return
+		end
+		self:RequestBuyWithLifeCoin(name)
+	end
+
+	@ExecSpace("ClientOnly")
+	method void OnChoiceWorld()
+		-- '월드 코인' 선택: 기존 경로 그대로 메월드 결제창을 띄운다(지급은 결제 콜백).
+		local name = self._pendPet
+		if name == nil or name == "" then return end
+		self:CloseBuyChoice()
+		-- OnBuyClick가 클릭음 + PromptPurchase 처리.
+		self:OnBuyClick(name)
 	end
 
 	@ExecSpace("Client")
@@ -607,8 +799,8 @@ script PetShopManager extends Logic
 	@ExecSpace("ClientOnly")
 	method void RefreshButtons()
 		-- 소유/장착 상태에 따라 각 펫 카드 버튼 라벨을 4분기로 갱신.
-		--   미소유=구매하기 / 소유+아무것도 장착안함=장착하기 / 소유+다른 펫 장착중=교체하기 /
-		--   소유+이 펫 장착중=장착중(누르면 장착 해제).
+		--   미소유=가격 병행 표기(라이프/월드) / 소유+아무것도 장착안함=장착하기 /
+		--   소유+다른 펫 장착중=교체하기 / 소유+이 펫 장착중=장착중(누르면 장착 해제).
 		local owned = self._owned
 		if owned == nil then owned = {} end
 		local hasEquipped = (self._equipped ~= nil and self._equipped ~= "")
@@ -616,24 +808,19 @@ script PetShopManager extends Logic
 		for i = 1, #pets do
 			local name = pets[i].name
 			local rowPath = self.petPanelPath .. "/Rows/Row" .. tostring(i)
-			local btnE = _EntityService:GetEntityByPath(rowPath .. "/BtnBuy")
-			if isvalid(btnE) then
-				local label = "구매하기"
-				if owned[name] == true then
-					if self._equipped == name then
-						-- 이미 이 펫을 장착 중 → 누르면 해제(OnRowClick).
-						label = "장착중"
-					elseif hasEquipped then
-						-- 다른 펫을 장착 중.
-						label = "교체하기"
-					else
-						-- 소유했지만 아무것도 장착 안 함.
-						label = "장착하기"
-					end
+			if owned[name] == true then
+				local label = "장착하기"
+				if self._equipped == name then
+					-- 이미 이 펫을 장착 중 → 누르면 해제(OnRowClick).
+					label = "장착중"
+				elseif hasEquipped then
+					-- 다른 펫을 장착 중.
+					label = "교체하기"
 				end
-				if isvalid(btnE.TextComponent) then btnE.TextComponent.Text = label end
-				-- 4분기 모두 클릭 가능. 이전 버전이 '장착중'에서 꺼둔 ButtonComponent가 남아 있을 수 있어 매번 켠다.
-				if isvalid(btnE.ButtonComponent) then btnE.ButtonComponent.Enable = true end
+				self:ApplyCardLabel(rowPath, label, false)
+			else
+				-- 미소유: 두 가지 구매 수단의 가격을 병행 표기.
+				self:ApplyCardLabel(rowPath, self:PriceLabel(pets[i]), true)
 			end
 		end
 	end
