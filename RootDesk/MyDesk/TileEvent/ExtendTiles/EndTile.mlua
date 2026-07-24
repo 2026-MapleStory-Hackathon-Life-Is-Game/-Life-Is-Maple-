@@ -10,8 +10,18 @@ script EndTile extends BaseTile
 	-- 검은 마법사 선택 난이도("Hard"/"Extreme"). RequestSelect에서 저장, 적정 전투력·익스트림 보상 판정에 사용.
 	property string _diffKey = "Hard"
 
-	-- 익스트림 처치 업적 뱃지 ID(World Badge: '익스트림 검은 마법사 토벌', EPIC). 빈 문자열이면 뱃지 미지급(코인만).
-	property string BlackMageExtremeBadgeId = "6D6WYZ09M"
+	-- 익스트림 처치 업적 뱃지는 '이름'으로 조회한다. 뱃지 ID는 월드마다 따로 발급되므로(그룹판 TRETAWVY8 /
+	-- 개인판 6D6WYZ09M) ID를 박아두면 한쪽에서만 동작한다. 세미콜론(;)으로 구분한 후보 이름을 앞에서부터
+	-- 훑어, 현재 월드에 실제로 등록된 첫 이름의 ID를 쓴다.
+	property string BlackMageExtremeBadgeNames = "창세의 뱃지;익스트림 검은 마법사 토벌"
+
+	-- 이름 조회가 모두 실패했을 때만 쓰는 최후 폴백 ID. 빈 문자열이면 뱃지 미지급(코인만).
+	property string BlackMageExtremeBadgeId = ""
+
+	-- 이름→ID 해석 결과 캐시. BadgeService 조회는 스크립트를 멈추는(blocking) 호출이라 1회만 하고 재사용한다.
+	property string _badgeIdCache = ""
+
+	property boolean _badgeLookupDone = false
 
 	property boolean _cubeRolling = false
 
@@ -386,11 +396,69 @@ script EndTile extends BaseTile
 		if coin > 0 and _MetaProgressionManager ~= nil then
 			_MetaProgressionManager:AwardCoins(ownerId, coin)
 		end
-		if self._diffKey == "Extreme" and statCleared and self.BlackMageExtremeBadgeId ~= "" then
-			_BadgeService:AwardBadgeAndWait(ownerId, self.BlackMageExtremeBadgeId)
+		if self._diffKey == "Extreme" and statCleared then
+			local badgeId = self:ResolveExtremeBadgeId()
+			if badgeId ~= "" then
+				local granted = _BadgeService:AwardBadgeAndWait(ownerId, badgeId)
+				log("[EndTile] 익스트림 뱃지 지급 user=" .. ownerId .. " id=" .. badgeId .. " ok=" .. tostring(granted))
+			end
 		end
 		log("[EndTile] 검은마법사 보상 user=" .. ownerId .. " diff=" .. self._diffKey
 			.. " outcome=" .. outcome .. " coin=" .. tostring(coin) .. " statClear=" .. tostring(statCleared))
+	end
+
+	method void CollectBadgeIds(table found, any pages)
+		-- 검색 결과 페이지(BadgeInfoPages)를 끝까지 넘기며 (뱃지 이름 → 뱃지 ID)를 found 테이블에 모은다.
+		-- 파라미터 타입이 any인 이유: BadgeInfoPages는 사용자 메서드 시그니처에 쓸 수 없는 내부 타입.
+		-- 먼저 담긴 값을 우선(같은 이름이 여러 상태에 있으면 앞 상태의 것 유지). 페이지 상한은 무한루프 방어.
+		if pages == nil then return end
+		local guard = 0
+		while guard < 40 do
+			guard = guard + 1
+			local infos = pages:GetCurrentPageDatas()
+			if infos ~= nil then
+				for _, info in ipairs(infos) do
+					if info ~= nil and found[info.Name] == nil then
+						found[info.Name] = info.Id
+					end
+				end
+			end
+			if pages.IsLastPage then return end
+			pages:MoveToNextPageAndWait()
+		end
+	end
+
+	method string ResolveExtremeBadgeId()
+		-- 익스트림 뱃지 ID를 '이름'으로 해석한다. 그룹판/개인판이 서로 다른 ID를 발급받아도, 같은 이름의
+		-- 뱃지만 등록돼 있으면 코드 수정 없이 양쪽에서 동일하게 동작한다. BadgeService 조회는 blocking이라
+		-- 최초 1회만 하고 캐시한다. 이름을 못 찾으면 폴백 ID(BlackMageExtremeBadgeId)를 쓴다.
+		if self._badgeLookupDone then return self._badgeIdCache end
+		self._badgeLookupDone = true
+		self._badgeIdCache = self.BlackMageExtremeBadgeId
+
+		local wantedNames = {}
+		for token in string.gmatch(self.BlackMageExtremeBadgeNames, "[^;]+") do
+			table.insert(wantedNames, token)
+		end
+		if #wantedNames == 0 then return self._badgeIdCache end
+
+		-- 등급은 전부 훑고, 상태는 '획득 가능 → 등록 진행 중 → 획득 대기' 순(END/DELETED는 지급 불가라 제외).
+		local grades = { BadgeGrade.Normal, BadgeGrade.Rare, BadgeGrade.Epic }
+		local found = {}
+		self:CollectBadgeIds(found, _BadgeService:GetBadgeInfosAndWait(grades, BadgeStatus.Ing))
+		self:CollectBadgeIds(found, _BadgeService:GetBadgeInfosAndWait(grades, BadgeStatus.Register))
+		self:CollectBadgeIds(found, _BadgeService:GetBadgeInfosAndWait(grades, BadgeStatus.Waiting))
+
+		for _, wanted in ipairs(wantedNames) do
+			if found[wanted] ~= nil then
+				self._badgeIdCache = found[wanted]
+				log("[EndTile] 익스트림 뱃지 이름 해석 '" .. wanted .. "' → id=" .. self._badgeIdCache)
+				return self._badgeIdCache
+			end
+		end
+		log_warning("[EndTile] 익스트림 뱃지 이름(" .. self.BlackMageExtremeBadgeNames
+			.. ")을 이 월드에서 못 찾음 → 폴백 id='" .. self._badgeIdCache .. "'")
+		return self._badgeIdCache
 	end
 
 	method integer BlackMageRequiredPower()
